@@ -2,6 +2,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/InstrTypes.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/IRBuilder.h"
@@ -80,14 +81,52 @@ namespace {
             return newInst;
         }
 
+        std::string cmpOpCode(Instruction &I) {
+            FCmpInst::Predicate p = (cast<FCmpInst>(I)).getPredicate();
+            switch(p) {
+
+            case CmpInst::FCMP_OEQ:
+            case CmpInst::FCMP_UEQ:
+                return "eq";
+
+            case CmpInst::FCMP_OGT:
+            case CmpInst::FCMP_UGT:
+                return "gt";
+
+            case CmpInst::FCMP_OGE:
+            case CmpInst::FCMP_UGE:
+                return "ge";
+
+            case CmpInst::FCMP_OLT:
+            case CmpInst::FCMP_ULT:
+                return "lt";
+
+            case CmpInst::FCMP_OLE:
+            case CmpInst::FCMP_ULE:
+                return "le";
+
+            case CmpInst::FCMP_ONE:
+            case CmpInst::FCMP_UNE:
+                return "ne";
+
+            default:
+                return "";
+            }
+        }
+
         std::string mustReplace(Instruction &I) {
             switch(I.getOpcode()) {
             case Instruction::FAdd:
                 return "add";
+            case Instruction::FSub:
+                // In LLVM IR the FSub instruction is used to represent FNeg
+                return "sub";
             case Instruction::FMul:
                 return "mul";
             case Instruction::FDiv:
                 return "div";
+            case Instruction::FCmp:
+                return cmpOpCode(I);
             default:
                 return "";
             }
