@@ -1,5 +1,7 @@
 ## Verificarlo
 
+[![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
+
 A tool for automatic Montecarlo Arithmetic analysis.
 
 ### Installation
@@ -46,7 +48,7 @@ install procedure:
    # ensure that the installation directory is added to your LD_LIBRARY_PATH
 
    $ sudo apt-get install clang-3.3 llvm3.3-dev dragonegg-4.7 gcc-4.7 \
-               gfortran-4.7 autoconf
+               gfortran-4.7 autoconf automake build-essential
 
    $ cd verificarlo/
    $ ./autogen.sh
