@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 # Compile tchebychev.c using MCA lib instrumentation
