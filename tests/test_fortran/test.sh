@@ -10,9 +10,11 @@ set -e
 ./newton > output1
 ./newton > output2
 
-diff output1 output2 > /dev/null
+diff output1 output2
 
-if [ "x$?" == "x0" ]; then
+if [ $? -eq 0 ]; then
     echo "output should differ"
     exit 1
 fi
+
+exit 0
