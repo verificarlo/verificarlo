@@ -117,5 +117,5 @@ if __name__ == "__main__":
     if args.c:
         compiler_mode(sources, llvm_options, output)
     else:
-        compiler_mode(sources, llvm_options, output)
+        compiler_mode(sources, llvm_options, "")
         linker_mode(sources, llvm_options, output)
