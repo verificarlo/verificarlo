@@ -1,0 +1,121 @@
+#!/usr/bin/python
+
+from __future__ import print_function
+
+import argparse
+import os
+import sys
+import subprocess
+
+PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
+libmcainstrument = PROJECT_ROOT + '/src/libmcainstrument/.libs/libmcainstrument.so'
+mcawrapper = PROJECT_ROOT + '/src/mcawrapper/mcawrapper.c'
+llvm_bindir = "@LLVM_BINDIR@"
+clang = llvm_bindir + '/clang'
+opt = llvm_bindir + '/opt'
+dragonegg = "@DRAGONEGG_PATH@"
+gcc = "@GCC_PATH@"
+FORTRAN_EXTENSIONS=[".f", ".f90", ".f77"]
+C_EXTENSIONS=[".C", ".c", ".cpp", ".cc"]
+
+class NoPrefixParser(argparse.ArgumentParser):
+    # ignore prefix autocompletion of options
+    def _get_option_tuples(self, option_string):
+        return []
+
+def is_fortran(name):
+    return os.path.splitext(name)[1] in FORTRAN_EXTENSIONS
+
+def is_c(name):
+    return os.path.splitext(name)[1] in C_EXTENSIONS
+
+def parse_extra_args(args):
+    sources = []
+    options = []
+
+    for a in args:
+        if is_fortran(a) or is_c(a):
+            sources.append(a)
+        else:
+            options.append(a)
+
+    return sources, ' '.join(options)
+
+def fail(msg):
+    print(sys.argv[0] + ': ' + msg, file=sys.stderr)
+    sys.exit(1)
+
+def shell(cmd):
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError:
+        fail('command failed:\n' + cmd)
+
+def linker_mode(sources, options, output):
+    shell('{clang} -c -o .mcawrapper.o {mcawrapper}'.format(
+        clang=clang,
+        mcawrapper=mcawrapper))
+    shell('{linker} {output} {options} {sources} .mcawrapper.o -lmca'.format(
+        linker=gcc,
+        output=output,
+        sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
+        options=options))
+
+def compiler_mode(sources, options, output):
+    for source in sources:
+        basename = os.path.splitext(source)[0]
+        ir = basename + '.1.ll'
+        ins = basename + '.2.ll'
+
+        # Compile to ir (fortran uses gcc+dragonegg, c uses clang)
+        if is_fortran(source):
+            shell('{gcc} -c -S {source} {options} -fplugin={dragonegg} -fplugin-arg-dragonegg-emit-ir -o {ir}'.format(
+                gcc=gcc,
+                source=source,
+                options=options,
+                dragonegg=dragonegg,
+                ir=ir))
+        else:
+            shell('{clang} -c -S {source} -emit-llvm {options} -o {ir}'.format(
+                clang=clang,
+                source=source,
+                options=options,
+                ir=ir
+            ))
+
+        # Apply MCA instrumentation pass
+        shell('{opt} -S -load {libmcainstrument} -mcalibinst {ir} -o {ins}'.format(
+            opt=opt,
+            libmcainstrument=libmcainstrument,
+            ir=ir,
+            ins=ins
+            ))
+
+        if not output:
+            output = '-o ' + basename + '.o'
+        # Produce object file
+        shell('{clang} -c {output} {ins} {options}'.format(
+            clang=clang,
+            output=output,
+            ins=ins,
+            options=options))
+
+if __name__ == "__main__":
+    parser = NoPrefixParser(description='Compiles a program replacing floating point operation with calls to the mcalib (Montecarlo Arithmetic).')
+    parser.add_argument('-c', action='store_true', help='Only run preprocess, compile, and assemble steps')
+    parser.add_argument('-o', metavar='file', help='write output to <file>')
+    args, other = parser.parse_known_args()
+
+    sources, llvm_options = parse_extra_args(other)
+
+    # check input files
+
+    if len(sources) > 1 and args.o:
+        fail('cannot specify -o when generating multiple output files')
+
+    output = "-o " + args.o if args.o else ""
+    if args.c:
+        compiler_mode(sources, llvm_options, output)
+    else:
+        compiler_mode(sources, llvm_options, output)
+        linker_mode(sources, llvm_options, output)

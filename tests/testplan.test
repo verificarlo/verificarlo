@@ -1,0 +1,26 @@
+#!/bin/bash
+
+tests=""
+if [ "$1" == "--long" ]; then
+    tests="$tests $(find . -maxdepth 1 -type d -name 'long_*' | sort)"
+fi
+
+tests="$tests $(find . -maxdepth 1 -type d -name 'test_*' | sort)"
+
+count=$(echo $tests | wc -w)
+
+# Print number of tests detected
+echo "1..$count"
+
+test_number=1
+for t in $tests; do
+    echo $t
+    if bash -c -l "cd $t && ./test.sh > test.log 2>&1" ; then
+    echo
+        echo "ok $test_number $t"
+    else
+        echo "not ok $test_number $t"
+        cat $t/test.log
+    fi
+    test_number=$[test_number+1]
+done
