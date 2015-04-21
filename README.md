@@ -30,7 +30,7 @@ on your system:
 ### Usage
 
 To automatically instrument a program with Verificarlo you must compile it using
-the `verificarlo` command. First make sure to add the `verificarlo\` root
+the `verificarlo` command. First make sure to add the `verificarlo/` root
 directory to your path with
 
 ```bash
