@@ -8,7 +8,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
 
   * mcalib, https://github.com/mfrechtling/mcalib
   * clang 3.3 or 3.4, http://clang.llvm.org/
-  * gcc and dragonegg (for Fortran support), http://dragonegg.llvm.org/
+  * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
   * python, version >= 2.4
   * autotools (automake, autoconf)
 
