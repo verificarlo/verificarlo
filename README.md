@@ -7,7 +7,7 @@ A tool for automatic Montecarlo Arithmetic analysis.
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * mcalib, https://github.com/mfrechtling/mcalib
-  * clang 3.3 or 3.4, http://clang.llvm.org/
+  * LLVM, clang and opt 3.3 or 3.4, http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
   * python, version >= 2.4
   * autotools (automake, autoconf)
@@ -20,11 +20,40 @@ Then run the following command inside verificarlo directory:
    $ make
 ```
 
-We recommend that you run the test suite to ensure verificarlo works as expected
+If needed LLVM path, dragonegg path, and gcc path can be configured with the
+following options:
+
+```bash
+   $ ./configure --with-llvm=<path to llvm bin directory> \
+                 --with-dragonegg=<path to dragonegg.so> \
+                 CC=<gcc binary compatible with installed dragonegg>
+```
+
+Once installation is over, we recommend that you run the test suite to ensure verificarlo works as expected
 on your system:
 
 ```bash
    $ make check
+```
+
+
+For example on an x86_64 Ubuntu 14.04 release, you should use the following
+install procedure:
+
+```bash
+   # install mcalib manually following instructions at
+   # https://github.com/mfrechtling/mcalib
+   # ensure that the installation directory is added to your LD_LIBRARY_PATH
+
+   $ sudo apt-get install clang-3.3 llvm3.3-dev dragonegg-4.7 gcc-4.7 \
+               gfortran-4.7 autoconf
+
+   $ cd verificarlo/
+   $ ./autogen.sh
+   $ ./configure --with-llvm=/usr/bin \
+       --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so \
+       CC=gcc-4.7
+   $ make && make check
 ```
 
 ### Usage
