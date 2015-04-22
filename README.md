@@ -26,7 +26,7 @@ If needed LLVM path, dragonegg path, and gcc path can be configured with the
 following options:
 
 ```bash
-   $ ./configure --with-llvm=<path to llvm bin directory> \
+   $ ./configure --with-llvm=<path to llvm install directory> \
                  --with-dragonegg=<path to dragonegg.so> \
                  CC=<gcc binary compatible with installed dragonegg>
 ```
@@ -52,7 +52,7 @@ install procedure:
 
    $ cd verificarlo/
    $ ./autogen.sh
-   $ ./configure --with-llvm=/usr/bin \
+   $ ./configure \
        --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so \
        CC=gcc-4.7
    $ make && make check

@@ -2,16 +2,18 @@ language: c
 sudo: required
 
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq clang-3.4 dragonegg gcc-4.6 gfortran-4.6 autoconf automake build-essential
+  - sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main'
+  - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
+  - sudo add-apt-repository ppa:dns/gnu -y
+  - sudo apt-get update
+  - sudo apt-get install clang-3.4 llvm-3.4 llvm-3.4-dev dragonegg gcc-4.6 gfortran-4.6 autoconf automake build-essential
+  - which llvm-config
   - git clone https://github.com/mfrechtling/mcalib.git
-  - bash -c -l "cd mcalib/ && ./mcasetup.sh"
+  - bash -c -l "cd mcalib/ && sudo ./setupmca.sh"
 
 install:
   - ./autogen.sh
-  - ./configure --with-llvm=/usr/bin \
-                --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.6/plugin/dragonegg.so \
-                CC=gcc-4.6
+  - ./configure --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.6/plugin/dragonegg.so CC=gcc-4.6
   - make
 
 script: make check
