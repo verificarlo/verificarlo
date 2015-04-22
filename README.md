@@ -11,7 +11,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
   * mcalib, https://github.com/mfrechtling/mcalib
   * LLVM, clang and opt 3.3 or 3.4, http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
-  * python, version >= 2.4
+  * python, version >= 2.7
   * autotools (automake, autoconf)
 
 Then run the following command inside verificarlo directory:
