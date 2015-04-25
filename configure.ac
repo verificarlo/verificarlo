@@ -20,9 +20,13 @@ AC_PROG_CC([gcc])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg and replay linking)])
 AC_SUBST(GCC_PATH, $CC)
 AX_LLVM([3.3],[all])
+AC_CHECK_LIB([mca], [_mca_seed])
+AC_CHECK_LIB([c], [exit])
+AC_CHECK_LIB([gfortran], [exit])
+AC_CHECK_LIB([m], [sin])
 
 # Check that the selected GCC is compatible with the selected dragonegg
-AC_MSG_CHECKING([if gcc can compiler fortran with dragonegg])
+AC_MSG_CHECKING([if gcc can compile fortran with dragonegg])
 cat <<EOF >conftest.f90
 module conftest_module
 end module conftest_module
@@ -34,11 +38,6 @@ else
 AC_MSG_RESULT([no])
 AC_MSG_ERROR([Your gcc version ($CC) cannot compile Fortran programs with your dragonegg plugin ($DRAGONEGG_PATH)])
 fi
-
-AC_CHECK_LIB([mca], [_mca_seed])
-AC_CHECK_LIB([c], [exit])
-AC_CHECK_LIB([gfortran], [exit])
-AC_CHECK_LIB([m], [sin])
 
 # Check for header files.
 AC_CHECK_HEADERS([fcntl.h inttypes.h limits.h malloc.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h])
