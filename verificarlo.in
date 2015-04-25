@@ -61,7 +61,7 @@ def linker_mode(sources, options, output):
         sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
         options=options))
 
-def compiler_mode(sources, options, output):
+def compiler_mode(sources, options, output, args):
     for source in sources:
         basename = os.path.splitext(source)[0]
         ir = basename + '.1.ll'
@@ -83,10 +83,16 @@ def compiler_mode(sources, options, output):
                 ir=ir
             ))
 
+        # Limit instrumentation to a function ?
+        selectfunction = ""
+        if args.function:
+            selectfunction = "-mcalibinst-function " + args.function
+
         # Apply MCA instrumentation pass
-        shell('{opt} -S -load {libmcainstrument} -mcalibinst {ir} -o {ins}'.format(
+        shell('{opt} -S -load {libmcainstrument} -mcalibinst {selectfunction} {ir} -o {ins}'.format(
             opt=opt,
             libmcainstrument=libmcainstrument,
+            selectfunction=selectfunction,
             ir=ir,
             ins=ins
             ))
@@ -102,8 +108,9 @@ def compiler_mode(sources, options, output):
 
 if __name__ == "__main__":
     parser = NoPrefixParser(description='Compiles a program replacing floating point operation with calls to the mcalib (Montecarlo Arithmetic).')
-    parser.add_argument('-c', action='store_true', help='Only run preprocess, compile, and assemble steps')
+    parser.add_argument('-c', action='store_true', help='only run preprocess, compile, and assemble steps')
     parser.add_argument('-o', metavar='file', help='write output to <file>')
+    parser.add_argument('--function', metavar='function', help='only instrument <function>')
     args, other = parser.parse_known_args()
 
     sources, llvm_options = parse_extra_args(other)
@@ -115,7 +122,11 @@ if __name__ == "__main__":
 
     output = "-o " + args.o if args.o else ""
     if args.c:
-        compiler_mode(sources, llvm_options, output)
+        if len(sources) == 0:
+            fail('no input files')
+        compiler_mode(sources, llvm_options, output, args)
     else:
-        compiler_mode(sources, llvm_options, "")
+        if len(sources) == 0 and len(llvm_options) == 0:
+            fail('no input files')
+        compiler_mode(sources, llvm_options, "", args)
         linker_mode(sources, llvm_options, output)

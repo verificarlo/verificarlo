@@ -77,6 +77,13 @@ directly:
    $ verificarlo *.c *.f90 -o ./program
 ```
 
+If you only wish to instrument a specific function in your program, use the
+`--function` option:
+
+```bash
+   $ verificarlo *.c -o ./program --function=specificfunction
+```
+
 ### Examples
 
 The `tests/` directory contains various examples of Verificarlo usage.

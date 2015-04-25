@@ -1,11 +1,17 @@
 #include "llvm/Pass.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
 
 using namespace llvm;
+
+// McalibInst pass command line arguments
+static cl::opt<std::string> McalibInstFunction("mcalibinst-function", cl::desc("Only instrument given FunctionName"),
+                                               cl::value_desc("FunctionName"), cl::init(""));
 
 namespace {
     struct McalibInst : public ModulePass {
@@ -15,13 +21,25 @@ namespace {
 
         bool runOnModule(Module &M) {
             bool modified = false;
+            StringRef SelectedFunction = StringRef(McalibInstFunction);
+
+            // Find the list of functions to instrument
+            // Instrumentation adds stubs to mcalib function which we never want to instrument.
+            // Therefore it is important to first find all the functions of interest before starting instrumentation.
+            std::vector<Function*> functions;
             for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
-                modified |= runOnFunction(M, *F);
+                if (SelectedFunction.empty() || F->getName() == SelectedFunction) {
+                    functions.push_back(&*F);
+                }
+            }
+
+            // Do the instrumentation on selected functions
+            for(std::vector<Function*>::iterator F = functions.begin(); F != functions.end(); ++F) {
+                modified |= runOnFunction(M, **F);
             }
             // runOnModule must return true if the pass modifies the IR
             return modified;
         }
-
 
         bool runOnFunction(Module &M, Function &F) {
             errs() << "In Function: ";
