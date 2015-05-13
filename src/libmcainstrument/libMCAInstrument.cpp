@@ -54,7 +54,8 @@ namespace {
         }
 
         Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction &I, std::string opName) {
-            Type *opType = I.getType();
+            Type * retType = I.getType();
+            Type * opType = I.getOperand(0)->getType();
             std::string opTypeName;
 
             std::string vectorName = "";
@@ -86,7 +87,7 @@ namespace {
             std::string mcaFunctionName = "_" + opTypeName + opName;
 
             Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName,
-                                                       opType,
+                                                       retType,
                                                        opType,
                                                        opType,
                                                        (Type *) 0);
