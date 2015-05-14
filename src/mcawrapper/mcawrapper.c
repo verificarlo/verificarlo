@@ -3,7 +3,7 @@
 __attribute__((constructor)) void begin (void)
 {
     _mca_seed();
-    MCALIB_T = 24;
+    MCALIB_T = 40;
     MCALIB_OP_TYPE = MCALIB_MCA;
 }
 
