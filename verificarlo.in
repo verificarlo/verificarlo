@@ -56,7 +56,7 @@ def linker_mode(sources, options, output):
         clang=clang,
         mcawrapper=mcawrapper))
     shell('{linker} {output} {options} {sources} .mcawrapper.o -lmca -lgfortran'.format(
-        linker=gcc,
+        linker=clang,
         output=output,
         sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
         options=options))
