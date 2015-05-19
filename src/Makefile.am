@@ -1,1 +1,1 @@
-SUBDIRS=libmcainstrument
+SUBDIRS=libmcainstrument mcalib

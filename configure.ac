@@ -20,10 +20,10 @@ AC_PROG_CC([gcc])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg and replay linking)])
 AC_SUBST(GCC_PATH, $CC)
 AX_LLVM([3.3],[all])
-AC_CHECK_LIB([mca], [_mca_seed])
 AC_CHECK_LIB([c], [exit])
 AC_CHECK_LIB([gfortran], [exit])
 AC_CHECK_LIB([m], [sin])
+AC_CHECK_LIB([mpfr], [mpfr_clear])
 
 # Check that the selected GCC is compatible with the selected dragonegg
 AC_MSG_CHECKING([if gcc can compile fortran with dragonegg])
@@ -40,7 +40,7 @@ AC_MSG_ERROR([Your gcc version ($CC) cannot compile Fortran programs with your d
 fi
 
 # Check for header files.
-AC_CHECK_HEADERS([fcntl.h inttypes.h limits.h malloc.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h])
+AC_CHECK_HEADERS([fcntl.h inttypes.h limits.h malloc.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h mpfr.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
@@ -105,6 +105,7 @@ fi
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/libmcainstrument/Makefile
+                 src/mcalib/Makefile
                  tests/Makefile])
 
 AC_CONFIG_FILES([verificarlo], [chmod +x verificarlo])

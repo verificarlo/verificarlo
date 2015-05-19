@@ -8,7 +8,6 @@ A tool for automatic Montecarlo Arithmetic analysis.
 
 Please ensure that Verificarlo's dependencies are installed on your system:
 
-  * mcalib, https://github.com/mfrechtling/mcalib
   * LLVM, clang and opt 3.3 or 3.4, http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
   * python, version >= 2.7
@@ -43,10 +42,6 @@ For example on an x86_64 Ubuntu 14.04 release, you should use the following
 install procedure:
 
 ```bash
-   # install mcalib manually following instructions at
-   # https://github.com/mfrechtling/mcalib
-   # ensure that the installation directory is added to your LD_LIBRARY_PATH
-
    $ sudo apt-get install clang-3.3 llvm3.3-dev dragonegg-4.7 gcc-4.7 \
                gfortran-4.7 autoconf automake build-essential
 

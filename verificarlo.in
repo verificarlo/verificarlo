@@ -9,6 +9,7 @@ import subprocess
 
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libmcainstrument = PROJECT_ROOT + '/src/libmcainstrument/.libs/libmcainstrument.so'
+mcalib_dir = PROJECT_ROOT + '/src/mcalib/.libs/'
 mcawrapper = PROJECT_ROOT + '/src/mcawrapper/mcawrapper.c'
 llvm_bindir = "@LLVM_BINDIR@"
 clang = llvm_bindir + '/clang'
@@ -55,11 +56,12 @@ def linker_mode(sources, options, output):
     shell('{clang} -c -o .mcawrapper.o {mcawrapper}'.format(
         clang=clang,
         mcawrapper=mcawrapper))
-    shell('{linker} {output} {options} {sources} .mcawrapper.o -lmca -lgfortran'.format(
+    shell('{linker} {output} {options} {sources} .mcawrapper.o -rpath {mcalib_dir} -L {mcalib_dir} -lmca -lgfortran'.format(
         linker=clang,
         output=output,
         sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
-        options=options))
+        options=options,
+        mcalib_dir = mcalib_dir))
 
 def compiler_mode(sources, options, output, args):
     for source in sources:
