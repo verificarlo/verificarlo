@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 ../../verificarlo --function sum_kahan -O0 kahan.c -o test
 
