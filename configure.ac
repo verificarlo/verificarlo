@@ -20,10 +20,10 @@ AC_PROG_CC([gcc])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg and replay linking)])
 AC_SUBST(GCC_PATH, $CC)
 AX_LLVM([3.3],[all])
-AC_CHECK_LIB([c], [exit])
-AC_CHECK_LIB([gfortran], [exit])
-AC_CHECK_LIB([m], [sin])
-AC_CHECK_LIB([mpfr], [mpfr_clear])
+AC_CHECK_LIB([c], [exit]), , AC_MSG_ERROR([Could not find c library])
+AC_CHECK_LIB([gfortran], [exit], , AC_MSG_ERROR([Could not find gfortran library]))
+AC_CHECK_LIB([m], [sin], , AC_MSG_ERROR([Could not find mpfr library]))
+AC_CHECK_LIB([mpfr], [mpfr_clear], , AC_MSG_ERROR([Could not find mpfr library]))
 
 # Check that the selected GCC is compatible with the selected dragonegg
 AC_MSG_CHECKING([if gcc can compile fortran with dragonegg])
@@ -40,7 +40,7 @@ AC_MSG_ERROR([Your gcc version ($CC) cannot compile Fortran programs with your d
 fi
 
 # Check for header files.
-AC_CHECK_HEADERS([fcntl.h inttypes.h limits.h malloc.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h mpfr.h])
+AC_CHECK_HEADERS([fcntl.h inttypes.h limits.h malloc.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h mpfr.h], , AC_MSG_ERROR([Missing required headers]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
@@ -65,7 +65,7 @@ AC_FUNC_MALLOC
 AC_FUNC_MKTIME
 AC_FUNC_REALLOC
 
-AC_CHECK_FUNCS([atexit floor gettimeofday memset mkdir pow sqrt strchr strdup strerror strrchr strstr strtoul tzset utime])
+AC_CHECK_FUNCS([atexit floor gettimeofday getpid memset mkdir pow sqrt strchr strdup strerror strrchr strstr strtoul tzset utime])
 
 # Check for Python 2.7
 
