@@ -1,25 +1,34 @@
 // The Monte Carlo Arihmetic Library - A tool for automated rounding error
-// analysis of floating point software. Copyright (C) 2014 The Computer
-// Engineering Laboratory, The University of Sydney. Maintained by Michael
-// Frechtling:
-// 
-// 	michael.frechtling@sydney.edu.au
-// 
+// analysis of floating point software.
+//
+// Copyright (C) 2014 The Computer Engineering Laboratory, The
+// University of Sydney. Maintained by Michael Frechtling:
+// michael.frechtling@sydney.edu.au
+//
+// Copyright (C) 2015 Verificarlo contributors
+// Changelog:
+//
+// 2015-05-20 replace random number generator with TinyMT64. This
+// provides a reentrant, independent generator of better quality than
+// the one provided in libc.
+//
 // This file is part of the Monte Carlo Arithmetic Library, (MCALIB). MCALIB is
 // free software: you can redistribute it and/or modify it under the terms of
 // the GNU General Public License as published by the Free Software Foundation,
 // either version 3 of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful, but WITHOUT
 // ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 // FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
 // details.
-// 
+//
 // You should have received a copy of the GNU General Public License along with
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#include <unistd.h>
 #include "mcalib_types.h"
+#include "tinymt64.h"
 
 #define NEAREST_FLOAT(x)	((float) (x))
 #define	NEAREST_DOUBLE(x)	((double) (x))
@@ -31,15 +40,14 @@ int 	MCALIB_T		= 24;
 * The following functions are used to calculate the random
 * perturbations used for MCA and apply these to MPFR format
 * operands
-***************************************************************/	
+***************************************************************/
+
+/* random generator internal state */
+tinymt64_t random_state;
 
 double _mca_rand(void) {
-	while(1) {
-		double d_rand = ((double)rand() / (double)RAND_MAX);
-		if ((d_rand > 0.) & (d_rand < 1.0)) {
-			return d_rand;
-		}
-	}
+	/* Returns a random double in the (0,1) open interval */
+	return tinymt64_generate_doubleOO(&random_state);
 }
 
 int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
@@ -71,9 +79,17 @@ int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
 }
 
 void _mca_seed(void) {
+	const int key_length = 3;
+	uint64_t init_key[key_length];
 	struct timeval t1;
 	gettimeofday(&t1, NULL);
-	srand(t1.tv_usec * t1.tv_sec);
+
+	/* Hopefully the following seed is good enough for Montercarlo */
+	init_key[0] = t1.tv_sec;
+	init_key[1] = t1.tv_usec;
+	init_key[2] = getpid();
+
+	tinymt64_init_by_array(&random_state, init_key, key_length);
 }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
@@ -199,8 +215,8 @@ int _mca_dcmp(double a, double b) {
 }
 
 /************************* FPHOOKS FUNCTIONS *************************
-* These functions correspond to those inserted into the source code 
-* during source to source compilation and are replacement to floating 
+* These functions correspond to those inserted into the source code
+* during source to source compilation and are replacement to floating
 * point operators
 **********************************************************************/
 
