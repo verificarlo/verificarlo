@@ -87,10 +87,6 @@ all_llvm: $(PRG_OBJ_llvm)
 	-mkdir -p $(BIN_REP)
 	$(LLVM)   $(LLVM_L) -o $(EXEC_NAME_llvm)  $(PRG_OBJ_llvm) -lm
 
-
-
-
-
 ######################## input-data generator compilation rule #####################
 
 #rule to compile the input data generator
@@ -100,21 +96,21 @@ all_llvm: $(PRG_OBJ_llvm)
 ######################### secondary rules for object generation #####################
 
 #build icc object
-$(OBJ_REP_icc)/%.o: $(SRC_REP)/%.c
+$(OBJ_REP_icc)/%.o: $(SRC_REP)/%.c bench.conf
 	-mkdir -p $(OBJ_REP_icc)
 	$(ICC) $(ICC_OPT) $(ICC_FLAG) $(ICC_I)  -c $< -o $@
 	#gen assembly file for checking generated code
 	#$(ICC) $(ICC_OPT) $(ICC_FLAG) $(ICC_I) -S $< -o $@.s
 
 #build gcc object
-$(OBJ_REP_gcc)/%.o: $(SRC_REP)/%.c
+$(OBJ_REP_gcc)/%.o: $(SRC_REP)/%.c bench.conf
 	-mkdir -p $(OBJ_REP_gcc)
 	$(GCC) $(GCC_OPT) $(GCC_FLAG) $(GCC_I)  -c $< -o $@
 	#gen assembly file for checking generated code
 	#$(GCC) $(GCC_OPT) $(GCC_FLAG) $(GCC_I) -S $< -o $@.s
 
 #build llvm object
-$(OBJ_REP_llvm)/%.o: $(SRC_REP)/%.c
+$(OBJ_REP_llvm)/%.o: $(SRC_REP)/%.c bench.conf
 	-mkdir -p $(OBJ_REP_llvm)
 	$(LLVM) $(LLVM_OPT) $(LLVM_FLAG) $(LLVM_I)  -c $< -o $@
 	#gen assembly file for checking generated code
@@ -123,13 +119,13 @@ $(OBJ_REP_llvm)/%.o: $(SRC_REP)/%.c
 ################## cleaning rule ################################
 ##--TODO-- in the proper way...
 clean:
-	-rm $(PRG_OBJ_icc)
-	-rm $(PRG_OBJ_gcc)
-	-rm $(PRG_OBJ_llvm)
-	-rm $(EXEC_NAME_icc)
-	-rm $(EXEC_NAME_gcc)
-	-rm $(EXEC_NAME_llvm)
+	-rm -f $(PRG_OBJ_icc)
+	-rm -f $(PRG_OBJ_gcc)
+	-rm -f $(PRG_OBJ_llvm)
+	-rm -f $(EXEC_NAME_icc)
+	-rm -f $(EXEC_NAME_gcc)
+	-rm -f $(EXEC_NAME_llvm)
 
 clean_gen:
-	-rm $(GEN_OBJ)
-	-rm $(GEN_NAME)
+	-rm -f $(GEN_OBJ)
+	-rm -f $(GEN_NAME)
