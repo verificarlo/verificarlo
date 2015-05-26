@@ -80,6 +80,22 @@ If you only wish to instrument a specific function in your program, use the
    $ verificarlo *.c -o ./program --function=specificfunction
 ```
 
+## MCA Configuration Parameters
+
+Two environement variables control the Montecarlo Arithmetic parameters.
+
+The environement variable `VERIFICARLO_MCAMODE` controls the arithmetic error
+mode. It accepts the following values:
+
+ * `MCA`: (default mode) Montecarlo Arithmetic with inbound and outbound errors
+ * `IEEE`: the program uses standard IEEE arithmetic, no errors are introduced
+ * `PB`: Precision Bounding inbound errors only
+ * `RR`: Random Rounding outbound errors only
+
+The environement variable `VERIFICARLO_PRECISION` controls the virtual
+precision used for the floating point operations. It accept an integer value
+that represents the number of significant digits. The default value is 23.
+
 ### Examples
 
 The `tests/` directory contains various examples of Verificarlo usage.

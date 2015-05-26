@@ -65,7 +65,7 @@ AC_FUNC_MALLOC
 AC_FUNC_MKTIME
 AC_FUNC_REALLOC
 
-AC_CHECK_FUNCS([atexit floor gettimeofday getpid memset mkdir pow sqrt strchr strdup strerror strrchr strstr strtoul tzset utime])
+AC_CHECK_FUNCS([atexit floor getenv gettimeofday getpid memset mkdir pow sqrt strchr strdup strerror strrchr strstr strtol tzset utime])
 
 # Check for Python 2.7
 
