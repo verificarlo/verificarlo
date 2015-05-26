@@ -1,10 +1,59 @@
+#include<mcalib.h>
+#include<errno.h>
 #include<stdio.h>
-#include <mcalib.h>
+#include<stdlib.h>
+#include<string.h>
+
+#define VERIFICARLO_PRECISION "VERIFICARLO_PRECISION"
+#define VERIFICARLO_MCAMODE "VERIFICARLO_MCAMODE"
+#define VERIFICARLO_PRECISION_DEFAULT 24
+#define VERIFICARLO_MCAMODE_DEFAULT MCALIB_MCA
+
 __attribute__((constructor)) void begin (void)
 {
     _mca_seed();
-    MCALIB_T = 40;
-    MCALIB_OP_TYPE = MCALIB_MCA;
+
+    char * endptr;
+
+    /* Set default values for MCALIB*/
+
+    MCALIB_T = VERIFICARLO_PRECISION_DEFAULT;
+    MCALIB_OP_TYPE = VERIFICARLO_MCAMODE_DEFAULT;
+
+    /* If VERIFICARLO_PRECISION is set, try to parse it */
+    char * precision = getenv(VERIFICARLO_PRECISION);
+    if (precision != NULL) {
+        errno = 0;
+        int val = strtol(precision, &endptr, 10);
+        if (errno != 0 || val <= 0) {
+            /* Invalid value provided */
+            fprintf(stderr, VERIFICARLO_PRECISION
+                   " invalid value provided, defaulting to default\n");
+        } else {
+            MCALIB_T = val;
+        }
+    }
+
+     /* If VERIFICARLO_MCAMODE is set, try to parse it */
+    char * mode = getenv(VERIFICARLO_MCAMODE);
+    if (mode != NULL) {
+        if (strcmp("IEEE", mode) == 0) {
+            MCALIB_OP_TYPE = MCALIB_IEEE;
+        }
+        else if (strcmp("MCA", mode) == 0) {
+            MCALIB_OP_TYPE = MCALIB_MCA;
+        }
+        else if (strcmp("PB", mode) == 0) {
+            MCALIB_OP_TYPE = MCALIB_PB;
+        }
+        else if (strcmp("RR", mode) == 0) {
+            MCALIB_OP_TYPE = MCALIB_RR;
+        } else {
+            /* Invalid value provided */
+            fprintf(stderr, VERIFICARLO_MCAMODE
+                   " invalid value provided, defaulting to default\n");
+        }
+    }
 }
 
 typedef double double2 __attribute__((ext_vector_type(2)));
