@@ -80,7 +80,7 @@ If you only wish to instrument a specific function in your program, use the
    $ verificarlo *.c -o ./program --function=specificfunction
 ```
 
-## MCA Configuration Parameters
+### MCA Configuration Parameters
 
 Two environement variables control the Montecarlo Arithmetic parameters.
 
