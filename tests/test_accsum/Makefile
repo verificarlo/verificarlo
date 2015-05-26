@@ -121,14 +121,20 @@ $(OBJ_REP_llvm)/%.o: $(SRC_REP)/%.c
 	#$(LLVM) $(LLVM_OPT) $(LLVM_FLAG) $(LLVM_I) -S $< -o $@.s
 
 ################## cleaning rule ################################
-##--TODO-- in the proper way...
-clean:
+clean_all: clean_test clean_gen
+	-rm -r $(BIN_REP)
+
+clean_test:
 	-rm $(PRG_OBJ_icc)
 	-rm $(PRG_OBJ_gcc)
 	-rm $(PRG_OBJ_llvm)
 	-rm $(EXEC_NAME_icc)
 	-rm $(EXEC_NAME_gcc)
 	-rm $(EXEC_NAME_llvm)
+	-rm -r $(OBJ_REP_icc)
+	-rm -r $(OBJ_REP_gcc)
+	-rm -r $(OBJ_REP_llvm)
+	#-rm -r $(BIN_REP)
 
 clean_gen:
 	-rm $(GEN_OBJ)
