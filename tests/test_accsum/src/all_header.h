@@ -13,7 +13,11 @@
 #include <sys/stat.h>
 #include <math.h>
 
+
+
 #include <dp_tools.h>
+
+#include <assert.h>
 
 #ifdef PAPI
 //fix papi compilation feature with c99
