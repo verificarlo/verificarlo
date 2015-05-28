@@ -27,7 +27,7 @@ LLVM_I= -I ./src -I /usr/include/ -I ./
 LLVM_L= -fopenmp -lm -fno-inline
 LLVM_FLAG=
 
-VERIFICARLO=clang
+VERIFICARLO=verificarlo
 VERIFICARLO_OPT=-O3
 VERIFICARLO_I= -I ./src -I /usr/include/ -I ./
 VERIFICARLO_L= -fopenmp -lm -fno-inline
