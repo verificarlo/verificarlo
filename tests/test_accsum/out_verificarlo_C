@@ -1,25 +1,25 @@
----- Generating 12 data with C==1.0000e+05 
----- Generating 12 data with C==1.0000e+09 
----- Generating 12 data with C==1.0000e+13 
----- Generating 12 data with C==1.0000e+17 
----- Generating 12 data with C==1.0000e+21 
----- Generating 24 data with C==1.0000e+05 
----- Generating 24 data with C==1.0000e+09 
----- Generating 24 data with C==1.0000e+13 
----- Generating 24 data with C==1.0000e+17 
----- Generating 24 data with C==1.0000e+21 
----- Generating 32 data with C==1.0000e+05 
----- Generating 32 data with C==1.0000e+09 
----- Generating 32 data with C==1.0000e+13 
----- Generating 32 data with C==1.0000e+17 
----- Generating 32 data with C==1.0000e+21 
----- Generating 40 data with C==1.0000e+05 
----- Generating 40 data with C==1.0000e+09 
----- Generating 40 data with C==1.0000e+13 
----- Generating 40 data with C==1.0000e+17 
----- Generating 40 data with C==1.0000e+21 
----- Generating 52 data with C==1.0000e+05 
----- Generating 52 data with C==1.0000e+09 
----- Generating 52 data with C==1.0000e+13 
----- Generating 52 data with C==1.0000e+17 
----- Generating 52 data with C==1.0000e+21 
+---- Test done with C=3.8189e+05 
+---- Test done with C=3.1023e+09 
+---- Test done with C=2.5249e+13 
+---- Test done with C=5.8899e+15 
+---- Test done with C=3.5085e+15 
+---- Test done with C=4.5094e+05 
+---- Test done with C=3.6077e+09 
+---- Test done with C=2.4119e+13 
+---- Test done with C=5.5256e+16 
+---- Test done with C=1.7987e+15 
+---- Test done with C=2.4176e+06 
+---- Test done with C=1.2042e+10 
+---- Test done with C=1.3693e+14 
+---- Test done with C=5.8032e+15 
+---- Test done with C=9.4916e+15 
+---- Test done with C=3.6158e+05 
+---- Test done with C=3.9052e+09 
+---- Test done with C=1.5814e+13 
+---- Test done with C=2.8746e+15 
+---- Test done with C=1.8770e+15 
+---- Test done with C=6.3679e+05 
+---- Test done with C=3.8954e+09 
+---- Test done with C=2.7419e+13 
+---- Test done with C=3.8797e+15 
+---- Test done with C=4.4139e+15 
