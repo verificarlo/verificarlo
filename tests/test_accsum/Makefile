@@ -24,14 +24,23 @@ GCC_FLAG=-Wall -std=c99
 LLVM=clang
 LLVM_OPT=-O3
 LLVM_I= -I ./src -I /usr/include/ -I ./
-LLVM__L= -fopenmp -lm -fno-inline
+LLVM_L= -fopenmp -lm -fno-inline
 LLVM_FLAG=
+
+VERIFICARLO=clang
+VERIFICARLO_OPT=-O3
+VERIFICARLO_I= -I ./src -I /usr/include/ -I ./
+VERIFICARLO_L= -fopenmp -lm -fno-inline
+VERIFICARLO_FLAG=
+
+
 
 
 SRC_REP=./src
 OBJ_REP_icc=./obj_icc
 OBJ_REP_gcc=./obj_gcc
 OBJ_REP_llvm=./obj_llvm
+OBJ_REP_VERIFICARLO=./obj_verificarlo
 BIN_REP=./bin
 
 PRG_SRC_in=accSum.c accSumVect.c accSumPar.c DDsum.c dp_tools.c\
@@ -43,6 +52,7 @@ PRG_OBJ_in=$(patsubst %.c,%.o,$(PRG_SRC_in))
 EXEC_NAME_in_icc=TestSum_icc
 EXEC_NAME_in_gcc=TestSum_gcc
 EXEC_NAME_in_llvm=TestSum_llvm
+EXEC_NAME_in_VERIFICARLO=TestSum_verificarlo
 GEN_SRC_in=dp_tools.c accSum.c gensum.c onlyGen.c
 Gen_OBJ_in=$(patsubst %.c,%.o,$(GEN_SRC_in))
 GEN_NAME_in=GenSum
@@ -51,12 +61,13 @@ PRG_SRC=$(patsubst %,$(SRC_REP)/%,$(PRG_SRC_in))
 PRG_OBJ_icc=$(patsubst %,$(OBJ_REP_icc)/%,$(PRG_OBJ_in))
 PRG_OBJ_gcc=$(patsubst %,$(OBJ_REP_gcc)/%,$(PRG_OBJ_in))
 PRG_OBJ_llvm=$(patsubst %,$(OBJ_REP_llvm)/%,$(PRG_OBJ_in))
-
+PRG_OBJ_VERIFICARLO=$(patsubst %,$(OBJ_REP_VERIFICARLO)/%,$(PRG_OBJ_in))
 
 
 EXEC_NAME_icc=$(patsubst %,$(BIN_REP)/%,$(EXEC_NAME_in_icc))
 EXEC_NAME_gcc=$(patsubst %,$(BIN_REP)/%,$(EXEC_NAME_in_gcc))
 EXEC_NAME_llvm=$(patsubst %,$(BIN_REP)/%,$(EXEC_NAME_in_llvm))
+EXEC_NAME_VERIFICARLO=$(patsubst %,$(BIN_REP)/%,$(EXEC_NAME_in_VERIFICARLO))
 
 GEN_SRC=$(patsubst %,$(SRC_REP)/%,$(GEN_SRC_in))
 GEN_OBJ=$(patsubst %,$(OBJ_REP)/%,$(GEN_OBJ_in))
@@ -65,11 +76,12 @@ GEN_NAME=$(patsubst %,$(BIN_REP)/%,$(GEN_NAME_in))
 ############################## all rules #############################
 
 #rule to compil the bench
-all: $(PRG_OBJ_icc) $(PRG_OBJ_gcc) $(PRG_OBJ_llvm)
+all: $(PRG_OBJ_icc) $(PRG_OBJ_gcc) $(PRG_OBJ_llvm) $(PRG_OBJ_VERIFICARLO)
 	-mkdir -p $(BIN_REP)
 	$(ICC)   $(ICC_L) -o $(EXEC_NAME_icc)  $(PRG_OBJ_icc)
 	$(GCC)    $(GCC_L) -o $(EXEC_NAME_gcc)  $(PRG_OBJ_gcc) -lm
 	$(LLVM)    $(LLVM_L) -o $(EXEC_NAME_llvm)  $(PRG_OBJ_llvm) -lm
+	$(VERIFICARLO)    $(VERIFICARLO_L) -o $(EXEC_NAME_VERIFICARLO)  $(PRG_OBJ_VERIFICARLO) -lm 
 
 #build only ICC version
 all_icc: $(PRG_OBJ_icc)
@@ -87,10 +99,18 @@ all_llvm: $(PRG_OBJ_llvm)
 	-mkdir -p $(BIN_REP)
 	$(LLVM)   $(LLVM_L) -o $(EXEC_NAME_llvm)  $(PRG_OBJ_llvm) -lm
 
+#build only VERIFICARLO version
+all_verificarlo: $(PRG_OBJ_VERIFICARLO)
+	-mkdir -p $(BIN_REP)
+	$(VERIFICARLO)   $(VERIFICARLO_L) -o $(EXEC_NAME_VERIFICARLO)  $(PRG_OBJ_VERIFICARLO) -lm
+
+
+
+
 ######################## input-data generator compilation rule #####################
 
 #rule to compile the input data generator
--all_gen: $(GEN_OBJ)
+all_gen: $(GEN_OBJ)
 	$(CC)   $(CC_L) -o $(GEN_NAME)  $(GEN_OBJ)
 
 ######################### secondary rules for object generation #####################
@@ -116,6 +136,14 @@ $(OBJ_REP_llvm)/%.o: $(SRC_REP)/%.c bench.conf
 	#gen assembly file for checking generated code
 	#$(LLVM) $(LLVM_OPT) $(LLVM_FLAG) $(LLVM_I) -S $< -o $@.s
 
+#build llvm object
+$(OBJ_REP_VERIFICARLO)/%.o: $(SRC_REP)/%.c bench.conf
+	-mkdir -p $(OBJ_REP_VERIFICARLO)
+	$(VERIFICARLO) $(VERIFICARLO_OPT) $(VERIFICARLO_FLAG) $(VERIFICARLO_I)  -c $< -o $@
+	#gen assembly file for checking generated code
+	#$(VERIFICARLO) $(VERIFICARLO_OPT) $(VERIFICARLO_FLAG) $(VERIFICARLO_I) -S $< -o $@.s
+
+
 ################## cleaning rule ################################
 clean: clean_all
 
@@ -126,12 +154,16 @@ clean_test:
 	-rm -f $(PRG_OBJ_icc)
 	-rm -f $(PRG_OBJ_gcc)
 	-rm -f $(PRG_OBJ_llvm)
+	-rm -f $(PRG_OBJ_VERIFICARLO)
 	-rm -f $(EXEC_NAME_icc)
 	-rm -f $(EXEC_NAME_gcc)
 	-rm -f $(EXEC_NAME_llvm)
+	-rm -f $(EXEC_NAME_VERIFICARLO)
 	-rm -rf $(OBJ_REP_icc)
 	-rm -rf $(OBJ_REP_gcc)
 	-rm -rf $(OBJ_REP_llvm)
+	-rm -rf $(OBJ_REP_VERIFICARLO)
+
 
 clean_gen:
 	-rm -f $(GEN_OBJ)
