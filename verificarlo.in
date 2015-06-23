@@ -52,17 +52,26 @@ def shell(cmd):
     except subprocess.CalledProcessError:
         fail('command failed:\n' + cmd)
 
-def linker_mode(sources, options, output):
+def linker_mode(sources, options, output, args):
     shell('{clang} -c -o .mcawrapper.o {mcawrapper} -I {mcalib_dir}'.format(
         clang=clang,
         mcawrapper=mcawrapper,
         mcalib_dir=mcalib_dir))
-    shell('{linker} {output} {options} {sources} .mcawrapper.o -rpath {mcalib_dir}/.libs -L {mcalib_dir}/.libs -lmca -lgfortran'.format(
-        linker=clang,
-        output=output,
-        sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
-        options=options,
-        mcalib_dir=mcalib_dir))
+
+    if args.static:
+        shell('{linker} {output} {options} {sources} -static .mcawrapper.o {mcalib_dir}/.libs/libmca.a -lmpfr -lgmp -lm -lgfortran'.format(
+            linker=clang,
+            output=output,
+            sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
+            options=options,
+            mcalib_dir=mcalib_dir))
+    else:
+        shell('{linker} {output} {options} {sources} .mcawrapper.o -rpath {mcalib_dir}/.libs -L {mcalib_dir}/.libs -lmca -lgfortran'.format(
+            linker=clang,
+            output=output,
+            sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
+            options=options,
+            mcalib_dir=mcalib_dir))
 
 def compiler_mode(sources, options, output, args):
     for source in sources:
@@ -114,6 +123,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', action='store_true', help='only run preprocess, compile, and assemble steps')
     parser.add_argument('-o', metavar='file', help='write output to <file>')
     parser.add_argument('--function', metavar='function', help='only instrument <function>')
+    parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
     args, other = parser.parse_known_args()
 
     sources, llvm_options = parse_extra_args(other)
@@ -132,4 +142,4 @@ if __name__ == "__main__":
         if len(sources) == 0 and len(llvm_options) == 0:
             fail('no input files')
         compiler_mode(sources, llvm_options, "", args)
-        linker_mode(sources, llvm_options, output)
+        linker_mode(sources, llvm_options, output, args)
