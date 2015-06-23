@@ -1,6 +1,6 @@
 #!/bin/bash
 
-../../verificarlo test.c -o test --function=f
+../../verificarlo -O3 -mllvm -inline-threshold=0 test.c -o test --function=f
 
 ./test > outputf1 2> outputg1
 ./test > outputf2 2> outputg2
