@@ -36,6 +36,42 @@
 int 	MCALIB_OP_TYPE 		= MCALIB_IEEE;
 int 	MCALIB_T		= 24;
 
+
+/************** MCA CONTROL WRAPPER FUNCTIONS ************
+*The following functions define an API to ease the 
+*modification of the MCAlib parameters from the end-user 
+*source code in multiple language
+*********************************************************/
+
+/********* Fortran mca interface *****************/
+
+void _SET_MCA_PRECISION(int * new_precision){
+	MCALIB_T = *new_precision;
+}
+
+void _GET_MCA_PRECISION(int * precision){
+	*precision=MCALIB_T;
+}
+
+
+/************** C mca control interface ****************/
+
+
+void set_mca_precision(int * new_precision){
+	MCALIB_T = *new_precision;
+}
+
+int get_mca_precision(){
+	return MCALIB_T;
+}
+
+
+
+/**************************************************************
+******************* MCA native interface **********************
+***************************************************************/
+
+
 /******************** MCA RANDOM FUNCTIONS ********************
 * The following functions are used to calculate the random
 * perturbations used for MCA and apply these to MPFR format

@@ -35,6 +35,51 @@
 extern int MCALIB_OP_TYPE;
 extern int MCALIB_T;
 
+
+
+///////// FORTRAN MCA CONTROL INTERFACE //////////
+
+#ifdef __cplusplus
+	//remove name mangling	
+	extern"C" {
+#endif
+
+
+void _SET_MCA_PRECISION(int * new_precision);
+
+void _GET_MCA_PRECISION(int * precision);
+
+#ifdef __cplusplus
+	//end remove name mangling
+	}
+#endif
+
+///////// C MCA CONTROL INTERFACE //////////
+
+#ifdef __cplusplus
+        //remove name mangling  
+        extern"C" {
+#endif
+
+void set_mca_precision(int * new_precision);
+
+int get_mca_precision();
+
+#ifdef __cplusplus
+        //end remove name mangling
+        }
+#endif
+
+
+
+///////// NATIVE MCA CONTROL INTERFACE //////////
+
+
+#ifdef __cplusplus
+        //remove name mangling  
+        extern"C" {
+#endif
+
 extern void _mca_seed(void);
 
 extern int _floateq(float a, float b);
@@ -75,4 +120,12 @@ extern long double _longsub(long double a, long double b);
 extern long double _longmul(long double a, long double b);
 extern long double _longdiv(long double a, long double b);
 extern long double _longneg(long double a);
+
+#ifdef __cplusplus
+        //end remove name mangling
+        }
+#endif
+
+
+
 #endif 
