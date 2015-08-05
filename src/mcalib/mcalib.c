@@ -5,7 +5,10 @@
 // University of Sydney. Maintained by Michael Frechtling:
 // michael.frechtling@sydney.edu.au
 //
-// Copyright (C) 2015 Verificarlo contributors
+// Copyright (C) 2015
+//     Universite de Versailles St-Quentin-en-Yvelines                          *
+//     CMLA, Ecole Normale Superieure de Cachan                                 *
+//
 // Changelog:
 //
 // 2015-05-20 replace random number generator with TinyMT64. This
@@ -38,8 +41,8 @@ int 	MCALIB_T		= 24;
 
 
 /************** MCA CONTROL WRAPPER FUNCTIONS ************
-*The following functions define an API to ease the 
-*modification of the MCAlib parameters from the end-user 
+*The following functions define an API to ease the
+*modification of the MCAlib parameters from the end-user
 *source code in multiple language
 *********************************************************/
 
