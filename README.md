@@ -94,7 +94,7 @@ mode. It accepts the following values:
 
 The environement variable `VERIFICARLO_PRECISION` controls the virtual
 precision used for the floating point operations. It accept an integer value
-that represents the number of significant digits. The default value is 23.
+that represents the number of significant digits. The default value is 24.
 
 ### Examples
 
