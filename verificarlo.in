@@ -1,3 +1,4 @@
+B
 #!/usr/bin/python
 
 from __future__ import print_function
@@ -17,7 +18,7 @@ opt = llvm_bindir + '/opt'
 dragonegg = "@DRAGONEGG_PATH@"
 gcc = "@GCC_PATH@"
 FORTRAN_EXTENSIONS=[".f", ".f90", ".f77"]
-C_EXTENSIONS=[".C", ".c", ".cpp", ".cc"]
+C_EXTENSIONS=[".C", ".c", ".cpp", ".cc", ".cxx"]
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
