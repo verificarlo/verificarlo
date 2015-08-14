@@ -227,3 +227,35 @@ float4 _4xfloatdiv(float4 a, float4 b) {
     c[3] = _floatdiv(a[3],b[3]);
     return c;
 }
+
+int _2xdoubleeq(double2 a, double2 b) {
+    return _doubleeq(a[0],b[0]) && _doubleeq(a[1],b[1]);
+}
+
+int _2xdoublene(double2 a, double2 b) {
+    return _doublene(a[0],b[0]) || _doublene(a[1],b[1]);
+}
+
+int _2xfloateq(float2 a, float2 b) {
+    return _floateq(a[0],b[0]) && _floateq(a[1],b[1]);
+}
+
+int _2xfloatne(float2 a, float2 b) {
+    return _floatne(a[0],b[0]) || _floatne(a[1],b[1]);
+}
+
+int _4xdoubleeq(double4 a, double4 b) {
+    return _doubleeq(a[0],b[0]) && _doubleeq(a[1],b[1]) && _doubleeq(a[2],b[2]) && _doubleeq(a[3],b[3]) ;
+}
+
+int _4xdoublene(double4 a, double4 b) {
+    return _doublene(a[0],b[0]) || _doublene(a[1],b[1]) || _doublene(a[2],b[2]) || _doublene(a[3],b[3]) ;
+}
+
+int _4xfloateq(float4 a, float4 b) {
+    return _floateq(a[0],b[0]) && _floateq(a[1],b[1]) && _floateq(a[2],b[2]) && _floateq(a[3],b[3]) ;
+}
+
+int _4xfloatne(float4 a, float4 b) {
+    return _floatne(a[0],b[0]) || _floatne(a[1],b[1]) || _floatne(a[2],b[2]) || _floatne(a[3],b[3]) ;
+}
