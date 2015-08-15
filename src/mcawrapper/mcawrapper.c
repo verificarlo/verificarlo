@@ -26,6 +26,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<stdbool.h>
 
 #define VERIFICARLO_PRECISION "VERIFICARLO_PRECISION"
 #define VERIFICARLO_MCAMODE "VERIFICARLO_MCAMODE"
@@ -83,6 +84,10 @@ typedef double double2 __attribute__((ext_vector_type(2)));
 typedef double double4 __attribute__((ext_vector_type(4)));
 typedef float float2 __attribute__((ext_vector_type(2)));
 typedef float float4 __attribute__((ext_vector_type(4)));
+typedef bool bool2 __attribute__((ext_vector_type(2)));
+typedef bool bool4 __attribute__((ext_vector_type(4)));
+
+/* Arithmetic vector wrappers */
 
 double2 _2xdoubleadd(double2 a, double2 b) {
     double2 c;
@@ -228,34 +233,197 @@ float4 _4xfloatdiv(float4 a, float4 b) {
     return c;
 }
 
-int _2xdoubleeq(double2 a, double2 b) {
-    return _doubleeq(a[0],b[0]) && _doubleeq(a[1],b[1]);
+/* Comparison vector wrappers */
+
+bool2 _2xdoubleeq(double2 a, double2 b) {
+    bool2 c;
+    c[0] = _doubleeq(a[0],b[0]);
+    c[1] = _doubleeq(a[1],b[1]);
+    return c;
 }
 
-int _2xdoublene(double2 a, double2 b) {
-    return _doublene(a[0],b[0]) || _doublene(a[1],b[1]);
+bool2 _2xdoublene(double2 a, double2 b) {
+    bool2 c;
+    c[0] = _doublene(a[0],b[0]);
+    c[1] = _doublene(a[1],b[1]);
+    return c;
 }
 
-int _2xfloateq(float2 a, float2 b) {
-    return _floateq(a[0],b[0]) && _floateq(a[1],b[1]);
+bool2 _2xdoublelt(double2 a, double2 b) {
+    bool2 c;
+    c[0] = _doublelt(a[0],b[0]);
+    c[1] = _doublelt(a[1],b[1]);
+    return c;
 }
 
-int _2xfloatne(float2 a, float2 b) {
-    return _floatne(a[0],b[0]) || _floatne(a[1],b[1]);
+bool2 _2xdoublegt(double2 a, double2 b) {
+    bool2 c;
+    c[0] = _doublegt(a[0],b[0]);
+    c[1] = _doublegt(a[1],b[1]);
+    return c;
 }
 
-int _4xdoubleeq(double4 a, double4 b) {
-    return _doubleeq(a[0],b[0]) && _doubleeq(a[1],b[1]) && _doubleeq(a[2],b[2]) && _doubleeq(a[3],b[3]) ;
+bool2 _2xdoublele(double2 a, double2 b) {
+    bool2 c;
+    c[0] = _doublele(a[0],b[0]);
+    c[1] = _doublele(a[1],b[1]);
+    return c;
 }
 
-int _4xdoublene(double4 a, double4 b) {
-    return _doublene(a[0],b[0]) || _doublene(a[1],b[1]) || _doublene(a[2],b[2]) || _doublene(a[3],b[3]) ;
+
+bool2 _2xdoublege(double2 a, double2 b) {
+    bool2 c;
+    c[0] = _doublege(a[0],b[0]);
+    c[1] = _doublege(a[1],b[1]);
+    return c;
 }
 
-int _4xfloateq(float4 a, float4 b) {
-    return _floateq(a[0],b[0]) && _floateq(a[1],b[1]) && _floateq(a[2],b[2]) && _floateq(a[3],b[3]) ;
+bool4 _4xdoubleeq(double4 a, double4 b) {
+    bool4 c;
+    c[0] = _doubleeq(a[0],b[0]);
+    c[1] = _doubleeq(a[1],b[1]);
+    c[2] = _doubleeq(a[2],b[2]);
+    c[3] = _doubleeq(a[3],b[3]);
+    return c;
 }
 
-int _4xfloatne(float4 a, float4 b) {
-    return _floatne(a[0],b[0]) || _floatne(a[1],b[1]) || _floatne(a[2],b[2]) || _floatne(a[3],b[3]) ;
+bool4 _4xdoublene(double4 a, double4 b) {
+    bool4 c;
+    c[0] = _doublene(a[0],b[0]);
+    c[1] = _doublene(a[1],b[1]);
+    c[2] = _doublene(a[2],b[2]);
+    c[3] = _doublene(a[3],b[3]);
+    return c;
+}
+
+bool4 _4xdoublelt(double4 a, double4 b) {
+    bool4 c;
+    c[0] = _doublelt(a[0],b[0]);
+    c[1] = _doublelt(a[1],b[1]);
+    c[2] = _doublelt(a[2],b[2]);
+    c[3] = _doublelt(a[3],b[3]);
+    return c;
+}
+
+bool4 _4xdoublegt(double4 a, double4 b) {
+    bool4 c;
+    c[0] = _doublegt(a[0],b[0]);
+    c[1] = _doublegt(a[1],b[1]);
+    c[2] = _doublegt(a[2],b[2]);
+    c[3] = _doublegt(a[3],b[3]);
+    return c;
+}
+
+bool4 _4xdoublele(double4 a, double4 b) {
+    bool4 c;
+    c[0] = _doublele(a[0],b[0]);
+    c[1] = _doublele(a[1],b[1]);
+    c[2] = _doublele(a[2],b[2]);
+    c[3] = _doublele(a[3],b[3]);
+    return c;
+}
+
+bool4 _4xdoublege(double4 a, double4 b) {
+    bool4 c;
+    c[0] = _doublege(a[0],b[0]);
+    c[1] = _doublege(a[1],b[1]);
+    c[2] = _doublege(a[2],b[2]);
+    c[3] = _doublege(a[3],b[3]);
+    return c;
+}
+
+bool2 _2xfloateq(float2 a, float2 b) {
+    bool2 c;
+    c[0] = _floateq(a[0],b[0]);
+    c[1] = _floateq(a[1],b[1]);
+    return c;
+}
+
+bool2 _2xfloatne(float2 a, float2 b) {
+    bool2 c;
+    c[0] = _floatne(a[0],b[0]);
+    c[1] = _floatne(a[1],b[1]);
+    return c;
+}
+
+bool2 _2xfloatlt(float2 a, float2 b) {
+    bool2 c;
+    c[0] = _floatlt(a[0],b[0]);
+    c[1] = _floatlt(a[1],b[1]);
+    return c;
+}
+
+bool2 _2xfloatgt(float2 a, float2 b) {
+    bool2 c;
+    c[0] = _floatgt(a[0],b[0]);
+    c[1] = _floatgt(a[1],b[1]);
+    return c;
+}
+
+bool2 _2xfloatle(float2 a, float2 b) {
+    bool2 c;
+    c[0] = _floatle(a[0],b[0]);
+    c[1] = _floatle(a[1],b[1]);
+    return c;
+}
+
+bool2 _2xfloatge(float2 a, float2 b) {
+    bool2 c;
+    c[0] = _floatge(a[0],b[0]);
+    c[1] = _floatge(a[1],b[1]);
+    return c;
+}
+
+bool4 _4xfloateq(float4 a, float4 b) {
+    bool4 c;
+    c[0] = _floateq(a[0],b[0]);
+    c[1] = _floateq(a[1],b[1]);
+    c[2] = _floateq(a[2],b[2]);
+    c[3] = _floateq(a[3],b[3]);
+    return c;
+}
+
+bool4 _4xfloatne(float4 a, float4 b) {
+    bool4 c;
+    c[0] = _floatne(a[0],b[0]);
+    c[1] = _floatne(a[1],b[1]);
+    c[2] = _floatne(a[2],b[2]);
+    c[3] = _floatne(a[3],b[3]);
+    return c;
+}
+
+bool4 _4xfloatlt(float4 a, float4 b) {
+    bool4 c;
+    c[0] = _floatlt(a[0],b[0]);
+    c[1] = _floatlt(a[1],b[1]);
+    c[2] = _floatlt(a[2],b[2]);
+    c[3] = _floatlt(a[3],b[3]);
+    return c;
+}
+
+bool4 _4xfloatgt(float4 a, float4 b) {
+    bool4 c;
+    c[0] = _floatgt(a[0],b[0]);
+    c[1] = _floatgt(a[1],b[1]);
+    c[2] = _floatgt(a[2],b[2]);
+    c[3] = _floatgt(a[3],b[3]);
+    return c;
+}
+
+bool4 _4xfloatle(float4 a, float4 b) {
+    bool4 c;
+    c[0] = _floatle(a[0],b[0]);
+    c[1] = _floatle(a[1],b[1]);
+    c[2] = _floatle(a[2],b[2]);
+    c[3] = _floatle(a[3],b[3]);
+    return c;
+}
+
+bool4 _4xfloatge(float4 a, float4 b) {
+    bool4 c;
+    c[0] = _floatge(a[0],b[0]);
+    c[1] = _floatge(a[1],b[1]);
+    c[2] = _floatge(a[2],b[2]);
+    c[3] = _floatge(a[3],b[3]);
+    return c;
 }
