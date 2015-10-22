@@ -93,8 +93,8 @@ mode. It accepts the following values:
  * `RR`: Random Rounding outbound errors only
 
 The environement variable `VERIFICARLO_PRECISION` controls the virtual
-precision used for the floating point operations. It accepts an integer value
-that represents the number of significant digits. The default value is 24.
+precision used for the floating point operations. It accept an integer value
+that represents the number of significant digits. The default value is 53.
 
 ### Examples
 
