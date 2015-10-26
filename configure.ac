@@ -104,8 +104,8 @@ fi
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-                 src/libmcainstrument/Makefile
-                 src/mcalib/Makefile
+                 src/libvfcinstrument/Makefile
+                 src/libmca-mpfr/Makefile
                  tests/Makefile])
 
 AC_CONFIG_FILES([verificarlo], [chmod +x verificarlo])

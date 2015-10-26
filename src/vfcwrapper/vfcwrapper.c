@@ -33,6 +33,18 @@
 #define VERIFICARLO_PRECISION_DEFAULT 53
 #define VERIFICARLO_MCAMODE_DEFAULT MCALIB_MCA
 
+struct mca_interface_t * current_mca_interface;
+extern struct mca_interface mpfr_mca_interface;
+
+void _SET_MCA_PRECISION(int * new_precision);
+void _GET_MCA_PRECISION(int * precision);
+void set_mca_precision(int * new_precision);
+int get_mca_precision();
+
+void select_interface_mpfr(void) {
+    current_mca_interface = &mpfr_mca_interface;
+}
+
 __attribute__((constructor)) void begin (void)
 {
     _mca_seed();
