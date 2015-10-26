@@ -30,6 +30,8 @@
 
 
 #include <unistd.h>
+#include "mcalib.h"
+#include "../vfcwrapper/vfcwrapper.h"
 #include "mcalib_types.h"
 #include "tinymt64.h"
 
@@ -37,42 +39,25 @@
 #define	NEAREST_DOUBLE(x)	((double) (x))
 
 int 	MCALIB_OP_TYPE 		= MCALIB_IEEE;
-int 	MCALIB_T		= 24;
+int 	MCALIB_T		    = 24;
 
-
-/************** MCA CONTROL WRAPPER FUNCTIONS ************
-*The following functions define an API to ease the
-*modification of the MCAlib parameters from the end-user
-*source code in multiple language
-*********************************************************/
-
-/********* Fortran mca interface *****************/
-
-void _SET_MCA_PRECISION(int * new_precision){
-	MCALIB_T = *new_precision;
-}
-
-void _GET_MCA_PRECISION(int * precision){
-	*precision=MCALIB_T;
-}
-
-
-/************** C mca control interface ****************/
-
-
-void set_mca_precision(int * new_precision){
-	MCALIB_T = *new_precision;
-}
-
-int get_mca_precision(){
-	return MCALIB_T;
-}
-
-
-
-/**************************************************************
-******************* MCA native interface **********************
+/******************** MCA CONTROL FUNCTIONS *******************
+* The following functions are used to set virtual precision and
+* MCA mode of operation.
 ***************************************************************/
+
+int _set_mca_mode(int mode){
+	if (mode < 0 || mode > 3)
+		return -1;
+
+	MCALIB_OP_TYPE = mode;
+	return 0;
+}
+
+int _set_mca_precision(int precision){
+	MCALIB_T = precision;
+	return 0;
+}
 
 
 /******************** MCA RANDOM FUNCTIONS ********************
@@ -430,3 +415,42 @@ long double _longneg(long double a) {
 	long double ret = -a;
 	return ret;
 }
+
+struct mca_interface_t mpfr_mca_interface = {
+	_mca_seed,
+	_set_mca_mode,
+	_set_mca_precision,
+	_floateq,
+	_floatne,
+	_floatlt,
+	_floatgt,
+	_floatle,
+	_floatge,
+	_doubleeq,
+	_doublene,
+	_doublelt,
+	_doublegt,
+	_doublele,
+	_doublege,
+	_longeq,
+	_longne,
+	_longlt,
+	_longgt,
+	_longle,
+	_longge,
+	_floatadd,
+	_floatsub,
+	_floatmul,
+	_floatdiv,
+	_floatneg,
+	_doubleadd,
+	_doublesub,
+	_doublemul,
+	_doublediv,
+	_doubleneg,
+	_longadd,
+	_longsub,
+	_longmul,
+	_longdiv,
+	_longneg
+};
