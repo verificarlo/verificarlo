@@ -21,7 +21,6 @@
  *                                                                              *
  ********************************************************************************/
 
-#include<mcalib.h>
 #include<errno.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -29,6 +28,8 @@
 #include<stdbool.h>
 
 #include "vfcwrapper.h"
+
+#include "libmca-mpfr.h"
 
 #define VERIFICARLO_PRECISION "VERIFICARLO_PRECISION"
 #define VERIFICARLO_MCAMODE "VERIFICARLO_MCAMODE"

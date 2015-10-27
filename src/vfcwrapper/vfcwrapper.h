@@ -21,10 +21,10 @@
  *                                                                              *
  ********************************************************************************/
 
-#define MCAMODE_IEEE	0
-#define MCAMODE_MCA 	1
-#define MCAMODE_PB     2
-#define MCAMODE_RR	    3
+#define MCAMODE_IEEE 0
+#define MCAMODE_MCA  1
+#define MCAMODE_PB   2
+#define MCAMODE_RR   3
 
 struct mca_interface_t {
     int (*floateq)(float, float);
