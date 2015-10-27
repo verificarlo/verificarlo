@@ -98,10 +98,10 @@ def compiler_mode(sources, options, output, args):
         # Limit instrumentation to a function ?
         selectfunction = ""
         if args.function:
-            selectfunction = "-mcalibinst-function " + args.function
+            selectfunction = "-vfclibinst-function " + args.function
 
         # Apply MCA instrumentation pass
-        shell('{opt} -S -load {libvfcinstrument} -mcalibinst {selectfunction} {ir} -o {ins}'.format(
+        shell('{opt} -S -load {libvfcinstrument} -vfclibinst {selectfunction} {ir} -o {ins}'.format(
             opt=opt,
             libvfcinstrument=libvfcinstrument,
             selectfunction=selectfunction,

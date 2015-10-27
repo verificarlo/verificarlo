@@ -27,17 +27,16 @@
 #define MCAMODE_RR	    3
 
 struct mca_interface_t {
-    void (*seed)(void);
-
-    int (*set_mca_mode)(int);
-    int (*set_mca_precision)(int);
-
     int (*floateq)(float, float);
     int (*floatne)(float, float);
     int (*floatlt)(float, float);
     int (*floatgt)(float, float);
     int (*floatle)(float, float);
     int (*floatge)(float, float);
+    float (*floatadd)(float, float);
+    float (*floatsub)(float, float);
+    float (*floatmul)(float, float);
+    float (*floatdiv)(float, float);
 
     int (*doubleeq)(double, double);
     int (*doublene)(double, double);
@@ -45,6 +44,10 @@ struct mca_interface_t {
     int (*doublegt)(double, double);
     int (*doublele)(double, double);
     int (*doublege)(double, double);
+    double (*doubleadd)(double, double);
+    double (*doublesub)(double, double);
+    double (*doublemul)(double, double);
+    double (*doublediv)(double, double);
 
     int (*longeq)(long double, long double);
     int (*longne)(long double, long double);
@@ -52,22 +55,12 @@ struct mca_interface_t {
     int (*longgt)(long double, long double);
     int (*longle)(long double, long double);
     int (*longge)(long double, long double);
-
-    float (*floatadd)(float, float);
-    float (*floatsub)(float, float);
-    float (*floatmul)(float, float);
-    float (*floatdiv)(float, float);
-    float (*floatneg)(float);
-
-    double (*doubleadd)(double, double);
-    double (*doublesub)(double, double);
-    double (*doublemul)(double, double);
-    double (*doublediv)(double, double);
-    double (*doubleneg)(double);
-
     long double (*longadd)(long double, long double);
     long double (*longsub)(long double, long double);
     long double (*longmul)(long double, long double);
     long double (*longdiv)(long double, long double);
-    long double (*longneg)(long double);
+
+    void (*seed)(void);
+    int (*set_mca_mode)(int);
+    int (*set_mca_precision)(int);
 };

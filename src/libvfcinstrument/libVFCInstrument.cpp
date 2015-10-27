@@ -21,34 +21,99 @@
  *                                                                              *
  ********************************************************************************/
 
-#include "llvm/Pass.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/TypeBuilder.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 
 using namespace llvm;
-
-// McalibInst pass command line arguments
-static cl::opt<std::string> McalibInstFunction("mcalibinst-function", cl::desc("Only instrument given FunctionName"),
+// VfclibInst pass command line arguments
+static cl::opt<std::string> VfclibInstFunction("vfclibinst-function", cl::desc("Only instrument given FunctionName"),
                                                cl::value_desc("FunctionName"), cl::init(""));
 
 namespace {
-    struct McalibInst : public ModulePass {
-        static char ID;
+    // Define an enum type to classify the floating points operations
+    // that are instrumented by verificarlo
 
-        McalibInst() : ModulePass(ID) { }
+    enum Fops {FOP_EQ, FOP_NE, FOP_LT, FOP_GT, FOP_LE, FOP_GE,
+               FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_IGNORE};
+
+    // Each instruction can be translated to a string representation
+
+    std::string Fops2str[] = { "eq", "ne", "lt", "gt", "le",
+               "ge", "add", "sub", "mul", "div", "ignore"};
+
+    struct VfclibInst : public ModulePass {
+        static char ID;
+        PointerType * mca_interface_type;
+
+        VfclibInst() : ModulePass(ID) {}
+
+        PointerType * getMCAInterfaceType() {
+            LLVMContext &Context =getGlobalContext();
+
+            // Verificarlo instrumentation calls the mca backend using
+            // a vtable implemented as a structure.
+            //
+            // Here we declare the struct type corresponding to the
+            // mca_interface_t defined in ../vfcwrapper/vfcwrapper.h
+            //
+            // Only the functions instrumented are declared. The last
+            // three functions are user called functions and are not
+            // needed here.
+
+            StructType * mca_struct_type = StructType::get(
+                TypeBuilder<int(*)(float, float), false>::get(Context),
+                TypeBuilder<int(*)(float, float), false>::get(Context),
+                TypeBuilder<int(*)(float, float), false>::get(Context),
+                TypeBuilder<int(*)(float, float), false>::get(Context),
+                TypeBuilder<int(*)(float, float), false>::get(Context),
+                TypeBuilder<int(*)(float, float), false>::get(Context),
+
+                TypeBuilder<float(*)(float, float), false>::get(Context),
+                TypeBuilder<float(*)(float, float), false>::get(Context),
+                TypeBuilder<float(*)(float, float), false>::get(Context),
+                TypeBuilder<float(*)(float, float), false>::get(Context),
+
+                TypeBuilder<int(*)(double, double), false>::get(Context),
+                TypeBuilder<int(*)(double, double), false>::get(Context),
+                TypeBuilder<int(*)(double, double), false>::get(Context),
+                TypeBuilder<int(*)(double, double), false>::get(Context),
+                TypeBuilder<int(*)(double, double), false>::get(Context),
+                TypeBuilder<int(*)(double, double), false>::get(Context),
+
+                TypeBuilder<double(*)(double, double), false>::get(Context),
+                TypeBuilder<double(*)(double, double), false>::get(Context),
+                TypeBuilder<double(*)(double, double), false>::get(Context),
+                TypeBuilder<double(*)(double, double), false>::get(Context),
+
+                (void *)0
+                );
+
+            // We want a pointer to this structure. The structure is
+            // accessed through the global current_mca_interface of
+            // type mca_interface_t* which is declared in
+            // ../vfcwrapper/vfcwrapper.c
+            return PointerType::getUnqual(mca_struct_type);
+        }
 
         bool runOnModule(Module &M) {
             bool modified = false;
-            StringRef SelectedFunction = StringRef(McalibInstFunction);
+
+            mca_interface_type = getMCAInterfaceType();
+
+            StringRef SelectedFunction = StringRef(VfclibInstFunction);
 
             // Find the list of functions to instrument
-            // Instrumentation adds stubs to mcalib function which we never want to instrument.
-            // Therefore it is important to first find all the functions of interest before starting instrumentation.
+            // Instrumentation adds stubs to mcalib function which we
+            // never want to instrument.  Therefore it is important to
+            // first find all the functions of interest before
+            // starting instrumentation.
+
             std::vector<Function*> functions;
             for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
                 if (SelectedFunction.empty() || F->getName() == SelectedFunction) {
@@ -76,13 +141,16 @@ namespace {
             return modified;
         }
 
-        Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction &I, std::string opName) {
-            Type * retType = I.getType();
-            Type * opType = I.getOperand(0)->getType();
-            std::string opTypeName;
+        Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction * I, Fops opCode) {
+            Type * retType = I->getType();
+            Type * opType = I->getOperand(0)->getType();
+            std::string opName = Fops2str[opCode];
 
+            std::string baseTypeName = "";
             std::string vectorName = "";
             Type *baseType = opType;
+
+            /* Check for vector types */
             if (opType->isVectorTy()) {
                 VectorType *t = static_cast<VectorType *>(opType);
                 baseType = t->getElementType();
@@ -98,80 +166,128 @@ namespace {
                 }
             }
 
+            /* Check the type of the operation */
             if (baseType->isDoubleTy()) {
-                opTypeName = vectorName + "double";
+                baseTypeName = "double";
             } else if (baseType->isFloatTy()) {
-                opTypeName = vectorName + "float";
+                baseTypeName = "float";
             } else {
                 errs() << "Unsupported operand type: " << *opType << "\n";
                 assert(0);
             }
 
-            std::string mcaFunctionName = "_" + opTypeName + opName;
+            // For vector types, helper functions in vfcwrapper are called
+            if (vectorName != "") {
+                std::string mcaFunctionName = "_" + vectorName + baseTypeName + opName;
 
-            Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName,
-                                                       retType,
-                                                       opType,
-                                                       opType,
-                                                       (Type *) 0);
+                Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName,
+                                                           retType,
+                                                           opType,
+                                                           opType,
+                                                           (Type *) 0);
 
-            IRBuilder<> builder(getGlobalContext());
-            Instruction *newInst = builder.CreateCall2(
+                // For vector types we call directly a hardcoded helper function
+                // no need to go through the vtable at this stage.
+                IRBuilder<> builder(getGlobalContext());
+                Instruction *newInst = builder.CreateCall2(
                     cast<Function>(hookFunc),
-                    I.getOperand(0),
-                    I.getOperand(1),
+                    I->getOperand(0),
+                    I->getOperand(1),
                     "");
-            return newInst;
+
+                return newInst;
+            }
+            // For scalar types, we go directly through the struct of pointer function
+            else {
+
+                // We use a builder adding instructions before the
+                // instruction to replace
+                IRBuilder<> builder(I);
+
+                // Get a pointer to the global current_mca_interface
+                // defined in ../vfcwrapper/vfcwrapper.c
+                Constant *current_mca_interface =
+                    M.getOrInsertGlobal("current_mca_interface", mca_interface_type);
+
+                // Dereference the pointer
+                Value * mca_interface_struct = builder.CreateLoad(current_mca_interface);
+
+                // Compute the position of the required member fct pointer
+                // opCodes are ordered in the same order than the struct members :-)
+                // There are 10 float members followed by 10 double members.
+                int fct_position = opCode;
+                if (baseTypeName == "double") fct_position += 10;
+
+                // Dereference the member at fct_position
+                std::vector<llvm::Value *> tmp_args;
+                tmp_args.push_back(builder.getInt32(0));
+                tmp_args.push_back(builder.getInt32(fct_position));
+                Value *arg_ptr = builder.CreateStructGEP(mca_interface_struct, fct_position);
+                Value *fct_ptr = builder.CreateLoad(arg_ptr, false);
+
+                // Create a call instruction. It is important to
+                // create the instruction in the globalcontext, indeed
+                // the instruction is not to be inserted before I. It
+                // will _replace_ I after it is returned.
+                IRBuilder<> builder2(getGlobalContext());
+                Instruction *newInst = builder2.CreateCall2(
+                    fct_ptr,
+                    I->getOperand(0),
+                    I->getOperand(1),
+                    "");
+
+                return newInst;
+            }
         }
 
-        std::string cmpOpCode(Instruction &I) {
+        Fops cmpOpCode(Instruction &I) {
             FCmpInst::Predicate p = (cast<FCmpInst>(I)).getPredicate();
             switch (p) {
 
                 case CmpInst::FCMP_OEQ:
                 case CmpInst::FCMP_UEQ:
-                    return "eq";
+                    return FOP_EQ;
 
                 case CmpInst::FCMP_OGT:
                 case CmpInst::FCMP_UGT:
-                    return "gt";
+                    return FOP_GT;
 
                 case CmpInst::FCMP_OGE:
                 case CmpInst::FCMP_UGE:
-                    return "ge";
+                    return FOP_GE;
 
                 case CmpInst::FCMP_OLT:
                 case CmpInst::FCMP_ULT:
-                    return "lt";
+                    return FOP_LT;
 
                 case CmpInst::FCMP_OLE:
                 case CmpInst::FCMP_ULE:
-                    return "le";
+                    return FOP_LE;
 
                 case CmpInst::FCMP_ONE:
                 case CmpInst::FCMP_UNE:
-                    return "ne";
+                    return FOP_NE;
 
                 default:
-                    return "";
+                    return FOP_IGNORE;
             }
         }
 
-        std::string mustReplace(Instruction &I) {
+        Fops mustReplace(Instruction &I) {
             switch (I.getOpcode()) {
                 case Instruction::FAdd:
-                    return "add";
+                    return FOP_ADD;
                 case Instruction::FSub:
                     // In LLVM IR the FSub instruction is used to represent FNeg
-                    return "sub";
+                    return FOP_SUB;
                 case Instruction::FMul:
-                    return "mul";
+                    return FOP_MUL;
                 case Instruction::FDiv:
-                    return "div";
+                    return FOP_DIV;
                 case Instruction::FCmp:
                     return cmpOpCode(I);
                 default:
-                    return "";
+                    return FOP_IGNORE;
             }
         }
 
@@ -179,10 +295,10 @@ namespace {
             bool modified = false;
             for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
                 Instruction &I = *ii;
-                std::string opName = mustReplace(I);
-                if (opName == "") continue;
+                Fops opCode = mustReplace(I);
+                if (opCode == FOP_IGNORE) continue;
                 errs() << "Instrumenting" << I << '\n';
-                Instruction *newInst = replaceWithMCACall(M, B, I, opName);
+                Instruction *newInst = replaceWithMCACall(M, B, ii, opCode);
                 ReplaceInstWithInst(B.getInstList(), ii, newInst);
                 modified = true;
             }
@@ -191,5 +307,5 @@ namespace {
     };
 }
 
-char McalibInst::ID = 0;
-static RegisterPass<McalibInst> X("mcalibinst", "mcalib pass", false, false);
+char VfclibInst::ID = 0;
+static RegisterPass<VfclibInst> X("vfclibinst", "verificarlo instrument pass", false, false);
