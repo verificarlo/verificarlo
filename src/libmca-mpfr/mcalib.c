@@ -316,31 +316,6 @@ int _doublege(double a, double b) {
 	return (res >= 0 ? 1 : 0);
 }
 
-int _longeq(long double a, long double b) {
-	return (a == b);
-}
-
-int _longne(long double a, long double b) {
-	return (a != b);
-}
-
-int _longlt(long double a, long double b) {
-	return (a < b);
-}
-
-int _longgt(long double a, long double b) {
-	return (a > b);
-}
-
-int _longle(long double a, long double b) {
-	return (a <= b);
-}
-
-int _longge(long double a, long double b) {
-	return (a >= b);
-}
-
-
 float _floatadd(float a, float b) {
 	//return a + b
 	return _mca_sbin(a, b,(mpfr_bin)MP_ADD);
@@ -391,31 +366,6 @@ double _doubleneg(double a) {
 	return _mca_dunr(a, (mpfr_unr)MP_NEG);
 }
 
-long double _longadd(long double a, long double b) {
-	long double ret = a + b;
-	return ret;
-}
-
-long double _longsub(long double a, long double b) {
-	long double ret = a - b;
-	return ret;
-}
-
-long double _longmul(long double a, long double b) {
-	long double ret = a * b;
-	return ret;
-}
-
-long double _longdiv(long double a, long double b) {
-	long double ret = a / b;
-	return ret;
-}
-
-long double _longneg(long double a) {
-	long double ret = -a;
-	return ret;
-}
-
 struct mca_interface_t mpfr_mca_interface = {
 	_floateq,
 	_floatne,
@@ -437,16 +387,6 @@ struct mca_interface_t mpfr_mca_interface = {
 	_doublesub,
 	_doublemul,
 	_doublediv,
-	_longeq,
-	_longne,
-	_longlt,
-	_longgt,
-	_longle,
-	_longge,
-	_longadd,
-	_longsub,
-	_longmul,
-	_longdiv,
 	_mca_seed,
 	_set_mca_mode,
 	_set_mca_precision

@@ -49,17 +49,6 @@ struct mca_interface_t {
     double (*doublemul)(double, double);
     double (*doublediv)(double, double);
 
-    int (*longeq)(long double, long double);
-    int (*longne)(long double, long double);
-    int (*longlt)(long double, long double);
-    int (*longgt)(long double, long double);
-    int (*longle)(long double, long double);
-    int (*longge)(long double, long double);
-    long double (*longadd)(long double, long double);
-    long double (*longsub)(long double, long double);
-    long double (*longmul)(long double, long double);
-    long double (*longdiv)(long double, long double);
-
     void (*seed)(void);
     int (*set_mca_mode)(int);
     int (*set_mca_precision)(int);
