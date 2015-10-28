@@ -1,1 +1,1 @@
-SUBDIRS=libmcainstrument mcalib
+SUBDIRS=libvfcinstrument libmca-mpfr

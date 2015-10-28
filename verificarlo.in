@@ -8,9 +8,9 @@ import sys
 import subprocess
 
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-libmcainstrument = PROJECT_ROOT + '/src/libmcainstrument/.libs/libmcainstrument.so'
-mcalib_dir = PROJECT_ROOT + '/src/mcalib/'
-mcawrapper = PROJECT_ROOT + '/src/mcawrapper/mcawrapper.c'
+libvfcinstrument = PROJECT_ROOT + '/src/libvfcinstrument/.libs/libvfcinstrument.so'
+mcalib_dir = PROJECT_ROOT + '/src/libmca-mpfr/'
+vfcwrapper = PROJECT_ROOT + '/src/vfcwrapper/vfcwrapper.c'
 llvm_bindir = "@LLVM_BINDIR@"
 clang = llvm_bindir + '/clang'
 opt = llvm_bindir + '/opt'
@@ -53,20 +53,20 @@ def shell(cmd):
         fail('command failed:\n' + cmd)
 
 def linker_mode(sources, options, output, args):
-    shell('{clang} -c -o .mcawrapper.o {mcawrapper} -I {mcalib_dir}'.format(
+    shell('{clang} -c -O2 -static -o .vfcwrapper.o {vfcwrapper} -I {mcalib_dir}'.format(
         clang=clang,
-        mcawrapper=mcawrapper,
+        vfcwrapper=vfcwrapper,
         mcalib_dir=mcalib_dir))
 
     if args.static:
-        shell('{linker} {output} {options} {sources} -static .mcawrapper.o {mcalib_dir}/.libs/libmca.a -lmpfr -lgmp -lm -lgfortran'.format(
+        shell('{linker} {output} {options} {sources} -static .vfcwrapper.o {mcalib_dir}/.libs/libmcampfr.a -lmpfr -lgmp -lm -lgfortran'.format(
             linker=clang,
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
             mcalib_dir=mcalib_dir))
     else:
-        shell('{linker} {output} {options} {sources} .mcawrapper.o -rpath {mcalib_dir}/.libs -L {mcalib_dir}/.libs -lmca -lgfortran'.format(
+        shell('{linker} {output} {options} {sources} .vfcwrapper.o -rpath {mcalib_dir}/.libs -L {mcalib_dir}/.libs -lmcampfr -lgfortran'.format(
             linker=clang,
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
@@ -98,12 +98,12 @@ def compiler_mode(sources, options, output, args):
         # Limit instrumentation to a function ?
         selectfunction = ""
         if args.function:
-            selectfunction = "-mcalibinst-function " + args.function
+            selectfunction = "-vfclibinst-function " + args.function
 
         # Apply MCA instrumentation pass
-        shell('{opt} -S -load {libmcainstrument} -mcalibinst {selectfunction} {ir} -o {ins}'.format(
+        shell('{opt} -S -load {libvfcinstrument} -vfclibinst {selectfunction} {ir} -o {ins}'.format(
             opt=opt,
-            libmcainstrument=libmcainstrument,
+            libvfcinstrument=libvfcinstrument,
             selectfunction=selectfunction,
             ir=ir,
             ins=ins
