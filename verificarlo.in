@@ -53,7 +53,7 @@ def shell(cmd):
         fail('command failed:\n' + cmd)
 
 def linker_mode(sources, options, output, args):
-    shell('{clang} -c -o .vfcwrapper.o {vfcwrapper} -I {mcalib_dir}'.format(
+    shell('{clang} -c -O2 -static -o .vfcwrapper.o {vfcwrapper} -I {mcalib_dir}'.format(
         clang=clang,
         vfcwrapper=vfcwrapper,
         mcalib_dir=mcalib_dir))
