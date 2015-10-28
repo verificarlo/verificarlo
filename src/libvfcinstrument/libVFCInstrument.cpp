@@ -49,11 +49,11 @@ namespace {
 
     struct VfclibInst : public ModulePass {
         static char ID;
-        PointerType * mca_interface_type;
+        StructType * mca_interface_type;
 
         VfclibInst() : ModulePass(ID) {}
 
-        PointerType * getMCAInterfaceType() {
+        StructType * getMCAInterfaceType() {
             LLVMContext &Context =getGlobalContext();
 
             // Verificarlo instrumentation calls the mca backend using
@@ -66,7 +66,7 @@ namespace {
             // three functions are user called functions and are not
             // needed here.
 
-            StructType * mca_struct_type = StructType::get(
+            return StructType::get(
                 TypeBuilder<int(*)(float, float), false>::get(Context),
                 TypeBuilder<int(*)(float, float), false>::get(Context),
                 TypeBuilder<int(*)(float, float), false>::get(Context),
@@ -93,12 +93,6 @@ namespace {
 
                 (void *)0
                 );
-
-            // We want a pointer to this structure. The structure is
-            // accessed through the global current_mca_interface of
-            // type mca_interface_t* which is declared in
-            // ../vfcwrapper/vfcwrapper.c
-            return PointerType::getUnqual(mca_struct_type);
         }
 
         bool runOnModule(Module &M) {
@@ -150,7 +144,7 @@ namespace {
             std::string vectorName = "";
             Type *baseType = opType;
 
-            /* Check for vector types */
+            // Check for vector types
             if (opType->isVectorTy()) {
                 VectorType *t = static_cast<VectorType *>(opType);
                 baseType = t->getElementType();
@@ -166,7 +160,7 @@ namespace {
                 }
             }
 
-            /* Check the type of the operation */
+            // Check the type of the operation
             if (baseType->isDoubleTy()) {
                 baseTypeName = "double";
             } else if (baseType->isFloatTy()) {
@@ -204,13 +198,13 @@ namespace {
                 // instruction to replace
                 IRBuilder<> builder(I);
 
-                // Get a pointer to the global current_mca_interface
-                // defined in ../vfcwrapper/vfcwrapper.c
+                // Get a pointer to the global vtable
+                // The vtable is accessed through the global structure
+                // current_mca_interface of type mca_interface_t which is
+                // declared in ../vfcwrapper/vfcwrapper.c
+
                 Constant *current_mca_interface =
                     M.getOrInsertGlobal("current_mca_interface", mca_interface_type);
-
-                // Dereference the pointer
-                Value * mca_interface_struct = builder.CreateLoad(current_mca_interface);
 
                 // Compute the position of the required member fct pointer
                 // opCodes are ordered in the same order than the struct members :-)
@@ -222,7 +216,7 @@ namespace {
                 std::vector<llvm::Value *> tmp_args;
                 tmp_args.push_back(builder.getInt32(0));
                 tmp_args.push_back(builder.getInt32(fct_position));
-                Value *arg_ptr = builder.CreateStructGEP(mca_interface_struct, fct_position);
+                Value *arg_ptr = builder.CreateStructGEP(current_mca_interface, fct_position);
                 Value *fct_ptr = builder.CreateLoad(arg_ptr, false);
 
                 // Create a call instruction. It is important to
