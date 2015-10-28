@@ -200,11 +200,11 @@ namespace {
 
                 // Get a pointer to the global vtable
                 // The vtable is accessed through the global structure
-                // current_mca_interface of type mca_interface_t which is
+                // _vfc_current_mca_interface of type mca_interface_t which is
                 // declared in ../vfcwrapper/vfcwrapper.c
 
                 Constant *current_mca_interface =
-                    M.getOrInsertGlobal("current_mca_interface", mca_interface_type);
+                    M.getOrInsertGlobal("_vfc_current_mca_interface", mca_interface_type);
 
                 // Compute the position of the required member fct pointer
                 // opCodes are ordered in the same order than the struct members :-)

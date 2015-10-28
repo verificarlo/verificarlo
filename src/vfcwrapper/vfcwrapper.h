@@ -21,11 +21,19 @@
  *                                                                              *
  ********************************************************************************/
 
+/* define the available MCA modes of operation */
 #define MCAMODE_IEEE 0
 #define MCAMODE_MCA  1
 #define MCAMODE_PB   2
 #define MCAMODE_RR   3
 
+/* seeds all the MCA backends */
+void vfc_seed(void);
+
+/* sets verificarlo precision and mode. Returns 0 on success. */
+int vfc_set_precision_and_mode(unsigned int precision, int mode);
+
+/* MCA backend interface */
 struct mca_interface_t {
     int (*floateq)(float, float);
     int (*floatne)(float, float);
