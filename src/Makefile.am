@@ -1,1 +1,1 @@
-SUBDIRS=libvfcinstrument libmca-mpfr
+SUBDIRS=libvfcinstrument libmca-mpfr libmca-quad

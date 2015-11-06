@@ -9,7 +9,10 @@ import subprocess
 
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = PROJECT_ROOT + '/src/libvfcinstrument/.libs/libvfcinstrument.so'
-mcalib_dir = PROJECT_ROOT + '/src/libmca-mpfr/'
+mcalib_static = "{0}/src/libmca-mpfr/.libs/libmcampfr.a {0}/src/libmca-quad/.libs/libmcaquad.a".format(PROJECT_ROOT) 
+mcalib_dynamic = "-lmcampfr -lmcaquad"
+mcalib_dirs = [PROJECT_ROOT + '/src/libmca-mpfr/',
+	       PROJECT_ROOT + '/src/libmca-quad/']
 vfcwrapper = PROJECT_ROOT + '/src/vfcwrapper/vfcwrapper.c'
 llvm_bindir = "@LLVM_BINDIR@"
 clang = llvm_bindir + '/clang'
@@ -53,25 +56,30 @@ def shell(cmd):
         fail('command failed:\n' + cmd)
 
 def linker_mode(sources, options, output, args):
-    shell('{clang} -c -O2 -static -o .vfcwrapper.o {vfcwrapper} -I {mcalib_dir}'.format(
+    shell('{clang} -c -O2 -static -o .vfcwrapper.o {vfcwrapper} {mcalib_includes}'.format(
         clang=clang,
         vfcwrapper=vfcwrapper,
-        mcalib_dir=mcalib_dir))
+        mcalib_includes=' '.join(["-I " + d for d in mcalib_dirs])))
 
     if args.static:
-        shell('{linker} {output} {options} {sources} -static .vfcwrapper.o {mcalib_dir}/.libs/libmcampfr.a -lmpfr -lgmp -lm -lgfortran'.format(
+        shell('{linker} {output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp -lm -lgfortran'.format(
             linker=clang,
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
-            mcalib_dir=mcalib_dir))
+            mcalib_static=mcalib_static))
     else:
-        shell('{linker} {output} {options} {sources} .vfcwrapper.o -rpath {mcalib_dir}/.libs -L {mcalib_dir}/.libs -lmcampfr -lgfortran'.format(
+	mcalib_options = []
+	for d in mcalib_dirs:
+	    mcalib_options.append("-rpath {0}/.libs -L {0}/.libs".format(d))
+	
+        shell('{linker} {output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} -lgfortran'.format(
             linker=clang,
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
-            mcalib_dir=mcalib_dir))
+            mcalib_options=' '.join(mcalib_options),
+            mcalib_dynamic=mcalib_dynamic))
 
 def compiler_mode(sources, options, output, args):
     for source in sources:

@@ -30,6 +30,7 @@
 #include "vfcwrapper.h"
 
 #include "libmca-mpfr.h"
+#include "libmca-quad.h"
 
 #define VERIFICARLO_PRECISION "VERIFICARLO_PRECISION"
 #define VERIFICARLO_MCAMODE "VERIFICARLO_MCAMODE"
@@ -50,9 +51,18 @@ static void vfc_select_interface_mpfr(void) {
     _vfc_current_mca_interface.set_mca_mode(verificarlo_mcamode);
 }
 
+/* Activates the quad MCA backend */
+static void vfc_select_interface_quad(void) {
+    _vfc_current_mca_interface = quad_mca_interface;
+    _vfc_current_mca_interface.set_mca_precision(verificarlo_precision);
+    _vfc_current_mca_interface.set_mca_mode(verificarlo_mcamode);
+}
+
+
 /* seeds all the MCA backends */
 void vfc_seed(void) {
     mpfr_mca_interface.seed();
+    quad_mca_interface.seed();
 }
 
 /* sets verificarlo precision and mode. Returns 0 on success. */
@@ -66,7 +76,8 @@ int vfc_set_precision_and_mode(unsigned int precision, int mode) {
     /* For now only one backend is used. When multiple backend
        exists, here we will select the appropriate backend depending
        on the required precision */
-    vfc_select_interface_mpfr();
+    //vfc_select_interface_mpfr();
+    vfc_select_interface_quad();	
     return 0;
 }
 

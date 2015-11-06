@@ -15,6 +15,9 @@
 // provides a reentrant, independent generator of better quality than
 // the one provided in libc.
 //
+// 2015-05-20 New version based on quad flotting point type to replace MPFR until 
+// required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits 
+//
 // This file is part of the Monte Carlo Arithmetic Library, (MCALIB). MCALIB is
 // free software: you can redistribute it and/or modify it under the terms of
 // the GNU General Public License as published by the Free Software Foundation,
@@ -34,6 +37,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include "libmca-quad.h"
 #include "../vfcwrapper/vfcwrapper.h"
@@ -95,32 +99,24 @@ static double _mca_rand(void) {
 	return tinymt64_generate_doubleOO(&random_state);
 }
 
-static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
+static int _mca_inexact(__float128 *a) {
+	
+
 	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
 		return 0;
 	}
-	mpfr_exp_t e_a = mpfr_get_exp(a);
-	mpfr_prec_t p_a = mpfr_get_prec(a);
-	mpfr_t mpfr_rand, mpfr_offset, mpfr_zero;
-	e_a = e_a - (MCALIB_T - 1);
-	mpfr_inits2(p_a, mpfr_rand, mpfr_offset, mpfr_zero, (mpfr_ptr) 0);
-	mpfr_set_d(mpfr_zero, 0., rnd_mode);
-	int cmp = mpfr_cmp(a, mpfr_zero);
-	if (cmp == 0) {
-		mpfr_clear(mpfr_rand);
-		mpfr_clear(mpfr_offset);
-		mpfr_clear(mpfr_zero);
+	
+	if (a == 0) {
 		return 0;
 	}
+	
+	uint32_t e_a=0;
+	//see man page of frexp
+	frexpq (*a, &e_a);
+	uint32_t e_n = e_a - (MCALIB_T - 1);
 	double d_rand = (_mca_rand() - 0.5);
-	double d_offset = pow(2, e_a);
-	mpfr_set_d(mpfr_rand, d_rand, rnd_mode);
-	mpfr_set_d(mpfr_offset, d_offset, rnd_mode);
-	mpfr_mul(mpfr_rand, mpfr_rand, mpfr_offset, rnd_mode);
-	mpfr_add(a, a, mpfr_rand, rnd_mode);
-	mpfr_clear(mpfr_rand);
-	mpfr_clear(mpfr_offset);
-	mpfr_clear(mpfr_zero);
+	*a = *a + powq(2,e_n)*d_rand;
+	
 }
 
 static void _mca_seed(void) {
@@ -144,48 +140,130 @@ static void _mca_seed(void) {
 * to the original format for return
 *******************************************************************/
 
-static float _mca_sbin(float a, float b, mpfr_bin mpfr_op) {
-	mpfr_t mpfr_a, mpfr_b, mpfr_r;
-	mpfr_prec_t prec = 24 + MCALIB_T;
-	mpfr_rnd_t rnd = MPFR_RNDN;
-	mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr) 0);
-	mpfr_set_flt(mpfr_a, a, rnd);
-	mpfr_set_flt(mpfr_b, b, rnd);
+#define QADD 1
+#define QSUB 2
+#define QMUL 3
+#define QDIV 4
+#define QNEG 5
+
+
+static float _mca_sbin(float a, float b,int  qop) {
+	
+	uint32_t prec = 24 + MCALIB_T;
+	__float128 qa=(__float128)a;
+	__float128 qb=(__float128)b;	
+	__float128 res=0;
+
 	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(mpfr_a, rnd);
-		_mca_inexact(mpfr_b, rnd);
+		_mca_inexact(&qa);
+		_mca_inexact(&qb);
 	}
-	mpfr_op(mpfr_r, mpfr_a, mpfr_b, rnd);
+
+	switch (qop){
+
+		case QADD:
+  			res=qa+qb;
+  		break;
+
+		case QSUB:
+  			res=qa-qb;
+  		break;
+
+		case QMUL:
+  			res=qa*qb;
+  		break;
+
+
+		case QDIV:
+  			res=qa/qb;
+  		break;
+
+		default:
+  		perror("invalid operator in mca_quad!!!\n");
+  		abort();
+	}
+
 	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(mpfr_r, rnd);
+		_mca_inexact(&res);
 	}
-	float ret = mpfr_get_flt(mpfr_r, rnd);
-	mpfr_clear(mpfr_a);
-	mpfr_clear(mpfr_b);
-	mpfr_clear(mpfr_r);
+
+	float fres = res;
+	return res;
+}
+
+static float _mca_sunr(float a, int qop) {
+		
+	uint32_t prec = 24 + MCALIB_T;
+	__float128 qa=(__float128)a;
+	__float128 res=0;
+
+	if (MCALIB_OP_TYPE != MCAMODE_RR) {
+		_mca_inexact(&qa);
+	}
+		
+	switch (qop){
+
+		case QNEG:
+  			res=-a;
+  		break;
+
+		default:
+  		perror("invalid operator in mca_quad!!!\n");
+  		abort();
+	}
+	
+	if (MCALIB_OP_TYPE != MCAMODE_PB) {
+		_mca_inexact(&res);
+	}
+
+	float fres = res;
+	return res;
+	
 	return NEAREST_FLOAT(ret);
 }
 
-static float _mca_sunr(float a, mpfr_unr mpfr_op) {
-	mpfr_t mpfr_a, mpfr_r;
-	mpfr_prec_t prec = 24 + MCALIB_T;
-	mpfr_rnd_t rnd = MPFR_RNDN;
-	mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr) 0);
-	mpfr_set_flt(mpfr_a, a, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(mpfr_a, rnd);
-	}
-	mpfr_op(mpfr_r, mpfr_a, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(mpfr_r, rnd);
-	}
-	float ret = mpfr_get_flt(mpfr_r, rnd);
-	mpfr_clear(mpfr_a);
-	mpfr_clear(mpfr_r);
-	return NEAREST_FLOAT(ret);
-}
+static double _mca_dbin(double a, double b, int qop) {
+	uint32_t prec = 53 + MCALIB_T;
+	__float128 qa=(__float128)a;
+	__float128 qb=(__float128)b;	
+	__float128 res=0;
 
-static double _mca_dbin(double a, double b, mpfr_bin mpfr_op) {
+	if (MCALIB_OP_TYPE != MCAMODE_RR) {
+		_mca_inexact(&qa);
+		_mca_inexact(&qb);
+	}
+
+	switch (qop){
+
+		case QADD:
+  			res=qa+qb;
+  		break;
+
+		case QSUB:
+  			res=qa-qb;
+  		break;
+
+		case QMUL:
+  			res=qa*qb;
+  		break;
+
+
+		case QDIV:
+  			res=qa/qb;
+  		break;
+
+		default:
+  		perror("invalid operator in mca_quad!!!\n");
+  		abort();
+	}
+
+	if (MCALIB_OP_TYPE != MCAMODE_PB) {
+		_mca_inexact(&res);
+	}
+
+	float fres = res;
+	return res;
+
 	mpfr_t mpfr_a, mpfr_b, mpfr_r;
 	mpfr_prec_t prec = 53 + MCALIB_T;
 	mpfr_rnd_t rnd = MPFR_RNDN;
@@ -207,7 +285,7 @@ static double _mca_dbin(double a, double b, mpfr_bin mpfr_op) {
 	return NEAREST_DOUBLE(ret);
 }
 
-static double _mca_dunr(double a, mpfr_unr mpfr_op) {
+static double _mca_dunr(double a, int qop) {
 	mpfr_t mpfr_a, mpfr_r;
 	mpfr_prec_t prec = 53 + MCALIB_T;
 	mpfr_rnd_t rnd = MPFR_RNDN;
@@ -339,55 +417,55 @@ static int _doublege(double a, double b) {
 
 static float _floatadd(float a, float b) {
 	//return a + b
-	return _mca_sbin(a, b,(mpfr_bin)MP_ADD);
+	return _mca_sbin(a, b,QADD);
 }
 
 static float _floatsub(float a, float b) {
 	//return a - b
-	return _mca_sbin(a, b, (mpfr_bin)MP_SUB);
+	return _mca_sbin(a, b, QSUB);
 }
 
 static float _floatmul(float a, float b) {
 	//return a * b
-	return _mca_sbin(a, b, (mpfr_bin)MP_MUL);
+	return _mca_sbin(a, b, QMUL);
 }
 
 static float _floatdiv(float a, float b) {
 	//return a / b
-	return _mca_sbin(a, b, (mpfr_bin)MP_DIV);
+	return _mca_sbin(a, b, QDIV);
 }
 
 static float _floatneg(float a) {
 	//return -a
-	return _mca_sunr(a, (mpfr_unr)MP_NEG);
+	return _mca_sunr(a, QNEG);
 }
 
 static double _doubleadd(double a, double b) {
 	//return a + b
-	return _mca_dbin(a, b, (mpfr_bin)MP_ADD);
+	return _mca_dbin(a, b, QADD);
 }
 
 static double _doublesub(double a, double b) {
 	//return a - b
-	return _mca_dbin(a, b, (mpfr_bin)MP_SUB);
+	return _mca_dbin(a, b, QSUB);
 }
 
 static double _doublemul(double a, double b) {
 	//return a * b
-	return _mca_dbin(a, b, (mpfr_bin)MP_MUL);
+	return _mca_dbin(a, b, QMUL);
 }
 
 static double _doublediv(double a, double b) {
 	//return a / b
-	return _mca_dbin(a, b, (mpfr_bin)MP_DIV);
+	return _mca_dbin(a, b, QDIV);
 }
 
 static double _doubleneg(double a) {
 	//return -a
-	return _mca_dunr(a, (mpfr_unr)MP_NEG);
+	return _mca_dunr(a, QNEG);
 }
 
-struct mca_interface_t mpfr_mca_interface = {
+struct mca_interface_t quad_mca_interface = {
 	_floateq,
 	_floatne,
 	_floatlt,

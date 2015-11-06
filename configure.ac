@@ -106,6 +106,7 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/libvfcinstrument/Makefile
                  src/libmca-mpfr/Makefile
+		 src/libmca-quad/Makefile
                  tests/Makefile])
 
 AC_CONFIG_FILES([verificarlo], [chmod +x verificarlo])
