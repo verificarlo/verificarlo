@@ -50,20 +50,18 @@
 int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
 int 	MCALIB_T		    = 24;
 
-#define MP_ADD &mpfr_add
-#define MP_SUB &mpfr_sub
-#define MP_MUL &mpfr_mul
-#define MP_DIV &mpfr_div
-#define MP_NEG &mpfr_neg
+//possible qop values
+#define QADD 1
+#define QSUB 2
+#define QMUL 3
+#define QDIV 4
+#define QNEG 5
 
-typedef int (*mpfr_bin)(mpfr_t, mpfr_t, mpfr_t, mpfr_rnd_t);
-typedef int (*mpfr_unr)(mpfr_t, mpfr_t, mpfr_rnd_t);
-
-static float _mca_sbin(float a, float b, mpfr_bin mpfr_op);
-static float _mca_sunr(float a, mpfr_unr mpfr_op);
+static float _mca_sbin(float a, float b, int qop);
+static float _mca_sunr(float a, int qop);
 static int _mca_scmp(float a, float b);
-static double _mca_dbin(double a, double b, mpfr_bin mpfr_op);
-static double _mca_dunr(double a, mpfr_unr mpfr_op);
+static double _mca_dbin(double a, double b, int qop);
+static double _mca_dunr(double a, int qop);
 static int _mca_dcmp(double a, double b);
 
 /******************** MCA CONTROL FUNCTIONS *******************
@@ -135,21 +133,13 @@ static void _mca_seed(void) {
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
 * The following set of functions perform the MCA operation. Operands
-* are first converted to MPFR format, inbound and outbound perturbations
-* are applied using the _mca_inexact function, and the result converted
-* to the original format for return
+* are first converted to quad  format (GCC), inbound and outbound 
+* perturbations are applied using the _mca_inexact function, and the 
+* result converted to the original format for return
 *******************************************************************/
-
-#define QADD 1
-#define QSUB 2
-#define QMUL 3
-#define QDIV 4
-#define QNEG 5
-
 
 static float _mca_sbin(float a, float b,int  qop) {
 	
-	uint32_t prec = 24 + MCALIB_T;
 	__float128 qa=(__float128)a;
 	__float128 qb=(__float128)b;	
 	__float128 res=0;
@@ -173,7 +163,6 @@ static float _mca_sbin(float a, float b,int  qop) {
   			res=qa*qb;
   		break;
 
-
 		case QDIV:
   			res=qa/qb;
   		break;
@@ -187,13 +176,11 @@ static float _mca_sbin(float a, float b,int  qop) {
 		_mca_inexact(&res);
 	}
 
-	float fres = res;
-	return res;
+	return NEAREST_FLOAT(res);
 }
 
 static float _mca_sunr(float a, int qop) {
 		
-	uint32_t prec = 24 + MCALIB_T;
 	__float128 qa=(__float128)a;
 	__float128 res=0;
 
@@ -216,14 +203,11 @@ static float _mca_sunr(float a, int qop) {
 		_mca_inexact(&res);
 	}
 
-	float fres = res;
-	return res;
+	return NEAREST_FLOAT(res);
 	
-	return NEAREST_FLOAT(ret);
 }
 
 static double _mca_dbin(double a, double b, int qop) {
-	uint32_t prec = 53 + MCALIB_T;
 	__float128 qa=(__float128)a;
 	__float128 qb=(__float128)b;	
 	__float128 res=0;
@@ -247,7 +231,6 @@ static double _mca_dbin(double a, double b, int qop) {
   			res=qa*qb;
   		break;
 
-
 		case QDIV:
   			res=qa/qb;
   		break;
@@ -261,47 +244,35 @@ static double _mca_dbin(double a, double b, int qop) {
 		_mca_inexact(&res);
 	}
 
-	float fres = res;
-	return res;
+	return NEAREST_DOUBLE(res);
 
-	mpfr_t mpfr_a, mpfr_b, mpfr_r;
-	mpfr_prec_t prec = 53 + MCALIB_T;
-	mpfr_rnd_t rnd = MPFR_RNDN;
-	mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr) 0);
-	mpfr_set_d(mpfr_a, a, rnd);
-	mpfr_set_d(mpfr_b, b, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(mpfr_a, rnd);
-		_mca_inexact(mpfr_b, rnd);
-	}
-	mpfr_op(mpfr_r, mpfr_a, mpfr_b, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(mpfr_r, rnd);
-	}
-	double ret = mpfr_get_d(mpfr_r, rnd);
-	mpfr_clear(mpfr_a);
-	mpfr_clear(mpfr_b);
-	mpfr_clear(mpfr_r);
-	return NEAREST_DOUBLE(ret);
 }
 
 static double _mca_dunr(double a, int qop) {
-	mpfr_t mpfr_a, mpfr_r;
-	mpfr_prec_t prec = 53 + MCALIB_T;
-	mpfr_rnd_t rnd = MPFR_RNDN;
-	mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr) 0);
-	mpfr_set_d(mpfr_a, a, rnd);
+	
+	__float128 qa=(__float128)a;
+	__float128 res=0;
+
 	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(mpfr_a, rnd);
+		_mca_inexact(&qa);
 	}
-	mpfr_op(mpfr_r, mpfr_a, rnd);
+		
+	switch (qop){
+
+		case QNEG:
+  			res=-a;
+  		break;
+
+		default:
+  		perror("invalid operator in mca_quad!!!\n");
+  		abort();
+	}
+	
 	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(mpfr_r, rnd);
+		_mca_inexact(&res);
 	}
-	double ret = mpfr_get_d(mpfr_r, rnd);
-	mpfr_clear(mpfr_a);
-	mpfr_clear(mpfr_r);
-	return NEAREST_DOUBLE(ret);
+
+	return NEAREST_DOUBLE(res);
 }
 
 /******************** MCA COMPARE FUNCTIONS ********************
