@@ -59,10 +59,8 @@ int 	MCALIB_T		    = 24;
 
 static float _mca_sbin(float a, float b, int qop);
 static float _mca_sunr(float a, int qop);
-static int _mca_scmp(float a, float b);
 static double _mca_dbin(double a, double b, int qop);
 static double _mca_dunr(double a, int qop);
-static int _mca_dcmp(double a, double b);
 
 /******************** MCA CONTROL FUNCTIONS *******************
 * The following functions are used to set virtual precision and
@@ -276,115 +274,15 @@ static double _mca_dunr(double a, int qop) {
 }
 
 /******************** MCA COMPARE FUNCTIONS ********************
-* Compare operations do not require MCA and as such these functions
-* only convert the operands to MPFR format and execute the mpfr_cmp
-* function, the integer result is then passed back to the original
-* fphook function.
+* Compare operations do not require MCA 
 ****************************************************************/
 
-static int _mca_scmp(float a, float b) {
-	mpfr_t mpfr_a, mpfr_b;
-	mpfr_prec_t prec = 24;
-	mpfr_rnd_t rnd = MPFR_RNDN;
-	mpfr_inits2(prec, mpfr_a, mpfr_b, (mpfr_ptr) 0);
-	mpfr_set_flt(mpfr_a, a, rnd);
-	mpfr_set_flt(mpfr_b, b, rnd);
-	int cmp_r = mpfr_cmp(mpfr_a, mpfr_b);
-	mpfr_clear(mpfr_a);
-	mpfr_clear(mpfr_b);
-	return cmp_r;
-}
-
-static int _mca_dcmp(double a, double b) {
-	mpfr_t mpfr_a, mpfr_b;
-	mpfr_prec_t prec = 53;
-	mpfr_rnd_t rnd = MPFR_RNDN;
-	mpfr_inits2(prec, mpfr_a, mpfr_b, (mpfr_ptr) 0);
-	mpfr_set_d(mpfr_a, a, rnd);
-	mpfr_set_d(mpfr_b, b, rnd);
-	int cmp_r = mpfr_cmp(mpfr_a, mpfr_b);
-	mpfr_clear(mpfr_a);
-	mpfr_clear(mpfr_b);
-	return cmp_r;
-}
 
 /************************* FPHOOKS FUNCTIONS *************************
 * These functions correspond to those inserted into the source code
 * during source to source compilation and are replacement to floating
 * point operators
 **********************************************************************/
-
-static int _floateq(float a, float b) {
-	//return a == b
-	int res = _mca_scmp(a, b);
-	return (res == 0 ? 1 : 0);
-}
-
-static int _floatne(float a, float b) {
-	//return a != b
-	int res = _mca_scmp(a, b);
-	return (res == 0 ? 0 : 1);
-}
-
-static int _floatlt(float a, float b) {
-	//return a < b
-	int res = _mca_scmp(a, b);
-	return (res < 0 ? 1 : 0);
-}
-
-static int _floatgt(float a, float b) {
-	//return a > b
-	int res = _mca_scmp(a, b);
-	return (res > 0 ? 1 : 0);
-}
-
-static int _floatle(float a, float b) {
-	//return a <= b
-	int res = _mca_scmp(a, b);
-	return (res <= 0 ? 1 : 0);
-}
-
-static int _floatge(float a, float b) {
-	//return a >= b
-	int res = _mca_scmp(a, b);
-	return (res >= 0 ? 1 : 0);
-}
-
-static int _doubleeq(double a, double b) {
-	//return a == b
-	int res = _mca_dcmp(a, b);
-	return (res == 0 ? 1 : 0);
-}
-
-static int _doublene(double a, double b) {
-	//return a != b
-	int res = _mca_dcmp(a, b);
-	return (res == 0 ? 0 : 1);
-}
-
-static int _doublelt(double a, double b) {
-	//return a < b
-	int res = _mca_dcmp(a, b);
-	return (res < 0 ? 1 : 0);
-}
-
-static int _doublegt(double a, double b) {
-	//return a > b
-	int res = _mca_dcmp(a, b);
-	return (res > 0 ? 1 : 0);
-}
-
-static int _doublele(double a, double b) {
-	//return a <= b
-	int res = _mca_dcmp(a, b);
-	return (res <= 0 ? 1 : 0);
-}
-
-static int _doublege(double a, double b) {
-	//return a >= b
-	int res = _mca_dcmp(a, b);
-	return (res >= 0 ? 1 : 0);
-}
 
 static float _floatadd(float a, float b) {
 	//return a + b
