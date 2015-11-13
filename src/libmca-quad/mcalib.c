@@ -40,6 +40,7 @@
 #include <unistd.h>
 #include <stdint.h>
 
+#include "../common/quadmath-imp.h"
 #include "libmca-quad.h"
 #include "../vfcwrapper/vfcwrapper.h"
 #include "../common/tinymt64.h"
@@ -49,7 +50,7 @@
 #define	NEAREST_DOUBLE(x)	((double) (x))
 
 int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
-int 	MCALIB_T		    = 24;
+int 	MCALIB_T		    = 53;
 
 //possible qop values
 #define QADD 1
@@ -94,6 +95,32 @@ static double _mca_rand(void) {
 	return tinymt64_generate_doubleOO(&random_state);
 }
 
+#define QINF_hx 0x7fff000000000000ULL 
+#define QINF_lx 0x0000000000000000ULL
+
+__float128 pow2q(int exp) {
+  __float128 res=0;
+  uint64_t hx, lx;
+  
+  //specials
+  if (exp == 0) return 1;
+  if (exp > 16383) {
+	SET_FLT128_WORDS64(res, QINF_hx, QINF_lx);
+	return res;
+  }
+  if (exp <-16382) { /*subnormal*/
+        SET_FLT128_WORDS64(res, ((uint64_t) 0 ) , ((uint64_t) 1 ) << exp);
+        return res;
+  }
+  
+  //normal case
+  hx=( ((uint64_t) exp) + 16382) << 48;
+  lx=0;
+  SET_FLT128_WORDS64(res, hx, QINF_lx);
+  return res;
+}
+
+
 static int _mca_inexact(__float128 *a) {
 	
 
@@ -105,13 +132,12 @@ static int _mca_inexact(__float128 *a) {
 		return 0;
 	}
 	
-	uint32_t e_a=0;
+	int32_t e_a=0;
 	//see man page of frexp
 	frexpq (*a, &e_a);
-	uint32_t e_n = e_a - (MCALIB_T - 1);
+	int32_t e_n = e_a - (MCALIB_T - 1);
 	double d_rand = (_mca_rand() - 0.5);
-	*a = *a + powq(2,e_n)*d_rand;
-	
+	*a = *a + pow2q(e_n)*d_rand;
 }
 
 static void _mca_seed(void) {
@@ -139,11 +165,16 @@ static float _mca_sbin(float a, float b,int  qop) {
 	
 	__float128 qa=(__float128)a;
 	__float128 qb=(__float128)b;	
+
+	printf("a=%g qa=%g\n",a,((double)qa));
+	printf("b=%g qb=%g\n",b,((double)qb));	
+
 	__float128 res=0;
 
 	if (MCALIB_OP_TYPE != MCAMODE_RR) {
 		_mca_inexact(&qa);
 		_mca_inexact(&qb);
+		printf("MAKE SOME NOISE!!!\n");
 	}
 
 	switch (qop){
@@ -171,6 +202,7 @@ static float _mca_sbin(float a, float b,int  qop) {
 
 	if (MCALIB_OP_TYPE != MCAMODE_PB) {
 		_mca_inexact(&res);
+		printf("MAKE SOME NOISE!!!\n");
 	}
 
 	return NEAREST_FLOAT(res);
