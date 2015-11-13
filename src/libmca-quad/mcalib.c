@@ -166,15 +166,12 @@ static float _mca_sbin(float a, float b,int  qop) {
 	__float128 qa=(__float128)a;
 	__float128 qb=(__float128)b;	
 
-	printf("a=%g qa=%g\n",a,((double)qa));
-	printf("b=%g qb=%g\n",b,((double)qb));	
 
 	__float128 res=0;
 
 	if (MCALIB_OP_TYPE != MCAMODE_RR) {
 		_mca_inexact(&qa);
 		_mca_inexact(&qb);
-		printf("MAKE SOME NOISE!!!\n");
 	}
 
 	switch (qop){
@@ -202,7 +199,6 @@ static float _mca_sbin(float a, float b,int  qop) {
 
 	if (MCALIB_OP_TYPE != MCAMODE_PB) {
 		_mca_inexact(&res);
-		printf("MAKE SOME NOISE!!!\n");
 	}
 
 	return NEAREST_FLOAT(res);
