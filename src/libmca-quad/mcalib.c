@@ -98,7 +98,7 @@ static double _mca_rand(void) {
 #define QINF_hx 0x7fff000000000000ULL 
 #define QINF_lx 0x0000000000000000ULL
 
-__float128 pow2q(int exp) {
+static __float128 pow2q(int exp) {
   __float128 res=0;
   uint64_t hx, lx;
   
@@ -120,24 +120,41 @@ __float128 pow2q(int exp) {
   return res;
 }
 
+static uint32_t rexpq (__float128 x)
+{
+  //no need to check special value in our cases since pow2q will deal with it
+  //do not reuse it outside this code!
+  uint64_t hx,ix;
+  uint32_t exp=0;
+  GET_FLT128_MSW64(hx,x);
+  ix = hx&0x7fffffffffffffffULL;
+  exp += (ix>>48)-16382;
+  return exp;
+}
 
-static int _mca_inexact(__float128 *a) {
+static int _mca_inexact(__float128 *qa) {
 	
 
 	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
 		return 0;
 	}
 	
-	if (a == 0) {
-		return 0;
-	}
+	//shall we remove it to remove the if for all other values?
+	//1% improvment on kahan => is better or worth on other benchmarks?
+	//if (qa == 0) {
+	//	return 0;
+	//}
 	
 	int32_t e_a=0;
-	//see man page of frexp
-	frexpq (*a, &e_a);
+	//frexpq (*a, &e_a);
+	e_a=rexpq(*qa);
 	int32_t e_n = e_a - (MCALIB_T - 1);
 	double d_rand = (_mca_rand() - 0.5);
-	*a = *a + pow2q(e_n)*d_rand;
+	//can we use bits manipulation instead of qmul?
+	//idea: use one of the bit of d_rand for sign such that drand is between -1 and 1, and remove 1 to e_n to compensate
+	//This bit should be uniformly distributed
+	//build the quad to add using e_n, the mantissa of d_rand and the new sign bit => get ride of the mul...
+	*qa = *qa + pow2q(e_n)*d_rand;
 }
 
 static void _mca_seed(void) {
@@ -180,12 +197,12 @@ static float _mca_sbin(float a, float b,int  qop) {
   			res=qa+qb;
   		break;
 
-		case QSUB:
-  			res=qa-qb;
-  		break;
-
 		case QMUL:
   			res=qa*qb;
+  		break;
+
+		case QSUB:
+  			res=qa-qb;
   		break;
 
 		case QDIV:
@@ -221,12 +238,12 @@ static double _mca_dbin(double a, double b, int qop) {
   			res=qa+qb;
   		break;
 
-		case QSUB:
-  			res=qa-qb;
-  		break;
-
 		case QMUL:
   			res=qa*qb;
+  		break;
+
+		case QSUB:
+  			res=qa-qb;
   		break;
 
 		case QDIV:
