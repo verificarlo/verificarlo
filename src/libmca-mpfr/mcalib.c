@@ -53,7 +53,6 @@ int 	MCALIB_T		    = 24;
 #define MP_SUB &mpfr_sub
 #define MP_MUL &mpfr_mul
 #define MP_DIV &mpfr_div
-#define MP_NEG &mpfr_neg
 
 typedef int (*mpfr_bin)(mpfr_t, mpfr_t, mpfr_t, mpfr_rnd_t);
 typedef int (*mpfr_unr)(mpfr_t, mpfr_t, mpfr_rnd_t);
@@ -259,10 +258,6 @@ static float _floatdiv(float a, float b) {
 	return _mca_sbin(a, b, (mpfr_bin)MP_DIV);
 }
 
-static float _floatneg(float a) {
-	//return -a
-	return _mca_sunr(a, (mpfr_unr)MP_NEG);
-}
 
 static double _doubleadd(double a, double b) {
 	//return a + b
@@ -284,10 +279,6 @@ static double _doublediv(double a, double b) {
 	return _mca_dbin(a, b, (mpfr_bin)MP_DIV);
 }
 
-static double _doubleneg(double a) {
-	//return -a
-	return _mca_dunr(a, (mpfr_unr)MP_NEG);
-}
 
 struct mca_interface_t mpfr_mca_interface = {
 	_floatadd,

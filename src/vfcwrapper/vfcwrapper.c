@@ -171,18 +171,7 @@ double2 _2xdoublediv(double2 a, double2 b) {
 }
 
 
-double2 _2xdoubleneg(double2 a) {
-   double2 c;
-
-    c[0] = _vfc_current_mca_interface.doubleneg(a[0]);
-    c[1] = _vfc_current_mca_interface.doubleneg(a[1]);
-   return c;
-}
-
-
-
-
-
+/*********************************************************/
 
 double4 _4xdoubleadd(double4 a, double4 b) {
     double4 c;
@@ -225,19 +214,7 @@ double4 _4xdoublediv(double4 a, double4 b) {
 }
 
 
-double4 _4xdoubleneg(double4 a) {
-   double4 c;
-
-    c[0] = _vfc_current_mca_interface.doubleneg(a[0]);
-    c[1] = _vfc_current_mca_interface.doubleneg(a[1]);
-    c[2] = _vfc_current_mca_interface.doubleneg(a[2]);
-    c[3] = _vfc_current_mca_interface.doubleneg(a[3]);
-   return c;
-}
-
-
-
-
+/*********************************************************/
 
 
 float2 _2xfloatadd(float2 a, float2 b) {
@@ -311,15 +288,4 @@ float4 _4xfloatdiv(float4 a, float4 b) {
     c[3] = _vfc_current_mca_interface.floatdiv(a[3],b[3]);
     return c;
 }
-
-float4 _4xfloatneg(float4 a) {
-   float4 c;
-
-    c[0] = _vfc_current_mca_interface.floatneg(a[0]);
-    c[1] = _vfc_current_mca_interface.floatneg(a[1]);
-    c[2] = _vfc_current_mca_interface.floatneg(a[2]);
-    c[3] = _vfc_current_mca_interface.floatneg(a[3]);
-   return c;
-}
-
 

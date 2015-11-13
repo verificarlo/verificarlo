@@ -39,13 +39,11 @@ namespace {
     // Define an enum type to classify the floating points operations
     // that are instrumented by verificarlo
 
-    enum Fops {FOP_EQ, FOP_NE, FOP_LT, FOP_GT, FOP_LE, FOP_GE,
-               FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_IGNORE};
+    enum Fops {FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_IGNORE};
 
     // Each instruction can be translated to a string representation
 
-    std::string Fops2str[] = { "eq", "ne", "lt", "gt", "le",
-               "ge", "add", "sub", "mul", "div", "ignore"};
+    std::string Fops2str[] = { "add", "sub", "mul", "div", "ignore"};
 
     struct VfclibInst : public ModulePass {
         static char ID;
@@ -67,24 +65,12 @@ namespace {
             // needed here.
 
             return StructType::get(
-                TypeBuilder<int(*)(float, float), false>::get(Context),
-                TypeBuilder<int(*)(float, float), false>::get(Context),
-                TypeBuilder<int(*)(float, float), false>::get(Context),
-                TypeBuilder<int(*)(float, float), false>::get(Context),
-                TypeBuilder<int(*)(float, float), false>::get(Context),
-                TypeBuilder<int(*)(float, float), false>::get(Context),
 
                 TypeBuilder<float(*)(float, float), false>::get(Context),
                 TypeBuilder<float(*)(float, float), false>::get(Context),
                 TypeBuilder<float(*)(float, float), false>::get(Context),
                 TypeBuilder<float(*)(float, float), false>::get(Context),
 
-                TypeBuilder<int(*)(double, double), false>::get(Context),
-                TypeBuilder<int(*)(double, double), false>::get(Context),
-                TypeBuilder<int(*)(double, double), false>::get(Context),
-                TypeBuilder<int(*)(double, double), false>::get(Context),
-                TypeBuilder<int(*)(double, double), false>::get(Context),
-                TypeBuilder<int(*)(double, double), false>::get(Context),
 
                 TypeBuilder<double(*)(double, double), false>::get(Context),
                 TypeBuilder<double(*)(double, double), false>::get(Context),
@@ -208,9 +194,9 @@ namespace {
 
                 // Compute the position of the required member fct pointer
                 // opCodes are ordered in the same order than the struct members :-)
-                // There are 10 float members followed by 10 double members.
+                // There are 4 float members followed by 4 double members.
                 int fct_position = opCode;
-                if (baseTypeName == "double") fct_position += 10;
+                if (baseTypeName == "double") fct_position += 4;
 
                 // Dereference the member at fct_position
                 std::vector<llvm::Value *> tmp_args;
@@ -234,38 +220,6 @@ namespace {
             }
         }
 
-        Fops cmpOpCode(Instruction &I) {
-            FCmpInst::Predicate p = (cast<FCmpInst>(I)).getPredicate();
-            switch (p) {
-
-                case CmpInst::FCMP_OEQ:
-                case CmpInst::FCMP_UEQ:
-                    return FOP_EQ;
-
-                case CmpInst::FCMP_OGT:
-                case CmpInst::FCMP_UGT:
-                    return FOP_GT;
-
-                case CmpInst::FCMP_OGE:
-                case CmpInst::FCMP_UGE:
-                    return FOP_GE;
-
-                case CmpInst::FCMP_OLT:
-                case CmpInst::FCMP_ULT:
-                    return FOP_LT;
-
-                case CmpInst::FCMP_OLE:
-                case CmpInst::FCMP_ULE:
-                    return FOP_LE;
-
-                case CmpInst::FCMP_ONE:
-                case CmpInst::FCMP_UNE:
-                    return FOP_NE;
-
-                default:
-                    return FOP_IGNORE;
-            }
-        }
 
         Fops mustReplace(Instruction &I) {
             switch (I.getOpcode()) {
@@ -278,8 +232,6 @@ namespace {
                     return FOP_MUL;
                 case Instruction::FDiv:
                     return FOP_DIV;
-                case Instruction::FCmp:
-                    return cmpOpCode(I);
                 default:
                     return FOP_IGNORE;
             }

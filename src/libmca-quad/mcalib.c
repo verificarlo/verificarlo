@@ -56,13 +56,10 @@ int 	MCALIB_T		    = 24;
 #define QSUB 2
 #define QMUL 3
 #define QDIV 4
-#define QNEG 5
 
 static float _mca_sbin(float a, float b, int qop);
-static float _mca_sunr(float a, int qop);
 
 static double _mca_dbin(double a, double b, int qop);
-static double _mca_dunr(double a, int qop);
 
 /******************** MCA CONTROL FUNCTIONS *******************
 * The following functions are used to set virtual precision and
@@ -179,33 +176,6 @@ static float _mca_sbin(float a, float b,int  qop) {
 	return NEAREST_FLOAT(res);
 }
 
-static float _mca_sunr(float a, int qop) {
-		
-	__float128 qa=(__float128)a;
-	__float128 res=0;
-
-	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(&qa);
-	}
-		
-	switch (qop){
-
-		case QNEG:
-  			res=-a;
-  		break;
-
-		default:
-  		perror("invalid operator in mca_quad!!!\n");
-  		abort();
-	}
-	
-	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(&res);
-	}
-
-	return NEAREST_FLOAT(res);
-	
-}
 
 static double _mca_dbin(double a, double b, int qop) {
 	__float128 qa=(__float128)a;
@@ -248,32 +218,6 @@ static double _mca_dbin(double a, double b, int qop) {
 
 }
 
-static double _mca_dunr(double a, int qop) {
-	
-	__float128 qa=(__float128)a;
-	__float128 res=0;
-
-	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(&qa);
-	}
-		
-	switch (qop){
-
-		case QNEG:
-  			res=-a;
-  		break;
-
-		default:
-  		perror("invalid operator in mca_quad!!!\n");
-  		abort();
-	}
-	
-	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(&res);
-	}
-
-	return NEAREST_DOUBLE(res);
-}
 
 /******************** MCA COMPARE FUNCTIONS ********************
 * Compare operations do not require MCA 
@@ -306,10 +250,6 @@ static float _floatdiv(float a, float b) {
 	return _mca_sbin(a, b, QDIV);
 }
 
-static float _floatneg(float a) {
-	//return -a
-	return _mca_sunr(a, QNEG);
-}
 
 static double _doubleadd(double a, double b) {
 	//return a + b
@@ -331,22 +271,16 @@ static double _doublediv(double a, double b) {
 	return _mca_dbin(a, b, QDIV);
 }
 
-static double _doubleneg(double a) {
-	//return -a
-	return _mca_dunr(a, QNEG);
-}
 
 struct mca_interface_t quad_mca_interface = {
 	_floatadd,
 	_floatsub,
 	_floatmul,
 	_floatdiv,
-	_floatneg,
 	_doubleadd,
 	_doublesub,
 	_doublemul,
 	_doublediv,
-	_doubleneg,
 	_mca_seed,
 	_set_mca_mode,
 	_set_mca_precision

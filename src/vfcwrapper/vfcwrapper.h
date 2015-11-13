@@ -39,13 +39,11 @@ struct mca_interface_t {
     float (*floatsub)(float, float);
     float (*floatmul)(float, float);
     float (*floatdiv)(float, float);
-    float (*floatneg)(float);
 
     double (*doubleadd)(double, double);
     double (*doublesub)(double, double);
     double (*doublemul)(double, double);
     double (*doublediv)(double, double);
-    double (*doubleneg)(double);
 
     void (*seed)(void);
     int (*set_mca_mode)(int);
