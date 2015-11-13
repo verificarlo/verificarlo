@@ -1,14 +1,27 @@
-// The Monte Carlo Arihmetic Library - A tool for automated rounding error
-// analysis of floating point software.
-//
-// Copyright (C) 2014 The Computer Engineering Laboratory, The
-// University of Sydney. Maintained by Michael Frechtling:
-// michael.frechtling@sydney.edu.au
-//
-// Copyright (C) 2015
-//     Universite de Versailles St-Quentin-en-Yvelines                          *
-//     CMLA, Ecole Normale Superieure de Cachan                                 *
-//
+/********************************************************************************
+ *                                                                              *
+ *  This file is part of Verificarlo.                                           *
+ *                                                                              *
+ *  Copyright (c) 2015                                                          *
+ *     Universite de Versailles St-Quentin-en-Yvelines                          *
+ *     CMLA, Ecole Normale Superieure de Cachan                                 *
+ *                                                                              *
+ *  Verificarlo is free software: you can redistribute it and/or modify         *
+ *  it under the terms of the GNU General Public License as published by        *
+ *  the Free Software Foundation, either version 3 of the License, or           *
+ *  (at your option) any later version.                                         *
+ *                                                                              *
+ *  Verificarlo is distributed in the hope that it will be useful,              *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of              *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               *
+ *  GNU General Public License for more details.                                *
+ *                                                                              *
+ *  You should have received a copy of the GNU General Public License           *
+ *  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.        *
+ *                                                                              *
+ ********************************************************************************/
+
+
 // Changelog:
 //
 // 2015-05-20 replace random number generator with TinyMT64. This
@@ -18,18 +31,6 @@
 // 2015-05-20 New version based on quad flotting point type to replace MPFR until 
 // required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits 
 //
-// This file is part of the Monte Carlo Arithmetic Library, (MCALIB). MCALIB is
-// free software: you can redistribute it and/or modify it under the terms of
-// the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-// details.
-//
-// You should have received a copy of the GNU General Public License along with
-// this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <math.h>
 #include <mpfr.h>
@@ -59,6 +60,7 @@ int 	MCALIB_T		    = 24;
 
 static float _mca_sbin(float a, float b, int qop);
 static float _mca_sunr(float a, int qop);
+
 static double _mca_dbin(double a, double b, int qop);
 static double _mca_dunr(double a, int qop);
 
@@ -335,26 +337,16 @@ static double _doubleneg(double a) {
 }
 
 struct mca_interface_t quad_mca_interface = {
-	_floateq,
-	_floatne,
-	_floatlt,
-	_floatgt,
-	_floatle,
-	_floatge,
 	_floatadd,
 	_floatsub,
 	_floatmul,
 	_floatdiv,
-	_doubleeq,
-	_doublene,
-	_doublelt,
-	_doublegt,
-	_doublele,
-	_doublege,
+	_floatneg,
 	_doubleadd,
 	_doublesub,
 	_doublemul,
 	_doublediv,
+	_doubleneg,
 	_mca_seed,
 	_set_mca_mode,
 	_set_mca_precision

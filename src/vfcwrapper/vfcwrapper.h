@@ -35,27 +35,17 @@ int vfc_set_precision_and_mode(unsigned int precision, int mode);
 
 /* MCA backend interface */
 struct mca_interface_t {
-    int (*floateq)(float, float);
-    int (*floatne)(float, float);
-    int (*floatlt)(float, float);
-    int (*floatgt)(float, float);
-    int (*floatle)(float, float);
-    int (*floatge)(float, float);
     float (*floatadd)(float, float);
     float (*floatsub)(float, float);
     float (*floatmul)(float, float);
     float (*floatdiv)(float, float);
+    float (*floatneg)(float);
 
-    int (*doubleeq)(double, double);
-    int (*doublene)(double, double);
-    int (*doublelt)(double, double);
-    int (*doublegt)(double, double);
-    int (*doublele)(double, double);
-    int (*doublege)(double, double);
     double (*doubleadd)(double, double);
     double (*doublesub)(double, double);
     double (*doublemul)(double, double);
     double (*doublediv)(double, double);
+    double (*doubleneg)(double);
 
     void (*seed)(void);
     int (*set_mca_mode)(int);
