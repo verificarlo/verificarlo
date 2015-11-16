@@ -30,6 +30,7 @@
 //
 // 2015-05-20 New version based on quad flotting point type to replace MPFR until 
 // required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits 
+        //can we use bits manipulation instead of qmul?
 //
 
 #include <math.h>
@@ -122,7 +123,7 @@ static __float128 pow2q(int exp) {
   //complement the exponent, sift it at the right place in the MSW
   hx=( ((uint64_t) exp) + 16382) << 48;
   lx=0;
-  SET_FLT128_WORDS64(res, hx, QINF_lx);
+  SET_FLT128_WORDS64(res, hx, lx);
   return res;
 }
 
@@ -188,6 +189,24 @@ static uint32_t rexpd (double x)
 }
 
 
+ __float128 qnoise(int exp, double d_rand){
+  //double d_rand = (_mca_rand() - 0.5);
+  uint64_t u_rand= *((uint64_t*) &d_rand);
+  //pow2q should be inlined by hand to avoid useless convertion and fct calls
+  __float128 noise=pow2q(exp);
+  uint64_t hx=0;
+  uint64_t lx=0;
+  GET_FLT128_MSW64(hx,noise);
+  //set sign = sign of d_rand
+  hx+=u_rand&0x8000000000000000ULL;
+  //extract u_rand (pseudo) mantissa and put the first 48 bits in hx...
+  uint64_t p_mantissa=u_rand&0x000fffffffffffffULL;
+  hx+=(p_mantissa)>>4;//4=52 (double pmantissa) - 48
+  //...and the last 4 in lx at msb  
+  lx+=(p_mantissa)<<60;//60=1(s)+11(exp double)+48(hx)
+  SET_FLT128_WORDS64(noise, hx, lx);
+  return noise;
+}
 
 static int _mca_inexactq(__float128 *qa) {
 	
@@ -208,10 +227,10 @@ static int _mca_inexactq(__float128 *qa) {
 	int32_t e_n = e_a - (MCALIB_T - 1);
 	double d_rand = (_mca_rand() - 0.5);
 	//can we use bits manipulation instead of qmul?
-	//idea: use one of the bit of d_rand for sign such that drand is between -1 and 1, and remove 1 to e_n to compensate
-	//This bit should be uniformly distributed
-	//build the quad to add using e_n, the mantissa of d_rand and the new sign bit => get ride of the mul...
-	*qa = *qa + pow2q(e_n)*d_rand;
+	__float128 noise = qnoise(e_n, d_rand);
+	//*qa = *qa + pow2q(e_n)*d_rand;
+	*qa=noise+*qa;
+        //printf(" noise 1 = %.17g, noise 2 = %.17g\n", NEAREST_DOUBLE(noise), NEAREST_DOUBLE(*qa));
 }
 
 static int _mca_inexactd(double *da) {
