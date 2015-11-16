@@ -58,6 +58,13 @@ int 	MCALIB_T		    = 53;
 #define QMUL 3
 #define QDIV 4
 
+//possible dop values
+#define DADD 1
+#define DSUB 2
+#define DMUL 3
+#define DDIV 4
+
+
 static float _mca_sbin(float a, float b, int qop);
 
 static double _mca_dbin(double a, double b, int qop);
@@ -104,21 +111,56 @@ static __float128 pow2q(int exp) {
   
   //specials
   if (exp == 0) return 1;
-  if (exp > 16383) {
+  
+  if (exp > 16383) { /*exceed max exponent*/
 	SET_FLT128_WORDS64(res, QINF_hx, QINF_lx);
 	return res;
   }
-  if (exp <-16382) { /*subnormal*/
-        SET_FLT128_WORDS64(res, ((uint64_t) 0 ) , ((uint64_t) 1 ) << exp);
-        return res;
+  if (exp < -16382) { /*subnormal*/
+	if (exp+16383<-48)
+        	SET_FLT128_WORDS64(res, ((uint64_t) 0 ) , (0x8000000000000000ULL) >> -(exp+16383));
+	else
+		SET_FLT128_WORDS64(res, ((uint64_t) 0x0000800000000000ULL ) >> -(exp+16383+64) , ((uint64_t) 0 ));
+	return res;
   }
   
   //normal case
+  //complement the exponent, sift it at the right place in the MSW
   hx=( ((uint64_t) exp) + 16382) << 48;
   lx=0;
   SET_FLT128_WORDS64(res, hx, QINF_lx);
   return res;
 }
+
+
+static double pow2d(int exp) {
+  double res=0;
+  uint64_t *x;
+  
+  //specials
+  if (exp == 0) return 1;
+  
+  if (exp > 1023) { /*exceed max exponent*/
+	*x= 0x7FF0000000000000ULL;
+  	res=*((double*)x);
+	return res;
+  }
+  if (exp < -1022) { /*subnormal*/
+        *x=((uint64_t) 0x0008000000000000ULL ) >> -(exp+1023);
+	res=*((double*)x);
+        return res;  
+}
+  
+  //normal case
+  //complement the exponent, sift it at the right place in the MSW
+  *x=( ((uint64_t) exp) + 1022) << 52;
+  res=*((double*)x);
+  return res;
+}
+
+
+
+
 
 static uint32_t rexpq (__float128 x)
 {
@@ -127,12 +169,14 @@ static uint32_t rexpq (__float128 x)
   uint64_t hx,ix;
   uint32_t exp=0;
   GET_FLT128_MSW64(hx,x);
+  //remove sign bit, mantissa will be erased by the next shift
   ix = hx&0x7fffffffffffffffULL;
+  //shift exponent to have LSB on position 0 and complement
   exp += (ix>>48)-16382;
   return exp;
 }
 
-static int _mca_inexact(__float128 *qa) {
+static int _mca_inexactq(__float128 *qa) {
 	
 
 	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
@@ -157,6 +201,19 @@ static int _mca_inexact(__float128 *qa) {
 	*qa = *qa + pow2q(e_n)*d_rand;
 }
 
+static int _mca_inexactd(double *da) {
+
+	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
+		return 0;
+	}
+	int32_t e_a=0;
+	frexp (*da, &e_a);
+	//e_a=rexpd(*da);
+	int32_t e_n = e_a - (MCALIB_T - 1);
+	double d_rand = (_mca_rand() - 0.5);
+	*da = *da + pow2d(e_n)*d_rand;
+}
+
 static void _mca_seed(void) {
 	const int key_length = 3;
 	uint64_t init_key[key_length];
@@ -178,35 +235,37 @@ static void _mca_seed(void) {
 * result converted to the original format for return
 *******************************************************************/
 
-static float _mca_sbin(float a, float b,int  qop) {
+static float _mca_sbin(float a, float b,int  dop) {
 	
-	__float128 qa=(__float128)a;
-	__float128 qb=(__float128)b;	
+	//__float128 qa=(__float128)a;
+	//__float128 qb=(__float128)b;	
+	double da=(double)a;
+	double db=(double)b;
 
-
-	__float128 res=0;
+	//__float128 res=0;
+	double res=0;
 
 	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(&qa);
-		_mca_inexact(&qb);
+		_mca_inexactd(&da);
+		_mca_inexactd(&db);
 	}
 
-	switch (qop){
+	switch (dop){
 
-		case QADD:
-  			res=qa+qb;
+		case DADD:
+  			res=da+db;
   		break;
 
-		case QMUL:
-  			res=qa*qb;
+		case DMUL:
+  			res=da*db;
   		break;
 
-		case QSUB:
-  			res=qa-qb;
+		case DSUB:
+  			res=da-db;
   		break;
 
-		case QDIV:
-  			res=qa/qb;
+		case DDIV:
+  			res=da/db;
   		break;
 
 		default:
@@ -215,10 +274,10 @@ static float _mca_sbin(float a, float b,int  qop) {
 	}
 
 	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(&res);
+		_mca_inexactd(&res);
 	}
 
-	return NEAREST_FLOAT(res);
+	return ((float)res);
 }
 
 
@@ -228,8 +287,8 @@ static double _mca_dbin(double a, double b, int qop) {
 	__float128 res=0;
 
 	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(&qa);
-		_mca_inexact(&qb);
+		_mca_inexactq(&qa);
+		_mca_inexactq(&qb);
 	}
 
 	switch (qop){
@@ -256,7 +315,7 @@ static double _mca_dbin(double a, double b, int qop) {
 	}
 
 	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(&res);
+		_mca_inexactq(&res);
 	}
 
 	return NEAREST_DOUBLE(res);
@@ -277,22 +336,22 @@ static double _mca_dbin(double a, double b, int qop) {
 
 static float _floatadd(float a, float b) {
 	//return a + b
-	return _mca_sbin(a, b,QADD);
+	return _mca_sbin(a, b,DADD);
 }
 
 static float _floatsub(float a, float b) {
 	//return a - b
-	return _mca_sbin(a, b, QSUB);
+	return _mca_sbin(a, b, DSUB);
 }
 
 static float _floatmul(float a, float b) {
 	//return a * b
-	return _mca_sbin(a, b, QMUL);
+	return _mca_sbin(a, b, DMUL);
 }
 
 static float _floatdiv(float a, float b) {
 	//return a / b
-	return _mca_sbin(a, b, QDIV);
+	return _mca_sbin(a, b, DDIV);
 }
 
 
