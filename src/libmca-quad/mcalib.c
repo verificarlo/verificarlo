@@ -176,11 +176,12 @@ static uint32_t rexpd (double x)
 {
   //no need to check special value in our cases since pow2d will deal with it
   //do not reuse it outside this code!
-  uint64_t *hex,ix;
+  uint64_t *phex,hex,ix;
+  phex=&hex;
   uint32_t exp=0;
-  *hex=*((uint64_t*) &x);
+  *phex=*((uint64_t*) &x);
   //remove sign bit, mantissa will be erased by the next shift
-  ix = (*hex)&0x7fffffffffffffffULL;
+  ix = (*phex)&0x7fffffffffffffffULL;
   //shift exponent to have LSB on position 0 and complement
   exp += (ix>>52)-1022;
   return exp;
@@ -223,11 +224,8 @@ static int _mca_inexactd(double *da) {
 	//frexp (*da, &e_a);
 	//printf("exp of a = %d\n",e_a);
 	e_a=rexpd(*da);
-	printf("exp of a = %d\n",e_a);
 	int32_t e_n = e_a - (MCALIB_T - 1);
-	printf("exp of n = %d\n",e_n);
 	double d_rand = (_mca_rand() - 0.5);
-	printf("2 power of n = %g\n", pow2d(e_n));
 	*da = *da + pow2d(e_n)*d_rand;
 }
 
