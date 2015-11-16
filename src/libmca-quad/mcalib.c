@@ -52,17 +52,11 @@
 int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
 int 	MCALIB_T		    = 53;
 
-//possible qop values
-#define QADD 1
-#define QSUB 2
-#define QMUL 3
-#define QDIV 4
-
-//possible dop values
-#define DADD 1
-#define DSUB 2
-#define DMUL 3
-#define DDIV 4
+//possible op values
+#define MCA_ADD 1
+#define MCA_SUB 2
+#define MCA_MUL 3
+#define MCA_DIV 4
 
 
 static float _mca_sbin(float a, float b, int qop);
@@ -176,6 +170,24 @@ static uint32_t rexpq (__float128 x)
   return exp;
 }
 
+
+
+static uint32_t rexpd (double x)
+{
+  //no need to check special value in our cases since pow2d will deal with it
+  //do not reuse it outside this code!
+  uint64_t *hex,ix;
+  uint32_t exp=0;
+  *hex=*((uint64_t*) &x);
+  //remove sign bit, mantissa will be erased by the next shift
+  ix = (*hex)&0x7fffffffffffffffULL;
+  //shift exponent to have LSB on position 0 and complement
+  exp += (ix>>52)-1022;
+  return exp;
+}
+
+
+
 static int _mca_inexactq(__float128 *qa) {
 	
 
@@ -207,10 +219,15 @@ static int _mca_inexactd(double *da) {
 		return 0;
 	}
 	int32_t e_a=0;
-	frexp (*da, &e_a);
-	//e_a=rexpd(*da);
+	//use of standard frexp allow to check custom rexpd output
+	//frexp (*da, &e_a);
+	//printf("exp of a = %d\n",e_a);
+	e_a=rexpd(*da);
+	printf("exp of a = %d\n",e_a);
 	int32_t e_n = e_a - (MCALIB_T - 1);
+	printf("exp of n = %d\n",e_n);
 	double d_rand = (_mca_rand() - 0.5);
+	printf("2 power of n = %g\n", pow2d(e_n));
 	*da = *da + pow2d(e_n)*d_rand;
 }
 
@@ -252,19 +269,19 @@ static float _mca_sbin(float a, float b,int  dop) {
 
 	switch (dop){
 
-		case DADD:
+		case MCA_ADD:
   			res=da+db;
   		break;
 
-		case DMUL:
+		case MCA_MUL:
   			res=da*db;
   		break;
 
-		case DSUB:
+		case MCA_SUB:
   			res=da-db;
   		break;
 
-		case DDIV:
+		case MCA_DIV:
   			res=da/db;
   		break;
 
@@ -293,19 +310,19 @@ static double _mca_dbin(double a, double b, int qop) {
 
 	switch (qop){
 
-		case QADD:
+		case MCA_ADD:
   			res=qa+qb;
   		break;
 
-		case QMUL:
+		case MCA_MUL:
   			res=qa*qb;
   		break;
 
-		case QSUB:
+		case MCA_SUB:
   			res=qa-qb;
   		break;
 
-		case QDIV:
+		case MCA_DIV:
   			res=qa/qb;
   		break;
 
@@ -336,43 +353,43 @@ static double _mca_dbin(double a, double b, int qop) {
 
 static float _floatadd(float a, float b) {
 	//return a + b
-	return _mca_sbin(a, b,DADD);
+	return _mca_sbin(a, b, MCA_ADD);
 }
 
 static float _floatsub(float a, float b) {
 	//return a - b
-	return _mca_sbin(a, b, DSUB);
+	return _mca_sbin(a, b, MCA_SUB);
 }
 
 static float _floatmul(float a, float b) {
 	//return a * b
-	return _mca_sbin(a, b, DMUL);
+	return _mca_sbin(a, b, MCA_MUL);
 }
 
 static float _floatdiv(float a, float b) {
 	//return a / b
-	return _mca_sbin(a, b, DDIV);
+	return _mca_sbin(a, b, MCA_DIV);
 }
 
 
 static double _doubleadd(double a, double b) {
 	//return a + b
-	return _mca_dbin(a, b, QADD);
+	return _mca_dbin(a, b, MCA_ADD);
 }
 
 static double _doublesub(double a, double b) {
 	//return a - b
-	return _mca_dbin(a, b, QSUB);
+	return _mca_dbin(a, b, MCA_SUB);
 }
 
 static double _doublemul(double a, double b) {
 	//return a * b
-	return _mca_dbin(a, b, QMUL);
+	return _mca_dbin(a, b, MCA_MUL);
 }
 
 static double _doublediv(double a, double b) {
 	//return a / b
-	return _mca_dbin(a, b, QDIV);
+	return _mca_dbin(a, b, MCA_DIV);
 }
 
 
