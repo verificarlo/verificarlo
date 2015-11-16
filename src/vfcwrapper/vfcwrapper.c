@@ -30,6 +30,7 @@
 #include "vfcwrapper.h"
 
 #include "libmca-mpfr.h"
+#include "libmca-quad.h"
 
 #define VERIFICARLO_PRECISION "VERIFICARLO_PRECISION"
 #define VERIFICARLO_MCAMODE "VERIFICARLO_MCAMODE"
@@ -50,9 +51,18 @@ static void vfc_select_interface_mpfr(void) {
     _vfc_current_mca_interface.set_mca_mode(verificarlo_mcamode);
 }
 
+/* Activates the quad MCA backend */
+static void vfc_select_interface_quad(void) {
+    _vfc_current_mca_interface = quad_mca_interface;
+    _vfc_current_mca_interface.set_mca_precision(verificarlo_precision);
+    _vfc_current_mca_interface.set_mca_mode(verificarlo_mcamode);
+}
+
+
 /* seeds all the MCA backends */
 void vfc_seed(void) {
     mpfr_mca_interface.seed();
+    quad_mca_interface.seed();
 }
 
 /* sets verificarlo precision and mode. Returns 0 on success. */
@@ -66,7 +76,8 @@ int vfc_set_precision_and_mode(unsigned int precision, int mode) {
     /* For now only one backend is used. When multiple backend
        exists, here we will select the appropriate backend depending
        on the required precision */
-    vfc_select_interface_mpfr();
+    //vfc_select_interface_mpfr();
+    vfc_select_interface_quad();	
     return 0;
 }
 
@@ -159,6 +170,9 @@ double2 _2xdoublediv(double2 a, double2 b) {
     return c;
 }
 
+
+/*********************************************************/
+
 double4 _4xdoubleadd(double4 a, double4 b) {
     double4 c;
 
@@ -198,6 +212,10 @@ double4 _4xdoublediv(double4 a, double4 b) {
     c[3] = _vfc_current_mca_interface.doublediv(a[3],b[3]);
     return c;
 }
+
+
+/*********************************************************/
+
 
 float2 _2xfloatadd(float2 a, float2 b) {
     float2 c;
@@ -271,197 +289,3 @@ float4 _4xfloatdiv(float4 a, float4 b) {
     return c;
 }
 
-/* Comparison vector wrappers */
-
-bool2 _2xdoubleeq(double2 a, double2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.doubleeq(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doubleeq(a[1],b[1]);
-    return c;
-}
-
-bool2 _2xdoublene(double2 a, double2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.doublene(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doublene(a[1],b[1]);
-    return c;
-}
-
-bool2 _2xdoublelt(double2 a, double2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.doublelt(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doublelt(a[1],b[1]);
-    return c;
-}
-
-bool2 _2xdoublegt(double2 a, double2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.doublegt(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doublegt(a[1],b[1]);
-    return c;
-}
-
-bool2 _2xdoublele(double2 a, double2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.doublele(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doublele(a[1],b[1]);
-    return c;
-}
-
-
-bool2 _2xdoublege(double2 a, double2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.doublege(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doublege(a[1],b[1]);
-    return c;
-}
-
-bool4 _4xdoubleeq(double4 a, double4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.doubleeq(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doubleeq(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.doubleeq(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.doubleeq(a[3],b[3]);
-    return c;
-}
-
-bool4 _4xdoublene(double4 a, double4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.doublene(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doublene(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.doublene(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.doublene(a[3],b[3]);
-    return c;
-}
-
-bool4 _4xdoublelt(double4 a, double4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.doublelt(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doublelt(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.doublelt(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.doublelt(a[3],b[3]);
-    return c;
-}
-
-bool4 _4xdoublegt(double4 a, double4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.doublegt(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doublegt(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.doublegt(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.doublegt(a[3],b[3]);
-    return c;
-}
-
-bool4 _4xdoublele(double4 a, double4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.doublele(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doublele(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.doublele(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.doublele(a[3],b[3]);
-    return c;
-}
-
-bool4 _4xdoublege(double4 a, double4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.doublege(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.doublege(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.doublege(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.doublege(a[3],b[3]);
-    return c;
-}
-
-bool2 _2xfloateq(float2 a, float2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.floateq(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floateq(a[1],b[1]);
-    return c;
-}
-
-bool2 _2xfloatne(float2 a, float2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.floatne(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floatne(a[1],b[1]);
-    return c;
-}
-
-bool2 _2xfloatlt(float2 a, float2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.floatlt(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floatlt(a[1],b[1]);
-    return c;
-}
-
-bool2 _2xfloatgt(float2 a, float2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.floatgt(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floatgt(a[1],b[1]);
-    return c;
-}
-
-bool2 _2xfloatle(float2 a, float2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.floatle(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floatle(a[1],b[1]);
-    return c;
-}
-
-bool2 _2xfloatge(float2 a, float2 b) {
-    bool2 c;
-    c[0] = _vfc_current_mca_interface.floatge(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floatge(a[1],b[1]);
-    return c;
-}
-
-bool4 _4xfloateq(float4 a, float4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.floateq(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floateq(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.floateq(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.floateq(a[3],b[3]);
-    return c;
-}
-
-bool4 _4xfloatne(float4 a, float4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.floatne(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floatne(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.floatne(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.floatne(a[3],b[3]);
-    return c;
-}
-
-bool4 _4xfloatlt(float4 a, float4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.floatlt(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floatlt(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.floatlt(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.floatlt(a[3],b[3]);
-    return c;
-}
-
-bool4 _4xfloatgt(float4 a, float4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.floatgt(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floatgt(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.floatgt(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.floatgt(a[3],b[3]);
-    return c;
-}
-
-bool4 _4xfloatle(float4 a, float4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.floatle(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floatle(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.floatle(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.floatle(a[3],b[3]);
-    return c;
-}
-
-bool4 _4xfloatge(float4 a, float4 b) {
-    bool4 c;
-    c[0] = _vfc_current_mca_interface.floatge(a[0],b[0]);
-    c[1] = _vfc_current_mca_interface.floatge(a[1],b[1]);
-    c[2] = _vfc_current_mca_interface.floatge(a[2],b[2]);
-    c[3] = _vfc_current_mca_interface.floatge(a[3],b[3]);
-    return c;
-}
