@@ -28,8 +28,8 @@
 // provides a reentrant, independent generator of better quality than
 // the one provided in libc.
 //
-// 2015-05-20 New version based on quad flotting point type to replace MPFR until 
-// required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits 
+// 2015-05-20 New version based on quad flotting point type to replace MPFR until
+// required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits
         //can we use bits manipulation instead of qmul?
 //
 
@@ -82,7 +82,6 @@ static int _set_mca_precision(int precision){
 	return 0;
 }
 
-
 /******************** MCA RANDOM FUNCTIONS ********************
 * The following functions are used to calculate the random
 * perturbations used for MCA and apply these to MPFR format
@@ -97,16 +96,16 @@ static double _mca_rand(void) {
 	return tinymt64_generate_doubleOO(&random_state);
 }
 
-#define QINF_hx 0x7fff000000000000ULL 
+#define QINF_hx 0x7fff000000000000ULL
 #define QINF_lx 0x0000000000000000ULL
 
 static __float128 pow2q(int exp) {
   __float128 res=0;
   uint64_t hx, lx;
-  
+
   //specials
   if (exp == 0) return 1;
-  
+
   if (exp > 16383) { /*exceed max exponent*/
 	SET_FLT128_WORDS64(res, QINF_hx, QINF_lx);
 	return res;
@@ -118,7 +117,7 @@ static __float128 pow2q(int exp) {
 		SET_FLT128_WORDS64(res, ((uint64_t) 0x0000800000000000ULL ) >> -(exp+16383+64) , ((uint64_t) 0 ));
 	return res;
   }
-  
+
   //normal case
   //complement the exponent, sift it at the right place in the MSW
   hx=( ((uint64_t) exp) + 16382) << 48;
@@ -127,14 +126,13 @@ static __float128 pow2q(int exp) {
   return res;
 }
 
-
 static double pow2d(int exp) {
   double res=0;
   uint64_t *x;
-  
+
   //specials
   if (exp == 0) return 1;
-  
+
   if (exp > 1023) { /*exceed max exponent*/
 	*x= 0x7FF0000000000000ULL;
   	res=*((double*)x);
@@ -143,19 +141,15 @@ static double pow2d(int exp) {
   if (exp < -1022) { /*subnormal*/
         *x=((uint64_t) 0x0008000000000000ULL ) >> -(exp+1023);
 	res=*((double*)x);
-        return res;  
+        return res;
 }
-  
+
   //normal case
   //complement the exponent, sift it at the right place in the MSW
   *x=( ((uint64_t) exp) + 1022) << 52;
   res=*((double*)x);
   return res;
 }
-
-
-
-
 
 static uint32_t rexpq (__float128 x)
 {
@@ -170,8 +164,6 @@ static uint32_t rexpq (__float128 x)
   exp += (ix>>48)-16382;
   return exp;
 }
-
-
 
 static uint32_t rexpd (double x)
 {
@@ -188,8 +180,7 @@ static uint32_t rexpd (double x)
   return exp;
 }
 
-
- __float128 qnoise(int exp, double d_rand){
+__float128 qnoise(int exp, double d_rand){
   //double d_rand = (_mca_rand() - 0.5);
   uint64_t u_rand= *((uint64_t*) &d_rand);
   //pow2q should be inlined by hand to avoid useless convertion and fct calls
@@ -202,35 +193,32 @@ static uint32_t rexpd (double x)
   //extract u_rand (pseudo) mantissa and put the first 48 bits in hx...
   uint64_t p_mantissa=u_rand&0x000fffffffffffffULL;
   hx+=(p_mantissa)>>4;//4=52 (double pmantissa) - 48
-  //...and the last 4 in lx at msb  
+  //...and the last 4 in lx at msb
   lx+=(p_mantissa)<<60;//60=1(s)+11(exp double)+48(hx)
   SET_FLT128_WORDS64(noise, hx, lx);
   return noise;
 }
 
 static int _mca_inexactq(__float128 *qa) {
-	
 
 	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
 		return 0;
 	}
-	
+
 	//shall we remove it to remove the if for all other values?
-	//1% improvment on kahan => is better or worth on other benchmarks?
+	//1% improvment on kahan => is better or worst on other benchmarks?
 	//if (qa == 0) {
 	//	return 0;
 	//}
-	
+
 	int32_t e_a=0;
-	//frexpq (*a, &e_a);
 	e_a=rexpq(*qa);
 	int32_t e_n = e_a - (MCALIB_T - 1);
 	double d_rand = (_mca_rand() - 0.5);
 	//can we use bits manipulation instead of qmul?
 	__float128 noise = qnoise(e_n, d_rand);
-	//*qa = *qa + pow2q(e_n)*d_rand;
 	*qa=noise+*qa;
-        //printf(" noise 1 = %.17g, noise 2 = %.17g\n", NEAREST_DOUBLE(noise), NEAREST_DOUBLE(*qa));
+    //printf(" noise 1 = %.17g, noise 2 = %.17g\n", NEAREST_DOUBLE(noise), NEAREST_DOUBLE(*qa));
 }
 
 static int _mca_inexactd(double *da) {
@@ -239,7 +227,7 @@ static int _mca_inexactd(double *da) {
 		return 0;
 	}
 	int32_t e_a=0;
-	//use of standard frexp allow to check custom rexpd output
+	//use of standard frexp allows to check custom rexpd output
 	//frexp (*da, &e_a);
 	//printf("exp of a = %d\n",e_a);
 	e_a=rexpd(*da);
@@ -264,48 +252,34 @@ static void _mca_seed(void) {
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
 * The following set of functions perform the MCA operation. Operands
-* are first converted to quad  format (GCC), inbound and outbound 
-* perturbations are applied using the _mca_inexact function, and the 
+* are first converted to quad  format (GCC), inbound and outbound
+* perturbations are applied using the _mca_inexact function, and the
 * result converted to the original format for return
 *******************************************************************/
 
-static float _mca_sbin(float a, float b,int  dop) {
-	
-	//__float128 qa=(__float128)a;
-	//__float128 qb=(__float128)b;	
-	double da=(double)a;
-	double db=(double)b;
+// perform_bin_op: applies the binary operator (op) to (a) and (b)
+// and stores the result in (res)
+#define perform_bin_op(op, res, a, b)                               \
+	switch (op){                                                    \
+    case MCA_ADD: res=(a)+(b); break;                               \
+    case MCA_MUL: res=(a)*(b); break;                               \
+    case MCA_SUB: res=(a)-(b); break;                               \
+    case MCA_DIV: res=(a)/(b); break;                               \
+	default: perror("invalid operator in mcaquad.\n"); abort();     \
+	};
 
-	//__float128 res=0;
-	double res=0;
+static float _mca_sbin(float a, float b,int  dop) {
+	double da = (double)a;
+	double db = (double)b;
+
+	double res = 0;
 
 	if (MCALIB_OP_TYPE != MCAMODE_RR) {
 		_mca_inexactd(&da);
 		_mca_inexactd(&db);
 	}
 
-	switch (dop){
-
-		case MCA_ADD:
-  			res=da+db;
-  		break;
-
-		case MCA_MUL:
-  			res=da*db;
-  		break;
-
-		case MCA_SUB:
-  			res=da-db;
-  		break;
-
-		case MCA_DIV:
-  			res=da/db;
-  		break;
-
-		default:
-  		perror("invalid operator in mca_quad!!!\n");
-  		abort();
-	}
+    perform_bin_op(dop, res, da, db);
 
 	if (MCALIB_OP_TYPE != MCAMODE_PB) {
 		_mca_inexactd(&res);
@@ -314,39 +288,17 @@ static float _mca_sbin(float a, float b,int  dop) {
 	return ((float)res);
 }
 
-
 static double _mca_dbin(double a, double b, int qop) {
-	__float128 qa=(__float128)a;
-	__float128 qb=(__float128)b;	
-	__float128 res=0;
+	__float128 qa = (__float128)a;
+	__float128 qb = (__float128)b;
+	__float128 res = 0;
 
 	if (MCALIB_OP_TYPE != MCAMODE_RR) {
 		_mca_inexactq(&qa);
 		_mca_inexactq(&qb);
 	}
 
-	switch (qop){
-
-		case MCA_ADD:
-  			res=qa+qb;
-  		break;
-
-		case MCA_MUL:
-  			res=qa*qb;
-  		break;
-
-		case MCA_SUB:
-  			res=qa-qb;
-  		break;
-
-		case MCA_DIV:
-  			res=qa/qb;
-  		break;
-
-		default:
-  		perror("invalid operator in mca_quad!!!\n");
-  		abort();
-	}
+    perform_bin_op(qop, res, qa, qb);
 
 	if (MCALIB_OP_TYPE != MCAMODE_PB) {
 		_mca_inexactq(&res);
@@ -355,12 +307,6 @@ static double _mca_dbin(double a, double b, int qop) {
 	return NEAREST_DOUBLE(res);
 
 }
-
-
-/******************** MCA COMPARE FUNCTIONS ********************
-* Compare operations do not require MCA 
-****************************************************************/
-
 
 /************************* FPHOOKS FUNCTIONS *************************
 * These functions correspond to those inserted into the source code
