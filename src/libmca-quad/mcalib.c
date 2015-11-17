@@ -28,7 +28,7 @@
 // provides a reentrant, independent generator of better quality than
 // the one provided in libc.
 //
-// 2015-10-11 New version based on quad flotting point type to replace MPFR until
+// 2015-10-11 New version based on quad floating point type to replace MPFR until
 // required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits
 //
 // 2015-16-11 New version using double precision for single precision operation
@@ -99,34 +99,7 @@ static double _mca_rand(void) {
 #define QINF_hx 0x7fff000000000000ULL
 #define QINF_lx 0x0000000000000000ULL
 
-static __float128 pow2q(int exp) {
-  __float128 res=0;
-  uint64_t hx, lx;
-
-  //specials
-  if (exp == 0) return 1;
-
-  if (exp > 16383) { /*exceed max exponent*/
-	SET_FLT128_WORDS64(res, QINF_hx, QINF_lx);
-	return res;
-  }
-  if (exp < -16382) { /*subnormal*/
-	if (exp+16383<-48)
-        	SET_FLT128_WORDS64(res, ((uint64_t) 0 ) , (0x8000000000000000ULL) >> -(exp+16383));
-	else
-		SET_FLT128_WORDS64(res, ((uint64_t) 0x0000800000000000ULL ) >> -(exp+16383+64) , ((uint64_t) 0 ));
-	return res;
-  }
-
-  //normal case
-  //complement the exponent, sift it at the right place in the MSW
-  hx=( ((uint64_t) exp) + 16382) << 48;
-  lx=0;
-  SET_FLT128_WORDS64(res, hx, lx);
-  return res;
-}
-
-static double pow2d(int exp) {
+static inline double pow2d(int exp) {
   double res=0;
   uint64_t *x;
 
@@ -151,7 +124,7 @@ static double pow2d(int exp) {
   return res;
 }
 
-static uint32_t rexpq (__float128 x)
+static inline uint32_t rexpq (__float128 x)
 {
   //no need to check special value in our cases since pow2q will deal with it
   //do not reuse it outside this code!
@@ -165,7 +138,7 @@ static uint32_t rexpq (__float128 x)
   return exp;
 }
 
-static uint32_t rexpd (double x)
+static inline uint32_t rexpd (double x)
 {
   //no need to check special value in our cases since pow2d will deal with it
   //do not reuse it outside this code!
@@ -283,7 +256,7 @@ static void _mca_seed(void) {
     default: perror("invalid operator in mcaquad.\n"); abort();     \
 	};
 
-static float _mca_sbin(float a, float b,int  dop) {
+static inline float _mca_sbin(float a, float b,int  dop) {
 	double da = (double)a;
 	double db = (double)b;
 
@@ -303,7 +276,7 @@ static float _mca_sbin(float a, float b,int  dop) {
 	return ((float)res);
 }
 
-static double _mca_dbin(double a, double b, int qop) {
+static inline double _mca_dbin(double a, double b, int qop) {
 	__float128 qa = (__float128)a;
 	__float128 qb = (__float128)b;
 	__float128 res = 0;
