@@ -11,7 +11,6 @@
 #include <math.h>
 #include <assert.h>
 /* construct REAL "type," depending on desired precision */
-
 #ifdef DOUBLE
 #define REAL double
 #else

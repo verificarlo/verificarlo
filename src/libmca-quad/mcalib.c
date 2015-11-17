@@ -28,10 +28,10 @@
 // provides a reentrant, independent generator of better quality than
 // the one provided in libc.
 //
-// 2015-05-20 New version based on quad flotting point type to replace MPFR until
+// 2015-10-11 New version based on quad flotting point type to replace MPFR until
 // required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits
-        //can we use bits manipulation instead of qmul?
 //
+// 2015-16-11 New version using double precision for single precision operation
 
 #include <math.h>
 #include <mpfr.h>
@@ -180,21 +180,38 @@ static uint32_t rexpd (double x)
   return exp;
 }
 
-__float128 qnoise(int exp, double d_rand){
-  //double d_rand = (_mca_rand() - 0.5);
+__float128 qnoise(int exp){
+  double d_rand = (_mca_rand() - 0.5);
   uint64_t u_rand= *((uint64_t*) &d_rand);
-  //pow2q should be inlined by hand to avoid useless convertion and fct calls
-  __float128 noise=pow2q(exp);
-  uint64_t hx=0;
-  uint64_t lx=0;
-  GET_FLT128_MSW64(hx,noise);
+  __float128 noise;
+  uint64_t hx, lx;
+
+  //specials
+  if (exp == 0) return 1;
+
+  if (exp > 16383) { /*exceed max exponent*/
+	SET_FLT128_WORDS64(noise, QINF_hx, QINF_lx);
+	return noise;
+  }
+  if (exp < -16382) { /*subnormal*/
+	if (exp+16383<-48)
+        	SET_FLT128_WORDS64(noise, ((uint64_t) 0 ) , (0x8000000000000000ULL) >> -(exp+16383));
+	else
+		SET_FLT128_WORDS64(noise, ((uint64_t) 0x0000800000000000ULL ) >> -(exp+16383+64) , ((uint64_t) 0 ));
+	return noise;
+  }
+
+  //normal case
+  //complement the exponent, sift it at the right place in the MSW
+  hx=( ((uint64_t) exp) + 16382) << 48;
   //set sign = sign of d_rand
   hx+=u_rand&0x8000000000000000ULL;
   //extract u_rand (pseudo) mantissa and put the first 48 bits in hx...
   uint64_t p_mantissa=u_rand&0x000fffffffffffffULL;
   hx+=(p_mantissa)>>4;//4=52 (double pmantissa) - 48
   //...and the last 4 in lx at msb
-  lx+=(p_mantissa)<<60;//60=1(s)+11(exp double)+48(hx)
+  //uint64_t 
+  lx=(p_mantissa)<<60;//60=1(s)+11(exp double)+48(hx)
   SET_FLT128_WORDS64(noise, hx, lx);
   return noise;
 }
@@ -214,9 +231,7 @@ static int _mca_inexactq(__float128 *qa) {
 	int32_t e_a=0;
 	e_a=rexpq(*qa);
 	int32_t e_n = e_a - (MCALIB_T - 1);
-	double d_rand = (_mca_rand() - 0.5);
-	//can we use bits manipulation instead of qmul?
-	__float128 noise = qnoise(e_n, d_rand);
+	__float128 noise = qnoise(e_n);
 	*qa=noise+*qa;
     //printf(" noise 1 = %.17g, noise 2 = %.17g\n", NEAREST_DOUBLE(noise), NEAREST_DOUBLE(*qa));
 }
