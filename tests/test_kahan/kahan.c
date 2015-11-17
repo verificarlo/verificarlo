@@ -10,7 +10,6 @@
 #include <time.h> /* for time() */
 #include <math.h>
 #include <assert.h>
-#define DOUBLE
 /* construct REAL "type," depending on desired precision */
 
 #ifdef DOUBLE
