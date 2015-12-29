@@ -1,4 +1,4 @@
-## Verificarlo
+## Verificarlo v0.0.2
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
 
