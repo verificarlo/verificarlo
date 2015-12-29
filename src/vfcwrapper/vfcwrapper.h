@@ -27,6 +27,10 @@
 #define MCAMODE_PB   2
 #define MCAMODE_RR   3
 
+/* define the available MCA backends */
+#define MCABACKEND_QUAD 0
+#define MCABACKEND_MPFR 1
+
 /* seeds all the MCA backends */
 void vfc_seed(void);
 
