@@ -7,6 +7,7 @@ import os
 import sys
 import subprocess
 
+PACKAGE_STRING = "@PACKAGE_STRING@"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = PROJECT_ROOT + '/src/libvfcinstrument/.libs/libvfcinstrument.so'
 mcalib_static = "{0}/src/libmca-mpfr/.libs/libmcampfr.a {0}/src/libmca-quad/.libs/libmcaquad.a".format(PROJECT_ROOT) 
@@ -132,6 +133,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', metavar='file', help='write output to <file>')
     parser.add_argument('--function', metavar='function', help='only instrument <function>')
     parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
+    parser.add_argument('--version', action='version', version=PACKAGE_STRING)
     args, other = parser.parse_known_args()
 
     sources, llvm_options = parse_extra_args(other)

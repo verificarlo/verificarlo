@@ -34,12 +34,16 @@
 
 #define VERIFICARLO_PRECISION "VERIFICARLO_PRECISION"
 #define VERIFICARLO_MCAMODE "VERIFICARLO_MCAMODE"
+#define VERIFICARLO_BACKEND "VERIFICARLO_BACKEND"
 #define VERIFICARLO_PRECISION_DEFAULT 53
-#define VERIFICARLO_MCAMODE_DEFAULT MCAMODE_MCA;
+#define VERIFICARLO_MCAMODE_DEFAULT MCAMODE_MCA
+#define VERIFICARLO_BACKEND_DEFAULT MCABACKEND_QUAD
+
 
 /* Set default values for MCA*/
 int verificarlo_precision = VERIFICARLO_PRECISION_DEFAULT;
 int verificarlo_mcamode = VERIFICARLO_MCAMODE_DEFAULT;
+int verificarlo_backend = VERIFICARLO_BACKEND_DEFAULT;
 
 /* This is the vtable for the current MCA backend */
 struct mca_interface_t _vfc_current_mca_interface;
@@ -73,11 +77,13 @@ int vfc_set_precision_and_mode(unsigned int precision, int mode) {
     verificarlo_precision = precision;
     verificarlo_mcamode = mode;
 
-    /* For now only one backend is used. When multiple backend
-       exists, here we will select the appropriate backend depending
-       on the required precision */
-    //vfc_select_interface_mpfr();
-    vfc_select_interface_quad();	
+    /* Choose the required backend */
+    if (verificarlo_backend == MCABACKEND_MPFR) {
+      vfc_select_interface_mpfr();
+    }
+    else {
+      vfc_select_interface_quad();
+    }
     return 0;
 }
 
@@ -120,6 +126,21 @@ static void vfc_init (void)
             fprintf(stderr, VERIFICARLO_MCAMODE
                    " invalid value provided, defaulting to default\n");
         }
+    }
+
+    /* If VERIFICARLO_BACKEND is set, try to parse it */
+    char * backend = getenv(VERIFICARLO_BACKEND);
+    if (backend != NULL) {
+      if (strcmp("QUAD", backend) == 0) {
+        verificarlo_backend = MCABACKEND_QUAD;
+      }
+      else if (strcmp("MPFR", backend) == 0) {
+        verificarlo_backend = MCABACKEND_MPFR;
+      } else {
+        /* Invalid value provided */
+        fprintf(stderr, VERIFICARLO_BACKEND
+                " invalid value provided, defaulting to default\n");
+      }
     }
 
     /* seed the backends */
