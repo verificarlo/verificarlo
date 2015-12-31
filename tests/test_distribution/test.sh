@@ -17,3 +17,5 @@ echo "c" > out_quad
 for z in $(seq 1 $SAMPLES); do
     ./test >> out_quad
 done
+
+exit 0
