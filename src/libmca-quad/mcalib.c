@@ -47,6 +47,8 @@
 
 
 #define NEAREST_FLOAT(x)	((float) (x))
+
+// Currently libquadmath always uses round-to-zero when downcasting quad values
 #define	NEAREST_DOUBLE(x)	((double) (x))
 
 int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
