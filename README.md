@@ -1,4 +1,4 @@
-## Verificarlo
+## Verificarlo v0.0.2
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
 
@@ -95,6 +95,18 @@ mode. It accepts the following values:
 The environement variable `VERIFICARLO_PRECISION` controls the virtual
 precision used for the floating point operations. It accept an integer value
 that represents the number of significant digits. The default value is 53.
+
+Verificarlo supports two MCA backends. The environement variable
+`VERIFICARLO_BACKEND` is used to select the backend. It can be set to `QUAD` or
+`MPFR`
+
+The default backend, MPFR, uses the GNU multiple precision library to compute
+MCA operations. It is heavily based on mcalib MPFR backend.
+
+Verificarlo offers an alternative MCA backend: the QUAD backend. QUAD backend
+uses the GCC quad types to compute MCA operations on doubles and the double type
+to compute MCA operations on floats. It is much faster than the MPFR backend,
+but is very recent and still experimental.
 
 ### Examples
 
