@@ -256,7 +256,7 @@ static void _mca_seed(void) {
     default: perror("invalid operator in mcaquad.\n"); abort();     \
 	};
 
-static inline float _mca_sbin(float a, float b,int  dop) {
+static inline float _mca_sbin(float a, float b,const int  dop) {
 	double da = (double)a;
 	double db = (double)b;
 
@@ -276,7 +276,7 @@ static inline float _mca_sbin(float a, float b,int  dop) {
 	return ((float)res);
 }
 
-static inline double _mca_dbin(double a, double b, int qop) {
+static inline double _mca_dbin(double a, double b, const int qop) {
 	__float128 qa = (__float128)a;
 	__float128 qb = (__float128)b;
 	__float128 res = 0;
