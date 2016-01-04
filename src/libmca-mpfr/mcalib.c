@@ -100,10 +100,12 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
 	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
 		return 0;
 	}
-	mpfr_exp_t e_a = mpfr_get_exp(a);
+	//get_exp reproduce frexp behavior, i.e. exp corresponding to a normalization in the interval [1/2 1[
+	//remove one to normalize in [1 2[ like ieee numbers
+	mpfr_exp_t e_a = mpfr_get_exp(a)-1;
 	mpfr_prec_t p_a = mpfr_get_prec(a);
 	mpfr_t mpfr_rand, mpfr_offset, mpfr_zero;
-	e_a = e_a - (MCALIB_T - 1);
+	e_a = e_a - MCALIB_T;
 	mpfr_inits2(p_a, mpfr_rand, mpfr_offset, mpfr_zero, (mpfr_ptr) 0);
 	mpfr_set_d(mpfr_zero, 0., rnd_mode);
 	int cmp = mpfr_cmp(a, mpfr_zero);
