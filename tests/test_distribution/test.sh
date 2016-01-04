@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-export VERIFICARLO_PRECISION=53
+export VERIFICARLO_PRECISION=24
 export SAMPLES=1000
 
 ../../verificarlo -O0 --function main test.c -o test

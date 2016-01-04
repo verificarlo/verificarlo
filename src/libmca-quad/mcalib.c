@@ -101,7 +101,7 @@ static double _mca_rand(void) {
 
 static inline double pow2d(int exp) {
   double res=0;
-  uint64_t *x;
+  uint64_t *x=malloc(sizeof(uint64_t));
 
   //specials
   if (exp == 0) return 1;
@@ -142,12 +142,12 @@ static inline uint32_t rexpd (double x)
 {
   //no need to check special value in our cases since pow2d will deal with it
   //do not reuse it outside this code!
-  uint64_t *phex,hex,ix;
-  phex=&hex;
+  uint64_t hex,ix;
   uint32_t exp=0;
-  *phex=*((uint64_t*) &x);
+  //change type to bit field
+  hex=*((uint64_t*) &x);
   //remove sign bit, mantissa will be erased by the next shift
-  ix = (*phex)&0x7fffffffffffffffULL;
+  ix = hex&0x7fffffffffffffffULL;
   //shift exponent to have LSB on position 0 and complement
   exp += (ix>>52)-1023;
   return exp;
@@ -177,11 +177,7 @@ __float128 qnoise(int exp){
 
   //normal case
   //complement the exponent, shift it at the right place in the MSW
-  uint64_t n_exp=0;//u_rand&0x7ff0000000000000ULL;
-  n_exp=rexpd(d_rand);
-  fprintf(stderr,"exp rand = %d\n",n_exp);
-  n_exp=n_exp+exp;
-  hx=( ((uint64_t) n_exp) + 16383) << 48;
+  hx=( ((uint64_t) exp+rexpd(d_rand)) + 16383) << 48;
   //set sign = sign of d_rand
   hx+=u_rand&0x8000000000000000ULL;
   //extract u_rand (pseudo) mantissa and put the first 48 bits in hx...
@@ -191,9 +187,6 @@ __float128 qnoise(int exp){
   //uint64_t 
   lx=(p_mantissa)<<60;//60=1(s)+11(exp double)+48(hx)
   SET_FLT128_WORDS64(noise, hx, lx);
-  //char buf[64];
-  //quadmath_snprintf(buf,64,"%Qa",noise);
-  //fprintf(stderr,"exp= %d, noise= %s\n",exp, buf); 
   return noise;
 }
 
@@ -211,13 +204,8 @@ static int _mca_inexactq(__float128 *qa) {
 
 	int32_t e_a=0;
 	e_a=rexpq(*qa);
-	char buf[64];
-  	quadmath_snprintf(buf,64,"%Qa",*qa);
-	fprintf(stderr,"a=%s, ea=%d\n",buf, e_a);
 	int32_t e_n = e_a - (MCALIB_T - 1);
 	__float128 noise = qnoise(e_n);
-	quadmath_snprintf(buf,64,"%Qa",noise);
-        fprintf(stderr,"noise=%s, en=%d\n",buf, e_n);
 	*qa=noise+*qa;
 }
 
@@ -227,9 +215,6 @@ static int _mca_inexactd(double *da) {
 		return 0;
 	}
 	int32_t e_a=0;
-	//use of standard frexp allows to check custom rexpd output
-	//frexp (*da, &e_a);
-	//printf("exp of a = %d\n",e_a);
 	e_a=rexpd(*da);
 	int32_t e_n = e_a - (MCALIB_T - 1);
 	double d_rand = (_mca_rand() - 0.5);
