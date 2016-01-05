@@ -41,24 +41,7 @@
 #include "libmca-mpfr.h"
 #include "../vfcwrapper/vfcwrapper.h"
 #include "../common/tinymt64.h"
-
-
-#define NEAREST_FLOAT(x)	((float) (x))
-#define	NEAREST_DOUBLE(x)	((double) (x))
-
-#define QUAD_EXP_SIZE 15
-#define QUAD_HX_PMAN_SIZE 48
-#define QUAD_LX_PMAN_SIZE 64
-#define QUAD_PREC 113
-
-#define DOUBLE_EXP_SIZE 11
-#define DOUBLE_PMAN_SIZE 52
-#define DOUBLE_PREC 53
-
-#define FLOAT_EXP_SIZE 8
-#define FLOAT_PMAN_SIZE 23
-#define FLOAT_PREC 24
-
+#include "../common/mca_const.h"
 
 
 int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
