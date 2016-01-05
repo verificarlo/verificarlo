@@ -46,6 +46,21 @@
 #define NEAREST_FLOAT(x)	((float) (x))
 #define	NEAREST_DOUBLE(x)	((double) (x))
 
+#define QUAD_EXP_SIZE 15
+#define QUAD_HX_PMAN_SIZE 48
+#define QUAD_LX_PMAN_SIZE 64
+#define QUAD_PREC 113
+
+#define DOUBLE_EXP_SIZE 11
+#define DOUBLE_PMAN_SIZE 52
+#define DOUBLE_PREC 53
+
+#define FLOAT_EXP_SIZE 8
+#define FLOAT_PMAN_SIZE 23
+#define FLOAT_PREC 24
+
+
+
 int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
 int 	MCALIB_T		    = 53;
 
@@ -149,7 +164,7 @@ static void _mca_seed(void) {
 
 static float _mca_sbin(float a, float b, mpfr_bin mpfr_op) {
 	mpfr_t mpfr_a, mpfr_b, mpfr_r;
-	mpfr_prec_t prec = 24 + MCALIB_T;
+	mpfr_prec_t prec = FLOAT_PREC + MCALIB_T;
 	mpfr_rnd_t rnd = MPFR_RNDN;
 	mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr) 0);
 	mpfr_set_flt(mpfr_a, a, rnd);
@@ -171,7 +186,7 @@ static float _mca_sbin(float a, float b, mpfr_bin mpfr_op) {
 
 static float _mca_sunr(float a, mpfr_unr mpfr_op) {
 	mpfr_t mpfr_a, mpfr_r;
-	mpfr_prec_t prec = 24 + MCALIB_T;
+	mpfr_prec_t prec = FLOAT_PREC + MCALIB_T;
 	mpfr_rnd_t rnd = MPFR_RNDN;
 	mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr) 0);
 	mpfr_set_flt(mpfr_a, a, rnd);
@@ -190,7 +205,7 @@ static float _mca_sunr(float a, mpfr_unr mpfr_op) {
 
 static double _mca_dbin(double a, double b, mpfr_bin mpfr_op) {
 	mpfr_t mpfr_a, mpfr_b, mpfr_r;
-	mpfr_prec_t prec = 53 + MCALIB_T;
+	mpfr_prec_t prec = DOUBLE_PREC + MCALIB_T;
 	mpfr_rnd_t rnd = MPFR_RNDN;
 	mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr) 0);
 	mpfr_set_d(mpfr_a, a, rnd);
@@ -212,7 +227,7 @@ static double _mca_dbin(double a, double b, mpfr_bin mpfr_op) {
 
 static double _mca_dunr(double a, mpfr_unr mpfr_op) {
 	mpfr_t mpfr_a, mpfr_r;
-	mpfr_prec_t prec = 53 + MCALIB_T;
+	mpfr_prec_t prec = DOUBLE_PREC + MCALIB_T;
 	mpfr_rnd_t rnd = MPFR_RNDN;
 	mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr) 0);
 	mpfr_set_d(mpfr_a, a, rnd);

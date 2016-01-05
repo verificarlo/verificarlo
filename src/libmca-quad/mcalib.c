@@ -45,10 +45,7 @@
 #include "libmca-quad.h"
 #include "../vfcwrapper/vfcwrapper.h"
 #include "../common/tinymt64.h"
-
-
-#define NEAREST_FLOAT(x)	((float) (x))
-#define	NEAREST_DOUBLE(x)	((double) (x))
+#include "../common/mca_const.h"
 
 int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
 int 	MCALIB_T		    = 53;
@@ -96,9 +93,6 @@ static double _mca_rand(void) {
 	return tinymt64_generate_doubleOO(&random_state);
 }
 
-#define QINF_hx 0x7fff000000000000ULL
-#define QINF_lx 0x0000000000000000ULL
-
 static inline double pow2d(int exp) {
   double res=0;
   uint64_t *x=malloc(sizeof(uint64_t));
@@ -107,19 +101,19 @@ static inline double pow2d(int exp) {
   if (exp == 0) return 1;
 
   if (exp > 1023) { /*exceed max exponent*/
-	*x= 0x7FF0000000000000ULL;
+	*x= DOUBLE_PLUS_INF;
   	res=*((double*)x);
 	return res;
   }
   if (exp < -1022) { /*subnormal*/
-        *x=((uint64_t) 0x0008000000000000ULL ) >> -(exp+1023);
+        *x=((uint64_t) DOUBLE_PMAN_MSB ) >> -(exp+DOUBLE_EXP_MAX);
 	res=*((double*)x);
         return res;
 }
 
   //normal case
   //complement the exponent, sift it at the right place in the MSW
-  *x=( ((uint64_t) exp) + 1023) << 52;
+  *x=( ((uint64_t) exp) + DOUBLE_EXP_COMP) << DOUBLE_PMAN_SIZE;
   res=*((double*)x);
   return res;
 }
@@ -132,9 +126,9 @@ static inline uint32_t rexpq (__float128 x)
   uint32_t exp=0;
   GET_FLT128_MSW64(hx,x);
   //remove sign bit, mantissa will be erased by the next shift
-  ix = hx&0x7fffffffffffffffULL;
+  ix = hx&QUAD_HX_ERASE_SIGN;
   //shift exponent to have LSB on position 0 and complement
-  exp += (ix>>48)-16383;
+  exp += (ix>>QUAD_HX_PMAN_SIZE)-QUAD_EXP_COMP;
   return exp;
 }
 
@@ -147,9 +141,9 @@ static inline uint32_t rexpd (double x)
   //change type to bit field
   hex=*((uint64_t*) &x);
   //remove sign bit, mantissa will be erased by the next shift
-  ix = hex&0x7fffffffffffffffULL;
+  ix = hex&DOUBLE_ERASE_SIGN;
   //shift exponent to have LSB on position 0 and complement
-  exp += (ix>>52)-1023;
+  exp += (ix>>DOUBLE_PMAN_SIZE)-DOUBLE_EXP_COMP;
   return exp;
 }
 
@@ -162,30 +156,30 @@ __float128 qnoise(int exp){
   //specials
   if (exp == 0) return 1;
 
-  if (exp > 16383) { /*exceed max exponent*/
+  if (exp > QUAD_EXP_MAX) { /*exceed max exponent*/
 	SET_FLT128_WORDS64(noise, QINF_hx, QINF_lx);
 	return noise;
   }
-  if (exp < -16382) { /*subnormal*/
-	//missing the random noise bits
-	if (exp+16383<-48)
-        	SET_FLT128_WORDS64(noise, ((uint64_t) 0 ) , (0x8000000000000000ULL) >> -(exp+16383));
+  if (exp < -QUAD_EXP_MIN) { /*subnormal*/
+	//WARNING missing the random noise bits, only set the first one
+	if (exp+QUAD_EXP_MAX<-QUAD_HX_PMAN_SIZE)
+        	SET_FLT128_WORDS64(noise, ((uint64_t) 0 ) , WORD64_MSB  >> -(exp+QUAD_EXP_MAX+QUAD_HX_PMAN_SIZE));
 	else
-		SET_FLT128_WORDS64(noise, ((uint64_t) 0x0000800000000000ULL ) >> -(exp+16383+64) , ((uint64_t) 0 ));
+		SET_FLT128_WORDS64(noise, ((uint64_t) QUAD_HX_PMAN_MSB ) >> -(exp+QUAD_EXP_MAX) , ((uint64_t) 0 ));
 	return noise;
   }
 
   //normal case
   //complement the exponent, shift it at the right place in the MSW
-  hx=( ((uint64_t) exp+rexpd(d_rand)) + 16383) << 48;
+  hx=( ((uint64_t) exp+rexpd(d_rand)) + QUAD_EXP_COMP) << QUAD_HX_PMAN_SIZE;
   //set sign = sign of d_rand
-  hx+=u_rand&0x8000000000000000ULL;
+  hx+=u_rand&DOUBLE_GET_SIGN;
   //extract u_rand (pseudo) mantissa and put the first 48 bits in hx...
- uint64_t p_mantissa=u_rand&0x000fffffffffffffULL;
-  hx+=(p_mantissa)>>4;//4=52 (double pmantissa) - 48
+  uint64_t p_mantissa=u_rand&DOUBLE_GET_PMAN;
+  hx+=(p_mantissa)>>(DOUBLE_PMAN_SIZE-QUAD_HX_PMAN_SIZE);//4=52 (double pmantissa) - 48
   //...and the last 4 in lx at msb
   //uint64_t 
-  lx=(p_mantissa)<<60;//60=1(s)+11(exp double)+48(hx)
+  lx=(p_mantissa)<<(SIGN_SIZE+DOUBLE_EXP_SIZE+QUAD_HX_PMAN_SIZE);//60=1(s)+11(exp double)+48(hx)
   SET_FLT128_WORDS64(noise, hx, lx);
   return noise;
 }
@@ -196,8 +190,6 @@ static int _mca_inexactq(__float128 *qa) {
 		return 0;
 	}
 
-	//shall we remove it to remove the if for all other values?
-	//1% improvment on kahan => is better or worst on other benchmarks?
 	//if (qa == 0) {
 	//	return 0;
 	//}
