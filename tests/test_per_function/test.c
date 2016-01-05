@@ -15,7 +15,7 @@ int main (void)
 {
     double z = 1.111111111111 ;
     double r1 = f(z);
-    printf("%g\n", r1);
+    printf("%a\n", r1);
     double r2 = g(z);
-    fprintf(stderr, "%g\n", r2);
+    fprintf(stderr, "%a\n", r2);
 }
