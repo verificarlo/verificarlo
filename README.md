@@ -92,9 +92,11 @@ mode. It accepts the following values:
  * `PB`: Precision Bounding inbound errors only
  * `RR`: Random Rounding outbound errors only
 
-The environement variable `VERIFICARLO_PRECISION` controls the virtual
-precision used for the floating point operations. It accept an integer value
-that represents the number of significant digits. The default value is 53.
+The environement variable `VERIFICARLO_PRECISION` controls the virtual precision
+used for the floating point operations. It accept an integer value that
+represents the virtual precision at which MCA operations are performed. It's
+default value is 53. For a more precise definition of the virtual precision, you
+can refer to https://hal.archives-ouvertes.fr/hal-01192668.
 
 Verificarlo supports two MCA backends. The environement variable
 `VERIFICARLO_BACKEND` is used to select the backend. It can be set to `QUAD` or
@@ -111,6 +113,25 @@ but is very recent and still experimental.
 ### Examples
 
 The `tests/` directory contains various examples of Verificarlo usage.
+
+### How to cite Verificarlo
+
+
+If you use Verificarlo in your research, please cite the following paper:
+
+    @unpublished{denis:hal-01192668,
+    TITLE = {{Verificarlo: checking floating point accuracy through Monte Carlo Arithmetic}},
+    AUTHOR = {Denis, Christophe and de Oliveira Castro, Pablo and Petit, Eric},
+    URL = {https://hal.archives-ouvertes.fr/hal-01192668},
+    NOTE = {working paper or preprint},
+    YEAR = {2015},
+    MONTH = Sep,
+    KEYWORDS = {compilers ; floating point arithmetic ; numerical analysis ; Monte Carlo arithmetic},
+    PDF = {https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf},
+    HAL_ID = {hal-01192668},
+    }
+
+Thanks !
 
 ### License
 
