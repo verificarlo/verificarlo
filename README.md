@@ -65,6 +65,7 @@ directory to your path with
 ```
 
 Then you can use the `verificarlo` command to compile your programs. Either modify
+
 your makefile to use `verificarlo` as the compiler (`CC=verificarlo` and
 `FC=verificarlo` ) and linker (`LD=verificarlo`) or use the verificarlo command
 directly:
@@ -107,6 +108,9 @@ Verificarlo offers an alternative MCA backend: the QUAD backend. QUAD backend
 uses the GCC quad types to compute MCA operations on doubles and the double type
 to compute MCA operations on floats. It is much faster than the MPFR backend,
 but is very recent and still experimental.
+
+One should note when using the QUAD backend, that the round operations during
+MCA computation always use round-to-zero mode.
 
 ### Examples
 
