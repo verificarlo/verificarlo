@@ -4,9 +4,6 @@
 #include <math.h>
 #include <float.h>
 
-#define REAL double
-#define SAMPLES 5000
-#define OPERATION +
 REAL data[SAMPLES];
 
 static double compute_mean(int N, REAL data[]) {
