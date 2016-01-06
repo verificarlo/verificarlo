@@ -1,0 +1,16 @@
+Verificarlo CHANGELOG
+
+[v0.1.0] 2016/01/06
+    * QUAD backend performance has been thoroughly optimized
+    * QUAD backend now computes MCA operations on float using doubles
+    * Added tests to compare QUAD and MPFR backends
+
+[v0.0.2] 2015/12/29
+    * Support for multiple MCA backends. LLVM instrumentations goes through a backend vtable.
+    * New faster QUAD backend, MCA operations on doubles are computed using GCC __float128 type.
+    * vfcwrapper public API has changed
+
+[v0.0.1] 2015/10/22
+    * Initial Verificarlo release
+    * This is the version used in the experiments discussed in
+      https://hal.archives-ouvertes.fr/hal-01192668

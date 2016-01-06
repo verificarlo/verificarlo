@@ -1,4 +1,4 @@
-## Verificarlo v0.0.2
+## Verificarlo v0.1.0
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
 
@@ -109,7 +109,7 @@ MCA operations. It is heavily based on mcalib MPFR backend.
 Verificarlo offers an alternative MCA backend: the QUAD backend. QUAD backend
 uses the GCC quad types to compute MCA operations on doubles and the double type
 to compute MCA operations on floats. It is much faster than the MPFR backend,
-but is very recent and still experimental.
+but is recent and still experimental.
 
 One should note when using the QUAD backend, that the round operations during
 MCA computation always use round-to-zero mode.
