@@ -41,10 +41,8 @@
 #include "libmca-mpfr.h"
 #include "../vfcwrapper/vfcwrapper.h"
 #include "../common/tinymt64.h"
+#include "../common/mca_const.h"
 
-
-#define NEAREST_FLOAT(x)	((float) (x))
-#define	NEAREST_DOUBLE(x)	((double) (x))
 
 int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
 int 	MCALIB_T		    = 53;
@@ -100,7 +98,9 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
 	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
 		return 0;
 	}
-	mpfr_exp_t e_a = mpfr_get_exp(a);
+	//get_exp reproduce frexp behavior, i.e. exp corresponding to a normalization in the interval [1/2 1[
+	//remove one to normalize in [1 2[ like ieee numbers
+	mpfr_exp_t e_a = mpfr_get_exp(a)-1;
 	mpfr_prec_t p_a = mpfr_get_prec(a);
 	mpfr_t mpfr_rand, mpfr_offset, mpfr_zero;
 	e_a = e_a - (MCALIB_T - 1);
@@ -147,7 +147,7 @@ static void _mca_seed(void) {
 
 static float _mca_sbin(float a, float b, mpfr_bin mpfr_op) {
 	mpfr_t mpfr_a, mpfr_b, mpfr_r;
-	mpfr_prec_t prec = 24 + MCALIB_T;
+	mpfr_prec_t prec = FLOAT_PREC + MCALIB_T;
 	mpfr_rnd_t rnd = MPFR_RNDN;
 	mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr) 0);
 	mpfr_set_flt(mpfr_a, a, rnd);
@@ -169,7 +169,7 @@ static float _mca_sbin(float a, float b, mpfr_bin mpfr_op) {
 
 static float _mca_sunr(float a, mpfr_unr mpfr_op) {
 	mpfr_t mpfr_a, mpfr_r;
-	mpfr_prec_t prec = 24 + MCALIB_T;
+	mpfr_prec_t prec = FLOAT_PREC + MCALIB_T;
 	mpfr_rnd_t rnd = MPFR_RNDN;
 	mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr) 0);
 	mpfr_set_flt(mpfr_a, a, rnd);
@@ -188,7 +188,7 @@ static float _mca_sunr(float a, mpfr_unr mpfr_op) {
 
 static double _mca_dbin(double a, double b, mpfr_bin mpfr_op) {
 	mpfr_t mpfr_a, mpfr_b, mpfr_r;
-	mpfr_prec_t prec = 53 + MCALIB_T;
+	mpfr_prec_t prec = DOUBLE_PREC + MCALIB_T;
 	mpfr_rnd_t rnd = MPFR_RNDN;
 	mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr) 0);
 	mpfr_set_d(mpfr_a, a, rnd);
@@ -210,7 +210,7 @@ static double _mca_dbin(double a, double b, mpfr_bin mpfr_op) {
 
 static double _mca_dunr(double a, mpfr_unr mpfr_op) {
 	mpfr_t mpfr_a, mpfr_r;
-	mpfr_prec_t prec = 53 + MCALIB_T;
+	mpfr_prec_t prec = DOUBLE_PREC + MCALIB_T;
 	mpfr_rnd_t rnd = MPFR_RNDN;
 	mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr) 0);
 	mpfr_set_d(mpfr_a, a, rnd);

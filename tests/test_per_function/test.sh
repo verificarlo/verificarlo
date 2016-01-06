@@ -2,6 +2,8 @@
 
 ../../verificarlo test.c -o test --function=f
 
+export VERIFICARLO_PRECISION=52
+
 ./test > outputf1 2> outputg1
 ./test > outputf2 2> outputg2
 
