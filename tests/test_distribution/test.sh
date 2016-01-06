@@ -1,21 +1,24 @@
 #!/bin/bash
 set -e
 
-export VERIFICARLO_PRECISION=52
-export SAMPLES=1000
+# Test operates at different precisions, and different operands.
+# It compares s': the estimated number of significant digits across the MCA samples.
 
-../../verificarlo -O0 --function main test.c -o test
+../../verificarlo -O0 -lm --function operate test.c -o test
 
-export VERIFICARLO_BACKEND="MPFR"
-echo "c" > out_mpfr
-for z in $(seq 1 $SAMPLES); do
+for PREC in $(seq 3 10 53) ; do
+
+    echo "Checking at PRECISION $PREC"
+    export VERIFICARLO_PRECISION=$PREC
+
+    rm -f out_mpfr out_quad
+    export VERIFICARLO_BACKEND="MPFR"
     ./test >> out_mpfr
-done
 
-export VERIFICARLO_BACKEND="QUAD"
-echo "c" > out_quad
-for z in $(seq 1 $SAMPLES); do
+    export VERIFICARLO_BACKEND="QUAD"
     ./test >> out_quad
+    ./check.py
+    if [ $? -ne 0 ] ; then
+        exit $?
+    fi
 done
-
-exit 0
