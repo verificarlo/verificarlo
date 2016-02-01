@@ -44,8 +44,8 @@
 #include "../common/mca_const.h"
 
 
-int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
-int 	MCALIB_T		    = 53;
+static int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
+static int 	MCALIB_T		    = 53;
 
 #define MP_ADD &mpfr_add
 #define MP_SUB &mpfr_sub

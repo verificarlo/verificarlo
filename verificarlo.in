@@ -63,7 +63,7 @@ def linker_mode(sources, options, output, args):
         mcalib_includes=' '.join(["-I " + d for d in mcalib_dirs])))
 
     if args.static:
-        shell('{linker} {output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp -lm -lgfortran'.format(
+        shell('{linker} {output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp -lgfortran -lm'.format(
             linker=clang,
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
