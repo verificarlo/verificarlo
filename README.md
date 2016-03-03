@@ -123,16 +123,16 @@ The `tests/` directory contains various examples of Verificarlo usage.
 
 If you use Verificarlo in your research, please cite the following paper:
 
-    @unpublished{denis:hal-01192668,
+    @inproceedings{verificarlo,
     TITLE = {{Verificarlo: checking floating point accuracy through Monte Carlo Arithmetic}},
     AUTHOR = {Denis, Christophe and de Oliveira Castro, Pablo and Petit, Eric},
-    URL = {https://hal.archives-ouvertes.fr/hal-01192668},
-    NOTE = {working paper or preprint},
-    YEAR = {2015},
-    MONTH = Sep,
+    BOOKTITLE = {Computer Arithmetic (ARITH'23), 23rd IEEE Internatinal Symposium on},
+    PAGES = {},
+    YEAR = {2016 (to appear)},
+    ORGANISATION = {IEEE},
     KEYWORDS = {compilers ; floating point arithmetic ; numerical analysis ; Monte Carlo arithmetic},
     PDF = {https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf},
-    HAL_ID = {hal-01192668},
+    URL = {https://hal.archives-ouvertes.fr/hal-01192668},
     }
 
 Thanks !
