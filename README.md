@@ -9,7 +9,7 @@ A tool for automatic Montecarlo Arithmetic analysis.
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt 3.3 or 3.4, http://clang.llvm.org/
+  * LLVM, clang and opt 3.3, 3.4 or 3.5, http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
   * python, version >= 2.7
   * autotools (automake, autoconf)
@@ -19,6 +19,14 @@ Then run the following command inside verificarlo directory:
 ```bash
    $ ./autogen.sh
    $ ./configure
+   $ make
+```
+
+If you do not care about Fortran support, you can avoid installing gfortran and dragonegg, by passing the option `--without-dragonegg` to `configure`:
+
+```bash
+   $ ./autogen.sh
+   $ ./configure --without-dragonegg
    $ make
 ```
 
@@ -38,6 +46,7 @@ verificarlo works as expected on your system:
    $ make check
 ```
 
+If you disable dragonegg support during configure, fortran_test will fail.
 
 For example on an x86_64 Ubuntu 14.04 release, you should use the following
 install procedure:

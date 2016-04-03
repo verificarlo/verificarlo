@@ -28,6 +28,10 @@ class NoPrefixParser(argparse.ArgumentParser):
     def _get_option_tuples(self, option_string):
         return []
 
+def fail(msg):
+    print(sys.argv[0] + ': ' + msg, file=sys.stderr)
+    sys.exit(1)
+
 def is_fortran(name):
     return os.path.splitext(name)[1] in FORTRAN_EXTENSIONS
 
@@ -39,7 +43,12 @@ def parse_extra_args(args):
     options = []
 
     for a in args:
-        if is_fortran(a) or is_c(a):
+        if is_fortran(a):
+	    if not dragonegg:
+		fail("fortran not supported. "
+		     + "--without-fortran was used during configuration.")
+	    sources.append(a)
+	elif is_c(a):
             sources.append(a)
         else:
             options.append(a)
