@@ -13,7 +13,7 @@
 
 # SYNOPSIS
 #
-#   AX_LLVM([version],[llvm-libs])
+#   AX_LLVM([min_version],[max_version],[llvm-libs])
 #
 # DESCRIPTION
 #
@@ -53,31 +53,45 @@ AC_DEFUN([AX_LLVM],
   AC_PATH_PROG([LLVM_CONFIG], [llvm-config], [], [$with_llvm_path])
   if test -z "$LLVM_CONFIG"; then
     AC_MSG_ERROR(
-      [LLVM is required but program `llvm-config' cannot be found in $with_llvm_path])
+      [LLVM is required but program `llvm-config` cannot be found in $with_llvm_path])
   fi
 
   LLVM_VERSION=`$LLVM_CONFIG --version`
   AC_DEFINE_UNQUOTED([LLVM_VERSION], ["$LLVM_VERSION"], [The llvm version])
 
-  if test -n "$1"; then
-    AC_MSG_CHECKING([for LLVM version])
-    AC_MSG_RESULT([$LLVM_VERSION])
-    AX_COMPARE_VERSION([$LLVM_VERSION],[ge],[$1],
-      [],
-      [
-        AC_MSG_ERROR(
-          [LLVM version $1 is required])
-      ])
-  fi
+  LLVM_VERSION_MAJOR=`echo $LLVM_VERSION |cut -d'.' -f1`
+  AC_DEFINE_UNQUOTED([LLVM_VERSION_MAJOR], [$LLVM_VERSION_MAJOR], [The llvm major version])
+
+  LLVM_VERSION_MINOR=`echo $LLVM_VERSION |cut -d'.' -f2`
+  AC_DEFINE_UNQUOTED([LLVM_VERSION_MINOR], [$LLVM_VERSION_MINOR], [The llvm minor version])
+
+  AC_MSG_CHECKING([for LLVM version])
+  AC_MSG_RESULT([$LLVM_VERSION])
+  AX_COMPARE_VERSION([$LLVM_VERSION],[ge],[$1],
+    [],
+    [
+      AC_MSG_ERROR(
+        [At least LLVM version $1 is required])
+    ])
+  AX_COMPARE_VERSION([$LLVM_VERSION],[le],[$2],
+    [],
+    [
+      AC_MSG_ERROR(
+        [LLVM version up to $2 is supported])
+    ])
 
   LLVM_BINDIR=`$LLVM_CONFIG --bindir`
   AC_DEFINE_UNQUOTED([LLVM_BINDIR], ["$LLVM_BINDIR"], [The llvm bin dir])
   LLVM_CPPFLAGS=`$LLVM_CONFIG --cxxflags`
-  LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
-  LLVM_LIBS=`$LLVM_CONFIG --libs $2`
+  if test "$LLVM_VERSION_MINOR" = 5; then
+    LLVM_LDFLAGS=`$LLVM_CONFIG --system-libs`
+  else
+    LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
+  fi
+  LLVM_LIBS=`$LLVM_CONFIG --libs $3`
   LLVM_LIBDIR=`$LLVM_CONFIG --libdir`
 
-  # The output of `llvm-config --ldflags' often contains library directives
+  # The output of `llvm-config --system-libs/--ldflags' often contains library directives
   # that must come *after* all the LLVM libraries on the link line: e.g.,
   # "-lpthread -lffi -ldl -lm".  To ensure this, we insert LLVM_LDFLAGS into
   # LIBS, *not* into LDFLAGS.
@@ -89,10 +103,10 @@ AC_DEFUN([AX_LLVM],
   LDFLAGS="$LDFLAGS"
   # LDFLAGS="$LDFLAGS $LLVM_LDFLAGS" --- see comment above.
   LIBS_SAVED="$LIBS"
-  LIBS="$LIBS $LLVM_LIBS $LLVM_LDFLAGS"
+  LIBS="-L$LLVM_LIBDIR $LIBS $LLVM_LIBS $LLVM_LDFLAGS"
   # LIBS="$LIBS $LLVM_LIBS" --- see comment above.
 
-  AC_CACHE_CHECK(can compile with and link with LLVM([$2]),
+  AC_CACHE_CHECK(can compile with and link with LLVM([$3]),
     ax_cv_llvm,
     [
       AC_LANG_PUSH([C++])
@@ -106,7 +120,6 @@ llvm::Module *M = new llvm::Module("test", context);]])],
         ax_cv_llvm=no)
       AC_LANG_POP([C++])
     ])
-
   CPPFLAGS="$CPPFLAGS_SAVED"
   LDFLAGS="$LDFLAGS_SAVED"
   LIBS="$LIBS_SAVED"
@@ -138,7 +151,7 @@ llvm::Module *M = new llvm::Module("test", context);]])],
 
     if test -z "$DRAGONEGG_PATH"; then
         AC_MSG_ERROR(
-                [dragonegg.so could not be found at $with_dragonegg_path])
+                [dragonegg.so could not be found at $with_dragonegg_path. Disabling fortran support.])
         DRAGONEGG_PATH=""
     fi
   fi
