@@ -205,9 +205,6 @@ namespace {
                 if (baseTypeName == "double") fct_position += 4;
 
                 // Dereference the member at fct_position
-                std::vector<llvm::Value *> tmp_args;
-                tmp_args.push_back(builder.getInt32(0));
-                tmp_args.push_back(builder.getInt32(fct_position));
                 Value *arg_ptr = builder.CreateStructGEP(current_mca_interface, fct_position);
                 Value *fct_ptr = builder.CreateLoad(arg_ptr, false);
 

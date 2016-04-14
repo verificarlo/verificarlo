@@ -22,7 +22,6 @@ AC_SUBST(GCC_PATH, $CC)
 AX_LLVM([3.3],[3.5.2],[all])
 
 AC_CHECK_LIB([c], [exit], , AC_MSG_ERROR([Could not find c library]))
-AC_CHECK_LIB([gfortran], [exit], , AC_MSG_ERROR([Could not find gfortran library]))
 AC_CHECK_LIB([m], [sin], , AC_MSG_ERROR([Could not find mpfr library]))
 AC_CHECK_LIB([mpfr], [mpfr_clear], , AC_MSG_ERROR([Could not find mpfr library]))
 
@@ -30,6 +29,7 @@ AC_CHECK_LIB([mpfr], [mpfr_clear], , AC_MSG_ERROR([Could not find mpfr library])
 if test -z "$DRAGONEGG_PATH"; then
     AC_MSG_NOTICE([Fortran support disabled.])
 else
+    AC_CHECK_LIB([gfortran], [exit], , AC_MSG_ERROR([Could not find gfortran library]))
     AC_MSG_CHECKING([if gcc can compile fortran with dragonegg])
     cat <<EOF >conftest.f90
     module conftest_module

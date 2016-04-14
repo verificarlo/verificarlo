@@ -71,25 +71,30 @@ def linker_mode(sources, options, output, args):
         vfcwrapper=vfcwrapper,
         mcalib_includes=' '.join(["-I " + d for d in mcalib_dirs])))
 
+    # Only include lgfortran if fortran support is enabled
+    gfortran = "-lgfortran" if dragonegg else ""
+
     if args.static:
-        shell('{linker} {output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp -lgfortran -lm'.format(
+        shell('{linker} {output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
             linker=clang,
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
-            mcalib_static=mcalib_static))
+            mcalib_static=mcalib_static,
+            gfortran=gfortran))
     else:
 	mcalib_options = []
 	for d in mcalib_dirs:
 	    mcalib_options.append("-rpath {0}/.libs -L {0}/.libs".format(d))
 	
-        shell('{linker} {output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} -lgfortran'.format(
+        shell('{linker} {output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
             linker=clang,
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
             mcalib_options=' '.join(mcalib_options),
-            mcalib_dynamic=mcalib_dynamic))
+            mcalib_dynamic=mcalib_dynamic,
+            gfortran=gfortran))
 
 def compiler_mode(sources, options, output, args):
     for source in sources:
