@@ -166,7 +166,7 @@ Thanks !
 
 ### Discussion Group
 
-For question, feedback or discussion about Verificarlo you can join our group at,
+For questions, feedbacks or discussions about Verificarlo you can join our group at,
 
 https://groups.google.com/forum/#!forum/verificarlo
 
