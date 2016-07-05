@@ -1,3 +1,5 @@
+<img src="https://avatars1.githubusercontent.com/u/12033642" align="right" height="200px" \>
+
 ## Verificarlo v0.1.0
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
@@ -73,8 +75,7 @@ directory to your path with
    $ export PATH=<verificarlo path>:$PATH
 ```
 
-Then you can use the `verificarlo` command to compile your programs. Either modify
-
+Then you can use the `verificarlo` command to compile your programs. Either modify 
 your makefile to use `verificarlo` as the compiler (`CC=verificarlo` and
 `FC=verificarlo` ) and linker (`LD=verificarlo`) or use the verificarlo command
 directly:
