@@ -130,6 +130,21 @@ MCA computation always use round-to-zero mode.
 
 The `tests/` directory contains various examples of Verificarlo usage.
 
+### Postprocessing
+
+The `postprocessing/` directory contains postprocessing tools to compute floating
+point accuracy information from a set of verificarlo generated outputs.
+
+For now we only have a VTK postprocessing tool `vfc-vtk.py` which takes multiple
+VTK outputs generated with verificarlo and generates a single VTK set of files that
+is enriched with accuracy information for each floating point `DataArray`.
+
+For more information about `vfc-vtk.py`, please use the online help:
+
+```bash
+$ postprocess/vfc-vtk.py --help
+```
+
 ### How to cite Verificarlo
 
 
