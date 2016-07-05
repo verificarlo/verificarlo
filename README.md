@@ -164,6 +164,12 @@ If you use Verificarlo in your research, please cite the following paper:
 
 Thanks !
 
+### Discussion Group
+
+For question, feedback or discussion about Verificarlo you can join our group at,
+
+https://groups.google.com/forum/#!forum/verificarlo
+
 ### License
 
 Copyright (c) 2015
