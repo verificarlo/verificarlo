@@ -29,11 +29,15 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
-
 using namespace llvm;
 // VfclibInst pass command line arguments
-static cl::opt<std::string> VfclibInstFunction("vfclibinst-function", cl::desc("Only instrument given FunctionName"),
-                                               cl::value_desc("FunctionName"), cl::init(""));
+static cl::opt<std::string> VfclibInstFunction("vfclibinst-function",
+                       cl::desc("Only instrument given FunctionName"),
+                       cl::value_desc("FunctionName"), cl::init(""));
+
+static cl::opt<bool> VfclibInstVerbose("vfclibinst-verbose",
+                       cl::desc("Activate verbose mode"),
+                       cl::value_desc("Verbose"), cl::init(false));
 
 namespace {
     // Define an enum type to classify the floating points operations
@@ -110,8 +114,10 @@ namespace {
         }
 
         bool runOnFunction(Module &M, Function &F) {
-            errs() << "In Function: ";
-            errs().write_escaped(F.getName()) << '\n';
+            if (VfclibInstVerbose) {
+                errs() << "In Function: ";
+                errs().write_escaped(F.getName()) << '\n';
+            }
 
             bool modified = false;
 
@@ -199,9 +205,6 @@ namespace {
                 if (baseTypeName == "double") fct_position += 4;
 
                 // Dereference the member at fct_position
-                std::vector<llvm::Value *> tmp_args;
-                tmp_args.push_back(builder.getInt32(0));
-                tmp_args.push_back(builder.getInt32(fct_position));
                 Value *arg_ptr = builder.CreateStructGEP(current_mca_interface, fct_position);
                 Value *fct_ptr = builder.CreateLoad(arg_ptr, false);
 
@@ -243,11 +246,12 @@ namespace {
                 Instruction &I = *ii;
                 Fops opCode = mustReplace(I);
                 if (opCode == FOP_IGNORE) continue;
-                errs() << "Instrumenting" << I << '\n';
+                if (VfclibInstVerbose) errs() << "Instrumenting" << I << '\n';
                 Instruction *newInst = replaceWithMCACall(M, B, ii, opCode);
                 ReplaceInstWithInst(B.getInstList(), ii, newInst);
                 modified = true;
             }
+
             return modified;
         }
     };

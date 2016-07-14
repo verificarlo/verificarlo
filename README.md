@@ -1,3 +1,5 @@
+<img src="https://avatars1.githubusercontent.com/u/12033642" align="right" height="200px" \>
+
 ## Verificarlo v0.1.0
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
@@ -9,7 +11,7 @@ A tool for automatic Montecarlo Arithmetic analysis.
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt 3.3 or 3.4, http://clang.llvm.org/
+  * LLVM, clang and opt 3.3, 3.4 or 3.5, http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
   * python, version >= 2.7
   * autotools (automake, autoconf)
@@ -19,6 +21,14 @@ Then run the following command inside verificarlo directory:
 ```bash
    $ ./autogen.sh
    $ ./configure
+   $ make
+```
+
+If you do not care about Fortran support, you can avoid installing gfortran and dragonegg, by passing the option `--without-dragonegg` to `configure`:
+
+```bash
+   $ ./autogen.sh
+   $ ./configure --without-dragonegg
    $ make
 ```
 
@@ -38,6 +48,7 @@ verificarlo works as expected on your system:
    $ make check
 ```
 
+If you disable dragonegg support during configure, fortran_test will fail.
 
 For example on an x86_64 Ubuntu 14.04 release, you should use the following
 install procedure:
@@ -64,8 +75,7 @@ directory to your path with
    $ export PATH=<verificarlo path>:$PATH
 ```
 
-Then you can use the `verificarlo` command to compile your programs. Either modify
-
+Then you can use the `verificarlo` command to compile your programs. Either modify 
 your makefile to use `verificarlo` as the compiler (`CC=verificarlo` and
 `FC=verificarlo` ) and linker (`LD=verificarlo`) or use the verificarlo command
 directly:
@@ -80,6 +90,9 @@ If you only wish to instrument a specific function in your program, use the
 ```bash
    $ verificarlo *.c -o ./program --function=specificfunction
 ```
+
+When invoked with the `--verbose` flag, verificarlo provides detailed output of
+the instrumentation process.
 
 ### MCA Configuration Parameters
 
@@ -118,24 +131,45 @@ MCA computation always use round-to-zero mode.
 
 The `tests/` directory contains various examples of Verificarlo usage.
 
+### Postprocessing
+
+The `postprocessing/` directory contains postprocessing tools to compute floating
+point accuracy information from a set of verificarlo generated outputs.
+
+For now we only have a VTK postprocessing tool `vfc-vtk.py` which takes multiple
+VTK outputs generated with verificarlo and generates a single VTK set of files that
+is enriched with accuracy information for each floating point `DataArray`.
+
+For more information about `vfc-vtk.py`, please use the online help:
+
+```bash
+$ postprocess/vfc-vtk.py --help
+```
+
 ### How to cite Verificarlo
 
 
 If you use Verificarlo in your research, please cite the following paper:
 
-    @unpublished{denis:hal-01192668,
+    @inproceedings{verificarlo,
     TITLE = {{Verificarlo: checking floating point accuracy through Monte Carlo Arithmetic}},
     AUTHOR = {Denis, Christophe and de Oliveira Castro, Pablo and Petit, Eric},
-    URL = {https://hal.archives-ouvertes.fr/hal-01192668},
-    NOTE = {working paper or preprint},
-    YEAR = {2015},
-    MONTH = Sep,
+    BOOKTITLE = {Computer Arithmetic (ARITH'23), 23rd IEEE Internatinal Symposium on},
+    PAGES = {},
+    YEAR = {2016 (to appear)},
+    ORGANISATION = {IEEE},
     KEYWORDS = {compilers ; floating point arithmetic ; numerical analysis ; Monte Carlo arithmetic},
     PDF = {https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf},
-    HAL_ID = {hal-01192668},
+    URL = {https://hal.archives-ouvertes.fr/hal-01192668},
     }
 
 Thanks !
+
+### Discussion Group
+
+For questions, feedbacks or discussions about Verificarlo you can join our group at,
+
+https://groups.google.com/forum/#!forum/verificarlo
 
 ### License
 
