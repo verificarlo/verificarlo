@@ -31,10 +31,12 @@
 // 2015-10-11 New version based on quad floating point type to replace MPFR until
 // required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits
 //
-// 2015-16-11 New version using double precision for single precision operation
+// 2015-11-16 New version using double precision for single precision operation
+// 
+// 2016-07-14 Support denormalized numbers
+//
 
 #include <math.h>
-#include <mpfr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -81,8 +83,7 @@ static int _set_mca_precision(int precision){
 
 /******************** MCA RANDOM FUNCTIONS ********************
 * The following functions are used to calculate the random
-* perturbations used for MCA and apply these to MPFR format
-* operands
+* perturbations used for MCA 
 ***************************************************************/
 
 /* random generator internal state */
@@ -112,7 +113,7 @@ static inline double pow2d(int exp) {
 }
 
   //normal case
-  //complement the exponent, sift it at the right place in the MSW
+  //complement the exponent, shift it at the right place in the MSW
   *x=( ((uint64_t) exp) + DOUBLE_EXP_COMP) << DOUBLE_PMAN_SIZE;
   res=*((double*)x);
   return res;
@@ -120,7 +121,7 @@ static inline double pow2d(int exp) {
 
 static inline uint32_t rexpq (__float128 x)
 {
-  //no need to check special value in our cases since pow2q will deal with it
+  //no need to check special value in our cases since qnoise will deal with it
   //do not reuse it outside this code!
   uint64_t hx,ix;
   uint32_t exp=0;
@@ -161,14 +162,35 @@ __float128 qnoise(int exp){
 	return noise;
   }
   if (exp < -QUAD_EXP_MIN) { /*subnormal*/
-	//WARNING missing the random noise bits, only set the first one
-	if (exp+QUAD_EXP_MAX<-QUAD_HX_PMAN_SIZE)
-        	SET_FLT128_WORDS64(noise, ((uint64_t) 0 ) , WORD64_MSB  >> -(exp+QUAD_EXP_MAX+QUAD_HX_PMAN_SIZE));
-	else
-		SET_FLT128_WORDS64(noise, ((uint64_t) QUAD_HX_PMAN_MSB ) >> -(exp+QUAD_EXP_MAX) , ((uint64_t) 0 ));
+	// test for minus infinity
+	if (exp < -(QUAD_EXP_MIN+QUAD_PMAN_SIZE)) {
+		SET_FLT128_WORDS64(noise, QMINF_hx, QMINF_lx);
+		return noise;
+	}
+	//noise will be a subnormal
+	//build HX with sign of d_rand, exp
+	uint64_t u_hx=((uint64_t)(-QUAD_EXP_MIN + QUAD_EXP_COMP)) << QUAD_HX_PMAN_SIZE;
+	//add the sign bit 
+	uint64_t sign= u_rand&DOUBLE_GET_SIGN;
+	u_hx=u_hx+sign;
+	//erase the sign bit from u_rand
+	u_rand=u_rand-sign;
+
+	if (-exp-QUAD_EXP_MIN<-QUAD_HX_PMAN_SIZE){
+		//the higher part of the noise start in HX of noise
+		//set the mantissa part: U_rand>> by -exp-QUAD_EXP_MIN
+		u_hx+=u_rand>>(-exp-QUAD_EXP_MIN+QUAD_EXP_SIZE+1/*SIGN_SIZE*/);
+		//build LX with the remaining bits of the noise (-exp-QUAD_EXP_MIN-QUAD_HX_PMAN_SIZE) at the msb of LX
+		//remove the bit already used in hx and put the remaining at msb of LX
+		uint64_t u_lx=u_rand<<(QUAD_HX_PMAN_SIZE+exp+QUAD_EXP_MIN);	
+        	SET_FLT128_WORDS64(noise, u_hx,u_lx );
+	}else{ //the higher part of the noise start  in LX of noise
+		//the noise as been already implicitly shifeted by QUAD_HX_PMAN_SIZE when starting in LX
+		uint64_t u_lx=u_rand>>(-exp-QUAD_EXP_MIN-QUAD_HX_PMAN_SIZE);
+		SET_FLT128_WORDS64(noise, u_hx, u_lx);
+	}
 	return noise;
   }
-
   //normal case
   //complement the exponent, shift it at the right place in the MSW
   hx=( ((uint64_t) exp+rexpd(d_rand)) + QUAD_EXP_COMP) << QUAD_HX_PMAN_SIZE;
