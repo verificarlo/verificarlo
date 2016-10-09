@@ -28,6 +28,7 @@ import argparse
 import os
 import sys
 import subprocess
+import tempfile
 
 PACKAGE_STRING = "@PACKAGE_STRING@"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
@@ -97,26 +98,33 @@ def linker_mode(sources, options, output, args):
     gfortran = "-lgfortran" if dragonegg else ""
 
     if args.static:
-        shell('{linker} {output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
-            linker=clang,
+        f=tempfile.NamedTemporaryFile()
+        f.write(b'{output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
             mcalib_static=mcalib_static,
             gfortran=gfortran))
+        f.seek(0)
+        shell('clang @'+f.name)
+        f.close()
+       
     else:
 	mcalib_options = []
 	for d in mcalib_dirs:
 	    mcalib_options.append("-rpath {0}/.libs -L {0}/.libs".format(d))
-	
-        shell('{linker} {output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
-            linker=clang,
+        f=tempfile.NamedTemporaryFile()
+        f.write(b'{output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
             mcalib_options=' '.join(mcalib_options),
             mcalib_dynamic=mcalib_dynamic,
             gfortran=gfortran))
+        f.seek(0)
+        shell('clang @'+f.name)
+        f.close()
+       
 
 def compiler_mode(sources, options, output, args):
     for source in sources:
