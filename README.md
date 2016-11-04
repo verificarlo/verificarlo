@@ -152,16 +152,20 @@ $ postprocess/vfc-vtk.py --help
 If you use Verificarlo in your research, please cite the following paper:
 
     @inproceedings{verificarlo,
-    TITLE = {{Verificarlo: checking floating point accuracy through Monte Carlo Arithmetic}},
-    AUTHOR = {Denis, Christophe and de Oliveira Castro, Pablo and Petit, Eric},
-    BOOKTITLE = {Computer Arithmetic (ARITH'23), 23rd IEEE Internatinal Symposium on},
-    PAGES = {},
-    YEAR = {2016 (to appear)},
-    ORGANISATION = {IEEE},
-    KEYWORDS = {compilers ; floating point arithmetic ; numerical analysis ; Monte Carlo arithmetic},
-    PDF = {https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf},
-    URL = {https://hal.archives-ouvertes.fr/hal-01192668},
+    author    = {Christophe Denis and
+                 Pablo de Oliveira Castro and
+                 Eric Petit},
+    title     = {Verificarlo: Checking Floating Point Accuracy through Monte Carlo
+                 Arithmetic},
+    booktitle = {23nd {IEEE} Symposium on Computer Arithmetic, {ARITH} 2016, Silicon
+                 Valley, CA, USA, July 10-13, 2016},
+    pages     = {55--62},
+    year      = {2016},
+    url       = {http://dx.doi.org/10.1109/ARITH.2016.31},
+    doi       = {10.1109/ARITH.2016.31},
     }
+
+A preprint is available at https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf.
 
 Thanks !
 
