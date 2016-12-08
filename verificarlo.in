@@ -39,7 +39,7 @@ mcalib_dirs = [PROJECT_ROOT + '/src/libmca-mpfr/',
 	       PROJECT_ROOT + '/src/libmca-quad/']
 vfcwrapper = PROJECT_ROOT + '/src/vfcwrapper/vfcwrapper.c'
 llvm_bindir = "@LLVM_BINDIR@"
-clang = llvm_bindir + '/clang'
+clang = '@CLANG_PATH@'
 opt = llvm_bindir + '/opt'
 dragonegg = "@DRAGONEGG_PATH@"
 gcc = "@GCC_PATH@"
@@ -97,34 +97,30 @@ def linker_mode(sources, options, output, args):
     # Only include lgfortran if fortran support is enabled
     gfortran = "-lgfortran" if dragonegg else ""
 
+    f=tempfile.NamedTemporaryFile()
     if args.static:
-        f=tempfile.NamedTemporaryFile()
-        f.write(b'{output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
+        f.write('{output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
             mcalib_static=mcalib_static,
             gfortran=gfortran))
-        f.seek(0)
-        shell('clang @'+f.name)
-        f.close()
        
     else:
 	mcalib_options = []
 	for d in mcalib_dirs:
 	    mcalib_options.append("-rpath {0}/.libs -L {0}/.libs".format(d))
-        f=tempfile.NamedTemporaryFile()
-        f.write(b'{output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
+        f.write('{output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
             mcalib_options=' '.join(mcalib_options),
             mcalib_dynamic=mcalib_dynamic,
             gfortran=gfortran))
-        f.seek(0)
-        shell('clang @'+f.name)
-        f.close()
-       
+
+    f.flush()
+    shell('{clang} @{temp}'.format(clang=clang, temp=f.name))
+    f.close()
 
 def compiler_mode(sources, options, output, args):
     for source in sources:
