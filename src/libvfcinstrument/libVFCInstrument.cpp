@@ -21,6 +21,7 @@
  *                                                                              *
  ********************************************************************************/
 
+#include "../../config.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IRBuilder.h"
@@ -28,6 +29,14 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
+#if LLVM_VERSION_MINOR <= 5
+#define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
+#define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(i, p))
+#else
+#define CREATE_CALL2(func, op1, op2) (builder.CreateCall(func, {op1, op2}, ""))
+#define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(nullptr, i, p, ""))
+#endif
 
 using namespace llvm;
 // VfclibInst pass command line arguments
@@ -175,11 +184,8 @@ namespace {
                 // For vector types we call directly a hardcoded helper function
                 // no need to go through the vtable at this stage.
                 IRBuilder<> builder(getGlobalContext());
-                Instruction *newInst = builder.CreateCall2(
-                    cast<Function>(hookFunc),
-                    I->getOperand(0),
-                    I->getOperand(1),
-                    "");
+                Instruction *newInst = CREATE_CALL2(hookFunc,
+				                   I->getOperand(0), I->getOperand(1));
 
                 return newInst;
             }
@@ -205,7 +211,7 @@ namespace {
                 if (baseTypeName == "double") fct_position += 4;
 
                 // Dereference the member at fct_position
-                Value *arg_ptr = builder.CreateStructGEP(current_mca_interface, fct_position);
+                Value *arg_ptr = CREATE_STRUCT_GEP(current_mca_interface, fct_position);
                 Value *fct_ptr = builder.CreateLoad(arg_ptr, false);
 
                 // Create a call instruction. It is important to
@@ -213,11 +219,10 @@ namespace {
                 // the instruction is not to be inserted before I. It
                 // will _replace_ I after it is returned.
                 IRBuilder<> builder2(getGlobalContext());
-                Instruction *newInst = builder2.CreateCall2(
+
+                Instruction *newInst = CREATE_CALL2(
                     fct_ptr,
-                    I->getOperand(0),
-                    I->getOperand(1),
-                    "");
+		    I->getOperand(0), I->getOperand(1));
 
                 return newInst;
             }
@@ -247,7 +252,7 @@ namespace {
                 Fops opCode = mustReplace(I);
                 if (opCode == FOP_IGNORE) continue;
                 if (VfclibInstVerbose) errs() << "Instrumenting" << I << '\n';
-                Instruction *newInst = replaceWithMCACall(M, B, ii, opCode);
+                Instruction *newInst = replaceWithMCACall(M, B, &I, opCode);
                 ReplaceInstWithInst(B.getInstList(), ii, newInst);
                 modified = true;
             }
