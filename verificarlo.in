@@ -43,8 +43,8 @@ clang = llvm_bindir + '/clang'
 opt = llvm_bindir + '/opt'
 dragonegg = "@DRAGONEGG_PATH@"
 gcc = "@GCC_PATH@"
-FORTRAN_EXTENSIONS=[".f", ".f90", ".f77", ".F90", ".F77"]
-C_EXTENSIONS=[".C", ".c", ".cpp", ".cc", ".cxx"]
+FORTRAN_EXTENSIONS=[".f", ".f90", ".f77"]
+C_EXTENSIONS=[".c", ".cpp", ".cc", ".cxx"]
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
@@ -56,10 +56,10 @@ def fail(msg):
     sys.exit(1)
 
 def is_fortran(name):
-    return os.path.splitext(name)[1] in FORTRAN_EXTENSIONS
+    return os.path.splitext(name)[1].lower() in FORTRAN_EXTENSIONS
 
 def is_c(name):
-    return os.path.splitext(name)[1] in C_EXTENSIONS
+    return os.path.splitext(name)[1].lower() in C_EXTENSIONS
 
 def parse_extra_args(args):
     sources = []
