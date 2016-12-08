@@ -11,7 +11,7 @@ A tool for automatic Montecarlo Arithmetic analysis.
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt 3.3, 3.4 or 3.5, http://clang.llvm.org/
+  * LLVM, clang and opt from 3.3 up to 3.8 (the last version with Fortran support is 3.6), http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
   * python, version >= 2.7
   * autotools (automake, autoconf)
