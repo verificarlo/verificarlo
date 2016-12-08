@@ -8,8 +8,8 @@ fi
 
 # Compile newton.f90 using MCA lib instrumentation
 
-../../verificarlo -c newton.f90 -o newton.o
-../../verificarlo newton.o -o newton
+verificarlo -c newton.f90 -o newton.o
+verificarlo newton.o -o newton
 
 # Check that two executions differ
 ./newton > output1
