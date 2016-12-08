@@ -19,7 +19,14 @@ AC_PROG_MAKE_SET
 AC_PROG_CC([gcc])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg and replay linking)])
 AC_SUBST(GCC_PATH, $CC)
-AX_LLVM([3.3],[3.5.2],[all])
+AX_LLVM([3.3],[3.8.1],[all])
+
+AC_PATH_PROGS([CLANG], [clang "$LLVM_BINDIR"/clang clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR"], "")
+if test -z "$CLANG"; then
+  AC_MSG_ERROR([Could not find clang])
+fi
+AC_DEFINE_UNQUOTED([CLANG_PATH], ["$CLANG"], [CLANG path])
+AC_SUBST(CLANG_PATH, $CLANG)
 
 AC_CHECK_LIB([c], [exit], , AC_MSG_ERROR([Could not find c library]))
 AC_CHECK_LIB([m], [sin], , AC_MSG_ERROR([Could not find mpfr library]))
