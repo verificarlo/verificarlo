@@ -30,7 +30,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
-#if LLVM_VERSION_MINOR <= 5
+#if LLVM_VERSION_MINOR <= 6
 #define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
 #define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(i, p))
 #else
