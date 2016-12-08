@@ -42,7 +42,7 @@ clang = llvm_bindir + '/clang'
 opt = llvm_bindir + '/opt'
 dragonegg = "@DRAGONEGG_PATH@"
 gcc = "@GCC_PATH@"
-FORTRAN_EXTENSIONS=[".f", ".f90", ".f77"]
+FORTRAN_EXTENSIONS=[".f", ".f90", ".f77", ".F90", ".F77"]
 C_EXTENSIONS=[".C", ".c", ".cpp", ".cc", ".cxx"]
 
 class NoPrefixParser(argparse.ArgumentParser):
