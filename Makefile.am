@@ -1,5 +1,5 @@
 ACLOCAL_AMFLAGS=-I m4
-SUBDIRS=src/ tests/
+SUBDIRS=src/
 dist_bin_SCRIPTS=verificarlo
 
 
@@ -12,3 +12,9 @@ verificarlo: verificarlo.in Makefile
 	mv $@.tmp $@
 
 CLEANFILES = verificarlo
+
+check:
+	echo "Tests should be run after install with make installcheck"
+
+installcheck:
+	$(MAKE) -C tests/ check

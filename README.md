@@ -47,7 +47,7 @@ Once installation is over, we recommend that you run the test suite to ensure
 verificarlo works as expected on your system:
 
 ```bash
-   $ make check
+   $ make installcheck
 ```
 
 If you disable dragonegg support during configure, fortran_test will fail.
@@ -66,7 +66,7 @@ install procedure:
        CC=gcc-4.7
    $ make 
    $ sudo make install
-   $ make check
+   $ make installcheck
 ```
 
 ### Usage
