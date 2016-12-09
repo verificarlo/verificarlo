@@ -1,6 +1,6 @@
 <img src="https://avatars1.githubusercontent.com/u/12033642" align="right" height="200px" \>
 
-## Verificarlo v0.1.0
+## Verificarlo v0.2.0
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
 

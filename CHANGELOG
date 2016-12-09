@@ -1,5 +1,11 @@
 Verificarlo CHANGELOG
 
+[v0.2.0] 2016/12/09
+    * Support for LLVM up to 3.8
+    * Support for standalone installation with make install
+    * Experimental VTK post-processing
+    * Fix bug with unsupported fortran extensions
+
 [v0.1.0] 2016/01/06
     * QUAD backend performance has been thoroughly optimized
     * QUAD backend now computes MCA operations on float using doubles
