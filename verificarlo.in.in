@@ -32,11 +32,12 @@ import tempfile
 
 PACKAGE_STRING = "@PACKAGE_STRING@"
 LIBDIR = "%LIBDIR%"
+PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
 mcalib_static = "{0}/libmcampfr.a {0}/libmcaquad.a".format(LIBDIR)
 mcalib_dynamic = "-lmcampfr -lmcaquad"
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
-mcalib_includes = LIBDIR + "/../include/"
+mcalib_includes = PROJECT_ROOT + "/../include/"
 vfcwrapper = mcalib_includes + 'vfcwrapper.c'
 llvm_bindir = "@LLVM_BINDIR@"
 clang = '@CLANG_PATH@'
