@@ -1,0 +1,32 @@
+.TH VERIFICARLO "1" "December 2016" "verificarlo 0.2.0" "User Commands"
+.SH NAME
+verificarlo \- a tool for Montecarlo Arithmetic analysis (v 0.2.0)
+.SH DESCRIPTION
+usage: verificarlo [\-h] [\-c] [\-o file] [\-\-function function] [\-static]
+.IP
+[\-\-verbose] [\-\-version]
+.PP
+Compiles a program replacing floating point operation with calls to the mcalib
+(Montecarlo Arithmetic).
+.SS "optional arguments:"
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-c\fR
+only run preprocess, compile, and assemble steps
+.TP
+\fB\-o\fR file
+write output to <file>
+.TP
+\fB\-\-function\fR function
+only instrument <function>
+.TP
+\fB\-static\fR, \fB\-\-static\fR
+produce a static binary
+.TP
+\fB\-\-verbose\fR
+verbose output
+.TP
+\fB\-\-version\fR
+show program's version number and exit

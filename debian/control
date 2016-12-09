@@ -1,0 +1,27 @@
+Source: verificarlo
+Section: science
+Priority: extra
+Build-Depends: debhelper (>= 9.0.0), dh-autoreconf, libmpfr-dev, clang-3.7,
+  llvm-3.7, llvm-3.7-dev, libz-dev, libedit-dev, gcc (>=4.6), python (>= 2.7),
+  autoconf, automake
+Maintainer: Pablo Oliveira <pablo@sifflez.org>
+Uploaders: Pablo Oliveira <pablo@sifflez.org>
+Standards-Version: 3.9.8
+Homepage: https://github.com/verificarlo/verificarlo
+
+Package: verificarlo
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, libmpfr-dev, clang-3.7, 
+  llvm-3.7, llvm-3.7-dev, libz-dev, libedit-dev, gcc (>= 4.6), 
+  python (>= 2.7)
+Description: Automatic Montecarlo Arithmetic analysis
+ Verificarlo is an LLVM based tool to automatically use the Monte Carlo
+ arithmetic in place of IEEE-754 floating point arithmetic. Verificarlo
+ instruments floating operations point at the LLVM Intermediate
+ Representation level replacing all floating point operations by their
+ Monte Carlo Arithmetic counterpart. It forces the results of floating
+ point operations to behave like random variables turning executions of a
+ program into trials of a Monte Carlo simulation and allowing statistics
+ on the effects of rounding error to be obtained over a number of
+ executions. In particular, Verificarlo tracks rounding and catastrophic
+ cancellation errors at a given virtual precision.

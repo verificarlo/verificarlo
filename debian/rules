@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+export DH_ALWAYS_EXCLUDE=CVS:.git:*.la
+
+override_dh_auto_configure:
+	dh_auto_configure -- --with-llvm=/usr/lib/llvm-3.7/bin/ --without-dragonegg
+
+override_dh_auto_install:
+	#find src/ -name '*.la' | xargs rm --
+	dh_auto_install
+
+%:
+	dh $@ --with autoreconf

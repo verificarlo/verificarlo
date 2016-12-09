@@ -1,0 +1,31 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Verificarlo
+Source: https://github.com/verificarlo/verificarlo
+
+Files: *
+Copyright: 2015-2016 Universite de Versailles St-Quentin-en-Yvelines
+                     CMLA, Ecole Normale Superieure de Cachan
+License: GPL-3
+
+Files: src/libmca-mpfr/mcalib.c
+Copyright: 2014 The Computer Engineering Laboratory, The University of Sydney.
+           2015-2016 Universite de Versailles St-Quentin-en-Yvelines
+                     CMLA, Ecole Normale Superieure de Cachan
+License: GPL-3 
+
+License: GPL-3
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 3 can be found in "/usr/share/common-licenses/GPL-3".
