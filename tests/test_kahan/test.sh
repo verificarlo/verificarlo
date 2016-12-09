@@ -3,7 +3,7 @@ set -e
 
 export VERIFICARLO_PRECISION=53
 
-../../verificarlo --function sum_kahan -O0 kahan.c -o test
+verificarlo --function sum_kahan -O0 kahan.c -o test
 
 echo "z y" > output1
 for z in 100; do
@@ -14,7 +14,7 @@ for z in 100; do
 done
 
 
-../../verificarlo --function sum_kahan -O3 -ffast-math kahan.c -o test
+verificarlo --function sum_kahan -O3 -ffast-math kahan.c -o test
 
 echo "z y" > output2
 for z in 100; do

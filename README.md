@@ -22,6 +22,7 @@ Then run the following command inside verificarlo directory:
    $ ./autogen.sh
    $ ./configure
    $ make
+   $ sudo make install
 ```
 
 If you do not care about Fortran support, you can avoid installing gfortran and dragonegg, by passing the option `--without-dragonegg` to `configure`:
@@ -30,6 +31,7 @@ If you do not care about Fortran support, you can avoid installing gfortran and 
    $ ./autogen.sh
    $ ./configure --without-dragonegg
    $ make
+   $ sudo make install
 ```
 
 If needed LLVM path, dragonegg path, and gcc path can be configured with the
@@ -62,18 +64,16 @@ install procedure:
    $ ./configure \
        --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so \
        CC=gcc-4.7
-   $ make && make check
+   $ make 
+   $ sudo make install
+   $ make check
 ```
 
 ### Usage
 
 To automatically instrument a program with Verificarlo you must compile it using
-the `verificarlo` command. First make sure to add the `verificarlo/` root
-directory to your path with
-
-```bash
-   $ export PATH=<verificarlo path>:$PATH
-```
+the `verificarlo` command. First make sure that the verificarlo installation
+directory is in your PATH.
 
 Then you can use the `verificarlo` command to compile your programs. Either modify 
 your makefile to use `verificarlo` as the compiler (`CC=verificarlo` and
