@@ -14,7 +14,7 @@ verificarlo: verificarlo.in Makefile
 CLEANFILES = verificarlo
 
 check:
-	echo "Tests should be run after install with make installcheck"
+	@echo "Tests should be run after install with make installcheck"
 
 installcheck:
 	$(MAKE) -C tests/ check
