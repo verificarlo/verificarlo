@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([verificarlo], [0.1.0], [])
+AC_INIT([verificarlo], [0.2.0], [])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
@@ -20,6 +20,9 @@ AC_PROG_CC([gcc])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg and replay linking)])
 AC_SUBST(GCC_PATH, $CC)
 AX_LLVM([3.3],[3.8.1],[all])
+
+AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
+AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
 
 AC_PATH_PROGS([CLANG], ["$LLVM_BINDIR"/clang clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang], "")
 if test -z "$CLANG"; then
