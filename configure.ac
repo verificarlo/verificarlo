@@ -21,6 +21,9 @@ AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg and replay link
 AC_SUBST(GCC_PATH, $CC)
 AX_LLVM([3.3],[3.8.1],[all])
 
+AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
+AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
+
 AC_PATH_PROGS([CLANG], ["$LLVM_BINDIR"/clang clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang], "")
 if test -z "$CLANG"; then
   AC_MSG_ERROR([Could not find clang])
