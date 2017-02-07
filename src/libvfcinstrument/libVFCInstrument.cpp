@@ -25,10 +25,15 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
 #include "llvm/IR/TypeBuilder.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
+#include <set>
+#include <fstream>
 
 #if LLVM_VERSION_MINOR <= 6
 #define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
@@ -41,12 +46,16 @@
 using namespace llvm;
 // VfclibInst pass command line arguments
 static cl::opt<std::string> VfclibInstFunction("vfclibinst-function",
-                       cl::desc("Only instrument given FunctionName"),
-                       cl::value_desc("FunctionName"), cl::init(""));
+					       cl::desc("Only instrument given FunctionName"),
+					       cl::value_desc("FunctionName"), cl::init(""));
+
+static cl::opt<std::string> VfclibInstFunctionFile("vfclibinst-function-file",
+						   cl::desc("Instrument functions in file FunctionNameFile "),
+						   cl::value_desc("FunctionsNameFile"), cl::init(""));
 
 static cl::opt<bool> VfclibInstVerbose("vfclibinst-verbose",
-                       cl::desc("Activate verbose mode"),
-                       cl::value_desc("Verbose"), cl::init(false));
+				       cl::desc("Activate verbose mode"),
+				       cl::value_desc("Verbose"), cl::init(false));
 
 namespace {
     // Define an enum type to classify the floating points operations
@@ -61,8 +70,25 @@ namespace {
     struct VfclibInst : public ModulePass {
         static char ID;
         StructType * mca_interface_type;
+        std::set<std::string> SelectedFunctionSet;
 
-        VfclibInst() : ModulePass(ID) {}
+        VfclibInst() : ModulePass(ID) {
+	  if (not VfclibInstFunctionFile.empty()) {
+	    std::string line;
+	    std::ifstream loopstream (VfclibInstFunctionFile.c_str());
+	    if (loopstream.is_open()) {
+	      while (std::getline(loopstream, line)) {
+		SelectedFunctionSet.insert(line);
+	      }
+	      loopstream.close();
+	    } else {
+	      errs() << "Cannot open " << VfclibInstFunctionFile << "\n";
+	      assert(0);
+	    }
+	  } else if (not VfclibInstFunction.empty()) {
+	    SelectedFunctionSet.insert(VfclibInstFunction);
+	  }
+	}
 
         StructType * getMCAInterfaceType() {
             LLVMContext &Context =getGlobalContext();
@@ -109,9 +135,10 @@ namespace {
 
             std::vector<Function*> functions;
             for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
-                if (SelectedFunction.empty() || F->getName() == SelectedFunction) {
-                    functions.push_back(&*F);
-                }
+	      const bool is_in = SelectedFunctionSet.find(F->getName()) != SelectedFunctionSet.end();
+	      if (SelectedFunctionSet.empty() || is_in) {
+		functions.push_back(&*F);
+	      }
             }
 
             // Do the instrumentation on selected functions
@@ -264,3 +291,4 @@ namespace {
 
 char VfclibInst::ID = 0;
 static RegisterPass<VfclibInst> X("vfclibinst", "verificarlo instrument pass", false, false);
+
