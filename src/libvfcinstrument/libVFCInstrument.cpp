@@ -57,6 +57,13 @@ static cl::opt<bool> VfclibInstVerbose("vfclibinst-verbose",
 				       cl::desc("Activate verbose mode"),
 				       cl::value_desc("Verbose"), cl::init(false));
 
+
+static cl::opt<bool> VfclibBlackList("vfclibblack-list",
+				     cl::desc("Activate black list mode"),
+				     cl::value_desc("BlackList"), cl::init(false));
+
+
+
 namespace {
     // Define an enum type to classify the floating points operations
     // that are instrumented by verificarlo
@@ -71,6 +78,7 @@ namespace {
         static char ID;
         StructType * mca_interface_type;
         std::set<std::string> SelectedFunctionSet;
+        std::set<std::string> BlackListFunctionSet;
 
         VfclibInst() : ModulePass(ID) {
 	  if (not VfclibInstFunctionFile.empty()) {
@@ -120,6 +128,7 @@ namespace {
                 );
         }
 
+
         bool runOnModule(Module &M) {
             bool modified = false;
 
@@ -136,16 +145,17 @@ namespace {
             std::vector<Function*> functions;
             for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
 	      const bool is_in = SelectedFunctionSet.find(F->getName()) != SelectedFunctionSet.end();
-	      if (SelectedFunctionSet.empty() || is_in) {
+	      if (SelectedFunctionSet.empty() || VfclibBlackList != is_in) {
 		functions.push_back(&*F);
 	      }
-            }
+	    }
 
             // Do the instrumentation on selected functions
             for(std::vector<Function*>::iterator F = functions.begin(); F != functions.end(); ++F) {
                 modified |= runOnFunction(M, **F);
             }
-            // runOnModule must return true if the pass modifies the IR
+	    
+	    // runOnModule must return true if the pass modifies the IR
             return modified;
         }
 
@@ -283,7 +293,6 @@ namespace {
                 ReplaceInstWithInst(B.getInstList(), ii, newInst);
                 modified = true;
             }
-
             return modified;
         }
     };
