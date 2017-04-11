@@ -2,7 +2,7 @@
  *                                                                              *
  *  This file is part of Verificarlo.                                           *
  *                                                                              *
- *  Copyright (c) 2015                                                          *
+ *  Copyright (c) 2015, 2016, 2017                                              *
  *     Universite de Versailles St-Quentin-en-Yvelines                          *
  *     CMLA, Ecole Normale Superieure de Cachan                                 *
  *                                                                              *
@@ -74,228 +74,150 @@ namespace {
 
     std::string Fops2str[] = { "add", "sub", "mul", "div", "ignore"};
 
-    struct VfclibInst : public ModulePass {
-        static char ID;
-        StructType * mca_interface_type;
-        std::set<std::string> SelectedFunctionSet;
-        std::set<std::string> BlackListFunctionSet;
+  struct VfclibInst : public ModulePass {
+    static char ID;
+    std::set<std::string> SelectedFunctionSet;
+    std::set<std::string> BlackListFunctionSet;
 
-        VfclibInst() : ModulePass(ID) {
-	  if (not VfclibInstFunctionFile.empty()) {
-	    std::string line;
-	    std::ifstream loopstream (VfclibInstFunctionFile.c_str());
-	    if (loopstream.is_open()) {
-	      while (std::getline(loopstream, line)) {
-		SelectedFunctionSet.insert(line);
-	      }
-	      loopstream.close();
-	    } else {
-	      errs() << "Cannot open " << VfclibInstFunctionFile << "\n";
-	      assert(0);
-	    }
-	  } else if (not VfclibInstFunction.empty()) {
-	    SelectedFunctionSet.insert(VfclibInstFunction);
-	  }
-	}
-
-        StructType * getMCAInterfaceType() {
-            LLVMContext &Context =getGlobalContext();
-
-            // Verificarlo instrumentation calls the mca backend using
-            // a vtable implemented as a structure.
-            //
-            // Here we declare the struct type corresponding to the
-            // mca_interface_t defined in ../vfcwrapper/vfcwrapper.h
-            //
-            // Only the functions instrumented are declared. The last
-            // three functions are user called functions and are not
-            // needed here.
-
-            return StructType::get(
-
-                TypeBuilder<float(*)(float, float), false>::get(Context),
-                TypeBuilder<float(*)(float, float), false>::get(Context),
-                TypeBuilder<float(*)(float, float), false>::get(Context),
-                TypeBuilder<float(*)(float, float), false>::get(Context),
-
-
-                TypeBuilder<double(*)(double, double), false>::get(Context),
-                TypeBuilder<double(*)(double, double), false>::get(Context),
-                TypeBuilder<double(*)(double, double), false>::get(Context),
-                TypeBuilder<double(*)(double, double), false>::get(Context),
-
-                (void *)0
-                );
+    VfclibInst() : ModulePass(ID) {
+      if (not VfclibInstFunctionFile.empty()) {
+        std::string line;
+        std::ifstream loopstream (VfclibInstFunctionFile.c_str());
+        if (loopstream.is_open()) {
+          while (std::getline(loopstream, line)) {
+            SelectedFunctionSet.insert(line);
+          }
+          loopstream.close();
+        } else {
+          errs() << "Cannot open " << VfclibInstFunctionFile << "\n";
+          assert(0);
         }
+      } else if (not VfclibInstFunction.empty()) {
+        SelectedFunctionSet.insert(VfclibInstFunction);
+      }
+    }
 
+    bool runOnModule(Module &M) {
+      bool modified = false;
 
-        bool runOnModule(Module &M) {
-            bool modified = false;
+      // Find the list of functions to instrument
+      // Instrumentation adds stubs to mcalib function which we
+      // never want to instrument.  Therefore it is important to
+      // first find all the functions of interest before
+      // starting instrumentation.
 
-            mca_interface_type = getMCAInterfaceType();
-
-            StringRef SelectedFunction = StringRef(VfclibInstFunction);
-
-            // Find the list of functions to instrument
-            // Instrumentation adds stubs to mcalib function which we
-            // never want to instrument.  Therefore it is important to
-            // first find all the functions of interest before
-            // starting instrumentation.
-
-            std::vector<Function*> functions;
-            for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
-	      const bool is_in = SelectedFunctionSet.find(F->getName()) != SelectedFunctionSet.end();
-	      if (SelectedFunctionSet.empty() || VfclibBlackList != is_in) {
-		functions.push_back(&*F);
-	      }
-	    }
-
-            // Do the instrumentation on selected functions
-            for(std::vector<Function*>::iterator F = functions.begin(); F != functions.end(); ++F) {
-                modified |= runOnFunction(M, **F);
-            }
-	    
-	    // runOnModule must return true if the pass modifies the IR
-            return modified;
+      std::vector<Function*> functions;
+      for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
+        const bool is_in = SelectedFunctionSet.find(F->getName()) != SelectedFunctionSet.end();
+        if (SelectedFunctionSet.empty() || VfclibBlackList != is_in) {
+          functions.push_back(&*F);
         }
+      }
 
-        bool runOnFunction(Module &M, Function &F) {
-            if (VfclibInstVerbose) {
-                errs() << "In Function: ";
-                errs().write_escaped(F.getName()) << '\n';
-            }
+      // Do the instrumentation on selected functions
+      for(std::vector<Function*>::iterator F = functions.begin(); F != functions.end(); ++F) {
+        modified |= runOnFunction(M, **F);
+      }
 
-            bool modified = false;
+      // runOnModule must return true if the pass modifies the IR
+      return modified;
+    }
 
-            for (Function::iterator bi = F.begin(), be = F.end(); bi != be; ++bi) {
-                modified |= runOnBasicBlock(M, *bi);
-            }
-            return modified;
+    bool runOnFunction(Module &M, Function &F) {
+      if (VfclibInstVerbose) {
+        errs() << "In Function: ";
+        errs().write_escaped(F.getName()) << '\n';
+      }
+
+      bool modified = false;
+
+      for (Function::iterator bi = F.begin(), be = F.end(); bi != be; ++bi) {
+        modified |= runOnBasicBlock(M, *bi);
+      }
+      return modified;
+    }
+
+    Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction * I, Fops opCode) {
+      Type * retType = I->getType();
+      Type * opType = I->getOperand(0)->getType();
+      std::string opName = Fops2str[opCode];
+
+      std::string baseTypeName = "";
+      std::string vectorName = "";
+      Type *baseType = opType;
+
+      // Check for vector types
+      if (opType->isVectorTy()) {
+        VectorType *t = static_cast<VectorType *>(opType);
+        baseType = t->getElementType();
+        unsigned size = t->getNumElements();
+
+        if (size == 2) {
+          vectorName = "2x";
+        } else if (size == 4) {
+          vectorName = "4x";
+        } else {
+          errs() << "Unsuported vector size: " << size << "\n";
+          assert(0);
         }
+      }
 
-        Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction * I, Fops opCode) {
-            Type * retType = I->getType();
-            Type * opType = I->getOperand(0)->getType();
-            std::string opName = Fops2str[opCode];
+      // Check the type of the operation
+      if (baseType->isDoubleTy()) {
+        baseTypeName = "double";
+      } else if (baseType->isFloatTy()) {
+        baseTypeName = "float";
+      } else {
+        errs() << "Unsupported operand type: " << *opType << "\n";
+        assert(0);
+      }
 
-            std::string baseTypeName = "";
-            std::string vectorName = "";
-            Type *baseType = opType;
+      std::string mcaFunctionName = "_" + vectorName + baseTypeName + opName;
 
-            // Check for vector types
-            if (opType->isVectorTy()) {
-                VectorType *t = static_cast<VectorType *>(opType);
-                baseType = t->getElementType();
-                unsigned size = t->getNumElements();
+      Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName,
+                                                 retType,
+                                                 opType,
+                                                 opType,
+                                                 (Type *) 0);
 
-                if (size == 2) {
-                    vectorName = "2x";
-                } else if (size == 4) {
-                    vectorName = "4x";
-                } else {
-                    errs() << "Unsuported vector size: " << size << "\n";
-                    assert(0);
-                }
-            }
+      IRBuilder<> builder(getGlobalContext());
+      Instruction *newInst = CREATE_CALL2(hookFunc,
+                                          I->getOperand(0), I->getOperand(1));
 
-            // Check the type of the operation
-            if (baseType->isDoubleTy()) {
-                baseTypeName = "double";
-            } else if (baseType->isFloatTy()) {
-                baseTypeName = "float";
-            } else {
-                errs() << "Unsupported operand type: " << *opType << "\n";
-                assert(0);
-            }
-
-            // For vector types, helper functions in vfcwrapper are called
-            if (vectorName != "") {
-                std::string mcaFunctionName = "_" + vectorName + baseTypeName + opName;
-
-                Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName,
-                                                           retType,
-                                                           opType,
-                                                           opType,
-                                                           (Type *) 0);
-
-                // For vector types we call directly a hardcoded helper function
-                // no need to go through the vtable at this stage.
-                IRBuilder<> builder(getGlobalContext());
-                Instruction *newInst = CREATE_CALL2(hookFunc,
-				                   I->getOperand(0), I->getOperand(1));
-
-                return newInst;
-            }
-            // For scalar types, we go directly through the struct of pointer function
-            else {
-
-                // We use a builder adding instructions before the
-                // instruction to replace
-                IRBuilder<> builder(I);
-
-                // Get a pointer to the global vtable
-                // The vtable is accessed through the global structure
-                // _vfc_current_mca_interface of type mca_interface_t which is
-                // declared in ../vfcwrapper/vfcwrapper.c
-
-                Constant *current_mca_interface =
-                    M.getOrInsertGlobal("_vfc_current_mca_interface", mca_interface_type);
-
-                // Compute the position of the required member fct pointer
-                // opCodes are ordered in the same order than the struct members :-)
-                // There are 4 float members followed by 4 double members.
-                int fct_position = opCode;
-                if (baseTypeName == "double") fct_position += 4;
-
-                // Dereference the member at fct_position
-                Value *arg_ptr = CREATE_STRUCT_GEP(current_mca_interface, fct_position);
-                Value *fct_ptr = builder.CreateLoad(arg_ptr, false);
-
-                // Create a call instruction. It is important to
-                // create the instruction in the globalcontext, indeed
-                // the instruction is not to be inserted before I. It
-                // will _replace_ I after it is returned.
-                IRBuilder<> builder2(getGlobalContext());
-
-                Instruction *newInst = CREATE_CALL2(
-                    fct_ptr,
-		    I->getOperand(0), I->getOperand(1));
-
-                return newInst;
-            }
-        }
+      return newInst;
+    }
 
 
-        Fops mustReplace(Instruction &I) {
-            switch (I.getOpcode()) {
-                case Instruction::FAdd:
-                    return FOP_ADD;
-                case Instruction::FSub:
-                    // In LLVM IR the FSub instruction is used to represent FNeg
-                    return FOP_SUB;
-                case Instruction::FMul:
-                    return FOP_MUL;
-                case Instruction::FDiv:
-                    return FOP_DIV;
-                default:
-                    return FOP_IGNORE;
-            }
-        }
+    Fops mustReplace(Instruction &I) {
+      switch (I.getOpcode()) {
+      case Instruction::FAdd:
+        return FOP_ADD;
+      case Instruction::FSub:
+        // In LLVM IR the FSub instruction is used to represent FNeg
+        return FOP_SUB;
+      case Instruction::FMul:
+        return FOP_MUL;
+      case Instruction::FDiv:
+        return FOP_DIV;
+      default:
+        return FOP_IGNORE;
+      }
+    }
 
-        bool runOnBasicBlock(Module &M, BasicBlock &B) {
-            bool modified = false;
-            for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
-                Instruction &I = *ii;
-                Fops opCode = mustReplace(I);
-                if (opCode == FOP_IGNORE) continue;
-                if (VfclibInstVerbose) errs() << "Instrumenting" << I << '\n';
-                Instruction *newInst = replaceWithMCACall(M, B, &I, opCode);
-                ReplaceInstWithInst(B.getInstList(), ii, newInst);
-                modified = true;
-            }
-            return modified;
-        }
-    };
+    bool runOnBasicBlock(Module &M, BasicBlock &B) {
+      bool modified = false;
+      for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
+        Instruction &I = *ii;
+        Fops opCode = mustReplace(I);
+        if (opCode == FOP_IGNORE) continue;
+        if (VfclibInstVerbose) errs() << "Instrumenting" << I << '\n';
+        Instruction *newInst = replaceWithMCACall(M, B, &I, opCode);
+        ReplaceInstWithInst(B.getInstList(), ii, newInst);
+        modified = true;
+      }
+      return modified;
+    }
+  };
 }
 
 char VfclibInst::ID = 0;

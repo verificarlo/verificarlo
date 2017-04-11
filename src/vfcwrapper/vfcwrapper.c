@@ -155,7 +155,7 @@ static void vfc_init (void)
         verificarlo_backend = MCABACKEND_MPFR;
       }
       else if (strcmp("BITMASK", backend) == 0) {
-	verificarlo_backend = BACKEND_BITMASK;     
+        verificarlo_backend = BACKEND_BITMASK;
       } else {
         /* Invalid value provided */
         fprintf(stderr, VERIFICARLO_BACKEND
@@ -173,11 +173,11 @@ static void vfc_init (void)
       } else {
         /* Invalid value provided */
         fprintf(stderr, VERIFICARLO_BITMASK_MODE
-                " invalid value provided, defaulting to default %s\n",bitmask_mode);
+                " invalid value provided, defaulting to default %s\n",
+                bitmask_mode);
       }
-      
     }
-    
+
     /* seed the backends */
     vfc_seed();
 
@@ -191,6 +191,40 @@ typedef float float2 __attribute__((ext_vector_type(2)));
 typedef float float4 __attribute__((ext_vector_type(4)));
 typedef bool bool2 __attribute__((ext_vector_type(2)));
 typedef bool bool4 __attribute__((ext_vector_type(4)));
+
+/* Arithmetic wrappers */
+
+float _floatadd(float a , float b) {
+  return _vfc_current_mca_interface.floatadd(a, b);
+}
+
+float _floatsub(float a, float b) {
+  return _vfc_current_mca_interface.floatsub(a, b);
+}
+
+float _floatmul(float a, float b) {
+  return _vfc_current_mca_interface.floatmul(a, b);
+}
+
+float _floatdiv(float a, float b) {
+  return _vfc_current_mca_interface.floatdiv(a, b);
+}
+
+double _doubleadd(double a, double b) {
+  return _vfc_current_mca_interface.doubleadd(a, b);
+}
+
+double _doublesub(double a, double b) {
+  return _vfc_current_mca_interface.doublesub(a, b);
+}
+
+double _doublemul(double a, double b) {
+  return _vfc_current_mca_interface.doublemul(a, b);
+}
+
+double _doublediv(double a, double b) {
+  return _vfc_current_mca_interface.doublediv(a, b);
+}
 
 /* Arithmetic vector wrappers */
 
