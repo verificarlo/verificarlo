@@ -1,3 +1,3 @@
-SUBDIRS=common libvfcinstrument libmca-mpfr libmca-quad libbitmask libvfcreport
+SUBDIRS=libvfcinstrument numdbg_ieee_backend
 include_HEADERS=vfcwrapper/vfcwrapper.c vfcwrapper/vfcwrapper.h
 

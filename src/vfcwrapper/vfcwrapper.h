@@ -1,60 +1,12 @@
-/********************************************************************************
- *                                                                              *
- *  This file is part of Verificarlo.                                           *
- *                                                                              *
- *  Copyright (c) 2015                                                          *
- *     Universite de Versailles St-Quentin-en-Yvelines                          *
- *     CMLA, Ecole Normale Superieure de Cachan                                 *
- *                                                                              *
- *  Verificarlo is free software: you can redistribute it and/or modify         *
- *  it under the terms of the GNU General Public License as published by        *
- *  the Free Software Foundation, either version 3 of the License, or           *
- *  (at your option) any later version.                                         *
- *                                                                              *
- *  Verificarlo is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of              *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               *
- *  GNU General Public License for more details.                                *
- *                                                                              *
- *  You should have received a copy of the GNU General Public License           *
- *  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.        *
- *                                                                              *
- ********************************************************************************/
+/* numdbg backend interface */
+struct numdbg_backend_interface_t {
+  void (*numdbg_add_float)(float, float, float*, void*);
+  void (*numdbg_sub_float)(float, float, float*, void*);
+  void (*numdbg_mul_float)(float, float, float*, void*);
+  void (*numdbg_div_float)(float, float, float*, void*);
 
-/* define the available MCA modes of operation */
-#define MCAMODE_IEEE 0
-#define MCAMODE_MCA  1
-#define MCAMODE_PB   2
-#define MCAMODE_RR   3
-
-/* define the available MCA backends */
-#define MCABACKEND_QUAD 0
-#define MCABACKEND_MPFR 1
-#define BACKEND_BITMASK 2
-
-/* define the available bitmask mode */
-#define BITMASK_MODE_ZERO 0
-#define BITMASK_MODE_INV  1
-
-/* seeds all the MCA backends */
-void vfc_seed(void);
-
-/* sets verificarlo precision and mode. Returns 0 on success. */
-int vfc_set_precision_and_mode(unsigned int precision, int mode);
-
-/* MCA backend interface */
-struct mca_interface_t {
-    float (*floatadd)(float, float);
-    float (*floatsub)(float, float);
-    float (*floatmul)(float, float);
-    float (*floatdiv)(float, float);
-
-    double (*doubleadd)(double, double);
-    double (*doublesub)(double, double);
-    double (*doublemul)(double, double);
-    double (*doublediv)(double, double);
-
-    void (*seed)(void);
-    int (*set_mca_mode)(int);
-    int (*set_mca_precision)(int);
+  void (*numdbg_add_double)(double, double, double*, void*);
+  void (*numdbg_sub_double)(double, double, double*, void*);
+  void (*numdbg_mul_double)(double, double, double*, void*);
+  void (*numdbg_div_double)(double, double, double*, void*);
 };
