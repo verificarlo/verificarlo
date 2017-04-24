@@ -34,8 +34,11 @@ for op in "+" "*" "/" ; do
     echo "Checking $op float"
     verificarlo -D REAL=float -D SAMPLES=1000 -D OPERATION="$op" -O0 -lm --function operate test.c -o test
     Check 24
-
+    
     echo "Checking $op double"
     verificarlo -D REAL=double -D SAMPLES=1000 -D OPERATION="$op" -O0 -lm --function operate test.c -o test
     Check 53
 done
+
+cd test_bitmask
+./test.sh

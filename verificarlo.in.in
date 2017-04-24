@@ -34,8 +34,9 @@ PACKAGE_STRING = "@PACKAGE_STRING@"
 LIBDIR = "%LIBDIR%"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
-mcalib_static = "{0}/libmcampfr.a {0}/libmcaquad.a".format(LIBDIR)
-mcalib_dynamic = "-lmcampfr -lmcaquad"
+libvfcreport = LIBDIR + '/libvfcreport.so'
+mcalib_static = "{0}/libmcampfr.a {0}/libmcaquad.a {0}/libbitmask.a".format(LIBDIR)
+mcalib_dynamic = "-lmcampfr -lmcaquad -lbitmask"
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
 mcalib_includes = PROJECT_ROOT + "/../include/"
 vfcwrapper = mcalib_includes + 'vfcwrapper.c'
@@ -46,6 +47,10 @@ dragonegg = "@DRAGONEGG_PATH@"
 gcc = "@GCC_PATH@"
 FORTRAN_EXTENSIONS=[".f", ".f90", ".f77"]
 C_EXTENSIONS=[".c", ".cpp", ".cc", ".cxx"]
+report_level_choices=["module", "function", "basicblock"]
+VERIFICARLO_REPORT_PATH_ENV = 'VERIFICARLO_REPORT_PATH'
+verificarlo_report_filename = "verificarlo_report.csv"
+verificarlo_report_path = ""
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
@@ -88,6 +93,26 @@ def shell(cmd):
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError:
         fail('command failed:\n' + cmd)
+
+def add_header_verificarlo_report(report_level, print_percentage):
+    verificarlo_report_path = os.getenv(VERIFICARLO_REPORT_PATH_ENV)+"/"+verificarlo_report_filename
+    if os.path.isfile(verificarlo_report_path):
+        return
+
+    vr_file = open(verificarlo_report_path, "w")
+    header = ""
+    if (report_level == "module"):
+        header = "Module"
+    elif (report_level == "function"):
+        header = "Module,Function"
+    elif (report_level == "basicblock"):
+        header = "Module,Function,BasicBlock"
+    header += ",#FOPS"
+
+    if print_percentage:
+        header += ",add,sub,mul,div"
+
+    vr_file.write(header+"\n")
 
 def linker_mode(sources, options, output, args):
     shell('{clang} -c -O2 -static -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
@@ -153,15 +178,33 @@ def compiler_mode(sources, options, output, args):
         if args.verbose:
             verbose = "-vfclibinst-verbose "
 
+        # Activate black list mode
+        blacklist = ""
+        if args.black_list_mode:
+            blacklist = "-vfclibblack-list "
+        
+        # Activate report mode
+        if args.report_level:
+            report = "-vfclibreport-level=" + str(args.report_level)
+            print_percentage = "-vfclibreport-percentage" if args.print_percentage else ""
+            shell('{opt} -f -load {libvfcreport} -vfclibreport {report} {print_percentage} {ir} > /dev/null'.format(
+                opt=opt,
+                libvfcreport=libvfcreport,
+                report=report,
+                ir=ir,
+                print_percentage=print_percentage
+            ))
+
         # Apply MCA instrumentation pass
-        shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {verbose} {selectfunction} {ir} -o {ins}'.format(
+        shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
             opt=opt,
             libvfcinstrument=libvfcinstrument,
             selectfunction=selectfunction,
             verbose=verbose,
             ir=ir,
-            ins=ins
-            ))
+            ins=ins,
+            blacklist=blacklist,
+        ))
 
         if not output:
             output = '-o ' + basename + '.o'
@@ -181,8 +224,13 @@ if __name__ == "__main__":
     parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
     parser.add_argument('--verbose', action='store_true', help='verbose output')
     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
+    parser.add_argument('--black-list-mode', action='store_true',
+                        help='black list mode, not instrument functions present in <function> or <functions-file>')
+    parser.add_argument('-report', '--report-level', action='store', type=str, default=0, choices=report_level_choices,
+                        help='produces a report for floating-point operations')
+    parser.add_argument('--print-percentage', action='store_true', help="print percentage of floating-points' type for report")
     args, other = parser.parse_known_args()
-
+    
     sources, llvm_options = parse_extra_args(other)
 
     # check input files
@@ -192,6 +240,11 @@ if __name__ == "__main__":
 
     if args.function and args.functions_file:
         fail("Cannot used --function and --functions-file together")
+
+    if args.report_level:        
+        if not os.getenv('VERIFICARLO_REPORT_PATH'):
+            os.environ['VERIFICARLO_REPORT_PATH'] = os.getenv("PWD")        
+        add_header_verificarlo_report(args.report_level, args.print_percentage)
 
     output = "-o " + args.o if args.o else ""
     if args.c:

@@ -21,42 +21,5 @@
  *                                                                              *
  ********************************************************************************/
 
-/* define the available MCA modes of operation */
-#define MCAMODE_IEEE 0
-#define MCAMODE_MCA  1
-#define MCAMODE_PB   2
-#define MCAMODE_RR   3
-
-/* define the available MCA backends */
-#define MCABACKEND_QUAD 0
-#define MCABACKEND_MPFR 1
-#define MCABACKEND_RDROUND 2
-#define BACKEND_BITMASK 3
-
-/* define the available bitmask mode */
-#define BITMASK_MODE_ZERO 0
-#define BITMASK_MODE_INV  1
-#define BITMASK_MODE_RAND 2
-
-/* seeds all the MCA backends */
-void vfc_seed(void);
-
-/* sets verificarlo precision and mode. Returns 0 on success. */
-int vfc_set_precision_and_mode(unsigned int precision, int mode);
-
-/* MCA backend interface */
-struct mca_interface_t {
-    float (*floatadd)(float, float);
-    float (*floatsub)(float, float);
-    float (*floatmul)(float, float);
-    float (*floatdiv)(float, float);
-
-    double (*doubleadd)(double, double);
-    double (*doublesub)(double, double);
-    double (*doublemul)(double, double);
-    double (*doublediv)(double, double);
-
-    void (*seed)(void);
-    int (*set_mca_mode)(int);
-    int (*set_mca_precision)(int);
-};
+struct mca_interface_t;
+extern struct mca_interface_t bitmask_interface;
