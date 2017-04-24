@@ -78,7 +78,6 @@ static int _set_mca_mode(int mode){
 }
 
 static int _set_mca_precision(int precision){
-	printf("set precision to %d\n",precision);
 	MCALIB_T = precision;
 	return 0;
 }
@@ -132,7 +131,6 @@ static inline uint32_t rexpq (__float128 x)
   ix = hx&QUAD_HX_ERASE_SIGN;
   //shift exponent to have LSB on position 0 and complement
   exp += (ix>>QUAD_HX_PMAN_SIZE)-QUAD_EXP_COMP;
-  printf("source exponent is %d\n",exp);
   return exp;
 }
 
@@ -161,11 +159,9 @@ __float128 qnoise(int exp){
 
   if (exp > QUAD_EXP_MAX) { /*exceed max exponent*/
 	SET_FLT128_WORDS64(noise, QINF_hx, QINF_lx);
-	printf("set noise to infinity\n");
 	return noise;
   }
   if (exp < -QUAD_EXP_MIN) { /*subnormal*/
-	printf("introduicing quad subnormal noise\n");
 	// test for minus infinity
 	if (exp < -(QUAD_EXP_MIN+QUAD_PMAN_SIZE)) {
 		SET_FLT128_WORDS64(noise, QMINF_hx, QMINF_lx);
@@ -195,16 +191,14 @@ __float128 qnoise(int exp){
 	}
 	int prec = 20;
         int width = 46;
-	char buf[128];
-	int len=quadmath_snprintf (buf, sizeof(buf), "%+-#*.20Qe", width, noise);
-	if ((size_t) len < sizeof(buf))
-        printf ("subnormal noise %s\n", buf);
+	//char buf[128];
+	//int len=quadmath_snprintf (buf, sizeof(buf), "%+-#*.20Qe", width, noise);
+	//if ((size_t) len < sizeof(buf))
+        //printf ("subnormal noise %s\n", buf);
 	return noise;
   }
   //normal case
   //complement the exponent, shift it at the right place in the MSW
-  printf("exp in=%d\n",exp);
-  printf("noise exp out=%d\n",((uint64_t) exp+rexpd(d_rand))); 
   hx=( ((uint64_t) exp+rexpd(d_rand)) + QUAD_EXP_COMP) << QUAD_HX_PMAN_SIZE;
   //set sign = sign of d_rand
   hx+=u_rand&DOUBLE_GET_SIGN;
@@ -217,10 +211,6 @@ __float128 qnoise(int exp){
   SET_FLT128_WORDS64(noise, hx, lx);
   int prec = 20;
         int width = 46;
-        char buf[128];
-        int len=quadmath_snprintf (buf, sizeof(buf), "%+-#*.20Qe", width, noise);
-        if ((size_t) len < sizeof(buf))
-        printf ("%s\n", buf);
    return noise;
 }
 
@@ -236,12 +226,8 @@ static int _mca_inexactq(__float128 *qa) {
 
 	int32_t e_a=0;
 	e_a=rexpq(*qa);
-	printf("source exponent = %d\n",e_a);
-	printf("target noise level = %d\n",MCALIB_T );
 	int32_t e_n = e_a - (MCALIB_T - 1);
-	printf("expected noise max exponent = %d\n",e_n);
 	__float128 noise = qnoise(e_n);
-	printf("the noise has been set\n"); 
 	*qa=noise+*qa;
 }
 
@@ -254,9 +240,7 @@ static int _mca_inexactd(double *da) {
 	e_a=rexpd(*da);
 	int32_t e_n = e_a - (MCALIB_T -1);
 	double d_rand = (_mca_rand() - 0.5);
-	printf("noise = %g\n",pow2d(e_n)*d_rand);
 	*da = *da + pow2d(e_n)*d_rand;
-	printf("noisy number = %g\n",*da);
 }
 
 static void _mca_seed(void) {
@@ -266,9 +250,9 @@ static void _mca_seed(void) {
 	gettimeofday(&t1, NULL);
 
 	/* Hopefully the following seed is good enough for Montercarlo */
-	init_key[0] = 1; //t1.tv_sec;
-	init_key[1] = 2; //t1.tv_usec;
-	init_key[2] = 3; //getpid();
+	init_key[0] = t1.tv_sec;
+	init_key[1] = t1.tv_usec;
+	init_key[2] = getpid();
 
 	tinymt64_init_by_array(&random_state, init_key, key_length);
 }
@@ -314,9 +298,6 @@ static inline float _mca_sbin(float a, float b,const int  dop) {
 static inline double _mca_dbin(double a, double b, const int qop) {
 	__float128 qa = (__float128)a;
 	__float128 qb = (__float128)b;
-	printf("input double a = %.17g\n", a);
-	printf("input double b = %.17g\n", b);
-
 	__float128 res = 0;
 
 	if (MCALIB_OP_TYPE != MCAMODE_RR) {
@@ -341,7 +322,6 @@ static inline double _mca_dbin(double a, double b, const int qop) {
 **********************************************************************/
 
 static float _floatadd(float a, float b) {
-	printf("//return a +(f) b\n");
 	return _mca_sbin(a, b, MCA_ADD);
 }
 
@@ -362,9 +342,7 @@ static float _floatdiv(float a, float b) {
 
 
 static double _doubleadd(double a, double b) {
-	printf("//start ADD // return a +(d) b\n");
 	double tmp=_mca_dbin(a,b,MCA_ADD);  
-	printf("//end ADD // returning %.17g\n",tmp);
 	return tmp;
 }
 

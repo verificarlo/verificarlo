@@ -131,9 +131,9 @@ static void _mca_seed(void) {
 	gettimeofday(&t1, NULL);
 
 	/* Hopefully the following seed is good enough for Montercarlo */
-	init_key[0] = 1; //t1.tv_sec;
-	init_key[1] = 2; //t1.tv_usec;
-	init_key[2] = 3; //getpid();
+	init_key[0] = t1.tv_sec;
+	init_key[1] = t1.tv_usec;
+	init_key[2] = getpid();
 
 	tinymt64_init_by_array(&random_state, init_key, key_length);
 }
