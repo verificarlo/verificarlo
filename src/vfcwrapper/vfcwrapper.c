@@ -31,7 +31,6 @@
 
 #include "libmca-mpfr.h"
 #include "libmca-quad.h"
-#include "libmca-rdround.h"
 
 #define VERIFICARLO_PRECISION "VERIFICARLO_PRECISION"
 #define VERIFICARLO_MCAMODE "VERIFICARLO_MCAMODE"
@@ -63,32 +62,13 @@ static void vfc_select_interface_quad(void) {
     _vfc_current_mca_interface.set_mca_mode(verificarlo_mcamode);
 }
 
-/* Activates therandom rounding backend */
-#include <fenv.h>
-#pragma STDC FENV_ACCESS ON
-static void vfc_select_interface_rdround(void) {
-    _vfc_current_mca_interface = rdround_mca_interface;
-    _vfc_current_mca_interface.set_mca_precision(verificarlo_precision);
-    _vfc_current_mca_interface.set_mca_mode(verificarlo_mcamode);
-   //set the rounding mode to plus inf if verificarlo_mcamode differ from ieee
-   //mode switch in the rest of the code will trigger a new rounding mode switch if required
-   if (verificarlo_mcamode!=MCAMODE_IEEE)
-	fesetround(FE_UPWARD);
 
-//rounding mode    C name         MSVC name
-//-----------------------------------------
-//to nearest       FE_TONEAREST   _RC_NEAR
-//toward zero      FE_TOWARDZERO  _RC_CHOP
-//to +infinity     FE_UPWARD      _RC_UP
-//to -infinity     FE_DOWNWARD    _RC_DOWN	  
 
-}
 
 /* seeds all the MCA backends */
 void vfc_seed(void) {
     mpfr_mca_interface.seed();
     quad_mca_interface.seed();
-    rdround_mca_interface.seed();
 }
 
 /* sets verificarlo precision and mode. Returns 0 on success. */
@@ -107,7 +87,8 @@ int vfc_set_precision_and_mode(unsigned int precision, int mode) {
       vfc_select_interface_quad();
     }
     else {
-      vfc_select_interface_rdround();
+    	perror("Invalid backend name in backend setting\n");
+	exit(-1);
     }
     return 0;
 }
@@ -161,8 +142,6 @@ static void vfc_init (void)
       }
       else if (strcmp("MPFR", backend) == 0) {
         verificarlo_backend = MCABACKEND_MPFR;
-      }else if (strcmp("RDROUND", backend) == 0) {
-        verificarlo_backend = MCABACKEND_RDROUND;
       }else {
         /* Invalid value provided */
         fprintf(stderr, VERIFICARLO_BACKEND
