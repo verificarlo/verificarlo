@@ -67,7 +67,7 @@ namespace {
     static char ID;
     std::map<std::string, int> ReportFPOpsMap;
     std::ofstream reportFile;
-    std::map<std::string, std::map<Fops, int>> FPOpsTypeMap;
+    std::map<std::string, std::map<Fops, int> > FPOpsTypeMap;
     VfclibReport() : ModulePass(ID) {   
       char *reportFilename = getenv("VERIFICARLO_REPORT_PATH");
       reportFile.open(reportFilename, std::fstream::out | std::fstream::app);
