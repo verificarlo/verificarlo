@@ -54,11 +54,13 @@ REAL operate(REAL a, REAL b) {
 static void do_test(REAL a, REAL b) {
   int i;
   for (i = 0; i < SAMPLES; i++) {
+    //printf("expecting a+b=%.17g\n", a+b);
     data[i] = operate(a,b);
+    //printf("noisy a+b=%.17g\n", data[i]);
   }
   double sig = compute_sig(SAMPLES, data);
 
-  printf("%g\n", sig);
+  printf("TEST>%g\n", sig);
 }
 
 int main(void) {
@@ -72,8 +74,8 @@ int main(void) {
   }
 
   // Test with extreme values
-  // do_test(DBL_MIN,DBL_MAX);
-  // do_test(DBL_MIN,DBL_MIN);
-  // do_test(DBL_MAX,DBL_MAX);
+  //do_test(DBL_MIN,DBL_MAX);
+  //do_test(DBL_MIN,DBL_MIN);
+  //do_test(DBL_MAX,DBL_MAX);
   return 0;
 }

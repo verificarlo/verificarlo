@@ -87,7 +87,7 @@ static int _set_mca_precision(int precision){
 ***************************************************************/
 
 /* random generator internal state */
-tinymt64_t random_state;
+static tinymt64_t random_state;
 
 static double _mca_rand(void) {
 	/* Returns a random double in the (0,1) open interval */

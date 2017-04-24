@@ -63,6 +63,8 @@ static void vfc_select_interface_quad(void) {
 }
 
 
+
+
 /* seeds all the MCA backends */
 void vfc_seed(void) {
     mpfr_mca_interface.seed();
@@ -81,8 +83,12 @@ int vfc_set_precision_and_mode(unsigned int precision, int mode) {
     if (verificarlo_backend == MCABACKEND_MPFR) {
       vfc_select_interface_mpfr();
     }
-    else {
+    else if (verificarlo_backend == MCABACKEND_QUAD){
       vfc_select_interface_quad();
+    }
+    else {
+    	perror("Invalid backend name in backend setting\n");
+	exit(-1);
     }
     return 0;
 }
@@ -136,7 +142,7 @@ static void vfc_init (void)
       }
       else if (strcmp("MPFR", backend) == 0) {
         verificarlo_backend = MCABACKEND_MPFR;
-      } else {
+      }else {
         /* Invalid value provided */
         fprintf(stderr, VERIFICARLO_BACKEND
                 " invalid value provided, defaulting to default\n");

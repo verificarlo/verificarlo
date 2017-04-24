@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 
-THRESHOLD = 1.9
+THRESHOLD = 1
 
 import sys
+
+max = -1
 
 for quad, mpfr in zip(file("out_quad"), file("out_mpfr")):
     q = float(quad)
     m = float(mpfr)
-    if q-m > THRESHOLD:
+    delta = abs(q-m)
+    if delta > THRESHOLD:
+	max = delta
         print "ERROR:", q, m
-        sys.exit(1)
+
+if max > THRESHOLD:        
+        print "MAX > THRESHOLD"
+	sys.exit(1)
 
 sys.exit(0)

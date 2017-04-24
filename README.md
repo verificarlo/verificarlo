@@ -56,7 +56,7 @@ For example on an x86_64 Ubuntu 14.04 release, you should use the following
 install procedure:
 
 ```bash
-   $ sudo apt-get install libmpfr-dev clang-3.3 llvm3.3-dev dragonegg-4.7 \
+   $ sudo apt-get install libmpfr-dev clang-3.3 llvm-3.3-dev dragonegg-4.7 \
        gcc-4.7 gfortran-4.7 autoconf automake build-essential
 
    $ cd verificarlo/

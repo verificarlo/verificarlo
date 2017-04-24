@@ -7,9 +7,11 @@
 
 //Quad precision exponent encoding size
 #define QUAD_EXP_SIZE      15
-//Quad precision pseudo mantissa encoding size in the word containong the 64 msb
+//Quad precision pseudo mantissa encoding size 
+#define QUAD_PMAN_SIZE  112
+//Quad precision pseudo mantissa encoding size in the word containing the 64 msb
 #define QUAD_HX_PMAN_SIZE  48
-//Quad precison pseudo mantissa encoding size in the word containong the 64 lsb
+//Quad precison pseudo mantissa encoding size in the word containing the 64 lsb
 #define QUAD_LX_PMAN_SIZE  64
 //Quad precison mantissa size
 #define QUAD_PREC          113
@@ -23,8 +25,12 @@
 #define QUAD_HX_ERASE_SIGN 0x7fffffffffffffffULL
 //Quad precison 64 msb to encode plus infinity
 #define QINF_hx            0x7fff000000000000ULL
+//Quad precison 64 msb to encode minus infinity
+#define QMINF_hx            0x7fff000000000000ULL
 //Quad precison 64 lsb to encode plus infinity
 #define QINF_lx            0x0000000000000000ULL
+//Quad precison 64 lsb to encode minus infinity
+#define QMINF_lx            0x0000000000000000ULL
 //Quad precision pseudo mantissa msb set to one
 #define QUAD_HX_PMAN_MSB   0x0000800000000000ULL
 
