@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([verificarlo], [0.1.0], [])
+AC_INIT([verificarlo], [0.2.0], [])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
@@ -19,7 +19,17 @@ AC_PROG_MAKE_SET
 AC_PROG_CC([gcc])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg and replay linking)])
 AC_SUBST(GCC_PATH, $CC)
-AX_LLVM([3.3],[3.5.2],[all])
+AX_LLVM([3.3],[3.8.1],[all])
+
+AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
+AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
+
+AC_PATH_PROGS([CLANG], ["$LLVM_BINDIR"/clang clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang], "")
+if test -z "$CLANG"; then
+  AC_MSG_ERROR([Could not find clang])
+fi
+AC_DEFINE_UNQUOTED([CLANG_PATH], ["$CLANG"], [CLANG path])
+AC_SUBST(CLANG_PATH, $CLANG)
 
 AC_CHECK_LIB([c], [exit], , AC_MSG_ERROR([Could not find c library]))
 AC_CHECK_LIB([m], [sin], , AC_MSG_ERROR([Could not find mpfr library]))
@@ -112,8 +122,9 @@ AC_CONFIG_FILES([Makefile
                  src/libvfcinstrument/Makefile
                  src/libmca-mpfr/Makefile
 		 src/libmca-quad/Makefile
+		 src/common/Makefile
                  tests/Makefile])
 
-AC_CONFIG_FILES([verificarlo], [chmod +x verificarlo])
+AC_CONFIG_FILES([verificarlo.in], [])
 
 AC_OUTPUT

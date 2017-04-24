@@ -28,22 +28,24 @@ import argparse
 import os
 import sys
 import subprocess
+import tempfile
 
 PACKAGE_STRING = "@PACKAGE_STRING@"
+LIBDIR = "%LIBDIR%"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-libvfcinstrument = PROJECT_ROOT + '/src/libvfcinstrument/.libs/libvfcinstrument.so'
-mcalib_static = "{0}/src/libmca-mpfr/.libs/libmcampfr.a {0}/src/libmca-quad/.libs/libmcaquad.a".format(PROJECT_ROOT) 
+libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
+mcalib_static = "{0}/libmcampfr.a {0}/libmcaquad.a".format(LIBDIR)
 mcalib_dynamic = "-lmcampfr -lmcaquad"
-mcalib_dirs = [PROJECT_ROOT + '/src/libmca-mpfr/',
-	       PROJECT_ROOT + '/src/libmca-quad/']
-vfcwrapper = PROJECT_ROOT + '/src/vfcwrapper/vfcwrapper.c'
+mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
+mcalib_includes = PROJECT_ROOT + "/../include/"
+vfcwrapper = mcalib_includes + 'vfcwrapper.c'
 llvm_bindir = "@LLVM_BINDIR@"
-clang = llvm_bindir + '/clang'
+clang = '@CLANG_PATH@'
 opt = llvm_bindir + '/opt'
 dragonegg = "@DRAGONEGG_PATH@"
 gcc = "@GCC_PATH@"
 FORTRAN_EXTENSIONS=[".f", ".f90", ".f77"]
-C_EXTENSIONS=[".C", ".c", ".cpp", ".cc", ".cxx"]
+C_EXTENSIONS=[".c", ".cpp", ".cc", ".cxx"]
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
@@ -55,10 +57,10 @@ def fail(msg):
     sys.exit(1)
 
 def is_fortran(name):
-    return os.path.splitext(name)[1] in FORTRAN_EXTENSIONS
+    return os.path.splitext(name)[1].lower() in FORTRAN_EXTENSIONS
 
 def is_c(name):
-    return os.path.splitext(name)[1] in C_EXTENSIONS
+    return os.path.splitext(name)[1].lower() in C_EXTENSIONS
 
 def parse_extra_args(args):
     sources = []
@@ -88,35 +90,35 @@ def shell(cmd):
         fail('command failed:\n' + cmd)
 
 def linker_mode(sources, options, output, args):
-    shell('{clang} -c -O2 -static -o .vfcwrapper.o {vfcwrapper} {mcalib_includes}'.format(
+    shell('{clang} -c -O2 -static -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
         vfcwrapper=vfcwrapper,
-        mcalib_includes=' '.join(["-I " + d for d in mcalib_dirs])))
+        mcalib_includes=mcalib_includes))
 
     # Only include lgfortran if fortran support is enabled
     gfortran = "-lgfortran" if dragonegg else ""
 
+    f=tempfile.NamedTemporaryFile()
     if args.static:
-        shell('{linker} {output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
-            linker=clang,
+        f.write('{output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
             mcalib_static=mcalib_static,
             gfortran=gfortran))
+       
     else:
-	mcalib_options = []
-	for d in mcalib_dirs:
-	    mcalib_options.append("-rpath {0}/.libs -L {0}/.libs".format(d))
-	
-        shell('{linker} {output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
-            linker=clang,
+        f.write('{output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
-            mcalib_options=' '.join(mcalib_options),
+            mcalib_options=mcalib_options,
             mcalib_dynamic=mcalib_dynamic,
             gfortran=gfortran))
+
+    f.flush()
+    shell('{clang} @{temp}'.format(clang=clang, temp=f.name))
+    f.close()
 
 def compiler_mode(sources, options, output, args):
     for source in sources:
@@ -140,10 +142,11 @@ def compiler_mode(sources, options, output, args):
                 ir=ir
             ))
 
-        # Limit instrumentation to a function ?
         selectfunction = ""
         if args.function:
             selectfunction = "-vfclibinst-function " + args.function
+        elif args.functions_file:
+            selectfunction = "-vfclibinst-function-file " + args.functions_file
 
         # Activate verbose mode
         verbose = ""
@@ -174,6 +177,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', action='store_true', help='only run preprocess, compile, and assemble steps')
     parser.add_argument('-o', metavar='file', help='write output to <file>')
     parser.add_argument('--function', metavar='function', help='only instrument <function>')
+    parser.add_argument('--functions-file', metavar='file', help='only instrument functions in <functions-file>')
     parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
     parser.add_argument('--verbose', action='store_true', help='verbose output')
     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
@@ -185,6 +189,9 @@ if __name__ == "__main__":
 
     if len(sources) > 1 and args.o:
         fail('cannot specify -o when generating multiple output files')
+
+    if args.function and args.functions_file:
+        fail("Cannot used --function and --functions-file together")
 
     output = "-o " + args.o if args.o else ""
     if args.c:

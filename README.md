@@ -1,6 +1,6 @@
 <img src="https://avatars1.githubusercontent.com/u/12033642" align="right" height="200px" \>
 
-## Verificarlo v0.1.0
+## Verificarlo v0.2.0
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
 
@@ -11,7 +11,7 @@ A tool for automatic Montecarlo Arithmetic analysis.
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt 3.3, 3.4 or 3.5, http://clang.llvm.org/
+  * LLVM, clang and opt from 3.3 up to 3.8 (the last version with Fortran support is 3.6), http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
   * python, version >= 2.7
   * autotools (automake, autoconf)
@@ -22,6 +22,7 @@ Then run the following command inside verificarlo directory:
    $ ./autogen.sh
    $ ./configure
    $ make
+   $ sudo make install
 ```
 
 If you do not care about Fortran support, you can avoid installing gfortran and dragonegg, by passing the option `--without-dragonegg` to `configure`:
@@ -30,6 +31,7 @@ If you do not care about Fortran support, you can avoid installing gfortran and 
    $ ./autogen.sh
    $ ./configure --without-dragonegg
    $ make
+   $ sudo make install
 ```
 
 If needed LLVM path, dragonegg path, and gcc path can be configured with the
@@ -45,7 +47,7 @@ Once installation is over, we recommend that you run the test suite to ensure
 verificarlo works as expected on your system:
 
 ```bash
-   $ make check
+   $ make installcheck
 ```
 
 If you disable dragonegg support during configure, fortran_test will fail.
@@ -62,18 +64,16 @@ install procedure:
    $ ./configure \
        --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so \
        CC=gcc-4.7
-   $ make && make check
+   $ make 
+   $ sudo make install
+   $ make installcheck
 ```
 
 ### Usage
 
 To automatically instrument a program with Verificarlo you must compile it using
-the `verificarlo` command. First make sure to add the `verificarlo/` root
-directory to your path with
-
-```bash
-   $ export PATH=<verificarlo path>:$PATH
-```
+the `verificarlo` command. First make sure that the verificarlo installation
+directory is in your PATH.
 
 Then you can use the `verificarlo` command to compile your programs. Either modify 
 your makefile to use `verificarlo` as the compiler (`CC=verificarlo` and
@@ -152,16 +152,20 @@ $ postprocess/vfc-vtk.py --help
 If you use Verificarlo in your research, please cite the following paper:
 
     @inproceedings{verificarlo,
-    TITLE = {{Verificarlo: checking floating point accuracy through Monte Carlo Arithmetic}},
-    AUTHOR = {Denis, Christophe and de Oliveira Castro, Pablo and Petit, Eric},
-    BOOKTITLE = {Computer Arithmetic (ARITH'23), 23rd IEEE Internatinal Symposium on},
-    PAGES = {},
-    YEAR = {2016 (to appear)},
-    ORGANISATION = {IEEE},
-    KEYWORDS = {compilers ; floating point arithmetic ; numerical analysis ; Monte Carlo arithmetic},
-    PDF = {https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf},
-    URL = {https://hal.archives-ouvertes.fr/hal-01192668},
+    author    = {Christophe Denis and
+                 Pablo de Oliveira Castro and
+                 Eric Petit},
+    title     = {Verificarlo: Checking Floating Point Accuracy through Monte Carlo
+                 Arithmetic},
+    booktitle = {23nd {IEEE} Symposium on Computer Arithmetic, {ARITH} 2016, Silicon
+                 Valley, CA, USA, July 10-13, 2016},
+    pages     = {55--62},
+    year      = {2016},
+    url       = {http://dx.doi.org/10.1109/ARITH.2016.31},
+    doi       = {10.1109/ARITH.2016.31},
     }
+
+A preprint is available at https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf.
 
 Thanks !
 

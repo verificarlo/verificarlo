@@ -3,9 +3,11 @@ set -e
 
 # Compile tchebychev.c using MCA lib instrumentation
 
-export MCA_PRECISION=23
+# Tchebychev polynom becomes unstable around 1, when computed with
+# single precision
+export VERIFICARLO_PRECISION=23
 
-../../verificarlo tchebychev.c -o tchebychev
+verificarlo tchebychev.c -o tchebychev
 
 # Run 15 iterations of tchebychev for all values in [.0:1.0:.01]
 echo "z y" > output

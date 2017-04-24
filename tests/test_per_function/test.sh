@@ -1,6 +1,6 @@
 #!/bin/bash
 
-../../verificarlo test.c -o test --function=f
+verificarlo test.c -o test --function=f
 
 export VERIFICARLO_PRECISION=40
 

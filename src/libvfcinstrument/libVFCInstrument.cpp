@@ -21,23 +21,41 @@
  *                                                                              *
  ********************************************************************************/
 
+#include "../../config.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
 #include "llvm/IR/TypeBuilder.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
+#include <set>
+#include <fstream>
+
+#if LLVM_VERSION_MINOR <= 6
+#define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
+#define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(i, p))
+#else
+#define CREATE_CALL2(func, op1, op2) (builder.CreateCall(func, {op1, op2}, ""))
+#define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(nullptr, i, p, ""))
+#endif
+
 using namespace llvm;
 // VfclibInst pass command line arguments
 static cl::opt<std::string> VfclibInstFunction("vfclibinst-function",
-                       cl::desc("Only instrument given FunctionName"),
-                       cl::value_desc("FunctionName"), cl::init(""));
+					       cl::desc("Only instrument given FunctionName"),
+					       cl::value_desc("FunctionName"), cl::init(""));
+
+static cl::opt<std::string> VfclibInstFunctionFile("vfclibinst-function-file",
+						   cl::desc("Instrument functions in file FunctionNameFile "),
+						   cl::value_desc("FunctionsNameFile"), cl::init(""));
 
 static cl::opt<bool> VfclibInstVerbose("vfclibinst-verbose",
-                       cl::desc("Activate verbose mode"),
-                       cl::value_desc("Verbose"), cl::init(false));
+				       cl::desc("Activate verbose mode"),
+				       cl::value_desc("Verbose"), cl::init(false));
 
 namespace {
     // Define an enum type to classify the floating points operations
@@ -52,8 +70,25 @@ namespace {
     struct VfclibInst : public ModulePass {
         static char ID;
         StructType * mca_interface_type;
+        std::set<std::string> SelectedFunctionSet;
 
-        VfclibInst() : ModulePass(ID) {}
+        VfclibInst() : ModulePass(ID) {
+	  if (not VfclibInstFunctionFile.empty()) {
+	    std::string line;
+	    std::ifstream loopstream (VfclibInstFunctionFile.c_str());
+	    if (loopstream.is_open()) {
+	      while (std::getline(loopstream, line)) {
+		SelectedFunctionSet.insert(line);
+	      }
+	      loopstream.close();
+	    } else {
+	      errs() << "Cannot open " << VfclibInstFunctionFile << "\n";
+	      assert(0);
+	    }
+	  } else if (not VfclibInstFunction.empty()) {
+	    SelectedFunctionSet.insert(VfclibInstFunction);
+	  }
+	}
 
         StructType * getMCAInterfaceType() {
             LLVMContext &Context =getGlobalContext();
@@ -100,9 +135,10 @@ namespace {
 
             std::vector<Function*> functions;
             for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
-                if (SelectedFunction.empty() || F->getName() == SelectedFunction) {
-                    functions.push_back(&*F);
-                }
+	      const bool is_in = SelectedFunctionSet.find(F->getName()) != SelectedFunctionSet.end();
+	      if (SelectedFunctionSet.empty() || is_in) {
+		functions.push_back(&*F);
+	      }
             }
 
             // Do the instrumentation on selected functions
@@ -175,11 +211,8 @@ namespace {
                 // For vector types we call directly a hardcoded helper function
                 // no need to go through the vtable at this stage.
                 IRBuilder<> builder(getGlobalContext());
-                Instruction *newInst = builder.CreateCall2(
-                    cast<Function>(hookFunc),
-                    I->getOperand(0),
-                    I->getOperand(1),
-                    "");
+                Instruction *newInst = CREATE_CALL2(hookFunc,
+				                   I->getOperand(0), I->getOperand(1));
 
                 return newInst;
             }
@@ -205,7 +238,7 @@ namespace {
                 if (baseTypeName == "double") fct_position += 4;
 
                 // Dereference the member at fct_position
-                Value *arg_ptr = builder.CreateStructGEP(current_mca_interface, fct_position);
+                Value *arg_ptr = CREATE_STRUCT_GEP(current_mca_interface, fct_position);
                 Value *fct_ptr = builder.CreateLoad(arg_ptr, false);
 
                 // Create a call instruction. It is important to
@@ -213,11 +246,10 @@ namespace {
                 // the instruction is not to be inserted before I. It
                 // will _replace_ I after it is returned.
                 IRBuilder<> builder2(getGlobalContext());
-                Instruction *newInst = builder2.CreateCall2(
+
+                Instruction *newInst = CREATE_CALL2(
                     fct_ptr,
-                    I->getOperand(0),
-                    I->getOperand(1),
-                    "");
+		    I->getOperand(0), I->getOperand(1));
 
                 return newInst;
             }
@@ -247,7 +279,7 @@ namespace {
                 Fops opCode = mustReplace(I);
                 if (opCode == FOP_IGNORE) continue;
                 if (VfclibInstVerbose) errs() << "Instrumenting" << I << '\n';
-                Instruction *newInst = replaceWithMCACall(M, B, ii, opCode);
+                Instruction *newInst = replaceWithMCACall(M, B, &I, opCode);
                 ReplaceInstWithInst(B.getInstList(), ii, newInst);
                 modified = true;
             }
@@ -259,3 +291,4 @@ namespace {
 
 char VfclibInst::ID = 0;
 static RegisterPass<VfclibInst> X("vfclibinst", "verificarlo instrument pass", false, false);
+
