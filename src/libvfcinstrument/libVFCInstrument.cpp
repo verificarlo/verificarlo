@@ -125,8 +125,6 @@ namespace {
 
             mca_interface_type = getMCAInterfaceType();
 
-            StringRef SelectedFunction = StringRef(VfclibInstFunction);
-
             // Find the list of functions to instrument
             // Instrumentation adds stubs to mcalib function which we
             // never want to instrument.  Therefore it is important to
