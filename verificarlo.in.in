@@ -35,8 +35,6 @@ LIBDIR = "%LIBDIR%"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
 libvfcreport = LIBDIR + '/libvfcreport.so'
-mcalib_static = "{0}/libnumdbgieee.a".format(LIBDIR)
-mcalib_dynamic = "-lnumdbgieee"
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
 mcalib_includes = PROJECT_ROOT + "/../include/"
 vfcwrapper = mcalib_includes + 'vfcwrapper.c'
@@ -123,20 +121,18 @@ def linker_mode(sources, options, output, args):
 
     f=tempfile.NamedTemporaryFile()
     if args.static:
-        f.write('{output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
+        f.write('{output} {options} {sources} -static .vfcwrapper.o -lmpfr -lgmp {gfortran} -lm -ldl'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
-            mcalib_static=mcalib_static,
             gfortran=gfortran))
        
     else:
-        f.write('{output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
+        f.write('{output} {options} {sources} .vfcwrapper.o {mcalib_options} {gfortran} -ldl'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
             mcalib_options=mcalib_options,
-            mcalib_dynamic=mcalib_dynamic,
             gfortran=gfortran))
 
     f.flush()

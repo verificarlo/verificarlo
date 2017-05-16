@@ -1,8 +1,11 @@
+#include <dlfcn.h>
+#include <err.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+
 
 #include "vfcwrapper.h"
 
@@ -11,26 +14,79 @@
 
 struct numdbg_backend_interface_t backends[MAX_BACKENDS];
 void * contexts[MAX_BACKENDS];
+unsigned char loaded_backends = 0;
 unsigned char active_backends = 0;
 
-extern struct numdbg_backend_interface_t numdbg_init(void ** context); 
+typedef struct numdbg_backend_interface_t (*numdbg_init_t)(void ** context);
+
+/* vfc_set_active_backends changes how many backends are active,
+   at start all the loaded backends are active.
+
+   If vfc_set_active_backends in called with 0 <= n <= loaded_backends,
+   then only the first n-th backends will be used.
+ */
+void vfc_set_active_backends(int n)
+{
+  if (n <= 0) {
+    errx(1, "vfc_set_active_backends(%d): at least one backend must remain active",
+         n);
+  }
+
+  if (n > loaded_backends) {
+    errx(1, "vfc_set_active_backends(%d): cannot activate more backend than loaded",
+         n);
+  }
+
+  active_backends = n;
+}
 
 /* vfc_init is run when loading vfcwrapper and initializes vfc backends */
 __attribute__((constructor))
 static void vfc_init (void)
 {
-
-  /* FIXME: Register each backend in turn, for now only a single backend is registered */
-
-  /* FIXME: Instead of linking against the backend library, a better option
-     is to load the backend(s) as plugins with dlopen() and call
-     for each plugin the function numdbg_init() followed by register_backend() */
-
-  if (active_backends == MAX_BACKENDS) {
-    fprintf(stderr, "No more than %d backends can be used simultaneously", MAX_BACKENDS);
+  /* Parse VFC_BACKENDS */
+  char * vfc_backends = getenv("VFC_BACKENDS");
+  if (vfc_backends == NULL) {
+    errx(1, "VFC_BACKENDS is empty, at least one backend should be provided");
   }
-  backends[active_backends] = numdbg_init(&contexts[active_backends]);
-  active_backends ++;
+
+  /* For each backend, load and register the backend vtable interface */
+  char* token = strtok(vfc_backends, " ");
+  while (token) {
+    warn("Loading backend %s", token);
+
+    /* load the backend .so */
+    void * handle = dlopen(token, RTLD_NOW);
+    if (handle == NULL) {
+      errx(1, "Cannot load backend %s: %s", token, strerror(errno));
+    }
+
+    /* reset dl errors */
+    dlerror();
+
+    /* get the address of the numdbg_init function */
+    numdbg_init_t handle_init = (numdbg_init_t) dlsym(handle, "numdbg_init");
+    const char *dlsym_error = dlerror();
+    if (dlsym_error) {
+      errx(1, "Cannot find numdbg_init function in backend %s: %s", token,
+           strerror(errno));
+    }
+
+    /* Register backend */
+    if (loaded_backends == MAX_BACKENDS) {
+      fprintf(stderr, "No more than %d backends can be used simultaneously",
+              MAX_BACKENDS);
+    }
+    backends[loaded_backends] = handle_init(&contexts[active_backends]);
+    loaded_backends ++;
+
+
+    /* parse next backend token */
+    token = strtok(NULL, "");
+  }
+
+  /* At start all the loaded backends are called */
+  active_backends = loaded_backends;
 }
 
 
