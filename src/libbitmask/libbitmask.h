@@ -2,7 +2,7 @@
  *                                                                              *
  *  This file is part of Verificarlo.                                           *
  *                                                                              *
- *  Copyright (c) 2015                                                          *
+ *  Copyright (c) 2017                                                          *
  *     Universite de Versailles St-Quentin-en-Yvelines                          *
  *     CMLA, Ecole Normale Superieure de Cachan                                 *
  *                                                                              *

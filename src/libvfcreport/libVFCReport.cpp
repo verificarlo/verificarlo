@@ -2,7 +2,7 @@
  *                                                                              *
  *  This file is part of Verificarlo.                                           *
  *                                                                              *
- *  Copyright (c) 2015                                                          *
+ *  Copyright (c) 2017                                                          *
  *     Universite de Versailles St-Quentin-en-Yvelines                          *
  *     CMLA, Ecole Normale Superieure de Cachan                                 *
  *                                                                              *
@@ -69,8 +69,10 @@ namespace {
     std::ofstream reportFile;
     std::map<std::string, std::map<Fops, int> > FPOpsTypeMap;
     VfclibReport() : ModulePass(ID) {   
-      char *reportFilename = getenv("VERIFICARLO_REPORT_PATH");
-      reportFile.open(reportFilename, std::fstream::out | std::fstream::app);
+      char reportFilePath[1024];
+      char *reportPath = getenv("VERIFICARLO_REPORT_PATH");
+      sprintf(reportFilePath, "%s/%s", reportPath, reportFilename.c_str());
+      reportFile.open(reportFilePath, std::fstream::out | std::fstream::app);
     }
 
     void printPercentage(const std::string &name) {
@@ -94,7 +96,7 @@ namespace {
     void writeLineReport(Module &M) {
       // M.getName() not available with llvm-3.5
       const std::string moduleName = M.getModuleIdentifier();
-      if (VfclibReportLevel == LVL_MODULE) {
+      if (VfclibReportLevel == LVL_MODULE && ReportFPOpsMap[moduleName] != 0) {
 	reportFile << moduleName << ","
 		   << ReportFPOpsMap[moduleName];	  
 	printPercentage(moduleName);
@@ -105,7 +107,7 @@ namespace {
     void writeLineReport(Module &M, Function &F) {
       const std::string moduleName = M.getModuleIdentifier();
       const std::string functionName = F.getName().str();
-      if (VfclibReportLevel == LVL_FUNCTION) {
+      if (VfclibReportLevel == LVL_FUNCTION && ReportFPOpsMap[functionName] != 0) {
 	reportFile << moduleName << ","
 		   << functionName << ","
 		   << ReportFPOpsMap[functionName];	  
@@ -118,7 +120,7 @@ namespace {
       const std::string moduleName = M.getModuleIdentifier();
       const std::string functionName = F.getName().str();
       const std::string basicBlockName = BB.getName().str();
-      if (VfclibReportLevel == LVL_BASICBLOCK) {
+      if (VfclibReportLevel == LVL_BASICBLOCK && ReportFPOpsMap[basicBlockName] != 0) {
 	reportFile << moduleName << ","
 		   << functionName << ","
 		   << basicBlockName << ","
@@ -138,42 +140,6 @@ namespace {
       }	
     }     
    
-    // Ftype getOpType(Instruction &I) {
-    //   Type * retType = I.getType();
-    //   Type * opType = I.getOperand(0)->getType();
-    //   std::string opName = Fops2str[opCode];
-	    
-    //   std::string baseTypeName = "";
-    //   std::string vectorName = "";
-    //   Type *baseType = opType;
-
-    //   // Check for vector types
-    //   if (opType->isVectorTy()) {
-    // 	VectorType *t = static_cast<VectorType *>(opType);
-    // 	baseType = t->getElementType();
-    // 	unsigned size = t->getNumElements();
-	
-    // 	if (size == 2) {
-    // 	  vectorName = "2x";
-    // 	} else if (size == 4) {
-    // 	  vectorName = "4x";
-    // 	} else {
-    // 	  errs() << "Unsuported vector size: " << size << "\n";
-    // 	  assert(0);
-    // 	}
-    //   }
-      
-    //   // Check the type of the operation
-    //   if (baseType->isDoubleTy()) {
-    // 	baseTypeName = "double";
-    //   } else if (baseType->isFloatTy()) {
-    // 	baseTypeName = "float";
-    //   } else {
-    // 	errs() << "Unsupported operand type: " << *opType << "\n";
-    // 	assert(0);
-    //   }
-    // }
-    
     Fops getOpCode(Instruction &I) {
       switch (I.getOpcode()) {
       case Instruction::FAdd:
