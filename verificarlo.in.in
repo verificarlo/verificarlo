@@ -3,7 +3,7 @@
 #                                                                              *
 #  This file is part of Verificarlo.                                           *
 #                                                                              *
-#  Copyright (c) 2015-2016                                                     *
+#  Copyright (c) 2015-2017                                                     *
 #     Universite de Versailles St-Quentin-en-Yvelines                          *
 #     CMLA, Ecole Normale Superieure de Cachan                                 *
 #                                                                              *
@@ -221,13 +221,13 @@ if __name__ == "__main__":
     parser.add_argument('--function', metavar='function', help='only instrument <function>')
     parser.add_argument('--functions-file', metavar='file', help='only instrument functions in <functions-file>')
     parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
-    parser.add_argument('--verbose', action='store_true', help='verbose output')
-    parser.add_argument('--version', action='version', version=PACKAGE_STRING)
     parser.add_argument('--black-list-mode', action='store_true',
                         help='black list mode, not instrument functions present in <function> or <functions-file>')
     parser.add_argument('-report', '--report-level', action='store', type=str, choices=report_level_choices,
                         help='produces a static report for floating-point operations')
-    parser.add_argument('--print-percentage', action='store_true', help="print percentage of floating-points' type for report")
+    parser.add_argument('--print-percentage', action='store_true', help="print percentage of floating points' type for report")
+    parser.add_argument('--verbose', action='store_true', help='verbose output')
+    parser.add_argument('--version', action='version', version=PACKAGE_STRING)
     
     args, other = parser.parse_known_args()
     

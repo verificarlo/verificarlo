@@ -1,4 +1,4 @@
-// The Monte Carlo Arihmetic Library - A tool for automated rounding error
+// The Bitmask Library - A tool for automated rounding error
 // analysis of floating point software.
 //
 // Copyright (C) 2017 The Computer Engineering Laboratory, The
