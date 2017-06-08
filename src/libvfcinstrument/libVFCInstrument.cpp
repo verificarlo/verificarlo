@@ -210,11 +210,8 @@ namespace {
                 // no need to go through the vtable at this stage.
                 IRBuilder<> builder(getGlobalContext());
                 Instruction *newInst = CREATE_CALL2(hookFunc,
-				                   I->getOperand(0), I->getOperand(1));
+                                                    I->getOperand(0), I->getOperand(1));
 
-		// Remove instruction from parent so it can be
-		// inserted in a new context
-		if (newInst->getParent() != NULL) newInst->removeFromParent();
                 return newInst;
             }
             // For scalar types, we go directly through the struct of pointer function
@@ -250,7 +247,7 @@ namespace {
 
                 Instruction *newInst = CREATE_CALL2(
                     fct_ptr,
-		    I->getOperand(0), I->getOperand(1));
+                    I->getOperand(0), I->getOperand(1));
 
                 return newInst;
             }
@@ -281,6 +278,9 @@ namespace {
                 if (opCode == FOP_IGNORE) continue;
                 if (VfclibInstVerbose) errs() << "Instrumenting" << I << '\n';
                 Instruction *newInst = replaceWithMCACall(M, B, &I, opCode);
+                // Remove instruction from parent so it can be
+                // inserted in a new context
+                if (newInst->getParent() != NULL) newInst->removeFromParent();
                 ReplaceInstWithInst(B.getInstList(), ii, newInst);
                 modified = true;
             }
