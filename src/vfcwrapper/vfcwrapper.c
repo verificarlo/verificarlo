@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <sys/time.h>
 
 #include "vfcwrapper.h"
 
@@ -349,3 +350,23 @@ float4 _4xfloatdiv(float4 a, float4 b) {
     return c;
 }
 
+static unsigned long long get_timestamp(void) {
+  struct timeval tv;
+  gettimeofday(&tv,NULL);
+  unsigned long long usecs = tv.tv_sec*1000000ull+tv.tv_usec;
+
+  return usecs;
+}
+
+/* output functions used by the range-tracer pass */
+void _verificarlo_output_double(double v, void * ptr, char * locationInfo) {
+  printf("%llu %s %p %g\n", get_timestamp(), locationInfo, ptr, v);
+}
+
+void _verificarlo_output_float(float v, void * ptr, char * locationInfo) {
+  printf("%llu %s %p %g\n", get_timestamp(), locationInfo, ptr, v);
+}
+
+void _verificarlo_output_int(long long int v, void * ptr, char * locationInfo) {
+  printf("%llu %s %p %lld\n", get_timestamp(), locationInfo, ptr, v);
+}

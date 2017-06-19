@@ -35,6 +35,7 @@ LIBDIR = "%LIBDIR%"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
 libvfcreport = LIBDIR + '/libvfcreport.so'
+libvfcrangetracer = LIBDIR + '/libvfcrangetracer.so'
 mcalib_static = "{0}/libmcampfr.a {0}/libmcaquad.a {0}/libbitmask.a".format(LIBDIR)
 mcalib_dynamic = "-lmcampfr -lmcaquad -lbitmask"
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
@@ -149,7 +150,8 @@ def compiler_mode(sources, options, output, args):
     for source in sources:
         basename = os.path.splitext(source)[0]
         ir = basename + '.1.ll'
-        ins = basename + '.2.ll'
+        ins_tracer = basename + '.2.ll'
+        ins_mca = basename + '.3.ll'
 
         # Compile to ir (fortran uses gcc+dragonegg, c uses clang)
         if is_fortran(source):
@@ -194,6 +196,19 @@ def compiler_mode(sources, options, output, args):
                 ir=ir,
                 print_percentage=print_percentage
             ))
+            
+        # Apply range tracer instrumentation pass
+        shell('{opt} -S  -load {libvfcrangetracer} -vfclibrange-tracer {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
+            opt=opt,
+            libvfcrangetracer=libvfcrangetracer,
+            selectfunction=selectfunction,
+            verbose=verbose,
+            ir=ir,
+            ins=ins_tracer,
+            blacklist=blacklist,
+        ))
+
+        ir = ins_tracer
 
         # Apply MCA instrumentation pass
         shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
@@ -202,10 +217,12 @@ def compiler_mode(sources, options, output, args):
             selectfunction=selectfunction,
             verbose=verbose,
             ir=ir,
-            ins=ins,
+            ins=ins_mca,
             blacklist=blacklist,
         ))
 
+        ins = ins_mca
+        
         if not output:
             output = '-o ' + basename + '.o'
         # Produce object file
@@ -229,6 +246,8 @@ if __name__ == "__main__":
     parser.add_argument('-report', '--report-level', action='store', type=str, default=0, choices=report_level_choices,
                         help='produces a report for floating-point operations')
     parser.add_argument('--print-percentage', action='store_true', help="print percentage of floating-points' type for report")
+    parser.add_argument('--range-tracer', action='store_true', help="Analyzer")
+
     args, other = parser.parse_known_args()
     
     sources, llvm_options = parse_extra_args(other)
@@ -246,6 +265,10 @@ if __name__ == "__main__":
             os.environ['VERIFICARLO_REPORT_PATH'] = os.getenv("PWD")        
         add_header_verificarlo_report(args.report_level, args.print_percentage)
 
+    if args.range_tracer:
+        # Need to add debug option to get debug info 
+        llvm_options += " -g "
+        
     output = "-o " + args.o if args.o else ""
     if args.c:
         if len(sources) == 0:
