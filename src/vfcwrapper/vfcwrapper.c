@@ -1,3 +1,26 @@
+/********************************************************************************
+ *                                                                              *
+ *  This file is part of Verificarlo.                                           *
+ *                                                                              *
+ *  Copyright (c) 2015, 2016, 2017                                              *
+ *     Universite de Versailles St-Quentin-en-Yvelines                          *
+ *     CMLA, Ecole Normale Superieure de Cachan                                 *
+ *                                                                              *
+ *  Verificarlo is free software: you can redistribute it and/or modify         *
+ *  it under the terms of the GNU General Public License as published by        *
+ *  the Free Software Foundation, either version 3 of the License, or           *
+ *  (at your option) any later version.                                         *
+ *                                                                              *
+ *  Verificarlo is distributed in the hope that it will be useful,              *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of              *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               *
+ *  GNU General Public License for more details.                                *
+ *                                                                              *
+ *  You should have received a copy of the GNU General Public License           *
+ *  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.        *
+ *                                                                              *
+ ********************************************************************************/
+
 #include <dlfcn.h>
 #include <err.h>
 #include <errno.h>
@@ -9,15 +32,14 @@
 
 #include "vfcwrapper.h"
 
-
 #define MAX_BACKENDS 16
 
-struct numdbg_backend_interface_t backends[MAX_BACKENDS];
+struct interflop_backend_interface_t backends[MAX_BACKENDS];
 void * contexts[MAX_BACKENDS];
 unsigned char loaded_backends = 0;
 unsigned char active_backends = 0;
 
-typedef struct numdbg_backend_interface_t (*numdbg_init_t)(void ** context);
+typedef struct interflop_backend_interface_t (*interflop_init_t)(void ** context);
 
 /* vfc_set_active_backends changes how many backends are active,
    at start all the loaded backends are active.
@@ -64,11 +86,11 @@ static void vfc_init (void)
     /* reset dl errors */
     dlerror();
 
-    /* get the address of the numdbg_init function */
-    numdbg_init_t handle_init = (numdbg_init_t) dlsym(handle, "numdbg_init");
+    /* get the address of the interflop_init function */
+    interflop_init_t handle_init = (interflop_init_t) dlsym(handle, "interflop_init");
     const char *dlsym_error = dlerror();
     if (dlsym_error) {
-      errx(1, "Cannot find numdbg_init function in backend %s: %s", token,
+      errx(1, "Cannot find interflop_init function in backend %s: %s", token,
            strerror(errno));
     }
 
@@ -102,7 +124,7 @@ typedef bool bool4 __attribute__((ext_vector_type(4)));
 float _floatadd(float a , float b) {
   float c;
   for (int i = 0; i < active_backends; i++) {
-    backends[i].numdbg_add_float(a, b, &c, NULL);
+    backends[i].interflop_add_float(a, b, &c, NULL);
   }
   return c;
 }
@@ -110,7 +132,7 @@ float _floatadd(float a , float b) {
 float _floatsub(float a, float b) {
   float c;
   for (int i = 0; i < active_backends; i++) {
-    backends[i].numdbg_sub_float(a, b, &c, NULL);
+    backends[i].interflop_sub_float(a, b, &c, NULL);
   }
   return c;
 }
@@ -118,7 +140,7 @@ float _floatsub(float a, float b) {
 float _floatmul(float a, float b) {
   float c;
   for (int i = 0; i < active_backends; i++) {
-    backends[i].numdbg_mul_float(a, b, &c, NULL);
+    backends[i].interflop_mul_float(a, b, &c, NULL);
   }
   return c;
 }
@@ -126,7 +148,7 @@ float _floatmul(float a, float b) {
 float _floatdiv(float a, float b) {
   float c;
   for (int i = 0; i < active_backends; i++) {
-    backends[i].numdbg_div_float(a, b, &c, NULL);
+    backends[i].interflop_div_float(a, b, &c, NULL);
   }
   return c;
 }
@@ -135,7 +157,7 @@ float _floatdiv(float a, float b) {
 double _doubleadd(double a , double b) {
   double c;
   for (int i = 0; i < active_backends; i++) {
-    backends[i].numdbg_add_double(a, b, &c, NULL);
+    backends[i].interflop_add_double(a, b, &c, NULL);
   }
   return c;
 }
@@ -143,7 +165,7 @@ double _doubleadd(double a , double b) {
 double _doublesub(double a, double b) {
   double c;
   for (int i = 0; i < active_backends; i++) {
-    backends[i].numdbg_sub_double(a, b, &c, NULL);
+    backends[i].interflop_sub_double(a, b, &c, NULL);
   }
   return c;
 }
@@ -151,7 +173,7 @@ double _doublesub(double a, double b) {
 double _doublemul(double a, double b) {
   double c;
   for (int i = 0; i < active_backends; i++) {
-    backends[i].numdbg_mul_double(a, b, &c, NULL);
+    backends[i].interflop_mul_double(a, b, &c, NULL);
   }
   return c;
 }
@@ -159,7 +181,7 @@ double _doublemul(double a, double b) {
 double _doublediv(double a, double b) {
   double c;
   for (int i = 0; i < active_backends; i++) {
-    backends[i].numdbg_div_double(a, b, &c, NULL);
+    backends[i].interflop_div_double(a, b, &c, NULL);
   }
   return c;
 }

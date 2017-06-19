@@ -120,7 +120,7 @@ fi
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/libvfcinstrument/Makefile
-		 src/numdbg_ieee_backend/Makefile
+		 src/interflop_ieee_backend/Makefile
                  tests/Makefile])
 
 AC_CONFIG_FILES([verificarlo.in], [])

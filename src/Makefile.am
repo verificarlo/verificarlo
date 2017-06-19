@@ -1,3 +1,3 @@
-SUBDIRS=libvfcinstrument numdbg_ieee_backend
+SUBDIRS=libvfcinstrument interflop_ieee_backend
 include_HEADERS=vfcwrapper/vfcwrapper.c vfcwrapper/vfcwrapper.h
 
