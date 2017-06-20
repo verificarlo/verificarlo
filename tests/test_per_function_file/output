@@ -1,0 +1,12 @@
+In Function: f
+Instrumenting  store double %x, double* %1, align 8 Variable Name = _ at _ _
+Instrumenting  store double %y, double* %2, align 8 Variable Name = _ at _ _
+In Function: g
+Instrumenting  store double %x, double* %1, align 8 Variable Name = _ at _ _
+Instrumenting  store double %y, double* %2, align 8 Variable Name = _ at _ _
+opt: Unknown command line argument '-vfclibinst-function-file'.  Try: '/usr/lib/llvm-3.5/bin/opt -help'
+opt: Did you mean '-vfclibinst-function'?
+opt: Too many positional arguments specified!
+Can specify at most 1 positional arguments: See: /usr/lib/llvm-3.5/bin/opt -help
+/usr/local/bin/verificarlo: command failed:
+/usr/lib/llvm-3.5/bin/opt -S  -load /usr/local/lib/libvfcinstrument.so -vfclibinst -vfclibinst-verbose  -vfclibinst-function-file functions.txt  test.2.ll -o test.3.ll
