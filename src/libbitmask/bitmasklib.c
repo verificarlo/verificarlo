@@ -1,11 +1,11 @@
-// The Monte Carlo Arihmetic Library - A tool for automated rounding error
+// The Bitmask Library - A tool for automated rounding error
 // analysis of floating point software.
 //
-// Copyright (C) 2014 The Computer Engineering Laboratory, The
+// Copyright (C) 2017 The Computer Engineering Laboratory, The
 // University of Sydney. Maintained by Michael Frechtling:
 // michael.frechtling@sydney.edu.au
 //
-// Copyright (C) 2015
+// Copyright (C) 2017
 //     Universite de Versailles St-Quentin-en-Yvelines                          *
 //     CMLA, Ecole Normale Superieure de Cachan                                 *
 //
@@ -43,7 +43,6 @@
 #include "../vfcwrapper/vfcwrapper.h"
 #include "../common/mca_const.h"
 #include "../common/tinymt64.h"
-#include "random_bitarray.h"
 
 static int 	BITMASKLIB_MODE         = BITMASK_MODE_ZERO;
 static int 	MCALIB_T                = 53;
@@ -59,15 +58,22 @@ static double _bitmask_dbin(double a, double b, const int op);
 
 static uint32_t float_bitmask  = FLOAT_MASK_1;
 static uint64_t double_bitmask = DOUBLE_MASK_1;
-static uint64_t index_bitarray = 0;
 
-/******************** MCA CONTROL FUNCTIONS *******************
+typedef union binary64_t {
+  uint64_t h64;
+  uint32_t h32[2];
+}
+binary64;
+
+/* static uint8_t flip = 0; */
+
+/******************** BITMASK CONTROL FUNCTIONS *******************
 * The following functions are used to set virtual precision and
-* MCA mode of operation.
+* BITMASK mode of operation.
 ***************************************************************/
 
 static int _set_mca_mode(int mode){
-  if (mode < 0 || mode > 2)
+  if (mode < 0 || mode > 3)
     return -1;
   
   BITMASKLIB_MODE = mode;
@@ -81,39 +87,47 @@ static int _set_mca_precision(int precision){
   MCALIB_T = precision;
   float_bitmask  = (MCALIB_T <= FLOAT_PREC)  ? (-1)    << (FLOAT_PREC  - MCALIB_T) : FLOAT_MASK_1;
   double_bitmask = (MCALIB_T <= DOUBLE_PREC) ? (-1ULL) << (DOUBLE_PREC - MCALIB_T) : DOUBLE_MASK_1;
-  index_bitarray = tinymt64_generate_uint64(&random_state) % (SIZE_BITARRAY / sizeof(uint64_t));
   return 0;
 }
 
-/******************** MCA RANDOM FUNCTIONS ********************
-* The following functions are used to calculate the random
-* perturbations used for MCA and apply these to MPFR format
-* operands
+/******************** BITMASK RANDOM FUNCTIONS ********************
+* The following functions are used to calculate the random bitmask 
 ***************************************************************/
 
-static uint32_t get_random_smask(void){
-  uint32_t *ptr_32 = (uint32_t*)&random_bitarray;
-  uint32_t smask = ptr_32[index_bitarray]; 
-  index_bitarray = (index_bitarray+1) % (SIZE_BITARRAY / sizeof(uint32_t));
-  return smask;
+static uint64_t get_random_mask(void){
+  return tinymt64_generate_uint64(&random_state);
 }
 
-static uint64_t get_random_dmask(void) { 
-  uint64_t *ptr_64 = (uint64_t*)&random_bitarray;
-  uint64_t dmask = ptr_64[index_bitarray]; 
-  index_bitarray = (index_bitarray+1) % (SIZE_BITARRAY / sizeof(uint64_t));
-  return dmask;
+static uint64_t get_random_dmask(void) {
+  uint64_t mask = get_random_mask();
+  return mask;
+}
+
+static uint32_t get_random_smask(void) {
+  binary64 mask;
+  mask.h64 = get_random_mask();
+  /* flip ^= 1; */
+  /* return mask.h32[flip]; */
+  return mask.h32[0];
 }
 
 static void _mca_seed(void) {
-  return;
+  const int key_length = 3;
+  uint64_t init_key[key_length];
+  struct timeval t1;
+  gettimeofday(&t1, NULL);
+  
+  /* Hopefully the following seed is good enough for Montercarlo */
+  init_key[0] = t1.tv_sec;
+  init_key[1] = t1.tv_usec;
+  init_key[2] = getpid();
+  
+  tinymt64_init_by_array(&random_state, init_key, key_length);
 }
 
-/******************** MCA ARITHMETIC FUNCTIONS ********************
-* The following set of functions perform the MCA operation. Operands
-* are first converted to MPFR format, inbound and outbound perturbations
-* are applied using the _mca_inexact function, and the result converted
-* to the original format for return
+/******************** BITMASK ARITHMETIC FUNCTIONS ********************
+* The following set of functions perform the BITMASK operation. Operands
+* They apply a bitmask to the result
 *******************************************************************/
 
 // perform_bin_op: applies the binary operator (op) to (a) and (b)
@@ -130,8 +144,12 @@ static void _mca_seed(void) {
 static float _bitmask_sbin(float a, float b, const int op) {
   float res = 0.0;
   uint32_t *tmp = (uint32_t*)&res;
+
+  // Only RR mode is implemented
   perform_bin_op(op, res, a, b);
+
   uint32_t rand_smask = get_random_smask();
+
   if (BITMASKLIB_MODE == BITMASK_MODE_RAND) {
     /* Save bits higher than VERIFICARLO_PRECISION */
     uint32_t bits_saved = float_bitmask & (*tmp);
@@ -152,8 +170,12 @@ static float _bitmask_sbin(float a, float b, const int op) {
 static double _bitmask_dbin(double a, double b, const int op) {
   double res = 0.0;
   uint64_t *tmp = (uint64_t*)&res;
+
+  // Only RR mode is implemented
   perform_bin_op(op, res, a, b);
+
   uint64_t rand_dmask = get_random_dmask();
+
   if (BITMASKLIB_MODE == BITMASK_MODE_RAND) {
     /* Save bits higher than VERIFICARLO_PRECISION */
     uint64_t bits_saved = double_bitmask & (*tmp);
@@ -171,8 +193,8 @@ static double _bitmask_dbin(double a, double b, const int op) {
   return NEAREST_DOUBLE(res);
 }
 
-/******************** MCA COMPARE FUNCTIONS ********************
-* Compare operations do not require MCA 
+/******************** BITMASK COMPARE FUNCTIONS ********************
+* Compare operations do not require BITMASK 
 ****************************************************************/
 
 

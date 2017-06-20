@@ -20,7 +20,6 @@
  *  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.        *
  *                                                                              *
  ********************************************************************************/
-
 #include <string>
 #include <sstream>
 #include "llvm/IR/Constants.h"
@@ -152,9 +151,9 @@ struct VfclibRangeTracer : public ModulePass {
   //
   // "2.For the same reason, StringRef cannot be used as the return value
   //   of a method if the method “computes” the result string. Instead, use std::string."
-  std::string getOriginalLine(const Instruction *I) {
-    std::string str_to_return = "_ _";
-    if (MDNode *N = I->getMetadata("dbg")) {
+  std::string getOriginalLine(const Instruction &I) {
+    std::string str_to_return = "_ _";  
+    if (MDNode *N = I.getMetadata(LLVMContext::MD_dbg)) {
       DILocation Loc(N);
       std::string Line = std::to_string(Loc.getLineNumber());
       std::string File = Loc.getFilename();
@@ -180,7 +179,7 @@ struct VfclibRangeTracer : public ModulePass {
       const bool is_in = SelectedFunctionSet.find(F->getName()) != SelectedFunctionSet.end();
       if (SelectedFunctionSet.empty() || VfclibBlackList != is_in) {
         functions.push_back(&*F);
-      }
+      } 
     }
 
     // Do the instrumentation on selected functions
@@ -213,7 +212,7 @@ struct VfclibRangeTracer : public ModulePass {
       if (I.getOpcode() == Instruction::Store) {
 
 	StringRef variableName = getOriginalName((I.getOperand(1)));
-	std::string variableLine = getOriginalLine(&I);
+	std::string variableLine = getOriginalLine(I);
 
 	errs() << "Instrumenting" << I
 	       << " Variable Name = " << variableName
@@ -230,12 +229,12 @@ struct VfclibRangeTracer : public ModulePass {
         Type *charPtrTy = Type::getInt8PtrTy(M.getContext());
 
         if (baseType->isDoubleTy()) {
-          baseTypeName = "double";
+          baseTypeName = "binary64";
         } else if (baseType->isFloatTy()) {
-          baseTypeName = "float";
+          baseTypeName = "binary32";
         } else if (baseType->isIntegerTy()) {
-          baseTypeName = "int";
-        } else {
+	    baseTypeName = "int";
+	} else {
           // Ignore non floating types
           continue;
         }
@@ -248,7 +247,8 @@ struct VfclibRangeTracer : public ModulePass {
 
         std::string locationInfo = variableLine + " " +
 	                           functionName.str() + " " +
-	                           variableName.str();
+	                           variableName.str() + " " +
+	                           baseTypeName;
 
         Value *strPtr = builder.CreateGlobalStringPtr(locationInfo, ".str");
         Instruction *newInst = builder.CreateCall3(cast<Function>(hookFunc),

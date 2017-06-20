@@ -171,9 +171,9 @@ def compiler_mode(sources, options, output, args):
 
         selectfunction = ""
         if args.function:
-            selectfunction = "-vfclibinst-function " + args.function
+            selectfunction = "-vfclibinst-function=" + args.function
         elif args.functions_file:
-            selectfunction = "-vfclibinst-function-file " + args.functions_file
+            selectfunction = "-vfclibinst-function-file=" + args.functions_file
 
         # Activate verbose mode
         verbose = ""
@@ -197,18 +197,19 @@ def compiler_mode(sources, options, output, args):
                 print_percentage=print_percentage
             ))
             
-        # Apply range tracer instrumentation pass
-        shell('{opt} -S  -load {libvfcrangetracer} -vfclibrange-tracer {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
-            opt=opt,
-            libvfcrangetracer=libvfcrangetracer,
-            selectfunction=selectfunction,
-            verbose=verbose,
-            ir=ir,
-            ins=ins_tracer,
-            blacklist=blacklist,
-        ))
+        if args.range_tracer:
+            # Apply range tracer instrumentation pass
+            shell('{opt} -S  -load {libvfcrangetracer} -vfclibrange-tracer {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
+                opt=opt,
+                libvfcrangetracer=libvfcrangetracer,
+                selectfunction=selectfunction,
+                verbose=verbose,
+                ir=ir,
+                ins=ins_tracer,
+                blacklist=blacklist,
+            ))
 
-        ir = ins_tracer
+            ir = ins_tracer
 
         # Apply MCA instrumentation pass
         shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(

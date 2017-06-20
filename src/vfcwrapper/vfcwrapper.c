@@ -359,14 +359,15 @@ static unsigned long long get_timestamp(void) {
 }
 
 /* output functions used by the range-tracer pass */
-void _verificarlo_output_double(double v, void * ptr, char * locationInfo) {
+void _verificarlo_output_binary64(double v, void * ptr, char * locationInfo) {
   printf("%llu %s %p %g\n", get_timestamp(), locationInfo, ptr, v);
 }
 
-void _verificarlo_output_float(float v, void * ptr, char * locationInfo) {
+void _verificarlo_output_binary32(float v, void * ptr, char * locationInfo) {
   printf("%llu %s %p %g\n", get_timestamp(), locationInfo, ptr, v);
 }
 
-void _verificarlo_output_int(long long int v, void * ptr, char * locationInfo) {
-  printf("%llu %s %p %lld\n", get_timestamp(), locationInfo, ptr, v);
+void _verificarlo_output_int(int64_t v, void * ptr, char * locationInfo) {
+  printf("%llu %s %p %ld\n", get_timestamp(), locationInfo, ptr, v);
 }
+
