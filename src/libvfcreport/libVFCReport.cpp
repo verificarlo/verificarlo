@@ -69,8 +69,13 @@ namespace {
     std::ofstream reportFile;
     std::map<std::string, std::map<Fops, int> > FPOpsTypeMap;
     VfclibReport() : ModulePass(ID) {   
-      char *reportFilename = getenv("VERIFICARLO_REPORT_PATH");
+      std::string reportFilename(getenv("VERIFICARLO_REPORT_PATH"));
+      reportFilename += "verificarlo_report.csv";
       reportFile.open(reportFilename, std::fstream::out | std::fstream::app);
+      if (not reportFile.is_open()) {
+	errs() << "Cannot open file : "  << reportFilename << "\n";
+	exit(1);
+      }
     }
 
     void printPercentage(const std::string &name) {
