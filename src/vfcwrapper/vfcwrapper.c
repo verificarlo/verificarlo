@@ -107,7 +107,7 @@ int vfc_set_precision_and_mode(unsigned int precision, int mode) {
 }
 
 /* vfc_init is run when loading vfcwrapper and initializes vfc libraries */
-__attribute__((constructor))
+__attribute__((constructor(0)))
 static void vfc_init (void)
 {
     char * endptr;

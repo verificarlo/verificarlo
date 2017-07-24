@@ -1,4 +1,4 @@
-<img src="https://avatars1.githubusercontent.com/u/12033642" align="right" height="200px" \>
+![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
 ## Verificarlo v0.2.0
 

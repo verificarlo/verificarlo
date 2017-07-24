@@ -134,8 +134,6 @@ namespace {
 
             mca_interface_type = getMCAInterfaceType();
 
-            StringRef SelectedFunction = StringRef(VfclibInstFunction);
-
             // Find the list of functions to instrument
             // Instrumentation adds stubs to mcalib function which we
             // never want to instrument.  Therefore it is important to
@@ -222,7 +220,7 @@ namespace {
                 // no need to go through the vtable at this stage.
                 IRBuilder<> builder(getGlobalContext());
                 Instruction *newInst = CREATE_CALL2(hookFunc,
-				                   I->getOperand(0), I->getOperand(1));
+                                                    I->getOperand(0), I->getOperand(1));
 
                 return newInst;
             }
@@ -259,7 +257,7 @@ namespace {
 
                 Instruction *newInst = CREATE_CALL2(
                     fct_ptr,
-		    I->getOperand(0), I->getOperand(1));
+                    I->getOperand(0), I->getOperand(1));
 
                 return newInst;
             }
@@ -290,6 +288,9 @@ namespace {
                 if (opCode == FOP_IGNORE) continue;
                 if (VfclibInstVerbose) errs() << "Instrumenting" << I << '\n';
                 Instruction *newInst = replaceWithMCACall(M, B, &I, opCode);
+                // Remove instruction from parent so it can be
+                // inserted in a new context
+                if (newInst->getParent() != NULL) newInst->removeFromParent();
                 ReplaceInstWithInst(B.getInstList(), ii, newInst);
                 modified = true;
             }
