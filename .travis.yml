@@ -6,7 +6,7 @@ before_install:
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
   - sudo add-apt-repository ppa:dns/gnu -y
   - sudo apt-get update
-  - sudo apt-get install libmpfr-dev clang-3.4 llvm-3.4 llvm-3.4-dev dragonegg gcc-4.6 gfortran-4.6 autoconf automake build-essential
+  - sudo apt-get install libmpfr-dev clang-3.4 llvm-3.4 llvm-3.4-dev dragonegg gcc-4.6 gfortran-4.6 autoconf automake build-essential python-numpy
 
 install:
   - ./autogen.sh
