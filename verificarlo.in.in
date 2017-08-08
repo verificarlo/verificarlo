@@ -100,7 +100,7 @@ def linker_mode(sources, options, output, args):
 
     f=tempfile.NamedTemporaryFile()
     if args.static:
-        f.write('{output} {options} {sources} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
+        f.write('{output} {sources} {options} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
@@ -108,7 +108,7 @@ def linker_mode(sources, options, output, args):
             gfortran=gfortran))
        
     else:
-        f.write('{output} {options} {sources} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
+        f.write('{output} {sources} {options} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
