@@ -22,6 +22,7 @@
  ********************************************************************************/
 
 #include <errno.h>
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,6 +49,10 @@ int verificarlo_precision = VERIFICARLO_PRECISION_DEFAULT;
 int verificarlo_mcamode = VERIFICARLO_MCAMODE_DEFAULT;
 int verificarlo_backend = VERIFICARLO_BACKEND_DEFAULT;
 int verificarlo_bitmask_mode = VERIFICARLO_BITMASK_MODE_DEFAULT;
+
+/* File for outputting values produced by tracer */
+static FILE *fileTracer = NULL;
+static const char filenameTracer[] = "veritracer.dat";
 
 /* This is the vtable for the current MCA backend */
 struct mca_interface_t _vfc_current_mca_interface;
@@ -78,6 +83,14 @@ void vfc_seed(void) {
     mpfr_mca_interface.seed();
     quad_mca_interface.seed();
     bitmask_interface.seed();
+}
+
+void vfc_tracer(void) {
+  fileTracer = fopen(filenameTracer ,"wb");
+  if (fileTracer == NULL)
+    errx(EXIT_FAILURE, "Could not open %s : %s\n",
+	 filenameTracer, strerror(errno));
+
 }
 
 /* sets verificarlo precision and mode. Returns 0 on success. */
@@ -188,6 +201,9 @@ static void vfc_init (void)
 
     /* set precision and mode */
     vfc_set_precision_and_mode(verificarlo_precision, verificarlo_mcamode);
+
+    vfc_tracer();
+
 }
 
 typedef double double2 __attribute__((ext_vector_type(2)));
@@ -361,7 +377,7 @@ static unsigned long long get_timestamp(void) {
 /* probes used by the veritracer pass */
 
 void _veritracer_probe_binary32(float value, void * value_ptr, char * hash_LI) {
-  fprintf(fileRangeTracer, "%llu %s %p %0.6a\n", get_timestamp(), hash_LI, value_ptr, value);
+  fprintf(fileTracer, "%llu %s %p %0.6a\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
 void _veritracer_probe_binary32_binary(float value, void *value_ptr, uint64_t hash_LI) {
@@ -371,12 +387,11 @@ void _veritracer_probe_binary32_binary(float value, void *value_ptr, uint64_t ha
   fmt.value_ptr = value_ptr;
   fmt.hash_LI = hash_LI;
   fmt.value = value;  
-  fwrite(&fmt, sizeof_binary32_fmt, 1, fileRangeTracer);
-  printf("%d %d\n",sizeof_binary32_fmt,sizeof_binary64_fmt);
+  fwrite(&fmt, sizeof_binary32_fmt, 1, fileTracer);
 }
 
 void _veritracer_probe_binary64(double value, void * value_ptr, char * hash_LI) {
-  fprintf(fileRangeTracer, "%llu %s %p %0.13a\n", get_timestamp(), hash_LI, value_ptr, value);
+  fprintf(fileTracer, "%llu %s %p %0.13a\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
 void _veritracer_probe_binary64_binary(double value, void *value_ptr, uint64_t hash_LI) {
@@ -386,11 +401,11 @@ void _veritracer_probe_binary64_binary(double value, void *value_ptr, uint64_t h
   fmt.value_ptr = value_ptr;
   fmt.hash_LI = hash_LI;
   fmt.value = value;
-  fwrite(&fmt, sizeof_binary64_fmt, 1, fileRangeTracer);
+  fwrite(&fmt, sizeof_binary64_fmt, 1, fileTracer);
 }
 				  
 void _veritracer_output_int32(int32_t value, void * value_ptr, char * hash_LI) {
-  fprintf(fileRangeTracer, "%llu %s %p %d\n", get_timestamp(), hash_LI, value_ptr, value);
+  fprintf(fileTracer, "%llu %s %p %d\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
 void _veritracer_output_int32_binary(int32_t value, void *value_ptr, uint64_t hash_LI) {
@@ -400,11 +415,11 @@ void _veritracer_output_int32_binary(int32_t value, void *value_ptr, uint64_t ha
   fmt.value_ptr = value_ptr;
   fmt.hash_LI = hash_LI;
   fmt.value = value;
-  fwrite(&fmt, sizeof_int32_fmt, 1, fileRangeTracer);
+  fwrite(&fmt, sizeof_int32_fmt, 1, fileTracer);
 }
 
 void _veritracer_output_int64(int64_t value, void * value_ptr, char * hash_LI) {
-  fprintf(fileRangeTracer, "%llu %s %p %ld\n", get_timestamp(), hash_LI, value_ptr, value);
+  fprintf(fileTracer, "%llu %s %p %ld\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
 void _veritracer_output_int64_binary(int64_t value, void *value_ptr, uint64_t hash_LI) {
@@ -414,5 +429,5 @@ void _veritracer_output_int64_binary(int64_t value, void *value_ptr, uint64_t ha
   fmt.value_ptr = value_ptr;
   fmt.hash_LI = hash_LI;
   fmt.value = value;  
-  fwrite(&fmt, sizeof_int64_fmt, 1, fileRangeTracer);
+  fwrite(&fmt, sizeof_int64_fmt, 1, fileTracer);
 }

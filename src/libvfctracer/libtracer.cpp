@@ -35,6 +35,7 @@
 
 #include <set>
 #include <fstream>
+#include <unordered_map>
 
 #if LLVM_VERSION_MINOR == 5
 #include "llvm/IR/DebugInfo.h"
@@ -71,6 +72,10 @@ static cl::opt<bool> VfclibBlackList("vfclibblack-list",
 				     cl::desc("Activate black list mode"),
 				     cl::value_desc("BlackList"), cl::init(false));
 
+static cl::opt<bool> VfclibBinaryFormat("vfclibbinary-format",
+				     cl::desc("Output information in binary format"),
+				     cl::value_desc("BinaryFormat"), cl::init(true));
+
 namespace {
 
   // Define an enum type to classify the floating points operations
@@ -106,7 +111,7 @@ struct VfclibTracer : public ModulePass {
     } else if (not VfclibInstFunction.empty()) {
       SelectedFunctionSet.insert(VfclibInstFunction);
     }
-    if (VfclibInstBinary) {
+    if (VfclibBinaryFormat) {
       std::string mappingFilename(getenv("VERITRACER_LOCINFO_PATH"));
       mappingFilename += "/locationInfo.map";
       mappingFile.open(mappingFilename,  std::fstream::out | std::fstream::app);
@@ -114,7 +119,7 @@ struct VfclibTracer : public ModulePass {
 	errs() << "Cannot open file : "  << mappingFilename << "\n";
 	exit(1);
       } else {
-	errs() << mappingFilename << " is open \n";
+	// errs() << mappingFilename << " is open \n";
       }
     }
   }
@@ -186,6 +191,14 @@ struct VfclibTracer : public ModulePass {
     return str_to_return;
   }
 
+  /* Dump mapping information about variables  */
+  /* hash : <line> <enclosing function> <name> */
+  void dumpMapping() {
+    for(auto &I : locationInfoMap) {
+      mappingFile << I.first << ":" << I.second << "\n";
+    }
+  }
+
   bool runOnModule(Module &M) {
     bool modified = false;
 
@@ -209,6 +222,8 @@ struct VfclibTracer : public ModulePass {
     for (std::vector<Function *>::iterator F = functions.begin(); F != functions.end(); ++F) {
       modified |= runOnFunction(M, **F);
     }
+    // Dump hash value 
+    dumpMapping();
     // runOnModule must return true if the pass modifies the IR
     return modified;
   }
@@ -265,6 +280,7 @@ struct VfclibTracer : public ModulePass {
 
         Type *voidTy = Type::getVoidTy(M.getContext());
         Type *charPtrTy = Type::getInt8PtrTy(M.getContext());
+	Type *int64Ty = Type::getInt64Ty(M.getContext());
 
         if (baseType->isDoubleTy()) {
           baseTypeName = "binary64";
@@ -275,46 +291,11 @@ struct VfclibTracer : public ModulePass {
           continue;
         }
 
-        std::string mcaFunctionName = "_verificarlo_output_" + baseTypeName;
-
-        Constant *hookFunc = M.getOrInsertFunction(
-            mcaFunctionName, voidTy, baseType, ptrType, charPtrTy, (Type *)0);
-        IRBuilder<> builder(ii);
-
-        std::string locationInfo = variableLine + " " +
-	                           functionName.str() + " " +
-	                           variableName.str() + " " +
-	                           baseTypeName;
-
-        Value *strPtr = builder.CreateGlobalStringPtr(locationInfo, ".str");
-        Instruction *newInst = builder.CreateCall3(cast<Function>(hookFunc),
-                                                   I.getOperand(0), I.getOperand(1), strPtr, "");
-        modified = true;
-	Type *voidTy = Type::getVoidTy(M.getContext());
-	Type *charPtrTy = Type::getInt8PtrTy(M.getContext());
-	Type *int64Ty = Type::getInt64Ty(M.getContext());
-	if (baseType->isDoubleTy()) {
-	  baseTypeName = "binary64";
-	} else if (baseType->isFloatTy()) {
-	  baseTypeName = "binary32";
-	  // } else if (baseType->isIntegerTy()) {
-	  //     baseTypeName = "int";
-	} else {
-	  // Ignore non floating types
-	  continue;
-	}
-	
-	if (VfclibInstVerbose) {
-	  errs() << "[Veritracer] Instrumenting" << I
-		 << " | Variable Name = " << variableName
-		 << " at " << variableLine << '\n';
-	}
-
 	std::string mcaFunctionName = "_veritracer_probe_" + baseTypeName;
-	mcaFunctionName += VfclibInstBinary ? "_binary" : "";
+	mcaFunctionName += VfclibBinaryFormat ? "_binary" : "";
 
 	Constant *hookFunc = nullptr;
-	if (VfclibInstBinary) {
+	if (VfclibBinaryFormat) {
 	  hookFunc = M.getOrInsertFunction(mcaFunctionName,
 					   voidTy,
 					   baseType,
@@ -336,18 +317,16 @@ struct VfclibTracer : public ModulePass {
 	  functionName.str() + " " +
 	  variableName.str();
 	
-	locationInfo += not VfclibInstBinary ? " " + baseTypeName : ""; 
-
+	locationInfo += " " + baseTypeName; 
 	uint64_t hashLocationInfo = hashStrFunction(locationInfo);
 	locationInfoMap[hashLocationInfo] = locationInfo;
 	
-	// Constant *sizeLocationInfo = ConstantInt::get(int32Ty, locationInfo.size());
 	Constant *sizeLocationInfo = ConstantInt::get(int64Ty, hashLocationInfo);
 	  
 	Value *strPtr = builder.CreateGlobalStringPtr(locationInfo, ".str");
 
 	Instruction *newInst = nullptr;
-	if (VfclibInstBinary)
+	if (VfclibBinaryFormat)
 	  builder.CreateCall3(cast<Function>(hookFunc),
 			      I.getOperand(0),
 			      I.getOperand(1),
@@ -359,6 +338,7 @@ struct VfclibTracer : public ModulePass {
 			      I.getOperand(1),
 			      strPtr,
 			      "");
+	
       } else { /* FP operations */
 
 	StringRef variableName = getOriginalName(&I);
@@ -390,10 +370,10 @@ struct VfclibTracer : public ModulePass {
 	}
 
 	std::string probeFunctionName = "_veritracer_probe_" + baseTypeName;
-	probeFunctionName += VfclibInstBinary ? "_binary" : "";
+	probeFunctionName += VfclibBinaryFormat ? "_binary" : "";
 
 	Constant *hookFunc = nullptr;
-	if (VfclibInstBinary) {
+	if (VfclibBinaryFormat) {
 	  hookFunc = M.getOrInsertFunction(probeFunctionName,
 					   voidTy,
 					   baseType,
@@ -412,16 +392,15 @@ struct VfclibTracer : public ModulePass {
 	IRBuilder<> builder(ii);
 	builder.SetInsertPoint(ii->getNextNode());
 
-	// std::string str;
-	// llvm::raw_string_ostream rso(str);
-	// I.print(rso);
+	std::string str;
+	llvm::raw_string_ostream rso(str);
+	I.print(rso);
 	
 	std::string locationInfo = variableLine + " " +
 	  functionName.str() + " " +
-	  variableName.str();
+	  variableName.str() + " " + str;
 	
-	locationInfo += not VfclibInstBinary ? " " + baseTypeName : ""; 
-
+	locationInfo += " " + baseTypeName; 
 	uint64_t hashLocationInfo = hashStrFunction(locationInfo);
 	locationInfoMap[hashLocationInfo] = locationInfo;
 	
@@ -430,7 +409,7 @@ struct VfclibTracer : public ModulePass {
 	ConstantPointerNull*zero = ConstantPointerNull::get(ptrType);
 	Instruction *newInst = nullptr;
 
-	if (VfclibInstBinary)
+	if (VfclibBinaryFormat)
 	  builder.CreateCall3(cast<Function>(hookFunc),
 			      &I,
 			      zero,
