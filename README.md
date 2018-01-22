@@ -1,10 +1,10 @@
 <img src="https://avatars1.githubusercontent.com/u/12033642" align="right" height="200px" \>
 
-## Verificarlo v0.2.0
+## Veritracer v0.0.1
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
 
-A tool for automatic Montecarlo Arithmetic analysis.
+VeriTracer, a visualization tool that brings temporal dimension to a graphical Floating-Point analysis.
 
 ### Installation
 
@@ -71,80 +71,88 @@ install procedure:
 
 ### Usage
 
-To automatically instrument a program with Verificarlo you must compile it using
-the `verificarlo` command. First make sure that the verificarlo installation
+To automatically trace a program with Veritracer, you must compile it using
+the `verificarlo --tracer` command.
+First, make sure that the verificarlo installation
 directory is in your PATH.
 
-Then you can use the `verificarlo` command to compile your programs. Either modify 
+Then you can use the `verificarlo --tracer` command to compile your programs. Either modify 
 your makefile to use `verificarlo` as the compiler (`CC=verificarlo` and
 `FC=verificarlo` ) and linker (`LD=verificarlo`) or use the verificarlo command
 directly:
 
 ```bash
-   $ verificarlo *.c *.f90 -o ./program
+   $ verificarlo --tracer *.c *.f90 -o ./program
 ```
 
 If you only wish to instrument a specific function in your program, use the
 `--function` option:
 
 ```bash
-   $ verificarlo *.c -o ./program --function=specificfunction
+   $ verificarlo --tracer *.c -o ./program --function=specificfunction
 ```
 
-When invoked with the `--verbose` flag, verificarlo provides detailed output of
-the instrumentation process.
+When invoked with the `--verbose` flag, veritracer provides detailed output of
+the instrumentation process. 
 
-### MCA Configuration Parameters
+Veritracer builds a file containing all information gathered during the compilation
+of variables instrumented. Information is collected in the `locationInfo.map` file.
+By default, this file is created in the directory where compilation is made.
+You can change it by modifying the environment variable `VERITRACER_LOCINFO_PATH`.
 
-Two environement variables control the Montecarlo Arithmetic parameters.
+After execution, veritracer produces a file named `range_tracer.dat` which contain the raw
+values collected during the execution. By default, it is a binary file,
+but it can be switched to text format by specifying the `--tracer-format=text`
+option.
 
-The environement variable `VERIFICARLO_MCAMODE` controls the arithmetic error
-mode. It accepts the following values:
-
- * `MCA`: (default mode) Montecarlo Arithmetic with inbound and outbound errors
- * `IEEE`: the program uses standard IEEE arithmetic, no errors are introduced
- * `PB`: Precision Bounding inbound errors only
- * `RR`: Random Rounding outbound errors only
-
-The environement variable `VERIFICARLO_PRECISION` controls the virtual precision
-used for the floating point operations. It accept an integer value that
-represents the virtual precision at which MCA operations are performed. It's
-default value is 53. For a more precise definition of the virtual precision, you
-can refer to https://hal.archives-ouvertes.fr/hal-01192668.
-
-Verificarlo supports two MCA backends. The environement variable
-`VERIFICARLO_BACKEND` is used to select the backend. It can be set to `QUAD` or
-`MPFR`
-
-The default backend, MPFR, uses the GNU multiple precision library to compute
-MCA operations. It is heavily based on mcalib MPFR backend.
-
-Verificarlo offers an alternative MCA backend: the QUAD backend. QUAD backend
-uses the GCC quad types to compute MCA operations on doubles and the double type
-to compute MCA operations on floats. It is much faster than the MPFR backend,
-but is recent and still experimental.
-
-One should note when using the QUAD backend, that the round operations during
-MCA computation always use round-to-zero mode.
-
-### Examples
-
-The `tests/` directory contains various examples of Verificarlo usage.
+Tools are provided for processing traces. However, for gathering
+data with the script, you must respect the following format for your directory
+which is explained in the Postprocessing section.
 
 ### Postprocessing
 
-The `postprocessing/` directory contains postprocessing tools to compute floating
-point accuracy information from a set of verificarlo generated outputs.
-
-For now we only have a VTK postprocessing tool `vfc-vtk.py` which takes multiple
-VTK outputs generated with verificarlo and generates a single VTK set of files that
-is enriched with accuracy information for each floating point `DataArray`.
-
-For more information about `vfc-vtk.py`, please use the online help:
+The  `postprocessing/veritracer/` directory contains postprocessing tools
+for visualizing information produced by veritracer. It exists two tools
+`veritracer_analyzer.py` and `veritracer_plot.py` which respectively
+allow gathering and visualizing information. 
 
 ```bash
-$ postprocess/vfc-vtk.py --help
+   $ veritracer_analyzer.py
 ```
+For gathering data with the script,
+you must respect the following format for your directory:
+for `n` runs in the directory `exp`,
+you should have:
+
+```bash
+   $ ls -R exp
+   $ exp/1: tracer.dat exp/2: tracer.dat ... exp/n: tracer.dat
+   $
+   $ cd exp/
+   $ veritracer_analyzer.py -f tracer.dat -o output.csv
+```
+
+Veritracer_plot.py allows visualizing data from `output.csv` file.
+
+
+```bash
+   $ veritracer_plot.py -f file.csv 
+```
+
+For visualizing specific variables, you can use the `--variables` option.
+Use the hash value of the variable which is available in the `locationInfo.map`.
+
+```bash
+   $ veritracer_plot.py -f file.csv --variables=<hash1> <hash2> ... <hashN>
+```
+
+### Examples
+
+The `tests/veritracer` directory contains an example of Veritracer usage.
+
+![](simp_gen.jpg)
+
+`veritracer_plot.py` usage on ABINIT code.  
 
 ### How to cite Verificarlo
 
@@ -177,7 +185,7 @@ https://groups.google.com/forum/#!forum/verificarlo
 
 ### License
 
-Copyright (c) 2015
+Copyright (c) 2017
    Universite de Versailles St-Quentin-en-Yvelines
    CMLA, Ecole Normale Superieure de Cachan
 

@@ -358,16 +358,61 @@ static unsigned long long get_timestamp(void) {
   return usecs;
 }
 
-/* output functions used by the range-tracer pass */
-void _verificarlo_output_binary64(double v, void * ptr, char * locationInfo) {
-  printf("%llu %s %p %g\n", get_timestamp(), locationInfo, ptr, v);
+/* probes used by the veritracer pass */
+
+void _veritracer_probe_binary32(float value, void * value_ptr, char * hash_LI) {
+  fprintf(fileRangeTracer, "%llu %s %p %0.6a\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
-void _verificarlo_output_binary32(float v, void * ptr, char * locationInfo) {
-  printf("%llu %s %p %g\n", get_timestamp(), locationInfo, ptr, v);
+void _veritracer_probe_binary32_binary(float value, void *value_ptr, uint64_t hash_LI) {
+  struct veritracer_probe_binary32_fmt_t fmt;
+  fmt.sizeofValue = sizeof(value);
+  fmt.timestamp = get_timestamp();
+  fmt.value_ptr = value_ptr;
+  fmt.hash_LI = hash_LI;
+  fmt.value = value;  
+  fwrite(&fmt, sizeof_binary32_fmt, 1, fileRangeTracer);
+  printf("%d %d\n",sizeof_binary32_fmt,sizeof_binary64_fmt);
 }
 
-void _verificarlo_output_int(int64_t v, void * ptr, char * locationInfo) {
-  printf("%llu %s %p %ld\n", get_timestamp(), locationInfo, ptr, v);
+void _veritracer_probe_binary64(double value, void * value_ptr, char * hash_LI) {
+  fprintf(fileRangeTracer, "%llu %s %p %0.13a\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
+void _veritracer_probe_binary64_binary(double value, void *value_ptr, uint64_t hash_LI) {
+  struct veritracer_probe_binary64_fmt_t fmt;
+  fmt.sizeofValue = sizeof(value);
+  fmt.timestamp = get_timestamp();
+  fmt.value_ptr = value_ptr;
+  fmt.hash_LI = hash_LI;
+  fmt.value = value;
+  fwrite(&fmt, sizeof_binary64_fmt, 1, fileRangeTracer);
+}
+				  
+void _veritracer_output_int32(int32_t value, void * value_ptr, char * hash_LI) {
+  fprintf(fileRangeTracer, "%llu %s %p %d\n", get_timestamp(), hash_LI, value_ptr, value);
+}
+
+void _veritracer_output_int32_binary(int32_t value, void *value_ptr, uint64_t hash_LI) {
+  struct veritracer_probe_int32_fmt_t fmt;
+  fmt.sizeofValue = sizeof(value);
+  fmt.timestamp = get_timestamp();
+  fmt.value_ptr = value_ptr;
+  fmt.hash_LI = hash_LI;
+  fmt.value = value;
+  fwrite(&fmt, sizeof_int32_fmt, 1, fileRangeTracer);
+}
+
+void _veritracer_output_int64(int64_t value, void * value_ptr, char * hash_LI) {
+  fprintf(fileRangeTracer, "%llu %s %p %ld\n", get_timestamp(), hash_LI, value_ptr, value);
+}
+
+void _veritracer_output_int64_binary(int64_t value, void *value_ptr, uint64_t hash_LI) {
+  struct veritracer_probe_int64_fmt_t fmt;
+  fmt.sizeofValue = sizeof(value);
+  fmt.timestamp = get_timestamp();
+  fmt.value_ptr = value_ptr;
+  fmt.hash_LI = hash_LI;
+  fmt.value = value;  
+  fwrite(&fmt, sizeof_int64_fmt, 1, fileRangeTracer);
+}

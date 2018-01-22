@@ -124,7 +124,7 @@ AC_CONFIG_FILES([Makefile
 		 src/libmca-quad/Makefile
 		 src/libbitmask/Makefile
 		 src/libvfcreport/Makefile
-		 src/libvfcrange-tracer/Makefile
+		 src/libvfctracer/Makefile
 		 src/common/Makefile
 		 tests/Makefile])
 

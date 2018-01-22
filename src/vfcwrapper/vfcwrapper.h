@@ -21,6 +21,8 @@
  *                                                                              *
  ********************************************************************************/
 
+#include <stdint.h>
+
 /* define the available MCA modes of operation */
 #define MCAMODE_IEEE 0
 #define MCAMODE_MCA  1
@@ -60,3 +62,41 @@ struct mca_interface_t {
     int (*set_mca_mode)(int);
     int (*set_mca_precision)(int);
 };
+
+struct __attribute__((packed)) veritracer_probe_binary32_fmt_t {
+  uint32_t sizeofValue;
+  uint64_t timestamp;
+  void *value_ptr;
+  uint64_t hash_LI;
+  float value;
+};
+
+
+struct __attribute__((packed)) veritracer_probe_binary64_fmt_t {
+  uint32_t sizeofValue;
+  uint64_t timestamp;
+  void *value_ptr;
+  uint64_t hash_LI;
+  double value;
+};
+
+struct __attribute__((packed)) veritracer_probe_int32_fmt_t {
+  uint32_t sizeofValue;
+  uint64_t timestamp;
+  void *value_ptr;
+  uint64_t hash_LI;
+  int32_t value;
+};
+
+struct __attribute__((packed)) veritracer_probe_int64_fmt_t {
+  uint32_t sizeofValue;
+  uint64_t timestamp;
+  void *value_ptr;
+  uint64_t hash_LI;
+  int64_t value;
+};
+
+int sizeof_binary32_fmt = sizeof(struct veritracer_probe_binary32_fmt_t);
+int sizeof_binary64_fmt = sizeof(struct veritracer_probe_binary64_fmt_t);
+int sizeof_int32_fmt = sizeof(struct veritracer_probe_int32_fmt_t);
+int sizeof_int64_fmt = sizeof(struct veritracer_probe_int64_fmt_t);

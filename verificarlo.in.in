@@ -35,7 +35,7 @@ LIBDIR = "%LIBDIR%"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
 libvfcreport = LIBDIR + '/libvfcreport.so'
-libvfcrangetracer = LIBDIR + '/libvfcrangetracer.so'
+libvfctracer = LIBDIR + '/libvfctracer.so'
 mcalib_static = "{0}/libmcampfr.a {0}/libmcaquad.a {0}/libbitmask.a".format(LIBDIR)
 mcalib_dynamic = "-lmcampfr -lmcaquad -lbitmask"
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
@@ -52,6 +52,10 @@ report_level_choices=["module", "function", "basicblock"]
 VERIFICARLO_REPORT_PATH_ENV = 'VERIFICARLO_REPORT_PATH'
 verificarlo_report_filename = "verificarlo_report.csv"
 verificarlo_report_path = ""
+VERITRACER_LOCINFO_PATH_ENV = 'VERITRACER_LOCINFO_PATH'
+veritracer_locinfo_filename = "locationInfo.map" 
+veritracer_locinfo_path = ""
+tracer_fmt_choices = ['text','binary']
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
@@ -197,12 +201,14 @@ def compiler_mode(sources, options, output, args):
                 print_percentage=print_percentage
             ))
             
-        if args.range_tracer:
-            # Apply range tracer instrumentation pass
-            shell('{opt} -S  -load {libvfcrangetracer} -vfclibrange-tracer {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
+        if args.tracer:
+            tracer_fmt = '-vfclibbinary-format' if args.tracer_fmt == 'binary' else ''
+            # Apply tracer instrumentation pass
+            shell('{opt} -S  -load {libvfctracer} -vfclibtracer {tracer_fmt} {verbose} {selectfunction} {blacklist}  {ir} -o {ins}'.format(
                 opt=opt,
-                libvfcrangetracer=libvfcrangetracer,
+                libvfctracer=libvfctracer,
                 selectfunction=selectfunction,
+                tracer_fmt=tracer_fmt,
                 verbose=verbose,
                 ir=ir,
                 ins=ins_tracer,
@@ -247,8 +253,10 @@ if __name__ == "__main__":
     parser.add_argument('-report', '--report-level', action='store', type=str, default=0, choices=report_level_choices,
                         help='produces a report for floating-point operations')
     parser.add_argument('--print-percentage', action='store_true', help="print percentage of floating-points' type for report")
-    parser.add_argument('--range-tracer', action='store_true', help="Analyzer")
-
+    parser.add_argument('--tracer', action='store_true', help="veritracer mode")
+    parser.add_argument('--tracer-fmt', action='store', type=str, default='binary', choices=tracer_fmt_choices,
+                        help='Output format for tracing values')
+    
     args, other = parser.parse_known_args()
     
     sources, llvm_options = parse_extra_args(other)
@@ -266,9 +274,12 @@ if __name__ == "__main__":
             os.environ['VERIFICARLO_REPORT_PATH'] = os.getenv("PWD")        
         add_header_verificarlo_report(args.report_level, args.print_percentage)
 
-    if args.range_tracer:
+    if args.tracer:
         # Need to add debug option to get debug info 
         llvm_options += " -g "
+        if args.tracer_fmt == "binary":
+            if not os.getenv('VERITRACER_LOCINFO_PATH'):
+                os.environ['VERITRACER_LOCINFO_PATH'] = os.getenv("PWD")+"/"
         
     output = "-o " + args.o if args.o else ""
     if args.c:
