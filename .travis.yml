@@ -6,7 +6,7 @@ before_install:
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
   - sudo add-apt-repository ppa:dns/gnu -y
   - sudo apt-get update
-  - sudo apt-get install libmpfr-dev clang-3.5 llvm-3.5 llvm-3.5-dev dragonegg-4.7 gcc-4.7 g++-4.7 gfortran-4.7 autoconf automake build-essential libedit2
+  - sudo apt-get install libmpfr-dev clang-3.5 llvm-3.5 llvm-3.5-dev dragonegg-4.7 gcc-4.7 g++-4.7 gfortran-4.7 autoconf automake build-essential libedit-dev
 
 install:
   - ./autogen.sh
