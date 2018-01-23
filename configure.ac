@@ -24,7 +24,8 @@ AX_LLVM([3.3],[3.8.1],[all])
 AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
 AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
 
-AC_PATH_PROG([CLANG], [clang], "", $LLVM_BINDIR)
+AC_PATH_PROG([CLANG], [clang], "", $LLVM_BINDIR/)
+AC_MSG_NOTICE([llvm bin dir : $LLVM_BINDIR/ clang : $CLANG])
 if test -z "$CLANG"; then
    AC_PATH_PROGS([CLANG], [clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang], "")
 fi
