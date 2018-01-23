@@ -10,7 +10,8 @@ before_install:
 
 install:
   - ./autogen.sh
-  - ./configure --with-llvm=/usr/local/lib/llvm-3.4/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.6/plugin/dragonegg.so CC=gcc-4.6 || cat config.log
+  - locate llvm-config
+  - ./configure --with-llvm=/usr/lib/llvm-3.4/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.6/plugin/dragonegg.so CC=gcc-4.6 || cat config.log
   - make
   - sudo make install
   - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
