@@ -14,7 +14,7 @@ install:
   - find /usr -name libgfortran.so
   - gcc-4.7 --print-search-dirs
   - find /usr -name clang
-  - find /usr -name clang-3.4  
+  - find /usr -name clang-3.4   
   - ./configure --with-llvm=/usr/lib/llvm-3.4/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so CC=gcc-4.7 CXX=g++-4.7 || cat config.log
   - cat config.log
   - make V=1
