@@ -24,17 +24,16 @@ AX_LLVM([3.3],[3.8.1],[all])
 AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
 AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
 
-dnl AC_PATH_PROG([CLANG], [clang], "", $LLVM_BINDIR/)
-dnl AC_MSG_NOTICE([llvm bin dir : $LLVM_BINDIR/ clang : $CLANG])
-dnl if test -z "$CLANG"; then
-dnl    AC_PATH_PROGS([CLANG], [clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang], "")
-dnl fi
-dnl if test -z "$CLANG"; then
-dnl   AC_MSG_ERROR([Could not find clang])
-dnl fi
-dnl AC_DEFINE_UNQUOTED([CLANG_PATH], ["$CLANG"], [CLANG path])
-dnl AC_SUBST(CLANG_PATH, $CLANG)
-AC_SUBST(CLANG_PATH, /usr/lib/llvm-3.4/bin/clang)
+AC_PATH_PROG([CLANG], [clang], "", $LLVM_BINDIR/)
+AC_MSG_NOTICE([llvm bin dir : $LLVM_BINDIR/ clang : $CLANG])
+if test -z "$CLANG"; then
+   AC_PATH_PROGS([CLANG], [clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang], "")
+fi
+if test -z "$CLANG"; then
+  AC_MSG_ERROR([Could not find clang])
+fi
+AC_DEFINE_UNQUOTED([CLANG_PATH], ["$CLANG"], [CLANG path])
+AC_SUBST(CLANG_PATH, $CLANG)
 
 AC_CHECK_LIB([c], [exit], , AC_MSG_ERROR([Could not find c library]))
 AC_CHECK_LIB([m], [sin], , AC_MSG_ERROR([Could not find mpfr library]))
