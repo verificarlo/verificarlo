@@ -13,7 +13,7 @@ install:
   - find /usr -name llvm-config
   - find /usr -name libgfortran.so
   - gcc-4.7 --print-search-dirs
-  - ./configure --with-llvm=/usr/lib/llvm-3.4/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so CC=gcc-4.7 || cat config.log
+  - ./configure --with-llvm=/usr/lib/llvm-3.4/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so CC=gcc-4.7 CXX=g++-4.7 || cat config.log
   - make V=1
   - sudo make install
   - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
