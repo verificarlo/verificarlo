@@ -12,6 +12,7 @@ install:
   - ./autogen.sh
   - dpkg -L clang-3.5
   - g++-4.7 -print-search-dirs
+  - clang-3.5 -print-search-dirs
   - find /usr -name libedit.so
   - ./configure --with-llvm=/usr/lib/llvm-3.5/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so CC=gcc-4.7 CXX=g++-4.7 || cat config.log
   - cat config.log
