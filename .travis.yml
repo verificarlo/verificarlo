@@ -12,8 +12,9 @@ before_install:
 
 install:
   - ./autogen.sh
+  - export LIBRARY_PATH=/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7:/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu:/lib/x86_64-linux-gnu:/lib/../lib64:/usr/lib/x86_64-linux-gnu:/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7/../../..:/usr/lib/llvm-3.5/bin/../lib:/lib:/usr/lib:$LIBRARY_PATH
   - clang-3.5 -print-search-dirs
-  - export LD_LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.7/:$LD_LIBRARY_PATH
+  - find /usr -name libgfortran.so
   - ./configure --with-llvm=/usr/lib/llvm-3.5/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so CC=gcc-4.7 CXX=g++-4.7 || cat config.log
   - cat config.log
   - make V=1
