@@ -6,18 +6,14 @@ before_install:
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
   - sudo add-apt-repository ppa:dns/gnu -y
   - sudo apt-get update
-  - sudo apt-get remove gcc g++
-  - sudo apt-get install gcc-4.7 g++-4.7 gfortran-4.7 libgfortran-4.7-dev
-  - sudo apt-get install libmpfr-dev clang-3.5 llvm-3.5 llvm-3.5-dev dragonegg-4.7 autoconf automake build-essential libedit-dev
+  - sudo apt-get install libmpfr-dev clang-3.5 llvm-3.5 llvm-3.5-dev dragonegg-4.7 gcc-4.7 g++-4.7 gfortran-4.7 libgfortran-4.7-dev autoconf automake build-essential libedit-dev
 
 install:
   - ./autogen.sh
   - export LIBRARY_PATH=/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7:/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu:/lib/x86_64-linux-gnu:/lib/../lib64:/usr/lib/x86_64-linux-gnu:/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7/../../..:/usr/lib/llvm-3.5/bin/../lib:/lib:/usr/lib:$LIBRARY_PATH
-  - clang-3.5 -print-search-dirs
-  - find /usr -name libgfortran.so
   - ./configure --with-llvm=/usr/lib/llvm-3.5/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so CC=gcc-4.7 CXX=g++-4.7 || cat config.log
   - cat config.log
-  - make V=1
+  - make
   - sudo make install
   - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
