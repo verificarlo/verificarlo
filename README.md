@@ -15,8 +15,6 @@ Example of usage:
 
 ```bash
 $ cat > test.c <<HERE
-```
-```c
 #include <stdio.h>
 int main() {
   double a = 0;
@@ -24,12 +22,10 @@ int main() {
   printf("%0.17f\n", a);
   return 0;
 }
-```
-```bash
 HERE
 
 $ docker pull verificarlo/verificarlo
-$ docker run -v $PWD:/workdir verificarlo:verificarlo \
+$ docker run -v $PWD:/workdir verificarlo/verificarlo \
    verificarlo test.c -o test
 $ ./test
 999.99999999999795364
