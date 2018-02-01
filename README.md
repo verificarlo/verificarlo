@@ -6,14 +6,31 @@
 
 A tool for automatic Montecarlo Arithmetic analysis.
 
-### Docker image
+### Docker Image
 
-A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/. Using verificarlo is as simple as
-typing,
+A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/. 
+This image uses the last git master version of Verificarlo and includes support for Fortran and uses llvm-3.5 and gcc-4.7.
+
+Example of usage:
 
 ```bash
-    $ docker pull verificarlo/verificarlo
-    $ docker run -v $PWD:/workdir verificarlo:verificarlo verificarlo test.c -o test
+$ cat > test.c <<HERE
+#include <stdio.h>
+int main() {
+  double a = 0;
+  for (int i=0; i < 10000; i++) a += 0.1;
+  printf("%0.17f\n", a);
+  return 0;
+}
+HERE
+
+$ docker pull pablooliveira/verificarlo
+$ docker run -v $PWD:/workdir pablooliveira:verificarlo \
+   verificarlo test.c -o test
+$ ./test
+999.99999999999795364
+$ ./test
+999.99999999999761258
 ```
 
 ### Installation
