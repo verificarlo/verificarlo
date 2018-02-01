@@ -6,6 +6,16 @@
 
 A tool for automatic Montecarlo Arithmetic analysis.
 
+### Docker image
+
+A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/. Using verificarlo is as simple as
+typing,
+
+```bash
+    $ docker pull verificarlo/verificarlo
+    $ docker run -v $PWD:/workdir verificarlo:verificarlo verificarlo test.c -o test
+```
+
 ### Installation
 
 Please ensure that Verificarlo's dependencies are installed on your system:
@@ -107,8 +117,8 @@ mode. It accepts the following values:
  * `RR`: Random Rounding outbound errors only
 
 The environement variable `VERIFICARLO_PRECISION` controls the virtual precision
-used for the floating point operations. It accept an integer value that
-represents the virtual precision at which MCA operations are performed. It's
+used for the floating point operations. It accepts an integer value that
+represents the virtual precision at which MCA operations are performed. Its
 default value is 53. For a more precise definition of the virtual precision, you
 can refer to https://hal.archives-ouvertes.fr/hal-01192668.
 
