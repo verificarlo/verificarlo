@@ -27,9 +27,11 @@ HERE
 $ docker pull verificarlo/verificarlo
 $ docker run -v $PWD:/workdir verificarlo/verificarlo \
    verificarlo test.c -o test
-$ ./test
+$ docker run -v $PWD:/workdir verificarlo/verificarlo \
+   ./test
 999.99999999999795364
-$ ./test
+$ docker run -v $PWD:/workdir verificarlo/verificarlo \
+   ./test
 999.99999999999761258
 ```
 
