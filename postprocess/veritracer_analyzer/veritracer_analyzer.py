@@ -18,20 +18,19 @@ Go = 1024**3
 
 NS_MAX = {4 : 7, 8 : 16}
 
-csv_header = ["hash", "type", "time",
-              "max","min","median","mean","std",
+csv_header = ["hash", "type", "time","max","min","median","mean","std",
               "number-significant-digit"]
 
 offset = 0
 local_offset = 0
 size_to_read = 10*Mo
     
-def compute_nb_significant_digits(mean, std, size_bytes):
+def compute_nb_significant_digits(mean, std, size_in_bytes):
 
     if mean != 0.0 and std != 0.0:
         return -math.log10(abs(std/mean))
     elif mean != 0.0 and std == 0.0:
-        return NS_MAX[size_bytes]
+        return NS_MAX[size_in_bytes]
     else:
         return 0
 

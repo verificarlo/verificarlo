@@ -24,7 +24,10 @@ AX_LLVM([3.3],[3.8.1],[all])
 AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
 AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
 
-AC_PATH_PROGS([CLANG], ["$LLVM_BINDIR"/clang clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang], "")
+AC_PATH_PROG([CLANG], [clang], "", $LLVM_BINDIR/)
+if test -z "$CLANG"; then
+  AC_PATH_PROGS([CLANG], [clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang], "")
+fi
 if test -z "$CLANG"; then
   AC_MSG_ERROR([Could not find clang])
 fi
@@ -125,6 +128,8 @@ AC_CONFIG_FILES([Makefile
 		 src/libbitmask/Makefile
 		 src/libvfcreport/Makefile
 		 src/libvfctracer/Makefile
+		 src/libvfctracer/Data/Makefile
+		 src/libvfctracer/Format/Makefile		 
 		 src/common/Makefile
 		 tests/Makefile])
 

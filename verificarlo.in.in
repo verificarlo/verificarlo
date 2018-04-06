@@ -200,25 +200,28 @@ def compiler_mode(sources, options, output, args):
                 ir=ir,
                 print_percentage=print_percentage
             ))
-            
+                            
+        # Apply Veritracer instrumentation pass
         if args.tracer:
             tracer_fmt = '-vfclibbinary-format' if args.tracer_fmt == 'binary' else ''
+            tracer_bt = '-vfclibbacktrace' if args.tracer_backtrace else ''
             # Apply tracer instrumentation pass
-            shell('{opt} -S  -load {libvfctracer} -vfclibtracer {tracer_fmt} {verbose} {selectfunction} {blacklist}  {ir} -o {ins}'.format(
+            shell('{opt} -S -load {libvfctracer} -vfclibtracer {tracer_fmt} {tracer_bt} {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
                 opt=opt,
                 libvfctracer=libvfctracer,
                 selectfunction=selectfunction,
                 tracer_fmt=tracer_fmt,
+                tracer_bt=tracer_bt,
                 verbose=verbose,
                 ir=ir,
                 ins=ins_tracer,
                 blacklist=blacklist,
             ))
 
-            ir = ins_tracer
+            ir = ins_tracer            
 
         # Apply MCA instrumentation pass
-        shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
+        shell('{opt} -S -load {libvfcinstrument} -vfclibinst {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
             opt=opt,
             libvfcinstrument=libvfcinstrument,
             selectfunction=selectfunction,
@@ -228,8 +231,9 @@ def compiler_mode(sources, options, output, args):
             blacklist=blacklist,
         ))
 
-        ins = ins_mca
-        
+        ir = ins_mca
+
+        ins = ir
         if not output:
             output = '-o ' + basename + '.o'
         # Produce object file
@@ -256,6 +260,8 @@ if __name__ == "__main__":
     parser.add_argument('--tracer', action='store_true', help="veritracer mode")
     parser.add_argument('--tracer-fmt', action='store', type=str, default='binary', choices=tracer_fmt_choices,
                         help='Output format for tracing values')
+    parser.add_argument('--tracer-backtrace', action='store_true',
+                        help="veritracer backtrace mode")
     
     args, other = parser.parse_known_args()
     
@@ -280,7 +286,10 @@ if __name__ == "__main__":
         if args.tracer_fmt == "binary":
             if not os.getenv('VERITRACER_LOCINFO_PATH'):
                 os.environ['VERITRACER_LOCINFO_PATH'] = os.getenv("PWD")+"/"
-        
+
+        if args.tracer_backtrace:
+            llvm_options += " -rdynamic "
+                
     output = "-o " + args.o if args.o else ""
     if args.c:
         if len(sources) == 0:

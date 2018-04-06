@@ -151,13 +151,13 @@ static float _bitmask_sbin(float a, float b, const int op) {
   uint32_t rand_smask = get_random_smask();
 
   if (BITMASKLIB_MODE == BITMASK_MODE_RAND) {
-    /* Save bits higher than VERIFICARLO_PRECISION */
+    /* Save higher bits than VERIFICARLO_PRECISION */
     uint32_t bits_saved = float_bitmask & (*tmp);
-    /* Noise result with the random mask by apply a XOR */
+    /* Noise the result with the random mask by applying a XOR bitmask */
     uint32_t tmp_noised = *tmp ^ rand_smask;
-    /* Remove higher bits to restore bits saved by apply an OR */
+    /* Remove the higher bits for restoring the bits saved by applying an OR bitmask */
     uint32_t tmp_with_bits_noised_only = tmp_noised & ~float_bitmask;
-    /* Restore saved bits by apply an OR */
+    /* Restore the saved bits by applying an OR bitmask */
     *tmp = tmp_with_bits_noised_only | bits_saved;
   }
   else if (BITMASKLIB_MODE == BITMASK_MODE_INV) 
@@ -177,13 +177,13 @@ static double _bitmask_dbin(double a, double b, const int op) {
   uint64_t rand_dmask = get_random_dmask();
 
   if (BITMASKLIB_MODE == BITMASK_MODE_RAND) {
-    /* Save bits higher than VERIFICARLO_PRECISION */
+    /* Save higher bits than VERIFICARLO_PRECISION */
     uint64_t bits_saved = double_bitmask & (*tmp);
-    /* Noise result with the random mask by apply a XOR */
+    /* Noise the result with the random mask by applying a XOR bitmask */
     uint64_t tmp_noised = *tmp ^ rand_dmask;
-    /* Remove higher bits to restore bits saved by apply an OR */
+    /* Remove the higher bits for restoring the bits saved by applying an OR bitmask */
     uint64_t tmp_with_bits_noised_only = tmp_noised & ~double_bitmask;
-    /* Restore saved bits by apply an OR */
+    /* Restore the saved bits by applying an OR bitmask */
     *tmp = tmp_with_bits_noised_only | bits_saved;
   }
   else if (BITMASKLIB_MODE == BITMASK_MODE_INV)

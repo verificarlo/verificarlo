@@ -18,8 +18,7 @@ sep_legend_name = ' | '
 wildcard = '*'
 
 header = "hash,type,time,max,min,median,mean,std,number-significant-digit"
-# header = "hash,type,time,number-significant-digit"
-hcsv = header.split(',')
+header_csv = header.split(',')
 
 def get_key(row):
     return row['hash']
@@ -45,7 +44,7 @@ def read_csv(args):
     variables_to_plot = args.variables
     
     fi = open(args.csv_file, 'rb')
-    dictReader = csv.DictReader(fi, fieldnames=hcsv)
+    dictReader = csv.DictReader(fi, fieldnames=header_csv)
 
     d_values = dict()
     get_values = d_values.get
@@ -148,7 +147,6 @@ def get_colors_bt(args):
         
     backtrace_set = set(bt_list)
     colors = cm.hsv(np.linspace(0, 1, len(backtrace_set)))
-
     map_bt_color = dict(zip(backtrace_set, colors))
     
     return colors,[map_bt_color[b] for b in bt_list]
@@ -187,7 +185,7 @@ def plot_significant_number(d_values, args):
     ax1.set_ylabel('Significant digits')
     
     if args.iteration_mode:
-        ax1.set_xlabel('Iteration')
+        ax1.set_xlabel('Invocation')
     else:
         ax1.set_xlabel('Time')
     
@@ -201,7 +199,6 @@ def plot_significant_number(d_values, args):
         
     labels = []
     legends_name = []
-
     
     hmax = 0
 
@@ -298,9 +295,6 @@ def plot_significant_number(d_values, args):
             legends_name.append("$\sigma$")
         color_i += 1
     
-    # # plt.hlines(0, -1, hmax)
-
-    
     if args.mode_pres:
         set_font(40)
         # plt.legend(labels, legends_name,
@@ -325,24 +319,23 @@ def plot_significant_number(d_values, args):
     if not args.no_show:
         plt.show()
     
-    if args.save:
-        plt.savefig(args.csv_file+'.pdf')
+    if args.output:
+        plt.savefig(args.output+'.pdf')
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Plot significant number of variables over time")
-    parser.add_argument('-f','--csv-file', type=str, action='store', default='range_tracer.csv', required=True,
+    parser.add_argument('-f','--csv-file', type=str, action='store', required=True,
                         help="CSV filename which contains variables info")
-    parser.add_argument('--plot-limits', action='store_true',
-                        help='Print color gradient in background')
     parser.add_argument('-v','--variables', type=int, nargs='*', action='store',
                         help="Hash of variables to plot")
     parser.add_argument('-bt','--backtrace', action="store", type=str,
                         help="file with backtrace for each time")
     parser.add_argument('--no-show', action="store_true", default=False,
                         help="Not show figure")
-    parser.add_argument('--save', action="store_true",
-                        help="Save figure")
+    parser.add_argument('-o','--output', action="store", default="plot.pdf",
+                        help="Save figure in a PDF file")
+
     parser.add_argument('--mean', action="store_true",
                         help="plot mean values")
     parser.add_argument('--std', action="store_true",

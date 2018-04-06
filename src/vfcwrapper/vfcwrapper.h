@@ -64,7 +64,7 @@ struct mca_interface_t {
 };
 
 struct __attribute__((packed)) veritracer_probe_binary32_fmt_t {
-  uint32_t sizeofValue;
+  uint32_t sizeof_value;
   uint64_t timestamp;
   void *value_ptr;
   uint64_t hash_LI;
@@ -73,7 +73,7 @@ struct __attribute__((packed)) veritracer_probe_binary32_fmt_t {
 
 
 struct __attribute__((packed)) veritracer_probe_binary64_fmt_t {
-  uint32_t sizeofValue;
+  uint32_t sizeof_value;
   uint64_t timestamp;
   void *value_ptr;
   uint64_t hash_LI;
@@ -81,7 +81,7 @@ struct __attribute__((packed)) veritracer_probe_binary64_fmt_t {
 };
 
 struct __attribute__((packed)) veritracer_probe_int32_fmt_t {
-  uint32_t sizeofValue;
+  uint32_t sizeof_value;
   uint64_t timestamp;
   void *value_ptr;
   uint64_t hash_LI;
@@ -89,7 +89,7 @@ struct __attribute__((packed)) veritracer_probe_int32_fmt_t {
 };
 
 struct __attribute__((packed)) veritracer_probe_int64_fmt_t {
-  uint32_t sizeofValue;
+  uint32_t sizeof_value;
   uint64_t timestamp;
   void *value_ptr;
   uint64_t hash_LI;
