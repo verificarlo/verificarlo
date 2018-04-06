@@ -10,7 +10,7 @@ verificarlo -O0 rr_mode.c -o rr_mode
 
 for BACKEND in MPFR QUAD; do
     export VERIFICARLO_BACKEND=$BACKEND
-    rm -f output
+    rm -f output_$BACKEND
     for i in `seq 100`; do
 	./rr_mode >> output_$BACKEND
     done
@@ -26,7 +26,7 @@ verificarlo -DDOUBLE -O0 rr_mode.c -o rr_mode
 
 for BACKEND in MPFR QUAD; do
     export VERIFICARLO_BACKEND=$BACKEND
-    rm -f output
+    rm -f output_$BACKEND
     for i in `seq 100`; do
 	./rr_mode >> output_$BACKEND
     done
