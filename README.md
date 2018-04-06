@@ -123,6 +123,8 @@ If you only wish to instrument a specific function in your program, use the
 When invoked with the `--verbose` flag, verificarlo provides detailed output of
 the instrumentation process.
 
+It is important to include the necessary link flags if you use extra libraries. For example, you should include `-lm` if you are linking against the math library and include `-lstdc++` if you use functions in the standard C++ library.
+
 ### MCA Configuration Parameters
 
 Two environement variables control the Montecarlo Arithmetic parameters.
