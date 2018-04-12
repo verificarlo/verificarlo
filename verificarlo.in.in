@@ -56,6 +56,7 @@ VERITRACER_LOCINFO_PATH_ENV = 'VERITRACER_LOCINFO_PATH'
 veritracer_locinfo_filename = "locationInfo.map" 
 veritracer_locinfo_path = ""
 tracer_fmt_choices = ['text','binary']
+tracer_level_choices = ['basic', 'temporary']
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
@@ -203,15 +204,19 @@ def compiler_mode(sources, options, output, args):
                             
         # Apply Veritracer instrumentation pass
         if args.tracer:
-            tracer_fmt = '-vfclibbinary-format' if args.tracer_fmt == 'binary' else ''
-            tracer_bt = '-vfclibbacktrace' if args.tracer_backtrace else ''
+            tracer_fmt = '-vfclibtracer-format=' + args.tracer_fmt
+            tracer_bt = '-vfclibtracer-backtrace' if args.tracer_backtrace else ''
+            tracer_debug_mode = '-vfclibtracer-debug' if args.tracer_debug_mode else ''
+            tracer_level = '-vfclibtracer-level=' + args.tracer_level
             # Apply tracer instrumentation pass
-            shell('{opt} -S -load {libvfctracer} -vfclibtracer {tracer_fmt} {tracer_bt} {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
+            shell('{opt} -S -load {libvfctracer} -vfclibtracer {tracer_fmt} {tracer_bt} {tracer_level} {tracer_debug_mode} {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
                 opt=opt,
                 libvfctracer=libvfctracer,
                 selectfunction=selectfunction,
                 tracer_fmt=tracer_fmt,
                 tracer_bt=tracer_bt,
+                tracer_debug_mode=tracer_debug_mode,
+                tracer_level=tracer_level,
                 verbose=verbose,
                 ir=ir,
                 ins=ins_tracer,
@@ -260,8 +265,12 @@ if __name__ == "__main__":
     parser.add_argument('--tracer', action='store_true', help="veritracer mode")
     parser.add_argument('--tracer-fmt', action='store', type=str, default='binary', choices=tracer_fmt_choices,
                         help='Output format for tracing values')
+    parser.add_argument('--tracer-level', action='store', type=str, default='basic', choices=tracer_level_choices,
+                        help='Tracing level')
     parser.add_argument('--tracer-backtrace', action='store_true',
                         help="veritracer backtrace mode")
+    parser.add_argument('--tracer-debug-mode', action='store_true',
+                        help="veritracer debug mode")
     
     args, other = parser.parse_known_args()
     
@@ -283,9 +292,8 @@ if __name__ == "__main__":
     if args.tracer:
         # Need to add debug option to get debug info 
         llvm_options += " -g "
-        if args.tracer_fmt == "binary":
-            if not os.getenv('VERITRACER_LOCINFO_PATH'):
-                os.environ['VERITRACER_LOCINFO_PATH'] = os.getenv("PWD")+"/"
+        if not os.getenv('VERITRACER_LOCINFO_PATH'):
+            os.environ['VERITRACER_LOCINFO_PATH'] = os.getenv("PWD") + os.sep
 
         if args.tracer_backtrace:
             llvm_options += " -rdynamic "

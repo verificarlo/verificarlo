@@ -63,6 +63,7 @@
 #endif
 
 using namespace llvm;
+  
 // VfclibInst pass command line arguments
 static cl::opt<std::string> VfclibInstFunction("vfclibinst-function",
 					       cl::desc("Only instrument given FunctionName"),
@@ -81,14 +82,39 @@ static cl::opt<bool> VfclibBlackList("vfclibblack-list",
 				     cl::desc("Activate black list mode"),
 				     cl::value_desc("BlackList"), cl::init(false));
 
-static cl::opt<bool> VfclibBinaryFormat("vfclibbinary-format",
-					cl::desc("Output information in binary format"),
-					cl::value_desc("BinaryFormat"), cl::init(true));
+static cl::opt<vfctracerFormat::optFormat> VfclibFormat("vfclibtracer-format",
+					  cl::desc("Output format"),
+					  cl::value_desc("TracerFormat"),
+							cl::values(clEnumValN(vfctracerFormat::binary,
+									      "binary",
+									      "Binary format" ),
+								   clEnumValN(vfctracerFormat::text,
+									      "text",
+									      "Text format" ),
+								   NULL) // sentinel 
+					  );
 
 static cl::opt<bool> VfclibBacktrace("vfclibbacktrace",
 				     cl::desc("Add backtrace function"),
-				     cl::value_desc("Backtrace"), cl::init(false));
+				     cl::value_desc("TracerBacktrace"), cl::init(false));
 
+
+static cl::opt<bool> VfclibDebug("vfclibtracer-debug",
+				 cl::value_desc("TracerDebug"),
+				 cl::desc("Enable debug mode"), cl::init(false));
+
+static cl::opt<vfctracer::optTracingLevel> VfclibTracingLevel("vfclibtracer-level",
+							   cl::desc("Tracing Level"),
+							   cl::value_desc("TracingLevel"),
+							   cl::values(clEnumValN(vfctracer::basic,
+										 "basic",
+										 "Basic level"),
+								      clEnumValN(vfctracer::temporary,
+										 "temporary",
+										 "Allows to trace temporary variables"),
+								      NULL) // sentinel
+						      );
+						      
 namespace {
   
   // Define an enum type to classify the floating points operations
@@ -128,17 +154,16 @@ namespace {
       } else if (not VfclibInstFunction.empty()) {
 	SelectedFunctionSet.insert(VfclibInstFunction);
       }
-      if (VfclibBinaryFormat) {
-	std::string mappingFilename(getenv("VERITRACER_LOCINFO_PATH"));
-	mappingFilename += "/locationInfo.map";
-	mappingFile.open(mappingFilename,  std::fstream::out | std::fstream::app);
-	if (not mappingFile.is_open()) {
-	  errs() << "Cannot open file : "  << mappingFilename << "\n";
-	  exit(1);
-	} else {
-	  // errs() << mappingFilename << " is open \n";
-	}
+      std::string mappingFilename(getenv("VERITRACER_LOCINFO_PATH"));
+      mappingFilename += "/locationInfo.map";
+      mappingFile.open(mappingFilename,  std::fstream::out | std::fstream::app);
+      if (not mappingFile.is_open()) {
+	errs() << "Cannot open file : "  << mappingFilename << "\n";
+	exit(1);
+      } else {
+	// errs() << mappingFilename << " is open \n";
       }
+      vfctracer::tracingLevel  = VfclibTracingLevel;
     }    
 
     void getInfoMD(const MDNode *v) {
@@ -185,7 +210,7 @@ namespace {
       return NULL;
     }
         
-    StringRef getOriginalName(const Value *V) {      
+    std::string getOriginalName(const Value *V) {      
 
       if (const Instruction *I = dyn_cast<Instruction>(V)) {
 	if (I->isBinaryOp() && I->getType()->isVectorTy()) {
@@ -193,8 +218,8 @@ namespace {
 	  Value *op0 = I->getOperand(0); 
 	  Value *op1 = I->getOperand(1); 
 
-	  StringRef name_op0 = "";
-	  StringRef name_op1 = "";
+	  std::string name_op0 = "";
+	  std::string name_op1 = "";
 	  
 	  // <result> = load [volatile] <ty>, <ty>* <pointer>
 	  if (const LoadInst *Load = dyn_cast<LoadInst>(op0)) {
@@ -219,8 +244,7 @@ namespace {
 	  }
 
 	}	
-      }
-      
+      }      
       
       // If the value is defined as a GetElementPtrInstruction, return the name
       // of the pointer operand instead
@@ -238,19 +262,32 @@ namespace {
       }
 
       if (const Instruction *I = dyn_cast<Instruction>(V)) {
-	if (isFPop(*I)) {
+	if (opcode::isFPOp(I)) {
 	  Value *v0 = I->getOperand(0);
 	  Value *v1 = I->getOperand(1);
 	  
 	  StringRef name0 = findName(v0);
 	  StringRef name1 = findName(v1);
+	
+	  if (name0 == vfctracer::temporaryVariableName)
+	    name0 = vfctracer::getRawName(v0);
+	  if (name1 == vfctracer::temporaryVariableName)
+	    name1 = vfctracer::getRawName(v1);
+
+	  std::string opStr = opcode::getOpStr(I);	
+	  std::string name = name0;
+	  name += " " ;
+	  name += opStr ;
+	  name += " " ;
+	  name += name1 ;
+	  return name;
+	} else if (opcode::isStoreOp(I)) {
 	  
-	  if (name0 != "_")
-	    return name0;
-	  if (name1 != "_")
-	    return name1;	    		
+
 	}
-      }      
+      }
+      errs() << "getOriginalName : " << *V << "\n";
+      
       return findName(V);
     }
 
@@ -260,6 +297,7 @@ namespace {
 	return V->getName();
 
       const MDNode *Var = findVar(V, F);
+      errs() << "Var : " << *Var << "\n";
       if (!Var)
 	return tmpVarName;
 
@@ -339,22 +377,10 @@ namespace {
 	return FOP_DIV;
       case Instruction::Store:
 	return STORE;
-	// case Instruction::Ret:
-	// 	return RETURN;
+      // case Instruction::Ret:
+      // 	return Fops::RETURN;
       default:
 	return FOP_IGNORE;
-      }
-    }
-
-    bool isFPop(const Instruction &I) {
-      switch (I.getOpcode()) {
-      case Instruction::FAdd:
-      case Instruction::FSub:
-      case Instruction::FMul:
-      case Instruction::FDiv:
-	return true;
-      default:
-	return false;
       }
     }
     
@@ -362,8 +388,9 @@ namespace {
       Type *dataType = D.getDataType();
       Type *ptrDataType = D.getDataPtrType();
       std::string variableName = D.getVariableName();
-      // D.dump();
-      if (not D.isValidDataType() || D.isTemporyVariable())
+      if (VfclibDebug)
+	D.dump(); /* /!\ Dump Data */
+      if (not D.isValidDataType() || D.isTemporaryVariable())
 	return false;
       if (VfclibInstVerbose)
 	vfctracer::VerboseMessage(D);      
@@ -404,8 +431,8 @@ namespace {
 
       StringRef SelectedFunction = StringRef(VfclibInstFunction);
 
-      vfctracerFormat::Format* Fmt = vfctracerFormat::CreateFormat(M, VfclibBinaryFormat);
-    
+      vfctracerFormat::Format* Fmt = vfctracerFormat::CreateFormat(M, VfclibFormat);
+      
       // Find the list of functions to instrument
       // Instrumentation adds stubs to mcalib function which we
       // never want to instrument.  Therefore it is important to
