@@ -74,8 +74,10 @@ namespace vfctracerFormat {
   }
 
   Constant* TextFmt::CreateProbeFunctionPrototype(Data &D) {
-      
-    std::string probeFunctionName = vfctracer::probePrefixName + D.getDataTypeName();
+
+    std::string probeFunctionName = vfctracer::probePrefixName
+      + D.getDataTypeName();
+
     Type *returnType = Type::getVoidTy(M->getContext());
     Type *valueType = D.getDataType();
     Type *valuePtrType = D.getDataPtrType();
@@ -96,7 +98,12 @@ namespace vfctracerFormat {
     /* For FP operations, need to insert the probe after the instruction */
     if (opcode::isFPOp(D.getData()))
       builder.SetInsertPoint(D.getData()->getNextNode());
+
     Value *value = D.getValue();
+    if (value->getType() != D.getDataType()) {
+      errs() << "Value type and Data Type don't match\n";
+      errs() << *value->getType() << " != " << *D.getDataType() << "\n";
+    }
     Value *valuePtr = D.getAddress();
     Value *locInfoValue = getOrCreateLocInfoValue(D);
     CallInst *callInst = builder.CreateCall3(cast<Function>(probeFunc),
@@ -110,69 +117,115 @@ namespace vfctracerFormat {
 
   Type* TextFmt::getLocInfoType(Data &D) {
     if (typeid(D) == typeid(ScalarData)) {
-      return Type::getInt8PtrTy(M->getContext());
+      return Type::getInt64Ty(M->getContext());
+      // return Type::getInt8PtrTy(M->getContext());
     } else if (typeid(D) == typeid(VectorData)) {
-      return Type::getInt8PtrTy(M->getContext())->getPointerTo();
+      VectorData VD = cast<VectorData>(D);
+      return Type::getInt64PtrTy(M->getContext());
+      // return ArrayType::get(Type::getInt8PtrTy(M->getContext()), VD.getVectorSize());
+      // return Type::getInt8PtrTy(M->getContext())->getPointerTo();
     } else {
-      assert(0);
+      llvm_unreachable("Unknow Data class");
     }
   };
 
   Value* TextFmt::getOrCreateLocInfoValue(Data &D) {
     if (typeid(D) == typeid(ScalarData)) {
     
-      IRBuilder<> builder(D.getData());
-      Fops opCode = getOpCode(*D.getData());
-      /* For FP operations, need to insert the probe after the instruction */
-      if (opcode::isFPOp(D.getData()))
-	builder.SetInsertPoint(D.getData()->getNextNode());
       std::string locInfo = vfctracer::getLocInfo(D);
       uint64_t keyLocInfo = vfctracer::getOrInsertLocInfoValue(locInfo);
-      Value *strPtr = builder.CreateGlobalStringPtr(locInfo, "locInfo.str");
-      return strPtr;
+      Type *int64Ty = Type::getInt64Ty(M->getContext());
+      Constant *locInfoValue = ConstantInt::get(int64Ty, keyLocInfo, false);
+      return locInfoValue;
+
+      // IRBuilder<> builder(D.getData());
+      // Fops opCode = getOpCode(*D.getData());
+      // /* For FP operations, need to insert the probe after the instruction */
+      // if (opcode::isFPOp(D.getData()))
+      // 	builder.SetInsertPoint(D.getData()->getNextNode());
+      // std::string locInfo = vfctracer::getLocInfo(D);
+      // uint64_t keyLocInfo = vfctracer::getOrInsertLocInfoValue(locInfo);
+      // Value *strPtr = builder.CreateGlobalStringPtr(locInfo, "locInfo.str");
+      // return strPtr;
 
     } else if (VectorData* VD = dynamic_cast<VectorData*>(&D)) {
-
+      
       std::string locInfoGVname = "arrayLocInfoGV." + VD->getVariableName();
       GlobalVariable * arrayLocInfoGV = M->getGlobalVariable(locInfoGVname);
       Type *int64Ty = Type::getInt64Ty(M->getContext());
-      errs() << *arrayLocInfoGV << "\n";
       if (arrayLocInfoGV == nullptr) {
+      	std::string locInfo = vfctracer::getLocInfo(*VD);
 
-	std::string locInfo = vfctracer::getLocInfo(*VD);
+      	/* Create vector of locationInfo keys */
+      	std::vector<Constant*> locInfoKeyVector;	  
+      	for(int i = 0; i < VD->getVectorSize(); ++i) {
+      	  std::string ext = "." + std::to_string(i);
+      	  uint64_t keyLocInfo = vfctracer::getOrInsertLocInfoValue(locInfo,ext);
+      	  Constant *locInfoValue = ConstantInt::get(int64Ty, keyLocInfo, false);
+      	  locInfoKeyVector.push_back(locInfoValue);
+      	}
+      	/* Create Globale Variable which contains the constant array */
+      	ArrayType* arrayLocInfoType = ArrayType::get(int64Ty, VD->getVectorSize());
+      	/* Constant Array containing locationInfo keys */
+      	Constant* constArrayLocInfo = ConstantArray::get(arrayLocInfoType,
+      							 locInfoKeyVector);
 
-	/* Create vector of locationInfo keys */
-	std::vector<Constant*> locInfoKeyVector;	  
-	for(int i = 0; i < VD->getVectorSize(); ++i) {
-	  Constant *strPtr = ConstantDataArray::getString(M->getContext(), locInfo, true);;
-	  locInfoKeyVector.push_back(strPtr);
-	}
-	/* Create Globale Variable which contains the constant array */
-	PointerType *strPtrType = Type::getInt8PtrTy(M->getContext());
-	ArrayType* arrayLocInfoTy = ArrayType::get(strPtrType, VD->getVectorSize());
-	/* Constant Array containing locationInfo keys */
-	Constant* constArrayLocInfo = ConstantArray::get(arrayLocInfoTy,
-							 locInfoKeyVector);
-      
-	GlobalVariable* arrayLocInfoGV = new GlobalVariable(/*Module=*/*M, 
-							    /*Type=*/arrayLocInfoTy,
-							    /*isConstant=*/false,
-							    /*Linkage=*/GlobalValue::ExternalLinkage,
-							    /*Initializer=*/constArrayLocInfo,
-							    /*Name=*/locInfoGVname);
+      	arrayLocInfoGV = new GlobalVariable(/*Module=*/*M, 
+      					    /*Type=*/arrayLocInfoType,
+      					    /*isConstant=*/true,
+      					    /*Linkage=*/GlobalValue::ExternalLinkage,
+      					    /*Initializer=*/constArrayLocInfo,
+      					    /*Name=*/locInfoGVname);
       }
-      
+
       /* Create indices list for accessing to Global Array with getElementPtr */
-      Constant* zero_constInt64 = ConstantInt::get(int64Ty, 0);
+      Constant* zeroConstInt64 = ConstantInt::get(int64Ty, 0);
       std::vector<Constant*> constPtrIndices;
-      constPtrIndices.push_back(zero_constInt64);
-      constPtrIndices.push_back(zero_constInt64);
+      constPtrIndices.push_back(zeroConstInt64);
+      constPtrIndices.push_back(zeroConstInt64);
       Value *locInfoValue = ConstantExpr::getGetElementPtr(arrayLocInfoGV,
-							   constPtrIndices);
+      							   constPtrIndices);
       return locInfoValue;
 
+      // std::string locInfoGVname = "arrayLocInfoGV." + VD->getVariableName();
+      // GlobalVariable * arrayLocInfoGV = M->getGlobalVariable(locInfoGVname);
+      // Type *int64Ty = Type::getInt64Ty(M->getContext());
+      // if (arrayLocInfoGV == nullptr) {
+      // 	std::string locInfo = vfctracer::getLocInfo(*VD);
+
+      // 	/* Create vector of locationInfo keys */
+      // 	std::vector<Constant*> locInfoKeyVector;	  
+      // 	for(int i = 0; i < VD->getVectorSize(); ++i) {
+      // 	  Constant *strPtr = ConstantDataArray::getString(M->getContext(), locInfo, true);;
+      // 	  locInfoKeyVector.push_back(strPtr);
+      // 	}
+      // 	/* Create Globale Variable which contains the constant array */
+      // 	PointerType *strPtrType = Type::getInt8PtrTy(M->getContext());
+      // 	ArrayType* arrayLocInfoTy = ArrayType::get(strPtrType, VD->getVectorSize());
+      // 	errs() << * arrayLocInfoTy << "\n";
+      // 	/* Constant Array containing locationInfo keys */
+      // 	Constant* constArrayLocInfo = ConstantArray::get(arrayLocInfoTy,
+      // 							 locInfoKeyVector);
+      
+      // 	arrayLocInfoGV = new GlobalVariable(/*Module=*/*M, 
+      // 					    /*Type=*/arrayLocInfoTy,
+      // 					    /*isConstant=*/false,
+      // 					    /*Linkage=*/GlobalValue::ExternalLinkage,
+      // 					    /*Initializer=*/constArrayLocInfo,
+      // 					    /*Name=*/locInfoGVname);
+      // }
+      
+      // /* Create indices list for accessing to Global Array with getElementPtr */
+      // Constant* zeroConstInt64 = ConstantInt::get(int64Ty, 0);
+      // std::vector<Constant*> constPtrIndices;
+      // constPtrIndices.push_back(zeroConstInt64);
+      // constPtrIndices.push_back(zeroConstInt64);
+      // Value *locInfoValue = ConstantExpr::getGetElementPtr(arrayLocInfoGV,
+      // 							   constPtrIndices);
+      // return locInfoValue;
+
     } else {
-      assert(false);
+      llvm_unreachable("Unknow Data class");
     }
   
   };

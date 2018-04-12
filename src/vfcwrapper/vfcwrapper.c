@@ -399,59 +399,59 @@ static uint64_t get_timestamp(void) {
 
 /* int */
 
-void _veritracer_output_int32(int32_t value, int32_t* value_ptr, char * hash_LI) {
-  fprintf(trace_FILE_ptr, "%lu %s %p %d\n", get_timestamp(), hash_LI, value_ptr, value);
+void _veritracer_probe_int32(int32_t value, int32_t* value_ptr, uint64_t hash_LI) {
+  fprintf(trace_FILE_ptr, "%lu %lu %p %d\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
-void _veritracer_output_int64(int64_t value, int64_t* value_ptr, char * hash_LI) {
-  fprintf(trace_FILE_ptr, "%lu %s %p %ld\n", get_timestamp(), hash_LI, value_ptr, value);
+void _veritracer_probe_int64(int64_t value, int64_t* value_ptr, uint64_t hash_LI) {
+  fprintf(trace_FILE_ptr, "%lu %lu %p %ld\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
 /* binary32 */
 
-void _veritracer_probe_binary32(float value, float* value_ptr, char* hash_LI) {
-  fprintf(trace_FILE_ptr, "%lu %s %p %0.6a\n", get_timestamp(), hash_LI, value_ptr, value);
+void _veritracer_probe_binary32(float value, float* value_ptr, uint64_t hash_LI) {
+  fprintf(trace_FILE_ptr, "%lu %lu %p %0.6a\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
-void _veritracer_probe_2xbinary32(float2 value, float2* value_ptr, char* hash_LI[2]) {
+void _veritracer_probe_2xbinary32(float2 value, float* value_ptr, uint64_t hash_LI[2]) {
   const int N = 2;
   uint64_t timestamp = get_timestamp();
   for (int i = 0; i < N; i++)
-    fprintf(trace_FILE_ptr, "%lu %s %p %0.6a\n", timestamp, hash_LI[i], value_ptr, value[i]);
+    fprintf(trace_FILE_ptr, "%lu %lu %p %0.6a\n", timestamp, hash_LI[i], value_ptr, value[i]);
 }
 
-void _veritracer_probe_4xbinary32(float4 value, float4* value_ptr, char* hash_LI[4]) {
+void _veritracer_probe_4xbinary32(float4 value, float4* value_ptr, uint64_t hash_LI[4]) {
   const int N = 4;
   uint64_t timestamp = get_timestamp();
   for (int i = 0; i < N; i++)
-    fprintf(trace_FILE_ptr, "%lu %s %p %0.6a\n", timestamp, hash_LI[i], value_ptr, value[i]);
+    fprintf(trace_FILE_ptr, "%lu %lu %p %0.6a\n", timestamp, hash_LI[i], value_ptr, value[i]);
 }
 
 /* binary64 */
 
-void _veritracer_probe_binary64(double value, double* value_ptr, char * hash_LI) {
-  fprintf(trace_FILE_ptr, "%lu %s %p %0.13a\n", get_timestamp(), hash_LI, value_ptr, value);
+void _veritracer_probe_binary64(double value, double* value_ptr, uint64_t hash_LI) {
+  fprintf(trace_FILE_ptr, "%lu %lu %p %0.13a\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
-void _veritracer_probe_2xbinary64(double2 value, double2* value_ptr, char * hash_LI[2]) {
+void _veritracer_probe_2xbinary64(double2 value, double* value_ptr, uint64_t hash_LI[2]) {
   const int N = 2;
   uint64_t timestamp = get_timestamp();
   for (int i = 0; i < N; i++)
-    fprintf(trace_FILE_ptr, "%lu %s %p %0.13a\n", timestamp, hash_LI[i], value_ptr, value[i]);
+    fprintf(trace_FILE_ptr, "%lu %lu %p %0.13a\n", timestamp, hash_LI[i], value_ptr, value[i]);
 }
 
-void _veritracer_probe_4xbinary64(double4 value, double4* value_ptr, char * hash_LI[4]) {
+void _veritracer_probe_4xbinary64(double4 value, double* value_ptr, uint64_t hash_LI[4]) {
   const int N = 4;
   uint64_t timestamp = get_timestamp();
   for (int i = 0; i < N; i++)
-    fprintf(trace_FILE_ptr, "%lu %s %p %0.13a\n", timestamp, hash_LI[i], value_ptr, value[i]);
+    fprintf(trace_FILE_ptr, "%lu %lu %p %0.13a\n", timestamp, hash_LI[i], value_ptr, value[i]);
 }
 
 /* Probes used for the binary format */ 
 
 /* int */
 
-void _veritracer_output_int32_binary(int32_t value, int32_t* value_ptr, uint64_t hash_LI) {
+void _veritracer_probe_int32_binary(int32_t value, int32_t* value_ptr, uint64_t hash_LI) {
   struct veritracer_probe_int32_fmt_t fmt;
   fmt.sizeof_value = sizeof(value);
   fmt.timestamp = get_timestamp();
@@ -461,7 +461,7 @@ void _veritracer_output_int32_binary(int32_t value, int32_t* value_ptr, uint64_t
   fwrite(&fmt, sizeof_int32_fmt, 1, trace_FILE_ptr);
 }
 
-void _veritracer_output_int64_binary(int64_t value, int64_t *value_ptr, uint64_t hash_LI) {
+void _veritracer_probe_int64_binary(int64_t value, int64_t *value_ptr, uint64_t hash_LI) {
   struct veritracer_probe_int64_fmt_t fmt;
   fmt.sizeof_value = sizeof(value);
   fmt.timestamp = get_timestamp();
@@ -483,7 +483,7 @@ void _veritracer_probe_binary32_binary(float value, float* value_ptr, uint64_t h
   fwrite(&fmt, sizeof_binary32_fmt, 1, trace_FILE_ptr);
 }
 
-void _veritracer_probe_2xbinary32_binary(float2 value, float2* value_ptr, uint64_t hash_LI[2]) {
+void _veritracer_probe_2xbinary32_binary(float2 value, float* value_ptr, uint64_t hash_LI[2]) {
   const int N = 2;
   struct veritracer_probe_binary32_fmt_t fmt[N];
   uint64_t timestamp = get_timestamp();
@@ -497,7 +497,7 @@ void _veritracer_probe_2xbinary32_binary(float2 value, float2* value_ptr, uint64
   fwrite(&fmt, sizeof_binary32_fmt, N, trace_FILE_ptr);
 }
 
-void _veritracer_probe_4xbinary32_binary(float4 value, float4* value_ptr, uint64_t hash_LI[4]) {
+void _veritracer_probe_4xbinary32_binary(float4 value, float* value_ptr, uint64_t hash_LI[4]) {
   const int N = 4;
   struct veritracer_probe_binary32_fmt_t fmt[N];
   uint64_t timestamp = get_timestamp();

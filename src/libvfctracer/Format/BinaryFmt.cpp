@@ -81,7 +81,7 @@ namespace vfctracerFormat {
 
     Type *returnType = Type::getVoidTy(M->getContext());
     Type *valueType = D.getDataType();
-    const Type *valuePtrType = D.getDataPtrType();
+    Type *valuePtrType = D.getDataPtrType();
     Type *locInfoType = getLocInfoType(D);
     Constant *probeFunc = M->getOrInsertFunction(probeFunctionName,
 						 returnType,
@@ -91,8 +91,8 @@ namespace vfctracerFormat {
 						 (Type*)0);
 
     return probeFunc;
-  };      
-      
+  };
+
   CallInst* BinaryFmt::InsertProbeFunctionCall(Data &D, Value *probeFunc) {
 
     IRBuilder<> builder(D.getData());
@@ -107,13 +107,13 @@ namespace vfctracerFormat {
     }
     Value *valuePtr = D.getAddress();
     Value *locInfoValue = getOrCreateLocInfoValue(D);
-    CallInst *callinst = builder.CreateCall3(cast<Function>(probeFunc),
+    CallInst *callInst = builder.CreateCall3(cast<Function>(probeFunc),
 					     value,
 					     valuePtr,
 					     locInfoValue,
 					     "");
 
-    return callinst;
+    return callInst;
   };
 
   Type* BinaryFmt::getLocInfoType(Data &D) {
@@ -153,19 +153,18 @@ namespace vfctracerFormat {
 	}
 	/* Create Globale Variable which contains the constant array */
 	ArrayType* arrayLocInfoType = ArrayType::get(int64Ty, VD->getVectorSize());
-
 	/* Constant Array containing locationInfo keys */
 	Constant* constArrayLocInfo = ConstantArray::get(arrayLocInfoType,
 							 locInfoKeyVector);
-      
-	GlobalVariable* arrayLocInfoGV = new GlobalVariable(/*Module=*/*M, 
-							    /*Type=*/arrayLocInfoType,
-							    /*isConstant=*/true,
-							    /*Linkage=*/GlobalValue::ExternalLinkage,
-							    /*Initializer=*/constArrayLocInfo,
-							    /*Name=*/locInfoGVname);
-      
+
+	arrayLocInfoGV = new GlobalVariable(/*Module=*/*M, 
+					    /*Type=*/arrayLocInfoType,
+					    /*isConstant=*/true,
+					    /*Linkage=*/GlobalValue::ExternalLinkage,
+					    /*Initializer=*/constArrayLocInfo,
+					    /*Name=*/locInfoGVname);
       }
+
       /* Create indices list for accessing to Global Array with getElementPtr */
       Constant* zeroConstInt64 = ConstantInt::get(int64Ty, 0);
       std::vector<Constant*> constPtrIndices;
@@ -176,7 +175,7 @@ namespace vfctracerFormat {
       return locInfoValue;
 
     } else {
-      assert(false);
+      llvm_unreachable("Unknow Data class");
     }
   
   };
