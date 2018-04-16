@@ -88,6 +88,8 @@ namespace vfctracer {
     /* Check value stored is not a constant */
     if (opCode == Fops::STORE)
       return not isa<llvm::ConstantFP>(D.getValue());
+    if (opCode == Fops::RETURN)
+      return not D.getDataType()->isVoidTy();
     return opCode != Fops::FOP_IGNORE;
   };
 

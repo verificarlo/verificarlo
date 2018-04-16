@@ -86,8 +86,13 @@ namespace vfctracerData {
       basePointerType = data->getOperand(1)->getType();
       break;
     case opcode::Fops::RETURN:
-      baseType = data->getOperand(0)->getType();
-      basePointerType = baseType->getPointerTo();
+      if (data->getNumOperands() != 0) {
+	baseType = data->getOperand(0)->getType();
+	basePointerType = baseType->getPointerTo();
+      } else { /* data = ret void */
+	baseType = data->getType();
+	basePointerType = nullptr;	
+      }
       break;
     default:
       baseType = data->getType();
