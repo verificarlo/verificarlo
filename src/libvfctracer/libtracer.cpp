@@ -94,7 +94,7 @@ static cl::opt<vfctracerFormat::optFormat> VfclibFormat("vfclibtracer-format",
 								   NULL) // sentinel 
 					  );
 
-static cl::opt<bool> VfclibBacktrace("vfclibbacktrace",
+static cl::opt<bool> VfclibBacktrace("vfclibtracer-backtrace",
 				     cl::desc("Add backtrace function"),
 				     cl::value_desc("TracerBacktrace"), cl::init(false));
 
@@ -165,166 +165,7 @@ namespace {
       }
       vfctracer::tracingLevel  = VfclibTracingLevel;
     }    
-
-    void getInfoMD(const MDNode *v) {
-      if (v != nullptr) {
-	DILocation DILoc(v);
-	unsigned line = DILoc.getLineNumber() ;
-	unsigned col = DILoc.getColumnNumber() ;
-	// DIScope scope = DILoc.getScope() ;
-	// DILocation origloc = DILoc.getOrigLocation() ; 
-
-	DIVariable var(v);
-
-	// scope = var.getContext();
-	StringRef name = var.getName();
-	// DIFile file = var.getFile();
-	line = var.getLineNumber();    
-	// unsigned args =  var.getArgNumber();
-	// DITypeRef type = var.getType();
-      }
-    }
-
-    const Function *findEnclosingFunc(const Value *V) {
-      if (const Argument *Arg = dyn_cast<Argument>(V)) {
-	return Arg->getParent();
-      }
-      if (const Instruction *I = dyn_cast<Instruction>(V)) {
-	return I->getParent()->getParent();
-      }
-      return NULL;
-    }
-
-    const MDNode *findVar(const Value *V, const Function *F) {
-      for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F);
-	   Iter != End; ++Iter) {
-	const Instruction *I = &*Iter;
-	if (const DbgValueInst *DbgValue = dyn_cast<DbgValueInst>(I)) {
-	  if (DbgValue->getValue() == V)
-	    return DbgValue->getVariable();
-	} else if (const DbgDeclareInst *DbgDeclare = dyn_cast<DbgDeclareInst>(I)) {
-	  if (DbgDeclare->getAddress() == V)
-	    return DbgDeclare->getVariable();
-	} 
-      }
-      return NULL;
-    }
-        
-    std::string getOriginalName(const Value *V) {      
-
-      if (const Instruction *I = dyn_cast<Instruction>(V)) {
-	if (I->isBinaryOp() && I->getType()->isVectorTy()) {
-
-	  Value *op0 = I->getOperand(0); 
-	  Value *op1 = I->getOperand(1); 
-
-	  std::string name_op0 = "";
-	  std::string name_op1 = "";
-	  
-	  // <result> = load [volatile] <ty>, <ty>* <pointer>
-	  if (const LoadInst *Load = dyn_cast<LoadInst>(op0)) {
-	    Value * ptrOp = Load->getOperand(0);
-	    // <result> = bitcast <ty> <value> to <ty2>             ; yields ty2
-	    if (const BitCastInst *Bitcast = dyn_cast<BitCastInst>(ptrOp)) {
-	      Value * V = Bitcast->getOperand(0);
-	      Value * ty2 = Bitcast->getOperand(1);
-	      return getOriginalName(V);
-	    }
-	  }
-	
-	  // <result> = load [volatile] <ty>, <ty>* <pointer>
-	  if (const LoadInst *Load = dyn_cast<LoadInst>(op1)) {
-	    Value * ptrOp = Load->getOperand(0);
-	    // <result> = bitcast <ty> <value> to <ty2>             ; yields ty2
-	    if (const BitCastInst *Bitcast = dyn_cast<BitCastInst>(ptrOp)) {
-	      Value * V = Bitcast->getOperand(0);
-	      Value * ty2 = Bitcast->getOperand(1);
-	      return getOriginalName(V);
-	    }
-	  }
-
-	}	
-      }      
-      
-      // If the value is defined as a GetElementPtrInstruction, return the name
-      // of the pointer operand instead
-      if (const GetElementPtrInst *I = dyn_cast<GetElementPtrInst>(V)) {
-	return getOriginalName(I->getPointerOperand());
-      }
-      // If the value is a constant Expr, such as a GetElementPtrInstConstantExpr,
-      // try to get the name of its first operand
-      if (const ConstantExpr *E = dyn_cast<ConstantExpr>(V)) {
-	return getOriginalName(E->getOperand(0));
-      }
-
-      if (const ConstantVector *CV = dyn_cast<ConstantVector>(V)) {
-	return getOriginalName(CV->getOperand(0));
-      }
-
-      if (const Instruction *I = dyn_cast<Instruction>(V)) {
-	if (opcode::isFPOp(I)) {
-	  Value *v0 = I->getOperand(0);
-	  Value *v1 = I->getOperand(1);
-	  
-	  StringRef name0 = findName(v0);
-	  StringRef name1 = findName(v1);
-	
-	  if (name0 == vfctracer::temporaryVariableName)
-	    name0 = vfctracer::getRawName(v0);
-	  if (name1 == vfctracer::temporaryVariableName)
-	    name1 = vfctracer::getRawName(v1);
-
-	  std::string opStr = opcode::getOpStr(I);	
-	  std::string name = name0;
-	  name += " " ;
-	  name += opStr ;
-	  name += " " ;
-	  name += name1 ;
-	  return name;
-	} else if (opcode::isStoreOp(I)) {
-	  
-
-	}
-      }
-      errs() << "getOriginalName : " << *V << "\n";
-      
-      return findName(V);
-    }
-
-    StringRef findName(const Value *V){
-      const Function *F = findEnclosingFunc(V);
-      if (!F)
-	return V->getName();
-
-      const MDNode *Var = findVar(V, F);
-      errs() << "Var : " << *Var << "\n";
-      if (!Var)
-	return tmpVarName;
-
-      StringRef name = DIVariable(Var).getName();
-      return name;
-    }
-    
-    // Use std::string instead of StringRef
-    // Sources: http://llvm.org/docs/ProgrammersManual.html#dss-twine
-    //
-    // "2.For the same reason, StringRef cannot be used as the return value
-    //   of a method if the method “computes” the result string. Instead, use std::string."
-    std::string getOriginalLine(const Instruction &I) {
-      std::string str_to_return = "_ _";
-      if (MDNode *N = I.getMetadata(LLVMContext::MD_dbg)) {
-	DILocation Loc(N);
-	do {
-	  std::string Line = std::to_string(Loc.getLineNumber());
-	  std::string File = Loc.getFilename();
-	  std::string Dir = Loc.getDirectory();
-	  DILocation Loc = Loc.getOrigLocation(); 
-	  str_to_return = File + " " + Line;     
-	} while(str_to_return == "_ _" && Loc != nullptr);
-      }
-      return str_to_return;
-    }
-
+           
     bool insertBacktraceCall(Module *M, Function *F, Instruction *I,
 			     vfctracerFormat::Format *Fmt, vfctracerData::Data *D) {
       Type *voidTy = Type::getVoidTy(M->getContext());
@@ -339,10 +180,12 @@ namespace {
 						  voidTy,
 						  locInfoType,
 						  (Type *)0);
-
+      
       
       IRBuilder<> builder(D->getData());
-      builder.SetInsertPoint(D->getData()->getNextNode());
+      /* For FP operations, need to insert the probe after the instruction */
+      if (opcode::isFPOp(D->getData()))
+	builder.SetInsertPoint(D->getData()->getNextNode());
       builder.CreateCall(cast<Function>(hookFunc),locInfoValue,"");
       return true;
     }
@@ -363,27 +206,7 @@ namespace {
   	}
       }
     }
-    
-    Fops mustReplace(Instruction &I) {
-      switch (I.getOpcode()) {
-      case Instruction::FAdd:
-	return FOP_ADD;
-      case Instruction::FSub:
-	// In LLVM IR the FSub instruction is used to represent FNeg
-	return FOP_SUB;
-      case Instruction::FMul:
-	return FOP_MUL;
-      case Instruction::FDiv:
-	return FOP_DIV;
-      case Instruction::Store:
-	return STORE;
-      // case Instruction::Ret:
-      // 	return Fops::RETURN;
-      default:
-	return FOP_IGNORE;
-      }
-    }
-    
+        
     bool insertProbe(vfctracerFormat::Format &Fmt, vfctracerData::Data &D) {
       Type *dataType = D.getDataType();
       Type *ptrDataType = D.getDataPtrType();
@@ -402,10 +225,12 @@ namespace {
     bool runOnBasicBlock(Module &M, BasicBlock &B, vfctracerFormat::Format &Fmt) {
       bool modified = false;
       for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
+	// if (VfclibDebug) errs() << "To instrument: " << *ii << "\n";
 	vfctracerData::Data *D = vfctracerData::CreateData(ii);
-	if (not D->isValidOperation() || not D->isValidDataType()) continue;
-	insertProbe(Fmt, *D);
-	if (VfclibBacktrace) insertBacktraceCall(&M, ii->getParent()->getParent(), ii, &Fmt, D);      
+	if (D == nullptr || not D->isValidOperation() || not D->isValidDataType()) continue;
+	modified |= insertProbe(Fmt, *D);
+	if (VfclibBacktrace && modified)
+	  insertBacktraceCall(&M, ii->getParent()->getParent(), ii, &Fmt, D);      
       }
       return modified;
     };

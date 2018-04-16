@@ -8,11 +8,11 @@
 #define REAL double
 #endif
 
-REAL muller(REAL u_k, REAL u_k1) {
+__attribute__ ((noinline))  REAL muller(REAL u_k, REAL u_k1) {
   return 111.0 - 1130.0/u_k + 3000.0/(u_k*u_k1);
 }
 
-REAL muller2(REAL x) {
+__attribute__ ((noinline))  REAL muller2(REAL x) {
   return (3.0*x*x*x*x - 20.0*x*x*x + 35.0*x*x - 24.0 ) / (4.0*x*x*x - 30.0*x*x + 70.0* x - 50.0);
 }
 

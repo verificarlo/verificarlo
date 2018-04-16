@@ -97,7 +97,7 @@ namespace vfctracerData {
     default:
       baseType = data->getType();
       basePointerType = baseType->getPointerTo();
-    }
+    }    
   };
     
   void Data::dump() {
@@ -193,7 +193,14 @@ namespace vfctracerData {
     return vfctracer::isValidDataType(this->getDataType());
   };
 
+  /* Smart constructor */
   Data* CreateData(Instruction *I) {
+    /* Check instruction is well formed */
+    if (I->getParent() == nullptr)
+      return nullptr; /* Instruction is not currently inserted into a BasicBlock */
+    if (I->getParent()->getParent() == nullptr)
+      return nullptr; /* Instruction is not currently inserted into a function*/      
+	
     if (I->getType()->isVectorTy())
       return new vfctracerData::VectorData(I);
     else

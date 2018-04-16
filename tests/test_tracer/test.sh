@@ -3,10 +3,10 @@
 SAMPLES=16
 ITER=30
 FP_TYPE="DOUBLE" 
-FMT="binary"
+FMT="text"
 ROOT_PATH=$PWD
 
-for language in c  fortran; do 
+for language in C FORTRAN; do 
 
     cd $ROOT_PATH
     
@@ -15,9 +15,9 @@ for language in c  fortran; do
 
     echo "${language} ${FP_TYPE} ${FMT}"
 
-    if [ $language == "c" ]; then
+    if [ $language == "C" ]; then
 	SOURCE_FILE=muller.c
-    elif [ $language == "fortran" ]; then
+    elif [ $language == "FORTRAN" ]; then
 	SOURCE_FILE=muller.f90
     else
 	echo "Unknow language ${language}"
@@ -26,7 +26,7 @@ for language in c  fortran; do
     
     FUNCTION_FILE=functions_to_inst_${language}.txt
     echo " verificarlo -DNITER=${ITER} -D ${FP_TYPE} --functions-file=$FUNCTION_FILE --tracer --tracer-fmt=${FMT} --tracer-backtrace  ${SOURCE_FILE} -o muller_${FP_TYPE}_${FMT}_${language} -lm --verbose"
-    verificarlo -DNITER=${ITER} -D ${FP_TYPE} --functions-file=$FUNCTION_FILE --tracer --tracer-fmt=${FMT} --tracer-backtrace  ${SOURCE_FILE} -o muller_${FP_TYPE}_${FMT}_${language} -lm --verbose 
+    verificarlo -DNITER=${ITER} -D ${FP_TYPE} --functions-file=$FUNCTION_FILE --tracer --tracer-fmt=${FMT} --tracer-backtrace  ${SOURCE_FILE} -o muller_${FP_TYPE}_${FMT}_${language} -lm --verbose --tracer-debug-mode --tracer-level=temporary
 
     # sort -nu locationInfo.map
     
@@ -52,13 +52,21 @@ for language in c  fortran; do
 	../../../../../muller_${FP_TYPE}_${FMT}_${language}
 	cd ..
     done
+	
+    veritracer_analyzer.py -f veritracer.dat --format=${FMT} -o veritracer.csv
 
-    veritracer_analyzer.py -f veritracer.dat -o veritracer.csv
+    if [ "$language" == "FORTRAN" ]; then
+	hash_muller_1=$(grep "ret" ../../../../locationInfo.map | grep "44.0" | cut -d':' -f1)
+	hash_muller_2=$(grep "ret" ../../../../locationInfo.map | grep "52.0" | cut -d':' -f1)
+    else
+	hash_muller_1=$(grep "muller u_k1" ../../../../locationInfo.map | cut -d':' -f1)
+	hash_muller_2=$(grep "muller2 x" ../../../../locationInfo.map | cut -d':' -f1)
+    fi
 
-    hash_muller_1=$(grep "muller u_k1" ../../../../locationInfo.map | cut -d':' -f1)
-    hash_muller_2=$(grep "muller2 x" ../../../../locationInfo.map | cut -d':' -f1)
+    echo "44.0 $hash_muller_1"
+    echo "52.0 $hash_muller_2"
 
-    veritracer_plot.py -f veritracer.csv_0 -v $hash_muller_1 --iteration-mode --no-transparency --location-info-map=../../../../locationInfo.map --no-show --output=muller_1
-    veritracer_plot.py -f veritracer.csv_0 -v $hash_muller_2 --iteration-mode --no-transparency --location-info-map=../../../../locationInfo.map --no-show --output=muller_2
+    veritracer_plot.py -f veritracer.csv.0.bt_0 -v $hash_muller_1 --iteration-mode --no-transparency --location-info-map=../../../../locationInfo.map --no-show --output=muller_1
+    veritracer_plot.py -f veritracer.csv.0.bt_0 -v $hash_muller_2 --iteration-mode --no-transparency --location-info-map=../../../../locationInfo.map --no-show --output=muller_2
 
 done
