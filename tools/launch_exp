@@ -1,0 +1,31 @@
+#!/bin/bash
+
+HELP="Using: launch_exp [NUMBER_OF_SAMPLES] [BINARY_PATH]
+      Create NUMBER_OF_SAMPLES directories ranging from 1 to NUMBER_OF_SAMPLES
+      Launch an execution of the binary located at BINARY_PATH in each directory
+"
+
+if [ $# != 2 ]; then
+    printf "3 arguments expected $# given\n"
+    printf "$HELP"
+    exit 1
+fi
+
+if [ $1 == '-h' ]; then
+    printf "$HELP"
+    exit 0
+fi
+if [  $1 == '--help' ]; then
+    printf "$HELP"
+    exit 0
+fi
+
+NB_EXP=$1
+BIN_PATH=$2
+
+for i in `seq ${NB_EXP}`; do
+    mkdir -p $i
+    cd $i
+    ../${BIN_PATH}
+    cd ..
+done

@@ -54,7 +54,6 @@ def read_csv(args):
     # Must have same fields, not necessary in the same order
     header_file = map(str.strip,first_line.split(','))
     has_header = sorted(header_file) == sorted(header_csv)
-    print header_file
     
     if not has_header:        
         dictReader = csv.DictReader(csv_file, fieldnames=header_csv)
@@ -92,7 +91,7 @@ def read_csv(args):
             
     return d_values
     
-# Return [...,['bt_i','i'],...]
+# Return [...,['bt_i','hash_value_i','i'],...]
 def get_backtrace(args):
     if not args.backtrace:
         return 
@@ -123,54 +122,42 @@ def set_font(size):
 
 def get_colors_bt(args):
 
+    if args.variables == None or len(args.variables) != 1:
+        print "Error: backtrace coloration is available for one variable only"
+        exit(1)
+    
     backtrace = get_backtrace(args)
     if backtrace == None:
         return
-    
-    backtrace_list,time_list = zip(*backtrace)    
-    backtrace_set = set(backtrace_list)
-    colors = cm.hsv(np.linspace(0, 1, len(backtrace_set)))    
-    map_backtrace_to_color = dict(zip(backtrace_set, colors))
-
-    # map_bt_color['-1559136107670142956'][0] = .5
-    # map_bt_color['-1559136107670142956'][1] = 1
-    # map_bt_color['-1559136107670142956'][2] = .5
-
-    # map_bt_color['-2444972502115445445'][0] = 1.0
-    # map_bt_color['-2444972502115445445'][1] = 1.0
-    # map_bt_color['-2444972502115445445'][2] = 1.0
-    # map_bt_color['-2444972502115445445'][3] = 1.0
-
-    # map_bt_color['4898062133132710996'][0] = 0
-    # map_bt_color['4898062133132710996'][1] = 0
-    # map_bt_color['4898062133132710996'][2] = 0
-    
-    # map_bt_color['-117635727505356463'][0] = 0.8
-    # map_bt_color['-117635727505356463'][1] = 1
-    # map_bt_color['-117635727505356463'][2] = 1
-
-    # for i,v in map_bt_color.items():
-    #     print i,v
         
-    return colors,[map_backtrace_to_color[backtrace] for backtrace in backtrace_list]
+    backtrace_filtered = filter(lambda (hval,bt,time): int(hval) == args.variables[0], backtrace)
+    hash_value_list,backtrace_list,time_list = zip(*backtrace_filtered)    
+    backtrace_set = set(backtrace_list)
+    colors = cm.rainbow(np.linspace(0, 1, len(backtrace_set)))
+    map_backtrace_to_color = dict(zip(backtrace_set, colors))
+    colors_list = [map_backtrace_to_color[backtrace] for backtrace in backtrace_list]
+    
+    return backtrace_set, map_backtrace_to_color, colors_list
 
-def fast_scatter(ax,x,y,map_colors,colors,alpha,legend_name):
+def fast_scatter(ax,x,y,alpha,legends_name,legend_name,backtrace_set,map_backtrace_to_color,colors_list):
 
-    z = zip(x,y,colors)
+    z = zip(x,y,colors_list)
     labels = []
     i=0
-    for color in map_colors:
+    for bt in backtrace_set:
+        color = map_backtrace_to_color[bt]
         tmp = filter(lambda (x,y,c): all(c==color), z)
         xx,yy,cc = zip(*tmp)
-        label = ax.plot(xx,
+        leg = legend_name+" bt:"+bt
+        legends_name.append(leg)
+        label, = ax.plot(xx,
                         yy,
-                        label=legend_name+str(i),
+                        label=leg,
                         color=color,
                         alpha=alpha,
                         marker='o',
                         markersize=marker_size_default,
                         linestyle='')
-        i+=1
         labels.append(label)
     return labels
 
@@ -207,7 +194,7 @@ def plot_significant_number(d_values, args):
     title = ax1.set_title('Significant digits evolution', loc="center")
     ax1.set_ylabel('Significant digits (base=$%d$)' % args.base)
     
-    if args.iteration_mode:
+    if args.invocation_mode:
         ax1.set_xlabel('Invocation')
     else:
         ax1.set_xlabel('Time')
@@ -232,7 +219,7 @@ def plot_significant_number(d_values, args):
     color_i = 0
 
     if args.backtrace:
-        map_colors,colors = get_colors_bt(args)
+        backtrace_set,map_backtrace_to_color,colors_list = get_colors_bt(args)
         
     name_dict = get_name_dict(args)
     
@@ -240,14 +227,11 @@ def plot_significant_number(d_values, args):
         
         name = get_name(name_dict, k)
         legend_name =  "$s$ "+name
-        legends_name.append(legend_name)
+        if not args.backtrace:
+            legends_name.append(legend_name)
         vs = sorted(v,key=lambda (t,ns,m,ma,mi):t)
 
-        # vs = sorted(v,key=lambda (t,ns):t)        
-        # time,ns = zip(*vs)
-
         time,ns,mean,ma,std = zip(*vs)
-        # time,ns = zip(*vs)
 
         if args.base:
             ns = map(lambda s : float(s) * math.log(10, args.base), ns)
@@ -258,26 +242,19 @@ def plot_significant_number(d_values, args):
             shift = time_start
             time = map(lambda i : i-shift, time)
         
-        if args.iteration_mode:
+        if args.invocation_mode:
             time = [i for (i,t) in enumerate(time)]
             ax1.set_xlim(-1, max(time) + 1 )
             ax1.set_xticks(range(max(time)+1))
             
         # hmax = max(hmax, len(time))
 
-        alpha = 1.0 if args.no_transparency else 0.1
-
-        # Linear regression
-        # ns_ = map(lambda (m,s) : abs(float(m)/float(s)), zip(mean,std))
-        # ns_ = ns
-        # reg = np.polyfit(time,ns_,1)
-        # lr = scipy.stats.linregress(time,ns_)
-        # print lr.slope
-        # p = np.poly1d(reg)
-        # ax1.plot(time,p(time))
+        alpha = args.transparency if args.transparency else 1.0
         
         if args.backtrace:
-            fast_scatter(ax1,time,ns,map_colors,colors,alpha,legend_name)
+            labels = fast_scatter(ax1,time,ns,alpha,legends_name,legend_name,
+                                  backtrace_set,map_backtrace_to_color,colors_list)
+            print labels
         else:
             label, = ax1.plot(time,
                               ns,
@@ -288,7 +265,7 @@ def plot_significant_number(d_values, args):
                               markersize=marker_size,
                               color=colors[color_i],
                               linestyle='None')
-                              
+            print label
             labels.append(label)
                       
         if args.mean:
@@ -308,7 +285,7 @@ def plot_significant_number(d_values, args):
                               linestyle='none',
                               alpha=alpha)
             labels.append(label)
-            legends_name.append("$\mu$")
+            legends_name.append("$\mu^+$")
             
             label, = ax2.plot(tneg, mneg,
                               label=legend_name,
@@ -400,13 +377,13 @@ if __name__ == '__main__':
     parser.add_argument('--std', action="store_true",
                         help="plot std values")
 
-    parser.add_argument('--no-transparency',action='store_true',
+    parser.add_argument('--transparency', type=float, action='store', 
                         help="No transparency for plot")
     
     parser.add_argument('--mode-pres', action='store_true',
                         help="Large font and legends for paper")
     
-    parser.add_argument('--iteration-mode', action='store_true',
+    parser.add_argument('--invocation-mode', action='store_true',
                         help="Set time as one by one")
 
     parser.add_argument('--normalize-time', action='store_true',
