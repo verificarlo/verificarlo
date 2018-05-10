@@ -122,7 +122,7 @@ namespace vfctracerFormat {
     } else if (typeid(D) == typeid(VectorData)) {
       return Type::getInt64PtrTy(M->getContext());
     } else {
-      assert(0);
+      llvm_unreachable("Unknow Data type");
     }
   };
 
@@ -145,7 +145,7 @@ namespace vfctracerFormat {
 
 	/* Create vector of locationInfo keys */
 	std::vector<Constant*> locInfoKeyVector;	  
-	for(int i = 0; i < VD->getVectorSize(); ++i) {
+	for(unsigned int i = 0; i < VD->getVectorSize(); ++i) {
 	  std::string ext = "." + std::to_string(i);
 	  uint64_t keyLocInfo = vfctracer::getOrInsertLocInfoValue(locInfo,ext);
 	  Constant *locInfoValue = ConstantInt::get(int64Ty, keyLocInfo, false);

@@ -104,13 +104,13 @@ namespace vfctracerData {
     std::vector<std::string> nameVector;
     /* Check wether one of the operands have a name */
     if (const Instruction *I = dyn_cast<Instruction>(V)) {
-      for (int i = 0 ; i < I->getNumOperands(); ++i) {
+      for (unsigned int i = 0 ; i < I->getNumOperands(); ++i) {
 	Value *v = I->getOperand(i);	  
 	std::string name = vfctracer::findName(v);
 	if (name != vfctracer::temporaryVariableName) nameVector.push_back(name);
       }
       std::string to_return = (nameVector.empty()) ? "" : nameVector.front();
-      for (int i = 1; i < nameVector.size(); i++)
+      for (unsigned int i = 1; i < nameVector.size(); i++)
 	to_return += "," + nameVector[i];
 
       if (not to_return.empty()) return to_return;

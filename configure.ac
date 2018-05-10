@@ -92,6 +92,7 @@ AC_ARG_WITH([python],
             [PYTHON="$withval"])
 
 if test -n "$PYTHON" && test -x "$PYTHON" ; then
+  AM_PATH_PYTHON([2.7])
   AC_MSG_CHECKING([for python])
   AC_MSG_RESULT([user defined: $with_python])
 else
@@ -130,8 +131,9 @@ AC_CONFIG_FILES([Makefile
 		 src/libvfctracer/Makefile
 		 src/libvfctracer/Data/Makefile
 		 src/libvfctracer/Format/Makefile		 
-		 src/common/Makefile
-		 tests/Makefile])
+		 src/common/Makefile		
+		 tests/Makefile
+		 postprocess/veritracer/Makefile])
 
 AC_CONFIG_FILES([verificarlo.in], [])
 

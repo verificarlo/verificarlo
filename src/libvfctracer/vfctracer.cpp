@@ -107,10 +107,10 @@ namespace vfctracer {
     else if (baseType->isDoubleTy())
       return doubleTypeName;
     else
-      llvm_unreachable("Wrong basetype");
       /* We must not be here 
        if isValidDataType
        correctly checks types */    
+      llvm_unreachable("Wrong basetype");
   };
 
   const Function* findEnclosingFunc(const Value *V) {
@@ -125,11 +125,6 @@ namespace vfctracer {
 
   std::set<const MDNode*> findVars(const Value *V, const Function *F) {
     std::set<const MDNode*> set;
-    if (const GlobalValue *gv = dyn_cast<GlobalValue>(V))
-      errs() << "GVal\n";
-    if (const GlobalVariable *gv = dyn_cast<GlobalVariable>(V))
-      errs() << "GVar\n";
-    errs() << *V << "&" << F << "\n";
     if (F == nullptr)
       return set;
     for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F);
@@ -156,7 +151,6 @@ namespace vfctracer {
 	if (DbgValue->getValue() == V)
 	  return DbgValue->getVariable();
       } else if (const DbgDeclareInst *DbgDeclare = dyn_cast<DbgDeclareInst>(I)) {
-	MDNode *var = DbgDeclare->getVariable();
 	if (DbgDeclare->getAddress() == V)
 	  return DbgDeclare->getVariable();
       } 
@@ -191,8 +185,6 @@ namespace vfctracer {
   };  
   
   std::string findName(const Value *V) {
-    /* Change boolean */
-    bool followTemporaryVariable = true;
     const Function *F = findEnclosingFunc(V);
     if (F != nullptr) {
       std::string name = V->getName();

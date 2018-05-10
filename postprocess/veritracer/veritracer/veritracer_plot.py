@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import csv
 import matplotlib.pyplot as plt
@@ -20,6 +20,49 @@ marker_size_pres = 20
 header = "hash,type,time,max,min,median,mean,std,significant-digit-number"
 header_csv = header.split(',')
 time_start = 0
+
+def init_module(subparsers, veritracer_plugins):
+    veritracer_plugins["plot"] = run
+    plot_parser = subparsers.add_parser("plot", help="Plot significant number of variables over time")
+    plot_parser.add_argument('-f','--csv-filename', type=str, action='store', required=True, 
+                        help="Filename of the CSV which contains variables info")
+    
+    plot_parser.add_argument('-v','--variables', type=int, nargs='*', action='store', metavar='',
+                        help="Hash of variables to plot. Available in the locationInfo.map file")
+
+    plot_parser.add_argument('-o','--output', action="store", type=str, metavar='',
+                        help="save the figure in a PDF file")
+
+    plot_parser.add_argument('-bt','--backtrace', action="store", type=str, metavar='',
+                        help="file containing the backtrace")
+
+    plot_parser.add_argument('--location-info-map', action='store', type=str, metavar='',
+                        help="location info file")
+    
+    plot_parser.add_argument('--no-show', action="store_true", default=False,
+                        help="not show the figure")
+
+    plot_parser.add_argument('--mean', action="store_true", 
+                        help="plot mean of values")
+
+    plot_parser.add_argument('--std', action="store_true",
+                        help="plot standard deviation of values")
+
+    plot_parser.add_argument('--transparency', type=float, action='store', metavar='', 
+                        help="No transparency for plot")
+        
+    plot_parser.add_argument('--invocation-mode', action='store_true',
+                        help="Set time as one by one")
+
+    plot_parser.add_argument('--normalize-time', action='store_true',
+                        help="Start time at 0")
+
+    plot_parser.add_argument('--scientific-mode', action='store_true',
+                        help='Set scientific mode for x-axis')
+
+    plot_parser.add_argument('--base', action='store', type=int, default=10, 
+                        help="base for computing the number of significand digits")
+        
 
 def get_key(row):
     return row['hash']
@@ -247,14 +290,11 @@ def plot_significant_number(d_values, args):
             ax1.set_xlim(-1, max(time) + 1 )
             ax1.set_xticks(range(max(time)+1))
             
-        # hmax = max(hmax, len(time))
-
         alpha = args.transparency if args.transparency else 1.0
         
         if args.backtrace:
             labels = fast_scatter(ax1,time,ns,alpha,legends_name,legend_name,
                                   backtrace_set,map_backtrace_to_color,colors_list)
-            print labels
         else:
             label, = ax1.plot(time,
                               ns,
@@ -265,7 +305,6 @@ def plot_significant_number(d_values, args):
                               markersize=marker_size,
                               color=colors[color_i],
                               linestyle='None')
-            print label
             labels.append(label)
                       
         if args.mean:
@@ -350,53 +389,7 @@ def plot_significant_number(d_values, args):
     if args.output:        
         plt.savefig(args.output)
 
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser(description="Plot significant number of variables over time")
-    parser.add_argument('-f','--csv-filename', type=str, action='store', required=True,
-                        help="CSV filename which contains variables info")
-
-    parser.add_argument('-v','--variables', type=int, nargs='*', action='store',
-                        help="Hash of variables to plot")
-
-    parser.add_argument('-bt','--backtrace', action="store", type=str,
-                        help="file with backtrace for each time")
-
-    parser.add_argument('--location-info-map', action='store', type=str,
-                        help="Location info file")
-    
-    parser.add_argument('--no-show', action="store_true", default=False,
-                        help="Not show figure")
-
-    parser.add_argument('-o','--output', action="store", type=str, 
-                        help="Save figure in a PDF file")
-
-    parser.add_argument('--mean', action="store_true", 
-                        help="plot mean values")
-
-    parser.add_argument('--std', action="store_true",
-                        help="plot std values")
-
-    parser.add_argument('--transparency', type=float, action='store', 
-                        help="No transparency for plot")
-    
-    parser.add_argument('--mode-pres', action='store_true',
-                        help="Large font and legends for paper")
-    
-    parser.add_argument('--invocation-mode', action='store_true',
-                        help="Set time as one by one")
-
-    parser.add_argument('--normalize-time', action='store_true',
-                        help="Start time at 0")
-
-    parser.add_argument('--scientific-mode', action='store_true',
-                        help='Set scientific mode for x-axis')
-
-    parser.add_argument('--base', action='store', type=int, default=10,
-                        help="Base for giving s")
-    
-    args = parser.parse_args()
-    
+def run(args):
     csv_values = read_csv(args)
     plot_significant_number(csv_values, args)
-    
+    return True

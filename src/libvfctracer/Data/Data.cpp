@@ -54,14 +54,6 @@
 #include "llvm/Support/InstIterator.h"
 #endif
 
-#if LLVM_VERSION_MINOR <= 6
-#define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
-#define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(i, p))
-#else
-#define CREATE_CALL2(func, op1, op2) (builder.CreateCall(func, {op1, op2}, ""))
-#define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(nullptr, i, p, ""))
-#endif
-
 #include "Data.hxx"
 #include "../vfctracer.hxx"
 
@@ -114,12 +106,11 @@ namespace vfctracerData {
   };
 
   bool Data::isTemporaryVariable() const {
-    return this->dataName.empty()
-      || this->dataName == vfctracer::temporaryVariableName;
+    return this->dataName.empty() || this->dataName == vfctracer::temporaryVariableName;
   };
 
   void printOriginalLine(std::string &OriginalLine, int line) {
-    // errs() << "originalLine" << line << " " << OriginalLine << "\n";      
+    errs() << "originalLine" << line << " " << OriginalLine << "\n";      
   }
   
   std::string Data::getOriginalLine() {
@@ -139,7 +130,6 @@ namespace vfctracerData {
 	DIVariable Loc(N);
 	unsigned line = Loc.getLineNumber();
 	originalLine = std::to_string(line);
-	printOriginalLine(originalLine,2);
       }
     } else {    
       if (MDNode *N = data->getMetadata(LLVMContext::MD_dbg)) {
@@ -149,7 +139,6 @@ namespace vfctracerData {
 	std::string File = Loc.getFilename();
 	std::string Dir = Loc.getDirectory();
 	originalLine = File + " " + Line + "." + Column;
-	printOriginalLine(originalLine,3);
       }
     }
     return originalLine;
@@ -167,14 +156,17 @@ namespace vfctracerData {
     else if (opcode::isRetOp(data))
       return data->getOperand(0);
     else
-      llvm_unreachable("Operation unknow");
+      llvm_unreachable("Operation unknown");
   };
+  
   Type* Data::getDataType() const {
     return baseType;
   };
+  
   Type* Data::getDataPtrType() const {
     return basePointerType;
   };
+  
   std::string Data::getFunctionName() {
     return F->getName().str();
   };

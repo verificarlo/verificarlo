@@ -117,7 +117,7 @@ namespace vfctracerData {
     /* We need to check if it is the case and thus */
     /* retrieve the original name attached to the pointer */
     if (const Instruction *I = dyn_cast<Instruction>(V)) {
-      for (int i = 0; i < I->getNumOperands(); ++i) {	
+      for (unsigned int i = 0; i < I->getNumOperands(); ++i) {	
 	Value *op = I->getOperand(i); 	  
 	if (const LoadInst *Load = dyn_cast<LoadInst>(op)) {
 	  Value * ptrOp = Load->getOperand(0);
@@ -128,6 +128,7 @@ namespace vfctracerData {
 	}
       }	
     }
+    return "";
   }
     
   bool VectorData::isValidDataType() {

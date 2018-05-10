@@ -196,20 +196,15 @@ namespace {
       for (inst_iterator Iter = inst_begin(F), End = inst_end(F);
       	   Iter != End; ++Iter) {
       	const Instruction *I = &*Iter;
-      	MDNode *v = nullptr;	
       	if (const DbgValueInst *DbgValue = dyn_cast<DbgValueInst>(I)) {
-      	  v = DbgValue->getVariable();
 	  errs() << *DbgValue << "\n";
       	} else if (const DbgDeclareInst *DbgDeclare = dyn_cast<DbgDeclareInst>(I)) {
-	  v = DbgDeclare->getVariable();
 	  errs() << *DbgDeclare << "\n";
   	}
       }
     }
         
     bool insertProbe(vfctracerFormat::Format &Fmt, vfctracerData::Data &D) {
-      Type *dataType = D.getDataType();
-      Type *ptrDataType = D.getDataPtrType();
       std::string variableName = D.getVariableName();
       if (VfclibDebug)
 	D.dump(); /* /!\ Dump Data */
@@ -219,13 +214,16 @@ namespace {
 	vfctracer::VerboseMessage(D);      
       Constant *probeFunction = Fmt.CreateProbeFunctionPrototype(D);
       CallInst *probeCallInst = Fmt.InsertProbeFunctionCall(D, probeFunction);
+      if (probeCallInst == nullptr) {
+	errs() << "Error while instrumenting probes\n";
+	exit(1);
+      }
       return true;
     }
 
     bool runOnBasicBlock(Module &M, BasicBlock &B, vfctracerFormat::Format &Fmt) {
       bool modified = false;
       for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
-	// if (VfclibDebug) errs() << "To instrument: " << *ii << "\n";
 	vfctracerData::Data *D = vfctracerData::CreateData(ii);
 	if (D == nullptr || not D->isValidOperation() || not D->isValidDataType()) continue;
 	modified |= insertProbe(Fmt, *D);
@@ -240,7 +238,6 @@ namespace {
 	errs() << "In Function: ";
 	errs().write_escaped(F.getName()) << '\n';
       }
-      // printDbgInstrinsic(F);
 
       bool modified = false;
     
@@ -253,8 +250,6 @@ namespace {
 
     bool runOnModule(Module &M) {
       bool modified = false;
-
-      StringRef SelectedFunction = StringRef(VfclibInstFunction);
 
       vfctracerFormat::Format* Fmt = vfctracerFormat::CreateFormat(M, VfclibFormat);
       
