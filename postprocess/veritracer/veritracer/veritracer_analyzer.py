@@ -45,12 +45,6 @@ def parse_file(args, filename):
     else:
         return fmttext.parse_file(filename)
 
-def transpose(list_exp):
-    return map(lambda exp : zip(*exp),zip(*list_exp))    
-
-def checkEqualItem(lst):
-    return not lst or lst.count(lst[0]) == len(lst)
-
 def parse_exp(exp):
     format = map(lambda valueLine : valueLine.format, exp)
     time = map(lambda valueLine : valueLine.time, exp)
@@ -67,17 +61,12 @@ def parse_exp(exp):
     return valueline
 
 def parse_directory(args, list_files):
-    global offset, local_offset
-        
     list_exp = map(lambda file : parse_file(args, file), list_files)
     list_exp = filter(lambda x : x != None, list_exp)   
-    offset = local_offset
-
     value_exp = [parse_exp(exp) for exp in zip(*list_exp)]
     return value_exp
 
-def get_files(args):
-    
+def get_files(args):    
     filename = args.filename
     list_dir = deque(os.listdir('.'))
     list_directories = filter(os.path.isdir, list_dir)
@@ -90,9 +79,8 @@ def compute_stats(values_list):
     sizeof_value = values_list.format
     time         = values_list.time
     ptr          = values_list.address
-    hashv         = values_list.hash
+    hashv        = values_list.hash
     list_FP      = values_list.value
-
     mean_   = vtr_math.mean(list_FP)
     std_    = vtr_math.std(mean_, list_FP)
     median_ = vtr_math.median(list_FP)
@@ -135,11 +123,7 @@ def run(args):
 
         if args.verbose:
             print bt_name, dir_list
-        
-        # global offset, local_offset
-        # offset = 0
-        # local_offset = 0
-        
+                
         files_list = map(lambda d : d + os.sep + args.filename, dir_list)
         filesize =  os.path.getsize(files_list[0])
         output_file = args.output + "." + bt_name

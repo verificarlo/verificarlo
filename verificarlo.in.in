@@ -55,7 +55,7 @@ verificarlo_report_path = ""
 VERITRACER_LOCINFO_PATH_ENV = 'VERITRACER_LOCINFO_PATH'
 veritracer_locinfo_filename = "locationInfo.map" 
 veritracer_locinfo_path = ""
-tracer_fmt_choices = ['text','binary']
+tracer_format_choices = ['text','binary']
 tracer_level_choices = ['basic', 'temporary']
 
 class NoPrefixParser(argparse.ArgumentParser):
@@ -204,16 +204,16 @@ def compiler_mode(sources, options, output, args):
                             
         # Apply Veritracer instrumentation pass
         if args.tracer:
-            tracer_fmt = '-vfclibtracer-format=' + args.tracer_fmt
+            tracer_format = '-vfclibtracer-format=' + args.tracer_format
             tracer_bt = '-vfclibtracer-backtrace' if args.tracer_backtrace else ''
             tracer_debug_mode = '-vfclibtracer-debug' if args.tracer_debug_mode else ''
             tracer_level = '-vfclibtracer-level=' + args.tracer_level
             # Apply tracer instrumentation pass
-            shell('{opt} -S -load {libvfctracer} -vfclibtracer {tracer_fmt} {tracer_bt} {tracer_level} {tracer_debug_mode} {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
+            shell('{opt} -S -load {libvfctracer} -vfclibtracer {tracer_format} {tracer_bt} {tracer_level} {tracer_debug_mode} {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
                 opt=opt,
                 libvfctracer=libvfctracer,
                 selectfunction=selectfunction,
-                tracer_fmt=tracer_fmt,
+                tracer_format=tracer_format,
                 tracer_bt=tracer_bt,
                 tracer_debug_mode=tracer_debug_mode,
                 tracer_level=tracer_level,
@@ -263,7 +263,7 @@ if __name__ == "__main__":
                         help='produces a report for floating-point operations')
     parser.add_argument('--print-percentage', action='store_true', help="print percentage of floating-points' type for report")
     parser.add_argument('--tracer', action='store_true', help="veritracer mode")
-    parser.add_argument('--tracer-fmt', action='store', type=str, default='binary', choices=tracer_fmt_choices,
+    parser.add_argument('--tracer-format', action='store', type=str, default='binary', choices=tracer_format_choices,
                         help='Output format for tracing values')
     parser.add_argument('--tracer-level', action='store', type=str, default='basic', choices=tracer_level_choices,
                         help='Tracing level')

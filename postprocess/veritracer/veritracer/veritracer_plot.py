@@ -1,25 +1,26 @@
 #!/usr/bin/env python
 
 import csv
-import matplotlib.pyplot as plt
 import sys
 import argparse
-import matplotlib.cm as cm
 import numpy as np
-from collections import deque
-from itertools import cycle
-import ast
-import matplotlib
 import math
-import scipy.stats
 import os
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from collections import deque, namedtuple
+from itertools import cycle
 
 marker_size_default = 6
-marker_size_pres = 20
+marker_size = marker_size_default
+alpha = 1.0
 
-header = "hash,type,time,max,min,median,mean,std,significant-digit-number"
+header = "hash,type,time,max,min,median,mean,std,significant_digit_number"
 header_csv = header.split(',')
 time_start = 0
+
+# sdn : significant digits number
+ValueTuple = namedtuple('ValueTuple',['sdn','mean','std','max','time'])
 
 def init_module(subparsers, veritracer_plugins):
     veritracer_plugins["plot"] = run
@@ -68,17 +69,20 @@ def get_key(row):
     return row['hash']
 
 def get_value(row):
-    try:
-        sn = row['significant-digit-number']
-        mean = row['mean']
-        min_ = row['std']
-        max_ = row['max']
-        time = int(row['time'])
+    try:        
+        value = ValueTuple(
+            sdn = row['significant_digit_number'],
+            mean = row['mean'],
+            std = row['std'],
+            max = row['max'],
+            time = int(row['time'])
+        )
+            
     except Exception as e:
         print e
         print row
         exit(1)
-    return (time,sn,mean,max_,min_)
+    return value
 
 def is_valid_row(variables_set, row):
     return int(row['hash']) in variables_set
@@ -105,34 +109,28 @@ def read_csv(args):
         csv_file.seek(0)
         dictReader = csv.DictReader(csv_file)
     
-    d_values = dict()
-    get_values = d_values.get
+    values_dict = dict()
+    get_values = values_dict.get
 
     if args.variables != None:
-        dictReaderClean = filter(lambda row: is_valid_row(variables_to_plot,row), dictReader)
+        dictReaderCleaned = filter(lambda row: is_valid_row(variables_to_plot,row), dictReader)
     else:
-        dictReaderClean = dictReader
+        dictReaderCleaned = dictReader
 
     if args.normalize_time:
         global time_start
-        first_row = dictReaderClean.pop(0)
-        key = get_key(first_row)
-        (time,sn,mean,max_,min_) = get_value(first_row)
-        time_start = time
-        try:
-            d_values[key].append((time,sn,mean,max_,min_))
-        except KeyError:
-            d_values[key] = deque([(time,sn,mean,max_,min_)])
-        
-    for row in dictReaderClean:
+        first_row = dictReaderCleaned[0]
+        time_start = int(first_row['time'])
+
+    for row in dictReaderCleaned:
         key = get_key(row)
         value = get_value(row)
         try:
-            d_values[key].append(value)
+            values_dict[key].append(value)
         except KeyError:
-            d_values[key] = deque([value])
+            values_dict[key] = deque([value])
             
-    return d_values
+    return values_dict
     
 # Return [...,['bt_i','hash_value_i','i'],...]
 def get_backtrace(args):
@@ -224,8 +222,54 @@ def get_name(name_dict, hash_):
         return hash_
     else:
         return name_dict[hash_]
+
+def plot_mean(ax2, time, mean, legend_name, legends_name, labels, colors):
+
+    pos,neg = split_mean(time,mean)
+    tpos,mpos,tneg,mneg = [],[],[],[]
+    if pos != []:
+        tpos,mpos = zip(*pos)
+    if neg != []:
+        tneg,mneg = zip(*neg)
+            
+    label, = ax2.plot(tpos, mpos,
+                      label=legend_name,
+                      marker='^',
+                      markersize=marker_size,
+                      color=colors,
+                      linestyle='none',
+                      alpha=alpha)
     
-def plot_significant_number(d_values, args):
+    if pos != []:
+        labels.append(label)
+        legends_name.append("$\mu^+$")
+            
+    label, = ax2.plot(tneg, mneg,
+                      label=legend_name,
+                      marker='v',
+                      markersize=marker_size,
+                      color=colors,
+                      linestyle='none',
+                      alpha=alpha)
+            
+    if neg != []:
+        labels.append(label)
+        legends_name.append("$\mu^-$")
+
+def plot_std(ax2, time, std, legend_name, legends_name, labels, colors):
+    label, = ax2.plot(time, std,
+                      label=legend_name,
+                      marker='x',
+                      markersize=marker_size,
+                      color=colors,
+                      linestyle='none',
+                      alpha=alpha)
+
+    labels.append(label)
+    legends_name.append("$\sigma$")
+
+        
+def plot_significant_number(values_dict, args):
 
     fig, ax1 = plt.subplots()
 
@@ -248,17 +292,13 @@ def plot_significant_number(d_values, args):
         
     ax1.set_ylim(-2 , ylim_base)
     ax1.set_yticks(range(ylim_base))
-
-    marker_size = marker_size_default
-    # if args.mode_pres:
-    #     marker_size = marker_size_pres
         
     labels = []
     legends_name = []
     
     hmax = 0
 
-    colors = cm.rainbow(np.linspace(0, 1, len(d_values)))
+    colors = cm.rainbow(np.linspace(0, 1, len(values_dict)))
     color_i = 0
 
     if args.backtrace:
@@ -266,115 +306,64 @@ def plot_significant_number(d_values, args):
         
     name_dict = get_name_dict(args)
     
-    for k,v in d_values.iteritems():
+    # for variable, stats_values_list in d_values.iteritems():
+    for variable, stats_values_list in values_dict.iteritems():
         
-        name = get_name(name_dict, k)
-        legend_name =  "$s$ "+name
+        name = get_name(name_dict, variable)
+        legend_name =  "$s$ %s" % name
         if not args.backtrace:
             legends_name.append(legend_name)
-        vs = sorted(v,key=lambda (t,ns,m,ma,mi):t)
 
-        time,ns,mean,ma,std = zip(*vs)
+        values_list_sorted = sorted(stats_values_list, key=lambda value: value.time)
+
+        sdn_list = map(lambda value : value.sdn, values_list_sorted)
+        time_list = map(lambda value : value.time, values_list_sorted)
 
         if args.base:
-            ns = map(lambda s : float(s) * math.log(10, args.base), ns)
+            snd_list = map(lambda s : float(s) * math.log(10, args.base), sdn_list)
 
         if args.normalize_time:
             global time_start
-            shift = min(time)
             shift = time_start
-            time = map(lambda i : i-shift, time)
+            time_list = map(lambda i : i-shift, time_list)
         
         if args.invocation_mode:
-            time = [i for (i,t) in enumerate(time)]
-            ax1.set_xlim(-1, max(time) + 1 )
-            ax1.set_xticks(range(max(time)+1))
-            
-        alpha = args.transparency if args.transparency else 1.0
-        
+            time_list = xrange(len(time_list))
+            max_time = max(time_list)
+            ax1.set_xlim(-1, max_time + 1 )
+                    
         if args.backtrace:
-            labels = fast_scatter(ax1,time,ns,alpha,legends_name,legend_name,
+            labels = fast_scatter(ax1, time_list,
+                                  sdn_list, alpha,legends_name,legend_name,
                                   backtrace_set,map_backtrace_to_color,colors_list)
         else:
-            label, = ax1.plot(time,
-                              ns,
+            label, = ax1.plot(time_list,
+                              sdn_list,
                               label=legend_name,
-                              # color='b',
                               alpha=alpha,
                               marker='o',
                               markersize=marker_size,
                               color=colors[color_i],
                               linestyle='None')
             labels.append(label)
-                      
+
         if args.mean:
-            pos,neg = split_mean(time,mean)
-            tpos,mpos,tneg,mneg = [],[],[],[]
-            if pos != []:
-                tpos,mpos = zip(*pos)
-            if neg != []:
-                tneg,mneg = zip(*neg)
-                
-            label, = ax2.plot(tpos, mpos,
-                              label=legend_name,
-                              marker='^',
-                              markersize=marker_size,
-                              color=colors[color_i],
-                              # color='c',
-                              linestyle='none',
-                              alpha=alpha)
-            labels.append(label)
-            legends_name.append("$\mu^+$")
-            
-            label, = ax2.plot(tneg, mneg,
-                              label=legend_name,
-                              marker='v',
-                              markersize=marker_size,
-                              color=colors[color_i],
-                              # color='g',
-                              linestyle='none',
-                              alpha=alpha)
-
-            
-            if neg != []:
-                labels.append(label)
-                legends_name.append("$\mu^-$")
-            
+            mean_list = map(lambda value : value.mean, values_list_sorted)
+            plot_mean(ax2, time_list, mean_list, legend_name, legends_name, labels, colors[color_i])
         if args.std:
-
-            label, = ax2.plot(time, std,
-                              label=legend_name,
-                              marker='x',
-                              markersize=marker_size,
-                              color=colors[color_i],
-                              # color='r',
-                              linestyle='none',
-                              alpha=alpha)
-        
-
-            labels.append(label)
-            legends_name.append("$\sigma$")
+            std_list = map(lambda value : value.std, values_list_sorted)
+            plot_std(ax2, time_list, std_list, legend_name, legends_name, labels, colors[color_i])
+            
         color_i += 1
     
-    if args.mode_pres:
-        set_font(40)
-        plt.legend(labels,
-                   legends_name,
-                   fancybox=True,
-                   shadow=False,
-                   mode='expend',
-                   frameon=True,
-                   prop={'size':40},
-                   loc='center left')
-    else:
-        plt.legend(labels,
-                   legends_name,
-                   fancybox=True,
-                   shadow=False,
-                   frameon=True,
-                   loc='center left',
-                   bbox_to_anchor=(1, 0.5))
-        
+    plt.legend(labels,
+               legends_name,
+               fancybox=True,
+               shadow=False,
+               frameon=True,
+               loc='center left',
+               bbox_to_anchor=(1, 0.5))
+    
     plt.tight_layout()
     plt.subplots_adjust()
     
@@ -389,7 +378,12 @@ def plot_significant_number(d_values, args):
     if args.output:        
         plt.savefig(args.output)
 
+def set_param(args):
+    global alpha
+    alpha = args.transparency if args.transparency else 1.0    
+        
 def run(args):
+    set_param(args)
     csv_values = read_csv(args)
     plot_significant_number(csv_values, args)
     return True
