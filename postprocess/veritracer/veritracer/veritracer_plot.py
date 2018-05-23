@@ -8,6 +8,7 @@ import math
 import os
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import matplotlib
 from collections import deque, namedtuple
 from itertools import cycle
 
@@ -63,7 +64,10 @@ def init_module(subparsers, veritracer_plugins):
 
     plot_parser.add_argument('--base', action='store', type=int, default=10, 
                         help="base for computing the number of significand digits")
-        
+
+    plot_parser.add_argument('--font-size', action='store', type=int, default=10, 
+                             help="set the font size")
+
 
 def get_key(row):
     return row['hash']
@@ -156,10 +160,7 @@ def split_mean(time, mean):
     return pos,neg
 
 def set_font(size):
-    font = {'family' : 'normal',
-            'weight' : 'bold',
-            'size'   : size}
-    matplotlib.rc('font', **font)
+    matplotlib.rcParams.update({'font.size': size})
 
 def get_colors_bt(args):
 
@@ -272,26 +273,26 @@ def plot_std(ax2, time, std, legend_name, legends_name, labels, colors):
 def plot_significant_number(values_dict, args):
 
     fig, ax1 = plt.subplots()
-
+    
     if args.std or args.mean:
         ax2 = plt.twinx()    
-        ax2.set_ylabel('Values ($\mu$,$\sigma$)')
+        ax2.set_ylabel('Values ($\mu$,$\sigma$)', fontsize=args.size)
         ax2.semilogy()
 
-    title = ax1.set_title('Significant digits evolution', loc="center")
-    ax1.set_ylabel('Significant digits (base=$%d$)' % args.base)
+    title = ax1.set_title('Significant digits evolution', loc="center", size=args.font_size)
+    ax1.set_ylabel('Significant digits (base=$%d$)' % args.base, fontsize=args.font_size)
     
     if args.invocation_mode:
-        ax1.set_xlabel('Invocation')
+        ax1.set_xlabel('Invocation', fontsize=args.font_size)
     else:
-        ax1.set_xlabel('Time')
+        ax1.set_xlabel('Time', fontsize=args.font_size)
 
     ylim_base = 18
     if args.base:
         ylim_base = int(math.log(10, args.base) * 18)
         
     ax1.set_ylim(-2 , ylim_base)
-    ax1.set_yticks(range(ylim_base))
+    ax1.set_yticks(range(ylim_base), font_size=args.font_size)
         
     labels = []
     legends_name = []
