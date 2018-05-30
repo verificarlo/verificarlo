@@ -101,10 +101,10 @@ namespace {
             // three functions are user called functions and are not
             // needed here.
 
-            auto * floatInstFun = PointerType::getUnqual(
+            PointerType * floatInstFun = PointerType::getUnqual(
                     FunctionType::get(Builder.getFloatTy(),
                         {Builder.getFloatTy(), Builder.getFloatTy()}, false));
-            auto * doubleInstFun = PointerType::getUnqual(
+            PointerType * doubleInstFun = PointerType::getUnqual(
                     FunctionType::get(Builder.getDoubleTy(),
                         {Builder.getDoubleTy(), Builder.getDoubleTy()}, false));
 
