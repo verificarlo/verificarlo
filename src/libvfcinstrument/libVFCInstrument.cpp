@@ -27,7 +27,6 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/TypeBuilder.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
@@ -35,12 +34,12 @@
 #include <set>
 #include <fstream>
 
-#if LLVM_VERSION_MINOR <= 6
-#define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
-#define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(i, p))
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 6
+#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall2(func, op1, op2, ""))
+#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(i, p))
 #else
-#define CREATE_CALL2(func, op1, op2) (builder.CreateCall(func, {op1, op2}, ""))
-#define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(nullptr, i, p, ""))
+#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
+#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
 #endif
 
 using namespace llvm;
@@ -69,29 +68,28 @@ namespace {
 
     struct VfclibInst : public ModulePass {
         static char ID;
-        StructType * mca_interface_type;
+
         std::set<std::string> SelectedFunctionSet;
 
         VfclibInst() : ModulePass(ID) {
-	  if (not VfclibInstFunctionFile.empty()) {
-	    std::string line;
-	    std::ifstream loopstream (VfclibInstFunctionFile.c_str());
-	    if (loopstream.is_open()) {
-	      while (std::getline(loopstream, line)) {
-		SelectedFunctionSet.insert(line);
-	      }
-	      loopstream.close();
-	    } else {
-	      errs() << "Cannot open " << VfclibInstFunctionFile << "\n";
-	      assert(0);
-	    }
-	  } else if (not VfclibInstFunction.empty()) {
-	    SelectedFunctionSet.insert(VfclibInstFunction);
-	  }
-	}
+            if (not VfclibInstFunctionFile.empty()) {
+                std::string line;
+                std::ifstream loopstream (VfclibInstFunctionFile.c_str());
+                if (loopstream.is_open()) {
+                    while (std::getline(loopstream, line)) {
+                        SelectedFunctionSet.insert(line);
+                    }
+                    loopstream.close();
+                } else {
+                    errs() << "Cannot open " << VfclibInstFunctionFile << "\n";
+                    assert(0);
+                }
+            } else if (not VfclibInstFunction.empty()) {
+                SelectedFunctionSet.insert(VfclibInstFunction);
+            }
+        }
 
-        StructType * getMCAInterfaceType() {
-            LLVMContext &Context =getGlobalContext();
+        StructType * getMCAInterfaceType(IRBuilder<> &Builder) {
 
             // Verificarlo instrumentation calls the mca backend using
             // a vtable implemented as a structure.
@@ -103,18 +101,24 @@ namespace {
             // three functions are user called functions and are not
             // needed here.
 
+            auto * floatInstFun = PointerType::getUnqual(
+                    FunctionType::get(Builder.getFloatTy(),
+                        {Builder.getFloatTy(), Builder.getFloatTy()}, false));
+            auto * doubleInstFun = PointerType::getUnqual(
+                    FunctionType::get(Builder.getDoubleTy(),
+                        {Builder.getDoubleTy(), Builder.getDoubleTy()}, false));
+
             return StructType::get(
 
-                TypeBuilder<float(*)(float, float), false>::get(Context),
-                TypeBuilder<float(*)(float, float), false>::get(Context),
-                TypeBuilder<float(*)(float, float), false>::get(Context),
-                TypeBuilder<float(*)(float, float), false>::get(Context),
+                floatInstFun,
+                floatInstFun,
+                floatInstFun,
+                floatInstFun,
 
-
-                TypeBuilder<double(*)(double, double), false>::get(Context),
-                TypeBuilder<double(*)(double, double), false>::get(Context),
-                TypeBuilder<double(*)(double, double), false>::get(Context),
-                TypeBuilder<double(*)(double, double), false>::get(Context),
+                doubleInstFun,
+                doubleInstFun,
+                doubleInstFun,
+                doubleInstFun,
 
                 (void *)0
                 );
@@ -122,8 +126,6 @@ namespace {
 
         bool runOnModule(Module &M) {
             bool modified = false;
-
-            mca_interface_type = getMCAInterfaceType();
 
             // Find the list of functions to instrument
             // Instrumentation adds stubs to mcalib function which we
@@ -133,10 +135,11 @@ namespace {
 
             std::vector<Function*> functions;
             for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
-	      const bool is_in = SelectedFunctionSet.find(F->getName()) != SelectedFunctionSet.end();
-	      if (SelectedFunctionSet.empty() || is_in) {
-		functions.push_back(&*F);
-	      }
+                const bool is_in = SelectedFunctionSet.find(
+                        F->getName()) != SelectedFunctionSet.end();
+                if (SelectedFunctionSet.empty() || is_in) {
+                    functions.push_back(&*F);
+                }
             }
 
             // Do the instrumentation on selected functions
@@ -161,7 +164,13 @@ namespace {
             return modified;
         }
 
-        Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction * I, Fops opCode) {
+        Instruction *replaceWithMCACall(Module &M, BasicBlock &B,
+                Instruction * I, Fops opCode) {
+
+            LLVMContext &Context = M.getContext();
+            IRBuilder<> Builder(Context);
+            StructType * mca_interface_type = getMCAInterfaceType(Builder);
+
             Type * retType = I->getType();
             Type * opType = I->getOperand(0)->getType();
             std::string opName = Fops2str[opCode];
@@ -208,7 +217,6 @@ namespace {
 
                 // For vector types we call directly a hardcoded helper function
                 // no need to go through the vtable at this stage.
-                IRBuilder<> builder(getGlobalContext());
                 Instruction *newInst = CREATE_CALL2(hookFunc,
                                                     I->getOperand(0), I->getOperand(1));
 
@@ -219,7 +227,7 @@ namespace {
 
                 // We use a builder adding instructions before the
                 // instruction to replace
-                IRBuilder<> builder(I);
+                Builder.SetInsertPoint(I);
 
                 // Get a pointer to the global vtable
                 // The vtable is accessed through the global structure
@@ -234,17 +242,13 @@ namespace {
                 // There are 4 float members followed by 4 double members.
                 int fct_position = opCode;
                 if (baseTypeName == "double") fct_position += 4;
-
                 // Dereference the member at fct_position
-                Value *arg_ptr = CREATE_STRUCT_GEP(current_mca_interface, fct_position);
-                Value *fct_ptr = builder.CreateLoad(arg_ptr, false);
+                Value *arg_ptr = CREATE_STRUCT_GEP(
+                    mca_interface_type, current_mca_interface, fct_position);
+                Value *fct_ptr = Builder.CreateLoad(arg_ptr, "");
 
-                // Create a call instruction. It is important to
-                // create the instruction in the globalcontext, indeed
-                // the instruction is not to be inserted before I. It
+                // Create a call instruction. It
                 // will _replace_ I after it is returned.
-                IRBuilder<> builder2(getGlobalContext());
-
                 Instruction *newInst = CREATE_CALL2(
                     fct_ptr,
                     I->getOperand(0), I->getOperand(1));
@@ -271,6 +275,7 @@ namespace {
         }
 
         bool runOnBasicBlock(Module &M, BasicBlock &B) {
+
             bool modified = false;
             for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
                 Instruction &I = *ii;
