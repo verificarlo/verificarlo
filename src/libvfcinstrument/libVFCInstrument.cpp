@@ -101,12 +101,16 @@ namespace {
             // three functions are user called functions and are not
             // needed here.
 
+            SmallVector<Type *, 2> floatArgs, doubleArgs;
+            floatArgs.push_back(Builder.getFloatTy());
+            floatArgs.push_back(Builder.getFloatTy());
+            doubleArgs.push_back(Builder.getDoubleTy());
+            doubleArgs.push_back(Builder.getDoubleTy());
+
             PointerType * floatInstFun = PointerType::getUnqual(
-                    FunctionType::get(Builder.getFloatTy(),
-                        {Builder.getFloatTy(), Builder.getFloatTy()}, false));
+                    FunctionType::get(Builder.getFloatTy(), floatArgs, false));
             PointerType * doubleInstFun = PointerType::getUnqual(
-                    FunctionType::get(Builder.getDoubleTy(),
-                        {Builder.getDoubleTy(), Builder.getDoubleTy()}, false));
+                    FunctionType::get(Builder.getDoubleTy(), doubleArgs, false));
 
             return StructType::get(
 
