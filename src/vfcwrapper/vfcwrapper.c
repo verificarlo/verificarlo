@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 #include "vfcwrapper.h"
 
@@ -160,8 +159,6 @@ typedef double double2 __attribute__((ext_vector_type(2)));
 typedef double double4 __attribute__((ext_vector_type(4)));
 typedef float float2 __attribute__((ext_vector_type(2)));
 typedef float float4 __attribute__((ext_vector_type(4)));
-typedef bool bool2 __attribute__((ext_vector_type(2)));
-typedef bool bool4 __attribute__((ext_vector_type(4)));
 
 /* Arithmetic vector wrappers */
 
