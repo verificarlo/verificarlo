@@ -28,7 +28,7 @@
 
 #include <fstream>
 #include <unordered_map>
-#if LLVM_VERSION_MINOR == 5
+#if LLVM_VERSION_MINOR >= 5
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/InstIterator.h"
 #else
