@@ -136,6 +136,7 @@ namespace vfctracerData {
     } else {    
       if (MDNode *N = data->getMetadata(LLVMContext::MD_dbg)) {
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7
+	DILocation Loc(N);
 	std::string Line = std::to_string(Loc.getLineNumber());
 	std::string Column = std::to_string(Loc.getColumnNumber());
 	std::string File = Loc.getFilename();

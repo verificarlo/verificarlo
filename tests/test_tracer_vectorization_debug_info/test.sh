@@ -45,3 +45,13 @@ if (( $( grep "f" locationInfo.map | wc -l ) <= 1 )); then
     echo "vectorization not found in -O3 mode"
     exit 1
 fi
+
+rm -rf tmp hashf.0
+veritracer launch --jobs=10 --binary="./test 10" --prefix-dir=tmp
+veritracer analyze --prefix-dir=tmp
+grep f.0 locationInfo.map | cut -d':' -f1 > hashf.0
+
+if (( $( grep -f hashf.0 locationInfo.map | wc -l) <= 0 )); then
+    echo "vectorization not found in -O3 mode"
+    exit 1
+fi

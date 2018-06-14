@@ -93,7 +93,6 @@ namespace vfctracerFormat {
 						 locInfoType,
 						 (Type*)0);
 
-    errs() << *probeFunc << "\n";
     return probeFunc;
   };
 
@@ -115,11 +114,6 @@ namespace vfctracerFormat {
 				      value,
 				      valuePtr,
 				      locInfoValue);
-    // CallInst *callInst = builder.CreateCall3(cast<Function>(probeFunc),
-    // 					     value,
-    // 					     valuePtr,
-    // 					     locInfoValue,
-    // 					     "");
 
     return callInst;
   };
@@ -183,7 +177,7 @@ namespace vfctracerFormat {
       std::vector<Constant*> constPtrIndices;
       constPtrIndices.push_back(zeroConstInt64);
 
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7      
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 6      
       constPtrIndices.push_back(zeroConstInt64);
       Value *locInfoValue = ConstantExpr::getGetElementPtr(arrayLocInfoGV,
 							   constPtrIndices);
