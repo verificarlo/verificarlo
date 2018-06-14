@@ -68,7 +68,7 @@ using namespace vfctracer;
 
 namespace vfctracerData {
   
-  ScalarData::ScalarData(Instruction *I) : Data(I) {};
+  ScalarData::ScalarData(Instruction *I) : Data(I) {}
 
   Value* ScalarData::getAddress() const {  
     Instruction *I = getData();
@@ -81,7 +81,7 @@ namespace vfctracerData {
       ConstantPointerNull *nullptrValue = ConstantPointerNull::get(ptrTy);
       return nullptrValue;
     }
-  };
+  }
     
   std::string ScalarData::getOriginalName(const Value *V) {
     // If the value is defined as a GetElementPtrInstruction,
@@ -127,12 +127,12 @@ namespace vfctracerData {
       dataName = getOriginalName(data);
 
     return dataName;	
-  };
+  }
     
   std::string ScalarData::getDataTypeName() {
     if (baseTypeName.empty()) 
       baseTypeName = vfctracer::getBaseTypeName(baseType);
     return baseTypeName;
-  } ;
+  } 
 
 }

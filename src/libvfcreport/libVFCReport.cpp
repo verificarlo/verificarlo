@@ -61,7 +61,7 @@ namespace {
     for (std::map<Fops,int>::iterator it = src.begin(), ie = src.end(); it != ie; ++it) {
       dest[it->first] += src[it->first];
     }
-  };
+  }
 
   struct VfclibReport : public ModulePass {
     static char ID;

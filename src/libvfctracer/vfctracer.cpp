@@ -80,7 +80,7 @@ namespace vfctracer {
       return true;
     else
       return false;
-  };
+  }
 
   bool isValidOperation(Data &D) {
     Instruction *I = D.getData();
@@ -92,7 +92,7 @@ namespace vfctracer {
     if (opCode == Fops::RETURN)
       return not D.getDataType()->isVoidTy();
     return opCode != Fops::FOP_IGNORE;
-  };
+  }
 
   uint64_t getOrInsertLocInfoValue(std::string &locInfo,
 					      std::string ext) {
@@ -100,7 +100,7 @@ namespace vfctracer {
     uint64_t hashLocInfo = locInfoHasher(locInfoExt);
     locInfoMap[hashLocInfo] = locInfoExt;
     return hashLocInfo;
-  };
+  }
 
   std::string getBaseTypeName(Type *baseType) {
     if (baseType->isFloatTy())
@@ -112,7 +112,7 @@ namespace vfctracer {
        if isValidDataType
        correctly checks types */    
       llvm_unreachable("Wrong basetype");
-  };
+  }
 
   const Function* findEnclosingFunc(const Value *V) {
     if (const Argument *Arg = dyn_cast<Argument>(V)) {
@@ -122,7 +122,7 @@ namespace vfctracer {
       return I->getParent()->getParent();
     }
     return nullptr;
-  };
+  }
 
   // std::set<const MDNode*> findVars(const Value *V, const Function *F) {
   //   std::set<const MDNode*> set;
@@ -157,7 +157,7 @@ namespace vfctracer {
       } 
     }
     return nullptr;
-  };
+  }
   
   /* The names of temporary expressions are constructed as */
   /* c = a op b */
@@ -183,7 +183,7 @@ namespace vfctracer {
       }
     }
     return "";
-  };  
+  }  
   
   std::string findName(const Value *V) {
     const Function *F = findEnclosingFunc(V);
@@ -207,13 +207,13 @@ namespace vfctracer {
     //   return temporaryVariableName;
     
     // return "";
-  };
+  }
 
   void VerboseMessage(Data &D) {
     errs() << "[Veritracer] Instrumenting" << *D.getData()
 	   << " | Variable Name = " << D.getVariableName()
 	   << " at " << D.getOriginalLine() << '\n';
-  };
+  }
 
   std::string getLocInfo(Data &D) {
     std::string locInfo = D.getDataTypeName() + " " +
@@ -221,7 +221,7 @@ namespace vfctracer {
       D.getOriginalLine() + " " +
       D.getVariableName();
     return locInfo;
-  };
+  }
 
   /* Dump mapping information about variables  */
   /* hash : <line> <enclosing function> <name> */
@@ -229,7 +229,7 @@ namespace vfctracer {
     for(auto &I : locInfoMap) {
       mappingFile << I.first << ":" << I.second << "\n";
     }
-  };
+  }
 
   void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
@@ -244,7 +244,7 @@ namespace vfctracer {
     llvm::raw_fd_ostream f(fd,false,false);
     f << *data;
     uint64_t pos = f.tell();
-    char buf[f.GetBufferSize()];
+    char *buf = (char*) malloc(sizeof(char) * f.GetBufferSize()); 
     std::rewind(tmpF);
     char *ret = std::fgets(buf, pos+1, tmpF);
     if (ret != buf) errs() << "Error while getting raw name\n";
@@ -263,7 +263,7 @@ namespace vfctracer {
     llvm::raw_fd_ostream f(fd,false,false);
     f << *data;
     uint64_t pos = f.tell();
-    char buf[f.GetBufferSize()];
+    char *buf = (char*) malloc(sizeof(char) * f.GetBufferSize()); 
     std::rewind(tmpF);
     char *ret = std::fgets(buf, pos+1, tmpF);
     if (ret != buf) errs() << "Error while getting raw name\n";

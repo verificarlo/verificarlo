@@ -92,7 +92,7 @@ namespace vfctracerFormat {
 						 (Type*)0);
 
     return probeFunc;
-  };
+  }
 
   CallInst* TextFmt::InsertProbeFunctionCall(Data &D, Value *probeFunc) {
 
@@ -114,7 +114,7 @@ namespace vfctracerFormat {
 				      locInfoValue);
 
     return callInst;
-  };
+  }
 
   Type* TextFmt::getLocInfoType(Data &D) {
     if (typeid(D) == typeid(ScalarData)) {
@@ -128,7 +128,7 @@ namespace vfctracerFormat {
     } else {
       llvm_unreachable("Unknow Data class");
     }
-  };
+  }
 
   Value* TextFmt::getOrCreateLocInfoValue(Data &D) {
     if (typeid(D) == typeid(ScalarData)) {
@@ -174,7 +174,6 @@ namespace vfctracerFormat {
     } else {
       llvm_unreachable("Unknow Data class");
     }
-  
-  };
+  }
 
 }

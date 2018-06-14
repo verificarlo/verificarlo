@@ -90,7 +90,7 @@ namespace vfctracerData {
       baseType = data->getType();
       basePointerType = baseType->getPointerTo();
     }    
-  };
+  }
     
   void Data::dump() {
     errs() << "Data: " << *getData() << "\n"
@@ -103,11 +103,11 @@ namespace vfctracerData {
 	   << "VariableName: " << getVariableName()  << "\n";    
     std::string sep(80,'-');
     errs() << sep << "\n";
-  };
+  }
 
   bool Data::isTemporaryVariable() const {
     return this->dataName.empty() || this->dataName == vfctracer::temporaryVariableName;
-  };
+  }
 
   void printOriginalLine(std::string &OriginalLine, int line) {
     errs() << "originalLine" << line << " " << OriginalLine << "\n";      
@@ -153,11 +153,11 @@ namespace vfctracerData {
       }
     }
     return originalLine;
-  };
+  }
         
   Instruction* Data::getData() const {
     return data;
-  };
+  }
 
   Value* Data::getValue() const {
     if (opcode::isFPOp(data))
@@ -168,33 +168,33 @@ namespace vfctracerData {
       return data->getOperand(0);
     else
       llvm_unreachable("Operation unknown");
-  };
+  }
   
   Type* Data::getDataType() const {
     return baseType;
-  };
+  }
   
   Type* Data::getDataPtrType() const {
     return basePointerType;
-  };
+  }
   
   std::string Data::getFunctionName() {
     return F->getName().str();
-  };
+  }
 
   std::string& Data::getRawName() {
     if (not dataRawName.empty()) return dataRawName;
     dataRawName = vfctracer::getRawName(data);
     return dataRawName;
-  };
+  }
   
   bool Data::isValidOperation() {
     return vfctracer::isValidOperation(*this);
-  };
+  }
 
   bool Data::isValidDataType() {  
     return vfctracer::isValidDataType(this->getDataType());
-  };
+  }
 
   /* Smart constructor */
   Data* CreateData(Instruction *I) {
@@ -208,6 +208,6 @@ namespace vfctracerData {
       return new vfctracerData::VectorData(I);
     else
       return new vfctracerData::ScalarData(I);
-  };
+  }
   
 }

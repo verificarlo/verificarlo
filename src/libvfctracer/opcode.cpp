@@ -25,7 +25,7 @@ namespace opcode {
     default:
         return Fops::FOP_IGNORE;
     }
-  };
+  }
 
     Fops getOpCode(const Instruction *I) {
     switch (I->getOpcode()) {
@@ -45,7 +45,7 @@ namespace opcode {
     default:
         return Fops::FOP_IGNORE;
     }
-  };
+  }
 
   std::string getOpStr(const Instruction *I) {
     switch (I->getOpcode()) {
@@ -63,7 +63,7 @@ namespace opcode {
     default:
       return "";
     }
-  };
+  }
   
   bool isFPOp(Fops op) {
     switch (op) {
@@ -75,7 +75,7 @@ namespace opcode {
     default:
       return false;      
     }
-  };
+  }
 
   bool isFPOp(Instruction &I) {
     switch (I.getOpcode()) {
@@ -87,7 +87,7 @@ namespace opcode {
     default:
       return false;
     }
-  };
+  }
 
   bool isFPOp(const Instruction *I) {
     switch (I->getOpcode()) {
@@ -99,23 +99,23 @@ namespace opcode {
     default:
       return false;
     }
-  };
+  }
 
   bool isStoreOp(Instruction &I) {
     return I.getOpcode() == Instruction::Store;
-  };
+  }
   
   bool isStoreOp(const Instruction *I) {
     return I->getOpcode() == Instruction::Store;
-  };
+  }
 
   bool isRetOp(Instruction &I) {
     return I.getOpcode() == Instruction::Ret;
-  };
+  }
 
   bool isRetOp(const Instruction *I) {
     return I->getOpcode() == Instruction::Ret;
-  };
+  }
 
   std::string fops_str(Fops op) {
     switch (op) {
@@ -136,5 +136,5 @@ namespace opcode {
     default:
       llvm_unreachable("Bad Fops");
     }
-  };
+  }
 }

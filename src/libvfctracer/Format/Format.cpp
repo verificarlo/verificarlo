@@ -36,4 +36,4 @@ vfctracerFormat::Format* vfctracerFormat::CreateFormat(Module &M, vfctracerForma
   default:
     llvm_unreachable("Bad format option given");
   }
-};
+}

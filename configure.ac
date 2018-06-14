@@ -19,7 +19,7 @@ AC_PROG_MAKE_SET
 AC_PROG_CC([gcc])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg and replay linking)])
 AC_SUBST(GCC_PATH, $CC)
-AX_LLVM([3.3],[3.5.2],[all])
+AX_LLVM([3.3],[3.8.1],[all])
 
 AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
 AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)

@@ -94,7 +94,7 @@ namespace vfctracerFormat {
 						 (Type*)0);
 
     return probeFunc;
-  };
+  }
 
   CallInst* BinaryFmt::InsertProbeFunctionCall(Data &D, Value *probeFunc) {
 
@@ -116,7 +116,7 @@ namespace vfctracerFormat {
 				      locInfoValue);
 
     return callInst;
-  };
+  }
 
   Type* BinaryFmt::getLocInfoType(Data &D) {
     if (typeid(D) == typeid(ScalarData)) {
@@ -130,7 +130,7 @@ namespace vfctracerFormat {
     } else {
       llvm_unreachable("Unknow Data type");
     }
-  };
+  }
 
   Value* BinaryFmt::getOrCreateLocInfoValue(Data &D) {
     if (typeid(D) == typeid(ScalarData)) {
@@ -146,7 +146,6 @@ namespace vfctracerFormat {
       std::string locInfoGVname = "arrayLocInfoGV." + VD->getVariableName();
       GlobalVariable * arrayLocInfoGV = M->getGlobalVariable(locInfoGVname);
       Type *int64Ty = Type::getInt64Ty(M->getContext());
-      PointerType *int64PtrTy = PointerType::get(int64Ty,0);
       if (arrayLocInfoGV == nullptr) {
 	std::string locInfo = vfctracer::getLocInfo(*VD);
 
@@ -179,6 +178,6 @@ namespace vfctracerFormat {
       llvm_unreachable("Unknow Data class");
     }
   
-  };
+  }
 
 }

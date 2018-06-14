@@ -85,15 +85,15 @@ namespace vfctracerData {
       errs() << "Unsupported operand type: " << *vectorType<< "\n";
       assert(0);	  
     }     
-  };
+  }
 
   Type* VectorData::getDataType() const {
     return this->vectorType;
-  };
+  }
 
   unsigned VectorData::getVectorSize() const {
     return this->vectorSize;
-  };
+  }
 
   Value* VectorData::getAddress() const {
     Instruction *I = this->getData();
@@ -107,9 +107,9 @@ namespace vfctracerData {
 	ConstantPointerNull::get(vectorType->getPointerTo());
       return nullptrValue;
     }
-  };
+  }
     
-  Type* VectorData::getVectorType() const { return this->vectorType; };
+  Type* VectorData::getVectorType() const { return this->vectorType; }
     
   std::string VectorData::getOriginalName(const Value *V) {
     /* Vector are accessed through load and bitcast */
@@ -132,7 +132,7 @@ namespace vfctracerData {
     
   bool VectorData::isValidDataType() {
     return vfctracer::isValidDataType(this->baseType);
-  };
+  }
 
   std::string VectorData::getVariableName() {
     if (not dataName.empty()) return dataName;
@@ -141,12 +141,12 @@ namespace vfctracerData {
     if (isTemporaryVariable()) dataName = getOriginalName(data);
 
     return dataName;	
-  };     
+  }     
 
   std::string VectorData::getDataTypeName() {
     if (this->baseTypeName.empty()) 
       baseTypeName = vectorName + vfctracer::getBaseTypeName(baseType);
     return baseTypeName;
-  };
+  }
     
 }

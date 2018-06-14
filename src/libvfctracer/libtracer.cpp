@@ -220,7 +220,7 @@ namespace {
       }
       return true;
     }
-
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8
     bool runOnBasicBlock(Module &M, BasicBlock &B, vfctracerFormat::Format &Fmt) {
       bool modified = false;
       for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
@@ -232,7 +232,20 @@ namespace {
       }
       return modified;
     };
-
+#else
+    bool runOnBasicBlock(Module &M, BasicBlock &B, vfctracerFormat::Format &Fmt) {
+      bool modified = false;
+      for (Instruction &ii : B) {
+	vfctracerData::Data *D = vfctracerData::CreateData(&ii);
+	if (D == nullptr || not D->isValidOperation() || not D->isValidDataType()) continue;
+	modified |= insertProbe(Fmt, *D);
+	if (VfclibBacktrace && modified)
+	  insertBacktraceCall(&M, ii.getFunction(), &ii, &Fmt, D);      
+      }
+      return modified;
+    };
+#endif
+    
     bool runOnFunction(Module &M, Function &F, vfctracerFormat::Format &Fmt) {
       if (VfclibInstVerbose) {
 	errs() << "In Function: ";
