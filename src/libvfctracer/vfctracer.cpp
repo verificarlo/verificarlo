@@ -85,9 +85,10 @@ namespace vfctracer {
   bool isValidOperation(Data &D) {
     Instruction *I = D.getData();
     Fops opCode = getOpCode(I);
-    /* Check value stored is not a constant */
+    /* Checks that the stored value is not a constant */
     if (opCode == Fops::STORE)
       return not isa<llvm::ConstantFP>(D.getValue());
+    /* Checks that the returned value type is not void */
     if (opCode == Fops::RETURN)
       return not D.getDataType()->isVoidTy();
     return opCode != Fops::FOP_IGNORE;
@@ -123,25 +124,25 @@ namespace vfctracer {
     return nullptr;
   };
 
-  std::set<const MDNode*> findVars(const Value *V, const Function *F) {
-    std::set<const MDNode*> set;
-    if (F == nullptr)
-      return set;
-    for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F);
-	 Iter != End; ++Iter) {
-      const Instruction *I = &*Iter;
-      if (const DbgValueInst *DbgValue = dyn_cast<DbgValueInst>(I)) {
-	errs() << *DbgValue << "\n";
-	if (DbgValue->getValue() == V)
-	  set.insert(DbgValue->getVariable());
-      } else if (const DbgDeclareInst *DbgDeclare = dyn_cast<DbgDeclareInst>(I)) {
-	errs() << *DbgDeclare << "\n";
-	if (DbgDeclare->getAddress() == V)
-	  set.insert(DbgDeclare->getVariable());
-      }
-    }
-    return set;
-  }
+  // std::set<const MDNode*> findVars(const Value *V, const Function *F) {
+  //   std::set<const MDNode*> set;
+  //   if (F == nullptr)
+  //     return set;
+  //   for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F);
+  // 	 Iter != End; ++Iter) {
+  //     const Instruction *I = &*Iter;
+  //     if (const DbgValueInst *DbgValue = dyn_cast<DbgValueInst>(I)) {
+  // 	errs() << *DbgValue << "\n";
+  // 	if (DbgValue->getValue() == V)
+  // 	  set.insert(DbgValue->getVariable());
+  //     } else if (const DbgDeclareInst *DbgDeclare = dyn_cast<DbgDeclareInst>(I)) {
+  // 	errs() << *DbgDeclare << "\n";
+  // 	if (DbgDeclare->getAddress() == V)
+  // 	  set.insert(DbgDeclare->getVariable());
+  //     }
+  //   }
+  //   return set;
+  // }
   
   const MDNode* findVar(const Value *V, const Function *F) {
     for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F);
@@ -160,7 +161,7 @@ namespace vfctracer {
   
   /* The names of temporary expressions are constructed as */
   /* c = a op b */
-  std::string buildTmpExpr(const Value *V) {
+  std::string buildTmpExprName(const Value *V) {
     if (const Instruction *I = dyn_cast<Instruction>(V)) {
       if (opcode::isFPOp(I)) {	
 	Value * op0 = I->getOperand(0);
@@ -189,29 +190,23 @@ namespace vfctracer {
     if (F != nullptr) {
       std::string name = V->getName();
       if (tracingLevel > optTracingLevel::basic)
-	if (name.empty() || name == vfctracer::temporaryVariableName)
-	  return buildTmpExpr(V);
+  	if (name.empty() || name == vfctracer::temporaryVariableName)
+  	  return buildTmpExprName(V);
       return name;      
     }
     
-    std::set<const MDNode*> vars = findVars(V, F);
-    if (tracingLevel > optTracingLevel::basic) {
-      std::string tmp = vfctracer::getRawName(V);
-      return tmp;
-    }
+    return temporaryVariableName;
+
+    // std::set<const MDNode*> vars = findVars(V, F);
+    // if (tracingLevel > optTracingLevel::basic) {
+    //   std::string tmp = vfctracer::getRawName(V);
+    //   return tmp;
+    // }
     
-    if (vars.empty())
-      return temporaryVariableName;
+    // if (vars.empty())
+    //   return temporaryVariableName;
     
-    errs() << "Error in find name\n";
-    std::string first = DIVariable(*vars.begin()).getName().str();
-    std::string name = std::accumulate(std::next(vars.begin()),
-				       vars.end(),
-				       first,
-				       [](std::string a, const MDNode *b)
-				       { return a + "," + DIVariable(b).getName().str(); });
-    errs() << name << "\n";
-    return name;
+    // return "";
   };
 
   void VerboseMessage(Data &D) {
@@ -221,10 +216,10 @@ namespace vfctracer {
   };
 
   std::string getLocInfo(Data &D) {
-    std::string locInfo = D.getOriginalLine() + " " +
+    std::string locInfo = D.getDataTypeName() + " " +
       D.getFunctionName() + " " +
-      D.getVariableName() + " " +
-      D.getDataTypeName();
+      D.getOriginalLine() + " " +
+      D.getVariableName();
     return locInfo;
   };
 
@@ -280,35 +275,4 @@ namespace vfctracer {
     return raw_name;
   }
 
- void printInfoDIDescriptor(DIDescriptor *DI) {
-    errs() << "Descriptor is " ;
-    if (DI->isDerivedType()) errs() << "derivedType\n";
-    else if (DI->isCompositeType()) errs() << "CompositeType\n";
-    else if (DI->isBasicType()) errs() << "BasicType\n";
-    else if (DI->isVariable()) errs() << "Variable\n";
-    else if (DI->isSubprogram()) errs() << "Subprogram\n";
-    else if (DI->isGlobalVariable()) errs() << "GlobalVariable\n";
-    else if (DI->isScope()) errs() << "Scope\n";
-    else if (DI->isFile()) errs() << "File\n";
-    else if (DI->isCompileUnit()) errs() << "CompileUnit\n";
-    else if (DI->isNameSpace()) errs() << "NameSpace\n";
-    else if (DI->isLexicalBlockFile()) errs() << "LexicalBlockFile\n";
-    else if (DI->isLexicalBlock()) errs() << "LexicalBlock\n";
-    else if (DI->isSubrange()) errs() << "Subrange\n";
-    else if (DI->isEnumerator()) errs() << "Enumerator\n";
-    else if (DI->isType()) errs() << "Type\n";
-    else if (DI->isUnspecifiedParameter()) errs() << "UnspecifiedParameter\n";
-    else if (DI->isTemplateTypeParameter()) errs() << "TemplateTypeParameter\n";
-    else if (DI->isTemplateValueParameter()) errs() << "TemplateValueParameter\n";
-    else if (DI->isObjCProperty()) errs() << "ObjCProperty\n";
-    else if (DI->isImportedEntity()) errs() << "ImportedEntity\n";
-    else errs() << "unknown !\n";
-  }
-
- void printInfoDIDescriptor(Value *v) {
-    if (const MDNode *N = dyn_cast<MDNode>(v)) {
-      DIDescriptor DI(N);
-      printInfoDIDescriptor(DI);
-    }
-  }
 }

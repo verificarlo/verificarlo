@@ -70,7 +70,7 @@ namespace {
     std::map<std::string, std::map<Fops, int> > FPOpsTypeMap;
     VfclibReport() : ModulePass(ID) {   
       std::string reportFilename(getenv("VERIFICARLO_REPORT_PATH"));
-      reportFilename += "verificarlo_report.csv";
+      reportFilename += "/verificarlo_report.csv";
       reportFile.open(reportFilename, std::fstream::out | std::fstream::app);
       if (not reportFile.is_open()) {
 	errs() << "Cannot open file : "  << reportFilename << "\n";
@@ -97,7 +97,7 @@ namespace {
     }
     
     void writeLineReport(Module &M) {
-      // M.getName() not available with llvm-3.5
+      // M.getName() is not available with llvm-3.5
       const std::string moduleName = M.getModuleIdentifier();
       if (VfclibReportLevel == LVL_MODULE) {
 	reportFile << moduleName << ","
@@ -143,42 +143,6 @@ namespace {
       }	
     }     
    
-    // Ftype getOpType(Instruction &I) {
-    //   Type * retType = I.getType();
-    //   Type * opType = I.getOperand(0)->getType();
-    //   std::string opName = Fops2str[opCode];
-	    
-    //   std::string baseTypeName = "";
-    //   std::string vectorName = "";
-    //   Type *baseType = opType;
-
-    //   // Check for vector types
-    //   if (opType->isVectorTy()) {
-    // 	VectorType *t = static_cast<VectorType *>(opType);
-    // 	baseType = t->getElementType();
-    // 	unsigned size = t->getNumElements();
-	
-    // 	if (size == 2) {
-    // 	  vectorName = "2x";
-    // 	} else if (size == 4) {
-    // 	  vectorName = "4x";
-    // 	} else {
-    // 	  errs() << "Unsuported vector size: " << size << "\n";
-    // 	  assert(0);
-    // 	}
-    //   }
-      
-    //   // Check the type of the operation
-    //   if (baseType->isDoubleTy()) {
-    // 	baseTypeName = "double";
-    //   } else if (baseType->isFloatTy()) {
-    // 	baseTypeName = "float";
-    //   } else {
-    // 	errs() << "Unsupported operand type: " << *opType << "\n";
-    // 	assert(0);
-    //   }
-    // }
-    
     Fops getOpCode(Instruction &I) {
       switch (I.getOpcode()) {
       case Instruction::FAdd:

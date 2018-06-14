@@ -39,6 +39,3 @@ for op in "+" "*" "/" ; do
     verificarlo -Qunused-arguments -D REAL=double -D SAMPLES=1000 -D OPERATION="$op" -O0 -lm --function=operate test.c -o test 
     Check 53
 done
-
-cd test_bitmask
-./test.sh

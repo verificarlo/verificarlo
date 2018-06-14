@@ -2,7 +2,7 @@
  *                                                                              *
  *  This file is part of Verificarlo.                                           *
  *                                                                              *
- *  Copyright (c) 2017                                                          *
+ *  Copyright (c) 2018                                                          *
  *     Universite de Versailles St-Quentin-en-Yvelines                          *
  *     CMLA, Ecole Normale Superieure de Cachan                                 *
  *                                                                              *
@@ -215,7 +215,7 @@ namespace {
       Constant *probeFunction = Fmt.CreateProbeFunctionPrototype(D);
       CallInst *probeCallInst = Fmt.InsertProbeFunctionCall(D, probeFunction);
       if (probeCallInst == nullptr) {
-	errs() << "Error while instrumenting probes\n";
+	errs() << "Error while instrumenting variable " + variableName ;
 	exit(1);
       }
       return true;

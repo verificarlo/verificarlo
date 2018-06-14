@@ -76,11 +76,9 @@ namespace vfctracerData {
     case Fops::STORE:
       return I->getOperand(1);
     default:
-      /* FP arithmetic instructions */
-      /* don't have memory address */
+      /* Temporary FP arithmetic instructions don't have memory address */
       PointerType *ptrTy = getDataType()->getPointerTo();
-      ConstantPointerNull *nullptrValue =
-	ConstantPointerNull::get(ptrTy);
+      ConstantPointerNull *nullptrValue = ConstantPointerNull::get(ptrTy);
       return nullptrValue;
     }
   };

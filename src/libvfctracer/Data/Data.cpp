@@ -120,9 +120,6 @@ namespace vfctracerData {
     originalLine = vfctracer::temporaryVariableName;
 
     Instruction *data = getData();
-    if (opcode::isRetOp(data)) {
-      
-    }
     
     if (opcode::isStoreOp(data)){
       if (const MDNode *N = vfctracer::findVar(data->getOperand(1),F)) {	
@@ -187,7 +184,7 @@ namespace vfctracerData {
 
   /* Smart constructor */
   Data* CreateData(Instruction *I) {
-    /* Check instruction is well formed */
+    /* Checks if instruction is well formed */
     if (I->getParent() == nullptr)
       return nullptr; /* Instruction is not currently inserted into a BasicBlock */
     if (I->getParent()->getParent() == nullptr)

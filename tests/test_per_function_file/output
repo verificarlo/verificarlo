@@ -1,10 +1,4 @@
-Error opening '/usr/local/lib/libvfcinstrument.so': /usr/local/lib/libvfcinstrument.so: undefined symbol: _ZNK4llvm10ModulePass17createPrinterPassERNS_11raw_ostreamERKSs
-  -load request ignored.
-opt: Unknown command line argument '-vfclibinst'.  Try: '/usr/lib/llvm-3.5/bin/opt -help'
-opt: Did you mean '-lint'?
-opt: Unknown command line argument '-vfclibinst-verbose'.  Try: '/usr/lib/llvm-3.5/bin/opt -help'
-opt: Did you mean '-fast-isel-verbose'?
-opt: Unknown command line argument '-vfclibinst-function-file=functions.txt'.  Try: '/usr/lib/llvm-3.5/bin/opt -help'
-opt: Did you mean '-mips32-function-mask=functions.txt'?
-/usr/local/bin/verificarlo: command failed:
-/usr/lib/llvm-3.5/bin/opt -S  -load /usr/local/lib/libvfcinstrument.so -vfclibinst -vfclibinst-verbose  -vfclibinst-function-file=functions.txt  test.1.ll -o test.3.ll
+In Function: f
+Instrumenting  %5 = fadd double %3, %4
+In Function: g
+Instrumenting  %5 = fsub double %3, %4

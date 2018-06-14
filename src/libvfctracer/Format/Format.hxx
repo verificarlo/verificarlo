@@ -34,6 +34,11 @@
 
 namespace vfctracerFormat {
   
+  enum optFormat {
+    binary,
+    text
+  };
+
   class Format {
   protected:
     llvm::Module* M;
@@ -62,11 +67,6 @@ namespace vfctracerFormat {
     llvm::Value* getOrCreateLocInfoValue(vfctracerData::Data &D);    
     llvm::Constant* CreateProbeFunctionPrototype(vfctracerData::Data &D);
     llvm::CallInst* InsertProbeFunctionCall(vfctracerData::Data &D, llvm::Value *probeFunc);
-  };
-
-  enum optFormat {
-    binary,
-    text
   };
   
   Format* CreateFormat(llvm::Module &M, vfctracerFormat::optFormat optFmt);

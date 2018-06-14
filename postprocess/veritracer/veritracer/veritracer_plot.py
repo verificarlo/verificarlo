@@ -21,19 +21,19 @@ header_csv = header.split(',')
 time_start = 0
 
 # sdn : significant digits number
-ValueTuple = namedtuple('ValueTuple',['sdn','mean','std','max','time'])
+ValueTuple = namedtuple('ValueTuple',['sdn','mean','std','max','min','time'])
 
 def init_module(subparsers, veritracer_plugins):
     veritracer_plugins["plot"] = run
     plot_parser = subparsers.add_parser("plot", help="Plot significant number of variables over time")
-    plot_parser.add_argument('-f','--csv-filename', type=str, action='store', required=True, 
-                        help="Filename of the CSV which contains variables info")
+    plot_parser.add_argument('filename', type=str, action='store',  
+                        help="Filename of the CSV file which contains variables values")
     
     plot_parser.add_argument('-v','--variables', type=int, nargs='*', action='store', metavar='',
                         help="Hash of variables to plot. Available in the locationInfo.map file")
 
     plot_parser.add_argument('-o','--output', action="store", type=str, metavar='',
-                        help="save the figure in a PDF file")
+                        help="save the figure in a file")
 
     plot_parser.add_argument('-bt','--backtrace', action="store", type=str, metavar='',
                         help="file containing the backtrace")
@@ -51,23 +51,25 @@ def init_module(subparsers, veritracer_plugins):
                         help="plot standard deviation of values")
 
     plot_parser.add_argument('--transparency', type=float, action='store', metavar='', 
-                        help="No transparency for plot")
+                        help="no transparency for plot")
         
     plot_parser.add_argument('--invocation-mode', action='store_true',
-                        help="Set time as one by one")
+                        help="set time as one by one")
 
     plot_parser.add_argument('--normalize-time', action='store_true',
-                        help="Start time at 0")
+                        help="start time at 0")
 
     plot_parser.add_argument('--scientific-mode', action='store_true',
-                        help='Set scientific mode for x-axis')
+                        help='set scientific mode for x-axis')
 
     plot_parser.add_argument('--base', action='store', type=int, default=10, 
                         help="base for computing the number of significand digits")
 
-    plot_parser.add_argument('--font-size', action='store', type=int, default=10, 
+    plot_parser.add_argument('--font-size',  type=int, default=10, 
                              help="set the font size")
 
+    plot_parser.add_argument('--min-max', action='store_true',
+                             help="Plot min/max envelope")
 
 def get_key(row):
     return row['hash']
@@ -79,6 +81,7 @@ def get_value(row):
             mean = row['mean'],
             std = row['std'],
             max = row['max'],
+            min = row['min'],
             time = int(row['time'])
         )
             
@@ -94,12 +97,12 @@ def is_valid_row(variables_set, row):
 def read_csv(args):
 
     variables_to_plot = args.variables
-    
-    if not os.path.isfile(args.csv_filename):
-        print "Inexisting file: %s" % args.csv_filename
+
+    if not os.path.isfile(args.filename):
+        print "Inexisting file: %s" % args.filename
         exit(1)
         
-    csv_file = open(args.csv_filename, 'rb')
+    csv_file = open(args.filename, 'rb')
 
     first_line = next(csv_file)
     # Must have same fields, not necessary in the same order
@@ -151,17 +154,22 @@ def toRGB(color):
 
 # Splitting between positive and negative values
 # for plotting with log scale.
-def split_mean(time, mean):
+def partition_signed_values(time, mean):
 
     ziptm = zip(time, mean)
     pos = filter(lambda (t,m) : float(m) > 0, ziptm)
     neg = filter(lambda (t,m) : float(m) <= 0, ziptm)
     neg = map(lambda (t,m) : (t,-float(m)), neg)
-    return pos,neg
+    tpos,mpos,tneg,mneg = [],[],[],[]
+    if pos != []:
+        tpos,mpos = zip(*pos)
+    if neg != []:
+        tneg,mneg = zip(*neg)
+    return tpos,mpos,tneg,mneg
 
 def set_font(size):
     matplotlib.rcParams.update({'font.size': size})
-
+                    
 def get_colors_bt(args):
 
     if args.variables == None or len(args.variables) != 1:
@@ -207,15 +215,28 @@ def get_name_dict(args):
 
     name_dict = {}
     if args.location_info_map:
-        try:
-            li_map_file = open(args.location_info_map, 'r')
-            for line in li_map_file:
-                hash_,li = line.split(':')
-                name_dict[hash_] = li
-        except ValueError as e:
-            print str(e) + " for line: " + line
-            exit(1)
-            
+        location_info_map = args.location_info_map
+    elif os.getenv('VERITRACER_LOCINFO_PATH'):
+        location_info_map = os.getenv('VERITRACER_LOCINFO_PATH') + os.path.sep + "locationInfo.map"
+    else:
+        location_info_map = "locationInfo.map"
+
+    if not os.path.isfile(location_info_map):
+        print "Warning: Cannot find --location-info-map={locinfo} file".format(locinfo=location_info_map)
+        print "         locationInfo.map path can be export with VERITRACER_LOCINFO_PATH"
+        return name_dict
+        
+    try:
+        li_map_file = open(location_info_map, 'r')        
+        for line in li_map_file:
+            hash_,li = line.split(':')
+            name_dict[hash_] = li
+    except ValueError as err:
+        print str(err) + " for line: " + line
+        exit(1)
+    except OSError as err:
+        print "Error: {msg}: {filename}".format(msg=err.strerror, filename=err.filename)
+        
     return name_dict
  
 def get_name(name_dict, hash_):
@@ -223,16 +244,10 @@ def get_name(name_dict, hash_):
         return hash_
     else:
         return name_dict[hash_]
-
+    
 def plot_mean(ax2, time, mean, legend_name, legends_name, labels, colors):
 
-    pos,neg = split_mean(time,mean)
-    tpos,mpos,tneg,mneg = [],[],[],[]
-    if pos != []:
-        tpos,mpos = zip(*pos)
-    if neg != []:
-        tneg,mneg = zip(*neg)
-            
+    tpos,mpos,tneg,mneg = partition_signed_values(time,mean)
     label, = ax2.plot(tpos, mpos,
                       label=legend_name,
                       marker='^',
@@ -241,7 +256,7 @@ def plot_mean(ax2, time, mean, legend_name, legends_name, labels, colors):
                       linestyle='none',
                       alpha=alpha)
     
-    if pos != []:
+    if tpos != []:
         labels.append(label)
         legends_name.append("$\mu^+$")
             
@@ -253,7 +268,7 @@ def plot_mean(ax2, time, mean, legend_name, legends_name, labels, colors):
                       linestyle='none',
                       alpha=alpha)
             
-    if neg != []:
+    if tneg != []:
         labels.append(label)
         legends_name.append("$\mu^-$")
 
@@ -270,14 +285,26 @@ def plot_std(ax2, time, std, legend_name, legends_name, labels, colors):
     legends_name.append("$\sigma$")
 
         
+def plot_minmax_envelope(ax, values_dict, args):
+
+    time = map(lambda x : float(x.time), values_dict)
+    min_values = map(lambda x : float(x.min), values_dict)
+    max_values = map(lambda x : float(x.max), values_dict)
+    ax.fill_between(time,
+                    min_values,
+                    max_values,
+                    alpha=0.1,
+                    interpolate=True)
+
 def plot_significant_number(values_dict, args):
 
     fig, ax1 = plt.subplots()
     
     if args.std or args.mean:
         ax2 = plt.twinx()    
-        ax2.set_ylabel('Values ($\mu$,$\sigma$)', fontsize=args.size)
+        ax2.set_ylabel('Values ($\mu$,$\sigma$)', fontsize=args.font_size)
         ax2.semilogy()
+        ax2.tick_params(axis="both",  labelsize=args.font_size)
 
     title = ax1.set_title('Significant digits evolution', loc="center", size=args.font_size)
     ax1.set_ylabel('Significant digits (base=$%d$)' % args.base, fontsize=args.font_size)
@@ -292,8 +319,12 @@ def plot_significant_number(values_dict, args):
         ylim_base = int(math.log(10, args.base) * 18)
         
     ax1.set_ylim(-2 , ylim_base)
-    ax1.set_yticks(range(ylim_base), font_size=args.font_size)
-        
+    ax1.set_yticks(range(ylim_base))
+    ax1.tick_params(axis="both",  labelsize=args.font_size)
+    
+    if args.min_max:
+        ax3 = plt.twinx()
+
     labels = []
     legends_name = []
     
@@ -311,7 +342,7 @@ def plot_significant_number(values_dict, args):
     for variable, stats_values_list in values_dict.iteritems():
         
         name = get_name(name_dict, variable)
-        legend_name =  "$s$ %s" % name
+        legend_name =  "$s$ {name}".format(name=name)
         if not args.backtrace:
             legends_name.append(legend_name)
 
@@ -354,6 +385,8 @@ def plot_significant_number(values_dict, args):
         if args.std:
             std_list = map(lambda value : value.std, values_list_sorted)
             plot_std(ax2, time_list, std_list, legend_name, legends_name, labels, colors[color_i])
+        if args.min_max:
+            plot_minmax_envelope(ax3, values_list_sorted, args)
             
         color_i += 1
     
@@ -363,7 +396,8 @@ def plot_significant_number(values_dict, args):
                shadow=False,
                frameon=True,
                loc='center left',
-               bbox_to_anchor=(1, 0.5))
+               prop={'size':args.font_size},
+               bbox_to_anchor=(1.1, 0.5))
     
     plt.tight_layout()
     plt.subplots_adjust()

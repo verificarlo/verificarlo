@@ -3,6 +3,9 @@
 import argparse
 import sys
 
+import warnings
+warnings.filterwarnings("ignore")
+
 import veritracer_plot
 import veritracer_analyzer
 import veritracer_jitter

@@ -20,17 +20,20 @@ StatsLine = namedtuple('StatsLine',['hash','type','time',
                                     'max','min','mean',
                                     'median','std','significant_digit_number'])
 
+default_traces_path=".vtrace"
+
 def init_module(subparsers, veritracer_plugins):
     veritracer_plugins["analyzer"] = run
     analyzer_parser = subparsers.add_parser("analyzer", help="Gathering values from several veritracer executions")
-    analyzer_parser.add_argument('-f','--filename', type=str, default="veritracer.dat", metavar='',
+    analyzer_parser.add_argument('--filename', type=str, default="veritracer.dat", metavar='',
                                  help="filename of the trace to gather")
     analyzer_parser.add_argument('-o','--output', type=str, default="veritracer", metavar='',
                                  help='output filename')
     # analyzer_parser.add_argument('-N','--read-bytes', type=int, default=0, metavar='',
     #                              help='read the N first bytes')
-    analyzer_parser.add_argument('--prefix-dir', type=str, default="", metavar='',
-                                 help='prefix of the directory to analyze')
+    analyzer_parser.add_argument('--prefix-dir', type=str, default=default_traces_path, metavar='',
+                                 help='prefix of the directory to analyze (default {default})'.format(
+                                     default=default_traces_path))
     analyzer_parser.add_argument('--backtrace-filename', type=str, default="backtrace.dat", metavar='',
                                  help='filename of the backtrace to use')
     analyzer_parser.add_argument('--verbose', action="store_true",
@@ -116,8 +119,22 @@ def write_csv(filename, list_errors):
         csv_writer.writerow(row._asdict())
 
 def run(args):
+
+    if args.prefix_dir and os.path.isdir(args.prefix_dir):
+        os.chdir(args.prefix_dir)
+    else:
+        print "Unknown directory {dir}".format(dir=args.prefix_dir)
+        return False
+
     # Dict which maps bt_name to associated directories
-    dict_bt_files = vtr_backtrace.partition_samples(args)
+    try:
+        dict_bt_files = vtr_backtrace.partition_samples(args)
+    except vtr_backtrace.BacktraceFileNoExist as bt_error:
+        print "Error: backtrace file {bt} does not exist".format(bt=bt_error.message)
+        return False
+    except vtr_backtrace.AllEmptyFile as empty_error:
+        print "Error: all {filename} files are empty".format(filename=empty_error.message)
+        return False
     
     for bt_name, dir_list in dict_bt_files.iteritems():
 

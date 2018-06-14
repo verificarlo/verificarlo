@@ -151,6 +151,7 @@ namespace vfctracerFormat {
 	  Constant *locInfoValue = ConstantInt::get(int64Ty, keyLocInfo, false);
 	  locInfoKeyVector.push_back(locInfoValue);
 	}
+
 	/* Create Globale Variable which contains the constant array */
 	ArrayType* arrayLocInfoType = ArrayType::get(int64Ty, VD->getVectorSize());
 	/* Constant Array containing locationInfo keys */

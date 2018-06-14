@@ -1,4 +1,6 @@
-<img src="https://avatars1.githubusercontent.com/u/12033642" align="right" height="200px" \>
+<p align="center">
+  <img  src="veritracer-logo.png">
+</p>
 
 ## Veritracer v0.0.1
 
@@ -11,7 +13,7 @@ VeriTracer, a visualization tool that brings temporal dimension to a graphical F
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt from 3.3 up to 3.8 (the last version with Fortran support is 3.6), http://clang.llvm.org/
+  * LLVM, clang and opt from 3.3 up to 3.6 (the last version with Fortran support is 3.6), http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
   * python, version >= 2.7
   * autotools (automake, autoconf)
@@ -71,10 +73,10 @@ install procedure:
 
 ### Usage
 
-To automatically trace a program with Veritracer, you must compile it using
+To automatically trace a program with Veritracer, you must compile it by using
 the `verificarlo --tracer` command.
-First, make sure that the verificarlo installation
-directory is in your PATH.
+First, make sure that the verificarlo installation directory is in your PATH
+and in your PYTHONPATH
 
 Then you can use the `verificarlo --tracer` command to compile your programs. Either modify 
 your makefile to use `verificarlo` as the compiler (`CC=verificarlo` and
@@ -95,12 +97,11 @@ If you only wish to instrument a specific function in your program, use the
 When invoked with the `--verbose` flag, veritracer provides detailed output of
 the instrumentation process. 
 
-Veritracer builds a file containing all information gathered during the compilation
-of variables instrumented. Information is collected in the `locationInfo.map` file.
+Information on variables instrumented are gathered in the `locationInfo.map` file.
 By default, this file is created in the directory where compilation is made.
 You can change it by modifying the environment variable `VERITRACER_LOCINFO_PATH`.
 
-After execution, veritracer produces a file named `range_tracer.dat` which contain the raw
+After execution, veritracer produces a file named `veritracer.dat` which contain the raw
 values collected during the execution. By default, it is a binary file,
 but it can be switched to text format by specifying the `--tracer-format=text`
 option.
@@ -112,12 +113,15 @@ which is explained in the Postprocessing section.
 ### Postprocessing
 
 The  `postprocessing/veritracer/` directory contains postprocessing tools
-for visualizing information produced by veritracer. It exists two tools
-`veritracer_analyzer.py` and `veritracer_plot.py` which respectively
-allow gathering and visualizing information. 
+for visualizing information produced by veritracer.
+Veritracer postprocess tools use a git-style command.
+The two principal commands are `veritracer analyzer` for gathering information
+and `veritracer plot` for visualizing information.
+
+#### Analyzer
 
 ```bash
-   $ veritracer_analyzer.py
+   $ veritracer analyzer
 ```
 For gathering data with the script,
 you must respect the following format for your directory:
@@ -126,24 +130,30 @@ you should have:
 
 ```bash
    $ ls -R exp
-   $ exp/1: tracer.dat exp/2: tracer.dat ... exp/n: tracer.dat
+   $ exp/1: veritracer.dat exp/2: veritracer.dat ... exp/n: veritracer.dat
    $
    $ cd exp/
-   $ veritracer_analyzer.py -f tracer.dat -o output.csv
+   $ veritracer analyzer -f veritracer.dat -o output.csv
+```
+You can also use the `veritracer launch` module for launching several parallel executions
+with the appropriate directory structure
+
+```bash
+   $ veritracer launch --jobs=<N> --binary=program  
 ```
 
-Veritracer_plot.py allows visualizing data from `output.csv` file.
+`veritracer plot` allows visualizing data from `output.csv` file.
 
 
 ```bash
-   $ veritracer_plot.py -f file.csv 
+   $ veritracer plot -f file.csv 
 ```
 
 For visualizing specific variables, you can use the `--variables` option.
 Use the hash value of the variable which is available in the `locationInfo.map`.
 
 ```bash
-   $ veritracer_plot.py -f file.csv --variables=<hash1> <hash2> ... <hashN>
+   $ veritracer plot -f file.csv --variables=<hash1> <hash2> ... <hashN>
 ```
 
 ### Examples
@@ -152,12 +162,16 @@ The `tests/veritracer` directory contains an example of Veritracer usage.
 
 ![](simp_gen.jpg)
 
-`veritracer_plot.py` usage on ABINIT code.  
+`veritracer plot` usage on ABINIT [1] code.  
 
-### How to cite Verificarlo
+![](figure_1.png)
+`veritracer plot` usage on Muller's sequence [2]
 
 
-If you use Verificarlo in your research, please cite the following paper:
+### How to cite VeriTracer
+
+
+If you use VeriTracer in your research, please cite the following paper:
 
     @inproceedings{verificarlo,
     author    = {Christophe Denis and
@@ -185,7 +199,7 @@ https://groups.google.com/forum/#!forum/verificarlo
 
 ### License
 
-Copyright (c) 2017
+Copyright (c) 2018
    Universite de Versailles St-Quentin-en-Yvelines
    CMLA, Ecole Normale Superieure de Cachan
 
@@ -201,3 +215,14 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.
+
+### References
+
+[1] X. Gonze, F. Jollet, et al., “Recent developments in the
+ABINIT software package,” Computer Physics Com-
+munications, vol. 205, pp. 106–131, 2016.
+
+[2] J.-C. Bajard, D. Michelucci, J.-M. Moreau, and J.-
+M. Muller, “Introduction to the Special Issue ”Real
+Numbers and Computers”,” in The Journal of Universal
+Computer Science, pp. 436–438, Springer, 1996.

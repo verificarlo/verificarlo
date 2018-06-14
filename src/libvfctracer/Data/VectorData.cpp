@@ -102,8 +102,7 @@ namespace vfctracerData {
     case Fops::STORE:
       return I->getOperand(1);
     default:
-      /* FP arithmetic instructions */
-      /* don't have memory address */
+      /* Temporary FP arithmetic instructions don't have memory address */
       ConstantPointerNull *nullptrValue =
 	ConstantPointerNull::get(vectorType->getPointerTo());
       return nullptrValue;
@@ -136,12 +135,10 @@ namespace vfctracerData {
   };
 
   std::string VectorData::getVariableName() {
-    if (not dataName.empty())
-      return dataName;
+    if (not dataName.empty()) return dataName;
       
     dataName = vfctracer::findName(data);
-    if (isTemporaryVariable())
-      dataName = getOriginalName(data);
+    if (isTemporaryVariable()) dataName = getOriginalName(data);
 
     return dataName;	
   };     
