@@ -172,19 +172,9 @@ namespace vfctracerFormat {
 					    /*Initializer=*/constArrayLocInfo,
 					    /*Name=*/locInfoGVname);
       } 
-      /* Create indices list for accessing to Global Array with getElementPtr */
-      Constant* zeroConstInt64 = ConstantInt::get(int64Ty, 0);
-      std::vector<Constant*> constPtrIndices;
-      constPtrIndices.push_back(zeroConstInt64);
 
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 6      
-      constPtrIndices.push_back(zeroConstInt64);
-      Value *locInfoValue = ConstantExpr::getGetElementPtr(arrayLocInfoGV,
-							   constPtrIndices);
-#else
       return arrayLocInfoGV;
-#endif
-      return locInfoValue;
+
     } else {
       llvm_unreachable("Unknow Data class");
     }
