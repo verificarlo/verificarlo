@@ -23,22 +23,22 @@ StatsLine = namedtuple('StatsLine',['hash','type','time',
 default_traces_path=".vtrace"
 
 def init_module(subparsers, veritracer_plugins):
-    veritracer_plugins["analyzer"] = run
-    analyzer_parser = subparsers.add_parser("analyzer", help="Gathering values from several veritracer executions")
-    analyzer_parser.add_argument('--filename', type=str, default="veritracer.dat", metavar='',
+    veritracer_plugins["analyze"] = run
+    analyze_parser = subparsers.add_parser("analyze", help="Gathering values from several veritracer executions")
+    analyze_parser.add_argument('--filename', type=str, default="veritracer.dat", metavar='',
                                  help="filename of the trace to gather")
-    analyzer_parser.add_argument('-o','--output', type=str, default="veritracer", metavar='',
+    analyze_parser.add_argument('-o','--output', type=str, default="veritracer", metavar='',
                                  help='output filename')
-    # analyzer_parser.add_argument('-N','--read-bytes', type=int, default=0, metavar='',
+    # analyze_parser.add_argument('-N','--read-bytes', type=int, default=0, metavar='',
     #                              help='read the N first bytes')
-    analyzer_parser.add_argument('--prefix-dir', type=str, default=default_traces_path, metavar='',
+    analyze_parser.add_argument('--prefix-dir', type=str, default=default_traces_path, metavar='',
                                  help='prefix of the directory to analyze (default {default})'.format(
                                      default=default_traces_path))
-    analyzer_parser.add_argument('--backtrace-filename', type=str, default="backtrace.dat", metavar='',
+    analyze_parser.add_argument('--backtrace-filename', type=str, default="backtrace.dat", metavar='',
                                  help='filename of the backtrace to use')
-    analyzer_parser.add_argument('--verbose', action="store_true",
+    analyze_parser.add_argument('--verbose', action="store_true",
                                  help="verbose mode")
-    analyzer_parser.add_argument('--format', action='store', choices=['binary','text'], default='binary',
+    analyze_parser.add_argument('--format', action='store', choices=['binary','text'], default='binary',
                                  help='veritracer.dat encoding format')
 
 

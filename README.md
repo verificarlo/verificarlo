@@ -115,13 +115,13 @@ which is explained in the Postprocessing section.
 The  `postprocessing/veritracer/` directory contains postprocessing tools
 for visualizing information produced by veritracer.
 Veritracer postprocess tools use a git-style command.
-The two principal commands are `veritracer analyzer` for gathering information
+The two principal commands are `veritracer analyze` for gathering information
 and `veritracer plot` for visualizing information.
 
-#### Analyzer
+#### Analyze
 
 ```bash
-   $ veritracer analyzer
+   $ veritracer analyze
 ```
 For gathering data with the script,
 you must respect the following format for your directory:
@@ -133,7 +133,7 @@ you should have:
    $ exp/1: veritracer.dat exp/2: veritracer.dat ... exp/n: veritracer.dat
    $
    $ cd exp/
-   $ veritracer analyzer -f veritracer.dat -o output.csv
+   $ veritracer analyze -f veritracer.dat -o output.csv
 ```
 You can also use the `veritracer launch` module for launching several parallel executions
 with the appropriate directory structure

@@ -3,7 +3,7 @@
 SAMPLES=8
 ITER=30
 ROOT_PATH=$PWD
-LANGUAGE="C"
+LANGUAGE="FORTRAN"
 
 check_exit_code() {    
     if [ $? != 0 ]; then
@@ -42,6 +42,7 @@ for FP_TYPE in "DOUBLE" "FLOAT"; do
 
     for FMT in "binary" "text"; do
 	
+
 	cd $ROOT_PATH
 	    
 	rm -rf ${LANGUAGE}
