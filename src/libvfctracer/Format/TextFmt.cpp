@@ -53,9 +53,11 @@
 
 #if LLVM_VERSION_MINOR <= 6
 #define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
+#define CREATE_CALL3(func, op1, op2, op3) (builder.CreateCall3(func, op1, op2, op3, ""))
 #define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(i, p))
 #else
 #define CREATE_CALL2(func, op1, op2) (builder.CreateCall(func, {op1, op2}, ""))
+#define CREATE_CALL3(func, op1, op2, op3) (builder.CreateCall(func, {op1, op2, op3}, ""))
 #define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(nullptr, i, p, ""))
 #endif
 
@@ -106,11 +108,10 @@ namespace vfctracerFormat {
     }
     Value *valuePtr = D.getAddress();
     Value *locInfoValue = getOrCreateLocInfoValue(D);
-    CallInst *callInst = builder.CreateCall3(cast<Function>(probeFunc),
-					     value,
-					     valuePtr,
-					     locInfoValue,
-					     "");
+    CallInst *callInst = CREATE_CALL3(cast<Function>(probeFunc),
+				      value,
+				      valuePtr,
+				      locInfoValue);
 
     return callInst;
   };
@@ -120,7 +121,10 @@ namespace vfctracerFormat {
       return Type::getInt64Ty(M->getContext());
     } else if (typeid(D) == typeid(VectorData)) {
       VectorData VD = cast<VectorData>(D);
-      return Type::getInt64PtrTy(M->getContext());
+      unsigned vectorSize = VD.getVectorSize();
+      Type *int64Ty = Type::getInt64Ty(M->getContext());
+      ArrayType* arrayLocInfoType = ArrayType::get(int64Ty, vectorSize);
+      return PointerType::get(arrayLocInfoType,0);
     } else {
       llvm_unreachable("Unknow Data class");
     }
@@ -170,8 +174,13 @@ namespace vfctracerFormat {
       std::vector<Constant*> constPtrIndices;
       constPtrIndices.push_back(zeroConstInt64);
       constPtrIndices.push_back(zeroConstInt64);
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7      
+      constPtrIndices.push_back(zeroConstInt64);
       Value *locInfoValue = ConstantExpr::getGetElementPtr(arrayLocInfoGV,
-      							   constPtrIndices);
+							   constPtrIndices);
+#else
+      return arrayLocInfoGV;
+#endif
       return locInfoValue;
 
     } else {

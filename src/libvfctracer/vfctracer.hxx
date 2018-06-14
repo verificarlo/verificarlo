@@ -59,15 +59,13 @@ namespace vfctracer {
   uint64_t getOrInsertLocInfoValue(std::string &locInfo, std::string ext = "");
   std::string getBaseTypeName(llvm::Type *baseType);
   const llvm::Function *findEnclosingFunc(const llvm::Value *V);
-  const llvm::MDNode *findVar(const llvm::Value *V, const llvm::Function *F);
+  llvm::MDNode *findVar(const llvm::Value *V, const llvm::Function *F);
   std::string findName(const llvm::Value *V);
   void VerboseMessage(vfctracerData::Data &D);
   void dumpMapping(std::ofstream &mappingFile);
   std::string getRawName(const llvm::Value *V);
   std::string getRawName(const llvm::Instruction *I);
   void ltrim(std::string &s);
-  void printInfoDIDescriptor(llvm::DIDescriptor *DI);
-  void printInfoDIDescriptor(llvm::Value *v);
 }
 
 #endif /* VERITRACER_HXX */

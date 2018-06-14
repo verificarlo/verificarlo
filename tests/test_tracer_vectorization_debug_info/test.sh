@@ -14,7 +14,7 @@ check_instrumentation() {
 
 rm -f locationInfo.map
 
-verificarlo --function $function_to_inst -O0 kahan.c --tracer --tracer-format=text --verbose -o test
+verificarlo --function $function_to_inst -O0 kahan.c --tracer --tracer-format=binary --verbose -o test
 
 echo "z y" > output1
 for z in 100; do
@@ -31,7 +31,7 @@ fi
 
 rm -f locationInfo.map
 
-verificarlo --function $function_to_inst -O3 -ffast-math  kahan.c --tracer --tracer-format=text --verbose -o test
+verificarlo --function $function_to_inst -O3 -ffast-math  kahan.c --tracer --tracer-format=binary --verbose -o test
 
 echo "z y" > output2
 for z in 100; do
