@@ -14,7 +14,7 @@ check_instrumentation() {
 
 rm -f locationInfo.map
 
-verificarlo --function $function_to_inst -O0 kahan.c --tracer --tracer-format=text --verbose -o test
+verificarlo --function $function_to_inst -O0 kahan.c --tracer --tracer-format=binary --verbose -o test
 
 echo "z y" > output1
 for z in 100; do
@@ -31,7 +31,7 @@ fi
 
 rm -f locationInfo.map
 
-verificarlo --function $function_to_inst -O3 -ffast-math  kahan.c --tracer --tracer-format=text --verbose -o test
+verificarlo --function $function_to_inst -O3 -ffast-math  kahan.c --tracer --tracer-format=binary --verbose -o test
 
 echo "z y" > output2
 for z in 100; do
@@ -42,6 +42,16 @@ for z in 100; do
 done
 
 if (( $( grep "f" locationInfo.map | wc -l ) <= 1 )); then
+    echo "vectorization not found in -O3 mode"
+    exit 1
+fi
+
+rm -rf tmp hashf.0
+veritracer launch --jobs=10 --binary="./test 10" --prefix-dir=tmp
+veritracer analyze --prefix-dir=tmp
+grep f.0 locationInfo.map | cut -d':' -f1 > hashf.0
+
+if (( $( grep -f hashf.0 locationInfo.map | wc -l) <= 0 )); then
     echo "vectorization not found in -O3 mode"
     exit 1
 fi

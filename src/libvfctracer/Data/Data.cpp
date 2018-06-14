@@ -46,7 +46,7 @@
 #include <iostream>
 #include <sstream>
 
-#if LLVM_VERSION_MINOR == 5
+#if LLVM_VERSION_MINOR >= 5
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/InstIterator.h"
 #else
@@ -122,20 +122,34 @@ namespace vfctracerData {
     Instruction *data = getData();
     
     if (opcode::isStoreOp(data)){
-      if (const MDNode *N = vfctracer::findVar(data->getOperand(1),F)) {	
-	/* Try to get information about the address variable */
+      if (MDNode *N = vfctracer::findVar(data->getOperand(1),F)) {	
+	/* Try to get information about the address variable */       
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7
 	DIVariable Loc(N);
 	unsigned line = Loc.getLineNumber();
+#else
+	DILocation *Loc = cast<DILocation>(N);
+	unsigned line = Loc->getLine();
+#endif
 	originalLine = std::to_string(line);
       }
     } else {    
       if (MDNode *N = data->getMetadata(LLVMContext::MD_dbg)) {
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7
 	DILocation Loc(N);
 	std::string Line = std::to_string(Loc.getLineNumber());
 	std::string Column = std::to_string(Loc.getColumnNumber());
 	std::string File = Loc.getFilename();
 	std::string Dir = Loc.getDirectory();
 	originalLine = File + " " + Line + "." + Column;
+#else
+	DILocation *Loc = cast<DILocation>(N);
+	std::string Line = std::to_string(Loc->getLine());
+	std::string Column = std::to_string(Loc->getColumn());
+	std::string File = Loc->getFilename();
+	std::string Dir = Loc->getDirectory();
+	originalLine = File + " " + Line + "." + Column;
+#endif
       }
     }
     return originalLine;

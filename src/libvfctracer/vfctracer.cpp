@@ -42,7 +42,7 @@
 #include <fstream>
 #include <unordered_map>
 
-#if LLVM_VERSION_MINOR == 5
+#if LLVM_VERSION_MINOR >= 5
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/InstIterator.h"
 #else
@@ -144,7 +144,7 @@ namespace vfctracer {
   //   return set;
   // }
   
-  const MDNode* findVar(const Value *V, const Function *F) {
+  MDNode* findVar(const Value *V, const Function *F) {
     for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F);
 	 Iter != End; ++Iter) {
       const Instruction *I = &*Iter;

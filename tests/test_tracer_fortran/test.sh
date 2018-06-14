@@ -5,6 +5,11 @@ ITER=30
 ROOT_PATH=$PWD
 LANGUAGE="FORTRAN"
 
+if grep "DRAGONEGG_PATH \"\"" ../../config.h > /dev/null; then
+	echo "this test is not run when using --without-dragonegg"
+	exit 0
+fi
+
 check_exit_code() {    
     if [ $? != 0 ]; then
        echo "${1}"

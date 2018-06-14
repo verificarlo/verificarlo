@@ -24,6 +24,7 @@
 #include <string>
 #include <sstream>
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Instructions.h"
@@ -43,7 +44,7 @@
 #include <unordered_map>
 #include <list>
 
-#if LLVM_VERSION_MINOR == 5
+#if LLVM_VERSION_MINOR >= 5
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/InstIterator.h"
 #else
@@ -53,9 +54,11 @@
 
 #if LLVM_VERSION_MINOR <= 6
 #define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
+#define CREATE_CALL3(func, op1, op2, op3) (builder.CreateCall3(func, op1, op2, op3, ""))
 #define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(i, p))
 #else
 #define CREATE_CALL2(func, op1, op2) (builder.CreateCall(func, {op1, op2}, ""))
+#define CREATE_CALL3(func, op1, op2, op3) (builder.CreateCall(func, {op1, op2, op3}, ""))
 #define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(nullptr, i, p, ""))
 #endif
 
@@ -107,11 +110,10 @@ namespace vfctracerFormat {
     }
     Value *valuePtr = D.getAddress();
     Value *locInfoValue = getOrCreateLocInfoValue(D);
-    CallInst *callInst = builder.CreateCall3(cast<Function>(probeFunc),
-					     value,
-					     valuePtr,
-					     locInfoValue,
-					     "");
+    CallInst *callInst = CREATE_CALL3(cast<Function>(probeFunc),
+				      value,
+				      valuePtr,
+				      locInfoValue);
 
     return callInst;
   };
@@ -120,7 +122,11 @@ namespace vfctracerFormat {
     if (typeid(D) == typeid(ScalarData)) {
       return Type::getInt64Ty(M->getContext());
     } else if (typeid(D) == typeid(VectorData)) {
-      return Type::getInt64PtrTy(M->getContext());
+      VectorData VD = cast<VectorData>(D);
+      unsigned vectorSize = VD.getVectorSize();
+      Type *int64Ty = Type::getInt64Ty(M->getContext());
+      ArrayType* arrayLocInfoType = ArrayType::get(int64Ty, vectorSize);
+      return PointerType::get(arrayLocInfoType,0);
     } else {
       llvm_unreachable("Unknow Data type");
     }
@@ -140,6 +146,7 @@ namespace vfctracerFormat {
       std::string locInfoGVname = "arrayLocInfoGV." + VD->getVariableName();
       GlobalVariable * arrayLocInfoGV = M->getGlobalVariable(locInfoGVname);
       Type *int64Ty = Type::getInt64Ty(M->getContext());
+      PointerType *int64PtrTy = PointerType::get(int64Ty,0);
       if (arrayLocInfoGV == nullptr) {
 	std::string locInfo = vfctracer::getLocInfo(*VD);
 
@@ -164,17 +171,20 @@ namespace vfctracerFormat {
 					    /*Linkage=*/GlobalValue::ExternalLinkage,
 					    /*Initializer=*/constArrayLocInfo,
 					    /*Name=*/locInfoGVname);
-      }
-
+      } 
       /* Create indices list for accessing to Global Array with getElementPtr */
       Constant* zeroConstInt64 = ConstantInt::get(int64Ty, 0);
       std::vector<Constant*> constPtrIndices;
       constPtrIndices.push_back(zeroConstInt64);
+
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 6      
       constPtrIndices.push_back(zeroConstInt64);
       Value *locInfoValue = ConstantExpr::getGetElementPtr(arrayLocInfoGV,
 							   constPtrIndices);
+#else
+      return arrayLocInfoGV;
+#endif
       return locInfoValue;
-
     } else {
       llvm_unreachable("Unknow Data class");
     }
