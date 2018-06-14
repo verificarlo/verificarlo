@@ -26,7 +26,7 @@ AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
 
 AC_PATH_PROG([CLANG], [clang], "", $LLVM_BINDIR/)
 if test -z "$CLANG"; then
-  AC_PATH_PROGS([CLANG], [clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang], "")
+   AC_PATH_PROGS([CLANG], [clang-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang], "")
 fi
 if test -z "$CLANG"; then
   AC_MSG_ERROR([Could not find clang])

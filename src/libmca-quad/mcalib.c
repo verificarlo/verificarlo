@@ -35,6 +35,8 @@
 // 
 // 2016-07-14 Support denormalized numbers
 //
+// 2017-04-25 Rewrite debug and validate the noise addition operation
+//
 
 #include <math.h>
 #include <stdio.h>
@@ -42,7 +44,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdint.h>
-//#include<quadmath.h>
 
 #include "../common/quadmath-imp.h"
 #include "libmca-quad.h"

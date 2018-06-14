@@ -139,7 +139,7 @@ int vfc_set_precision_and_mode(unsigned int precision, int mode) {
 }
 
 /* vfc_init is run when loading vfcwrapper and initializes vfc libraries */
-__attribute__((constructor))
+__attribute__((constructor(0)))
 static void vfc_init (void)
 {
     char * endptr;
@@ -230,9 +230,7 @@ typedef double double2 __attribute__((ext_vector_type(2)));
 typedef double double4 __attribute__((ext_vector_type(4)));
 typedef float float2 __attribute__((ext_vector_type(2)));
 typedef float float4 __attribute__((ext_vector_type(4)));
-typedef bool bool2 __attribute__((ext_vector_type(2)));
-typedef bool bool4 __attribute__((ext_vector_type(4)));
-typedef uint64_t uint64_t4 __attribute__((ext_vector_type(4)));
+
 /* Arithmetic vector wrappers */
 
 double2 _2xdoubleadd(double2 a, double2 b) {
