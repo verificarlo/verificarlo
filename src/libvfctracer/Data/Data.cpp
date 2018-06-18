@@ -127,9 +127,14 @@ namespace vfctracerData {
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7
 	DIVariable Loc(N);
 	unsigned line = Loc.getLineNumber();
-#else
+#elif LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
 	DILocation *Loc = cast<DILocation>(N);
 	unsigned line = Loc->getLine();
+#else
+	unsigned line = 0;
+	if (DILocalVariable *DILocVar = dyn_cast<DILocalVariable>(N)) {
+	  line = DILocVar->getLine();
+	}
 #endif
 	originalLine = std::to_string(line);
       }
@@ -142,13 +147,30 @@ namespace vfctracerData {
 	std::string File = Loc.getFilename();
 	std::string Dir = Loc.getDirectory();
 	originalLine = File + " " + Line + "." + Column;
-#else
+#elif LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
 	DILocation *Loc = cast<DILocation>(N);
 	std::string Line = std::to_string(Loc->getLine());
 	std::string Column = std::to_string(Loc->getColumn());
 	std::string File = Loc->getFilename();
 	std::string Dir = Loc->getDirectory();
 	originalLine = File + " " + Line + "." + Column;
+#else
+	DebugLoc Loc = data->getDebugLoc();
+	// DILocation *Loc = cast<DILocation>(N);
+	std::string Line = std::to_string(Loc->getLine());
+	std::string Column = std::to_string(Loc->getColumn());
+	std::string File = Loc->getFilename();
+	std::string Dir = Loc->getDirectory();
+	originalLine = File + " " + Line + "." + Column;
+	if (DIVariable *DI = dyn_cast<DIVariable>(N)) {
+	  errs() << "Data::originalLine " << *DI << "\n";
+	}
+	// DILocalVariable *Locvar = cast<DILocalVariable>(N);
+	// errs() << "Line: " << Locvar->getLine();
+	// errs() << "Name: " << Locvar->getName();
+	// errs() << "Type: " << Locvar->getType();
+	// errs() << "Filename : " << Locvar->getFilename();
+	// errs() << "Directory : " << Locvar->getDirectory();		
 #endif
       }
     }

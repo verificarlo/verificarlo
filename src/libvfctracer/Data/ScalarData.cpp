@@ -122,7 +122,11 @@ namespace vfctracerData {
       return dataName;
 
     if (operationCode == Fops::STORE) {   
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9      
       dataName = getOriginalName(data->getOperand(0));      
+#else
+      dataName = getOriginalName(data->getOperand(1));      
+#endif
     } else
       dataName = getOriginalName(data);
 

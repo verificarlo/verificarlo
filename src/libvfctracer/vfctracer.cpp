@@ -124,26 +124,7 @@ namespace vfctracer {
     return nullptr;
   }
 
-  // std::set<const MDNode*> findVars(const Value *V, const Function *F) {
-  //   std::set<const MDNode*> set;
-  //   if (F == nullptr)
-  //     return set;
-  //   for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F);
-  // 	 Iter != End; ++Iter) {
-  //     const Instruction *I = &*Iter;
-  //     if (const DbgValueInst *DbgValue = dyn_cast<DbgValueInst>(I)) {
-  // 	errs() << *DbgValue << "\n";
-  // 	if (DbgValue->getValue() == V)
-  // 	  set.insert(DbgValue->getVariable());
-  //     } else if (const DbgDeclareInst *DbgDeclare = dyn_cast<DbgDeclareInst>(I)) {
-  // 	errs() << *DbgDeclare << "\n";
-  // 	if (DbgDeclare->getAddress() == V)
-  // 	  set.insert(DbgDeclare->getVariable());
-  //     }
-  //   }
-  //   return set;
-  // }
-  
+  // renome into findDbgInstVar
   MDNode* findVar(const Value *V, const Function *F) {
     for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F);
 	 Iter != End; ++Iter) {
@@ -152,13 +133,15 @@ namespace vfctracer {
 	if (DbgValue->getValue() == V)
 	  return DbgValue->getVariable();
       } else if (const DbgDeclareInst *DbgDeclare = dyn_cast<DbgDeclareInst>(I)) {
-	if (DbgDeclare->getAddress() == V)
+	if (DbgDeclare->getAddress() == V) {
+	  errs() << "dbgdeclare " << *DbgDeclare << "\n";
 	  return DbgDeclare->getVariable();
-      } 
+	}
+      }
     }
     return nullptr;
   }
-  
+
   /* The names of temporary expressions are constructed as */
   /* c = a op b */
   std::string buildTmpExprName(const Value *V) {
@@ -188,25 +171,22 @@ namespace vfctracer {
   std::string findName(const Value *V) {
     const Function *F = findEnclosingFunc(V);
     if (F != nullptr) {
-      std::string name = V->getName();
+      std::string name = "";
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9      
+      name = V->getName();
+#else     
+      MDNode *MD = findVar(V,F);
+      if (MD != nullptr)
+	if (DILocalVariable *DILoc = dyn_cast<DILocalVariable>(MD))
+	  name = DILoc->getName();
+#endif
       if (tracingLevel > optTracingLevel::basic)
-  	if (name.empty() || name == vfctracer::temporaryVariableName)
-  	  return buildTmpExprName(V);
+	if (name.empty() || name == vfctracer::temporaryVariableName)
+	  return buildTmpExprName(V);
       return name;      
     }
     
     return temporaryVariableName;
-
-    // std::set<const MDNode*> vars = findVars(V, F);
-    // if (tracingLevel > optTracingLevel::basic) {
-    //   std::string tmp = vfctracer::getRawName(V);
-    //   return tmp;
-    // }
-    
-    // if (vars.empty())
-    //   return temporaryVariableName;
-    
-    // return "";
   }
 
   void VerboseMessage(Data &D) {
