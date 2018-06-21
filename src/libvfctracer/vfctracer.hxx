@@ -28,7 +28,7 @@
 
 #include <fstream>
 #include <unordered_map>
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 5 
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 5 
 #include "llvm/DebugInfo.h"
 #include "llvm/Support/InstIterator.h"
 #else
@@ -53,19 +53,16 @@ namespace vfctracer {
   const std::string vectorName_x2 = "2x";
   const std::string vectorName_x4 = "4x";
   
-  bool isValidDataType(llvm::Type *dataType);
-  bool isValidOperation(vfctracerData::Data &D);
   std::string getLocInfo(vfctracerData::Data &D);
   uint64_t getOrInsertLocInfoValue(std::string &locInfo, std::string ext = "");
   std::string getBaseTypeName(llvm::Type *baseType);
-  const llvm::Function *findEnclosingFunc(const llvm::Value *V);
-  llvm::MDNode *findVar(const llvm::Value *V, const llvm::Function *F);
+  const llvm::Function* findEnclosingFunc(const llvm::Value *V);
+  llvm::MDNode* findVar(const llvm::Value *V, const llvm::Function *F);
   std::string findName(const llvm::Value *V);
   void VerboseMessage(vfctracerData::Data &D);
   void dumpMapping(std::ofstream &mappingFile);
   std::string getRawName(const llvm::Value *V);
   std::string getRawName(const llvm::Instruction *I);
-  void ltrim(std::string &s);
 }
 
 #endif /* VERITRACER_HXX */

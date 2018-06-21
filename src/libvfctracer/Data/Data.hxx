@@ -84,7 +84,6 @@ namespace vfctracerData {
     
   public:
     VectorData(llvm::Instruction *I);
-    bool isValidDataType();
     llvm::Value* getAddress() const;    
     llvm::Type* getVectorType() const;
     llvm::Type* getDataType() const ;

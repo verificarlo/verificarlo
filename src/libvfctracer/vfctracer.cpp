@@ -65,27 +65,6 @@ namespace vfctracer {
   std::hash<std::string> locInfoHasher;
   optTracingLevel tracingLevel;
   
-  bool isValidDataType(Type *dataType) {
-    if (dataType->isFloatTy())
-      return true;
-    else if (dataType->isDoubleTy())
-      return true;
-    else
-      return false;
-  }
-
-  bool isValidOperation(Data &D) {
-    Instruction *I = D.getData();
-    Fops opCode = getOpCode(I);
-    /* Checks that the stored value is not a constant */
-    if (opCode == Fops::STORE)
-      return not isa<llvm::ConstantFP>(D.getValue());
-    /* Checks that the returned value type is not void */
-    if (opCode == Fops::RETURN)
-      return not D.getDataType()->isVoidTy();
-    return opCode != Fops::FOP_IGNORE;
-  }
-
   uint64_t getOrInsertLocInfoValue(std::string &locInfo,
 					      std::string ext) {
     std::string locInfoExt = locInfo + ext;
@@ -116,24 +95,6 @@ namespace vfctracer {
     return nullptr;
   }
 
-  // renome into findDbgInstVar
-  MDNode* findVar(const Value *V, const Function *F) {
-    for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F);
-	 Iter != End; ++Iter) {
-      const Instruction *I = &*Iter;
-      if (const DbgValueInst *DbgValue = dyn_cast<DbgValueInst>(I)) {
-	if (DbgValue->getValue() == V)
-	  return DbgValue->getVariable();
-      } else if (const DbgDeclareInst *DbgDeclare = dyn_cast<DbgDeclareInst>(I)) {
-	if (DbgDeclare->getAddress() == V) {
-	  errs() << "dbgdeclare " << *DbgDeclare << "\n";
-	  return DbgDeclare->getVariable();
-	}
-      }
-    }
-    return nullptr;
-  }
-
   /* The names of temporary expressions are constructed as */
   /* c = a op b */
   std::string buildTmpExprName(const Value *V) {
@@ -159,12 +120,29 @@ namespace vfctracer {
     }
     return "";
   }  
+
+  // renome into findDbgInstVar
+  MDNode* findVar(const Value *V, const Function *F) {
+    for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F);
+	 Iter != End; ++Iter) {
+      const Instruction *I = &*Iter;
+      if (const DbgValueInst *DbgValue = dyn_cast<DbgValueInst>(I)) {
+	if (DbgValue->getValue() == V)
+	  return DbgValue->getVariable();
+      } else if (const DbgDeclareInst *DbgDeclare = dyn_cast<DbgDeclareInst>(I)) {
+	if (DbgDeclare->getAddress() == V) {
+	  return DbgDeclare->getVariable();
+	}
+      }
+    }
+    return nullptr;
+  }
   
   std::string findName(const Value *V) {
     const Function *F = findEnclosingFunc(V);
     if (F != nullptr) {
       std::string name = "";
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9      
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8      
       name = V->getName();
 #else     
       MDNode *MD = findVar(V,F);
@@ -209,8 +187,8 @@ namespace vfctracer {
 	}));
   }
 
+  /* Ugly hack to redirect a raw_fd_ostream (errs()) into a string */
   std::string getRawName(const Value *data) {
-    /* Ugly hack to redirect a raw_fd_ostream (errs()) into a string */
     std::FILE * tmpF = std::tmpfile();
     int fd = fileno(tmpF);
     llvm::raw_fd_ostream f(fd,false,false);
@@ -228,8 +206,8 @@ namespace vfctracer {
     return raw_name;
   }
 
+  /* Ugly hack to redirect a raw_fd_ostream (errs()) into a string */
   std::string getRawName(const Instruction *data) {
-    /* Ugly hack to redirect a raw_fd_ostream (errs()) into a string */
     std::FILE * tmpF = std::tmpfile();
     int fd = fileno(tmpF);
     llvm::raw_fd_ostream f(fd,false,false);

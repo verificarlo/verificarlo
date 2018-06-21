@@ -122,10 +122,6 @@ namespace vfctracerData {
     return "";
   }
     
-  bool VectorData::isValidDataType() {
-    return vfctracer::isValidDataType(this->baseType);
-  }
-
   std::string VectorData::getVariableName() {
     if (not dataName.empty()) return dataName;
       

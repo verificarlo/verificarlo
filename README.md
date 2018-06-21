@@ -42,11 +42,7 @@ $ docker run -v $PWD:/workdir verificarlo/verificarlo \
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-<<<<<<< HEAD
-  * LLVM, clang and opt from 3.3 up to 3.6 (the last version with Fortran support is 3.6), http://clang.llvm.org/
-=======
   * LLVM, clang and opt from 3.3 up to 4.0.1 (the last version with Fortran support is 3.6), http://clang.llvm.org/
->>>>>>> master
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
   * python, version >= 2.7
   * autotools (automake, autoconf)
@@ -130,15 +126,13 @@ If you only wish to instrument a specific function in your program, use the
 When invoked with the `--verbose` flag, veritracer provides detailed output of
 the instrumentation process. 
 
-<<<<<<< HEAD
 Information on variables instrumented are gathered in the `locationInfo.map` file.
 By default, this file is created in the directory where compilation is made.
 You can change it by modifying the environment variable `VERITRACER_LOCINFO_PATH`.
-=======
+
 It is important to include the necessary link flags if you use extra libraries. For example, you should include `-lm` if you are linking against the math library and include `-lstdc++` if you use functions in the standard C++ library.
 
 ### MCA Configuration Parameters
->>>>>>> master
 
 After execution, veritracer produces a file named `veritracer.dat` which contain the raw
 values collected during the execution. By default, it is a binary file,
@@ -149,13 +143,12 @@ Tools are provided for processing traces. However, for gathering
 data with the script, you must respect the following format for your directory
 which is explained in the Postprocessing section.
 
-<<<<<<< HEAD
-### Postprocessing
-=======
  * `MCA`: (default mode) Montecarlo Arithmetic with inbound and outbound errors
  * `IEEE`: the program uses standard IEEE arithmetic, no errors are introduced
  * `PB`: Precision Bounding inbound errors only
  * `RR`: Random Rounding outbound errors only
+
+### Postprocessing
 
 The environement variable `VERIFICARLO_PRECISION` controls the virtual precision
 used for the floating point operations. It accepts an integer value that
@@ -166,7 +159,6 @@ can refer to https://hal.archives-ouvertes.fr/hal-01192668.
 Verificarlo supports two MCA backends. The environement variable
 `VERIFICARLO_BACKEND` is used to select the backend. It can be set to `QUAD` or
 `MPFR`
->>>>>>> master
 
 The  `postprocessing/veritracer/` directory contains postprocessing tools
 for visualizing information produced by veritracer.

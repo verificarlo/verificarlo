@@ -47,6 +47,7 @@
 #include <sstream>
 
 #include "Data.hxx"
+#include "../opcode.hxx"
 #include "../vfctracer.hxx"
 
 namespace vfctracerData {
@@ -100,10 +101,6 @@ namespace vfctracerData {
   bool Data::isTemporaryVariable() const {
     return this->dataName.empty() || this->dataName == vfctracer::temporaryVariableName;
   }
-
-  void printOriginalLine(std::string &OriginalLine, int line) {
-    errs() << "originalLine" << line << " " << OriginalLine << "\n";      
-  }
   
   std::string Data::getOriginalLine() {
     if (not originalLine.empty())
@@ -119,9 +116,6 @@ namespace vfctracerData {
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7
 	DIVariable Loc(N);
 	unsigned line = Loc.getLineNumber();
-#elif LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
-	DILocation *Loc = cast<DILocation>(N);
-	unsigned line = Loc->getLine();
 #else
 	unsigned line = 0;
 	if (DILocalVariable *DILocVar = dyn_cast<DILocalVariable>(N)) {
@@ -131,40 +125,23 @@ namespace vfctracerData {
 	originalLine = std::to_string(line);
       }
     } else {    
-      if (MDNode *N = data->getMetadata(LLVMContext::MD_dbg)) {
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7
+      if (MDNode *N = data->getMetadata(LLVMContext::MD_dbg)) {
 	DILocation Loc(N);
 	std::string Line = std::to_string(Loc.getLineNumber());
 	std::string Column = std::to_string(Loc.getColumnNumber());
 	std::string File = Loc.getFilename();
 	std::string Dir = Loc.getDirectory();
 	originalLine = File + " " + Line + "." + Column;
-#elif LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
-	DILocation *Loc = cast<DILocation>(N);
-	std::string Line = std::to_string(Loc->getLine());
-	std::string Column = std::to_string(Loc->getColumn());
-	std::string File = Loc->getFilename();
-	std::string Dir = Loc->getDirectory();
-	originalLine = File + " " + Line + "." + Column;
-#else
-	DebugLoc Loc = data->getDebugLoc();
-	// DILocation *Loc = cast<DILocation>(N);
-	std::string Line = std::to_string(Loc->getLine());
-	std::string Column = std::to_string(Loc->getColumn());
-	std::string File = Loc->getFilename();
-	std::string Dir = Loc->getDirectory();
-	originalLine = File + " " + Line + "." + Column;
-	if (DIVariable *DI = dyn_cast<DIVariable>(N)) {
-	  errs() << "Data::originalLine " << *DI << "\n";
-	}
-	// DILocalVariable *Locvar = cast<DILocalVariable>(N);
-	// errs() << "Line: " << Locvar->getLine();
-	// errs() << "Name: " << Locvar->getName();
-	// errs() << "Type: " << Locvar->getType();
-	// errs() << "Filename : " << Locvar->getFilename();
-	// errs() << "Directory : " << Locvar->getDirectory();		
-#endif
       }
+#else
+      DebugLoc Loc = data->getDebugLoc();
+      std::string Line = std::to_string(Loc->getLine());
+      std::string Column = std::to_string(Loc->getColumn());
+      std::string File = Loc->getFilename();
+      std::string Dir = Loc->getDirectory();
+      originalLine = File + " " + Line + "." + Column;
+#endif      
     }
     return originalLine;
   }
@@ -203,11 +180,23 @@ namespace vfctracerData {
   }
   
   bool Data::isValidOperation() {
-    return vfctracer::isValidOperation(*this);
+    Instruction *I = getData();
+    /* Checks that the stored value is not a constant */
+    if (opcode::isStoreOp(I))
+      return not isa<llvm::ConstantFP>(getValue());
+    /* Checks that the returned value type is not void */
+    if (opcode::isRetOp(I))
+      return not getDataType()->isVoidTy();
+    return not opcode::isIgnoreOp(I);
   }
 
   bool Data::isValidDataType() {  
-    return vfctracer::isValidDataType(this->getDataType());
+    if (baseType->isFloatTy())
+      return true;
+    else if (baseType->isDoubleTy())
+      return true;
+    else
+      return false;
   }
 
   /* Smart constructor */

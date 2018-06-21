@@ -92,7 +92,7 @@ static cl::opt<vfctracer::optTracingLevel> VfclibTracingLevel("vfclibtracer-leve
 							      cl::value_desc("TracingLevel"),
 							      levelOpt);
 
-#else 
+#else
 static cl::opt<vfctracerFormat::optFormat> VfclibFormat("vfclibtracer-format",
 					  cl::desc("Output format"),
 					  cl::value_desc("TracerFormat"),
@@ -172,9 +172,7 @@ namespace {
       if (not mappingFile.is_open()) {
 	errs() << "Cannot open file : "  << mappingFilename << "\n";
 	exit(1);
-      } else {
-	// errs() << mappingFilename << " is open \n";
-      }
+      } 
       vfctracer::tracingLevel  = VfclibTracingLevel;
     }    
            
@@ -232,19 +230,7 @@ namespace {
       }
       return true;
     }
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8
-    bool runOnBasicBlock(Module &M, BasicBlock &B, vfctracerFormat::Format &Fmt) {
-      bool modified = false;
-      for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
-	vfctracerData::Data *D = vfctracerData::CreateData(ii);
-	if (D == nullptr || not D->isValidOperation() || not D->isValidDataType()) continue;
-	modified |= insertProbe(Fmt, *D);
-	if (VfclibBacktrace && modified)
-	  insertBacktraceCall(&M, ii->getParent()->getParent(), ii, &Fmt, D);      
-      }
-      return modified;
-    };
-#else
+
     bool runOnBasicBlock(Module &M, BasicBlock &B, vfctracerFormat::Format &Fmt) {
       bool modified = false;
       for (Instruction &ii : B) {
@@ -252,11 +238,14 @@ namespace {
 	if (D == nullptr || not D->isValidOperation() || not D->isValidDataType()) continue;
 	modified |= insertProbe(Fmt, *D);
 	if (VfclibBacktrace && modified)
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8
+	  insertBacktraceCall(&M, ii.getParent()->getParent(), &ii, &Fmt, D);      
+#else
 	  insertBacktraceCall(&M, ii.getFunction(), &ii, &Fmt, D);      
+#endif
       }
       return modified;
     };
-#endif
     
     bool runOnFunction(Module &M, Function &F, vfctracerFormat::Format &Fmt) {
       if (VfclibInstVerbose) {

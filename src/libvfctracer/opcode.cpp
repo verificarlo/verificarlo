@@ -7,7 +7,7 @@ using namespace llvm;
 
 namespace opcode {
   
-  Fops getOpCode(Instruction &I) {
+  Fops getOpCode(const Instruction &I) {
     switch (I.getOpcode()) {
       case Instruction::FAdd:
         return Fops::FOP_ADD;
@@ -115,6 +115,14 @@ namespace opcode {
 
   bool isRetOp(const Instruction *I) {
     return I->getOpcode() == Instruction::Ret;
+  }
+
+  bool isIgnoreOp(const Instruction &I) {
+    return opcode::getOpCode(I) == Fops::FOP_IGNORE;
+  }
+
+  bool isIgnoreOp(const Instruction *I) {
+    return opcode::getOpCode(I) == Fops::FOP_IGNORE;
   }
 
   std::string fops_str(Fops op) {
