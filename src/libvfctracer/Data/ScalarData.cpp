@@ -43,14 +43,6 @@
 #include <unordered_map>
 #include <list>
 
-#if LLVM_VERSION_MINOR >= 5
-#include "llvm/IR/DebugInfo.h"
-#include "llvm/IR/InstIterator.h"
-#else
-#include "llvm/DebugInfo.h"
-#include "llvm/Support/InstIterator.h"
-#endif
-
 #if LLVM_VERSION_MINOR <= 6
 #define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
 #define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(i, p))

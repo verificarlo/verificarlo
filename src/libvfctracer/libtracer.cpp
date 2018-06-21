@@ -46,14 +46,6 @@
 #include <unordered_map>
 #include <list>
 
-#if LLVM_VERSION_MINOR >= 5
-#include "llvm/IR/DebugInfo.h"
-#include "llvm/IR/InstIterator.h"
-#else
-#include "llvm/DebugInfo.h"
-#include "llvm/Support/InstIterator.h"
-#endif
-
 #if LLVM_VERSION_MINOR <= 6
 #define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
 #define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(i, p))
@@ -82,6 +74,25 @@ static cl::opt<bool> VfclibBlackList("vfclibblack-list",
 				     cl::desc("Activate black list mode"),
 				     cl::value_desc("BlackList"), cl::init(false));
 
+
+#if LLVM_VERSION_MAJOR == 4
+auto binaryOpt = clEnumValN(vfctracerFormat::binary, "binary", "Binary format");
+auto textOpt = clEnumValN(vfctracerFormat::text, "text", "Text format");
+auto formatValue = cl::values(binaryOpt, textOpt);
+static cl::opt<vfctracerFormat::optFormat> VfclibFormat("vfclibtracer-format",
+							cl::desc("Output format"),
+							cl::value_desc("TracerFormat"),
+							formatValue);
+
+auto basicOpt = clEnumValN(vfctracer::basic, "basic", "Basic level");
+auto temporaryOpt = clEnumValN(vfctracer::temporary, "temporary", "Tracing temporary variables");
+auto levelOpt = cl::values(basicOpt, temporaryOpt);
+static cl::opt<vfctracer::optTracingLevel> VfclibTracingLevel("vfclibtracer-level",
+							      cl::desc("Tracing Level"),
+							      cl::value_desc("TracingLevel"),
+							      levelOpt);
+
+#else 
 static cl::opt<vfctracerFormat::optFormat> VfclibFormat("vfclibtracer-format",
 					  cl::desc("Output format"),
 					  cl::value_desc("TracerFormat"),
@@ -92,17 +103,7 @@ static cl::opt<vfctracerFormat::optFormat> VfclibFormat("vfclibtracer-format",
 									      "text",
 									      "Text format" ),
 								   NULL) // sentinel 
-					  );
-
-static cl::opt<bool> VfclibBacktrace("vfclibtracer-backtrace",
-				     cl::desc("Add backtrace function"),
-				     cl::value_desc("TracerBacktrace"), cl::init(false));
-
-
-static cl::opt<bool> VfclibDebug("vfclibtracer-debug",
-				 cl::value_desc("TracerDebug"),
-				 cl::desc("Enable debug mode"), cl::init(false));
-
+							);
 static cl::opt<vfctracer::optTracingLevel> VfclibTracingLevel("vfclibtracer-level",
 							   cl::desc("Tracing Level"),
 							   cl::value_desc("TracingLevel"),
@@ -114,6 +115,17 @@ static cl::opt<vfctracer::optTracingLevel> VfclibTracingLevel("vfclibtracer-leve
 										 "Allows to trace temporary variables"),
 								      NULL) // sentinel
 						      );
+#endif
+ 
+static cl::opt<bool> VfclibBacktrace("vfclibtracer-backtrace",
+				     cl::desc("Add backtrace function"),
+				     cl::value_desc("TracerBacktrace"), cl::init(false));
+
+
+static cl::opt<bool> VfclibDebug("vfclibtracer-debug",
+				 cl::value_desc("TracerDebug"),
+				 cl::desc("Enable debug mode"), cl::init(false));
+
 						      
 namespace {
   

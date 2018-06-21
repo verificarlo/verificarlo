@@ -46,14 +46,6 @@
 #include <iostream>
 #include <sstream>
 
-#if LLVM_VERSION_MINOR >= 5
-#include "llvm/IR/DebugInfo.h"
-#include "llvm/IR/InstIterator.h"
-#else
-#include "llvm/DebugInfo.h"
-#include "llvm/Support/InstIterator.h"
-#endif
-
 #include "Data.hxx"
 #include "../vfctracer.hxx"
 

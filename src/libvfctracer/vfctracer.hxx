@@ -28,12 +28,12 @@
 
 #include <fstream>
 #include <unordered_map>
-#if LLVM_VERSION_MINOR >= 5
-#include "llvm/IR/DebugInfo.h"
-#include "llvm/IR/InstIterator.h"
-#else
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 5 
 #include "llvm/DebugInfo.h"
 #include "llvm/Support/InstIterator.h"
+#else
+#include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/InstIterator.h"
 #endif
 
 #include "Data/Data.hxx"    
