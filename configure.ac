@@ -120,6 +120,7 @@ else
 fi
 
 AX_PYTHON_MODULE(numpy, fatal)
+AX_PYTHON_MODULE(matplotlib.pyplot, fatal)
 
 # Generate config files
 
