@@ -3,7 +3,7 @@ sudo: required
 
 before_install:
   - sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main'
-  - sudo add-apt-repository 'deb http://fr.archive.ubuntu.com/ubuntu xenial/universe amd64 Packages'
+  - sudo add-apt-repository 'deb http://fr.archive.ubuntu.com/ubuntu xenial/universe main'
   - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
   - sudo add-apt-repository ppa:dns/gnu -y
   - sudo apt-get update
