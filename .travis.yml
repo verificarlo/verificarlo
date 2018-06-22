@@ -15,6 +15,8 @@ install:
   - make
   - sudo make install
   - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+  - mkdir -p $HOME/.config/matplotlib/
+  - echo "import matplotlib\nmatplotlib.use('Agg')" > $HOME/.config/matplotlib/matplotlibrc
 
 script:
   - make installcheck
