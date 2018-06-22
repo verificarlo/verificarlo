@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img  src="veritracer-logo.png">
 </p>
 
@@ -160,21 +160,16 @@ Verificarlo supports two MCA backends. The environement variable
 `VERIFICARLO_BACKEND` is used to select the backend. It can be set to `QUAD` or
 `MPFR`
 
-The  `postprocessing/veritracer/` directory contains postprocessing tools
-for visualizing information produced by veritracer.
-Veritracer postprocess tools use a git-style command.
-The two principal commands are `veritracer analyze` for gathering information
-and `veritracer plot` for visualizing information.
+The  `postprocessing/veritracer/` directory contains postprocessing tools for visualizing information produced by veritracer. Veritracer postprocess tools use a git-style command.
+The two principal commands are `veritracer analyze` for gathering information and `veritracer plot` for visualizing information.
 
 #### Analyze
 
 ```bash
    $ veritracer analyze
 ```
-For gathering data with the script,
-you must respect the following format for your directory:
-for `n` runs in the directory `exp`,
-you should have:
+For gathering data with the script, you must respect the following format for your directory:
+for `n` runs in the directory `exp`, you should have:
 
 ```bash
    $ ls -R exp
@@ -190,18 +185,20 @@ with the appropriate directory structure
    $ veritracer launch --jobs=<N> --binary=program  
 ```
 
+#### Plot
+
 `veritracer plot` allows visualizing data from `output.csv` file.
 
 
 ```bash
-   $ veritracer plot -f file.csv 
+   $ veritracer plot <file.csv> 
 ```
 
 For visualizing specific variables, you can use the `--variables` option.
 Use the hash value of the variable which is available in the `locationInfo.map`.
 
 ```bash
-   $ veritracer plot -f file.csv --variables=<hash1> <hash2> ... <hashN>
+   $ veritracer plot <file.csv> --variables=<hash1> <hash2> ... <hashN>
 ```
 
 ### Examples
@@ -221,21 +218,17 @@ The `tests/veritracer` directory contains an example of Veritracer usage.
 
 If you use VeriTracer in your research, please cite the following paper:
 
-    @inproceedings{verificarlo,
-    author    = {Christophe Denis and
-                 Pablo de Oliveira Castro and
-                 Eric Petit},
-    title     = {Verificarlo: Checking Floating Point Accuracy through Monte Carlo
-                 Arithmetic},
-    booktitle = {23nd {IEEE} Symposium on Computer Arithmetic, {ARITH} 2016, Silicon
-                 Valley, CA, USA, July 10-13, 2016},
-    pages     = {55--62},
-    year      = {2016},
-    url       = {http://dx.doi.org/10.1109/ARITH.2016.31},
-    doi       = {10.1109/ARITH.2016.31},
-    }
-
-A preprint is available at https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf.
+    @inproceedings{Chatelain2018veritracer,
+			 author = {Yohan Chatelain and
+             Pablo de Oliveira Castro and
+             Eric Petit and
+             David Defour and
+             Jordan Bieder and
+             Marc Torrent},
+			 title = {{VeriTracer: Context-enriched tracer for floating-point arithmetic analysis}},
+			 booktitle = {25th {IEEE} Symposium on Computer Arithmetic, {ARITH} 		2018, Amherst, MA, USA. June 25th-27th, 2018},
+			 pages = {(to appear)},
+			 year = {2018}}
 
 Thanks !
 
