@@ -10,11 +10,11 @@ if [ "$?" == 0 ] ; then
     echo "Verificarlo must be stopped, --functions-file and --function should be incompatible"
     exit 1
 fi
-
-if diff output output.ref > /dev/null ; then
+if  (( $(grep -c "In Function: f" output) && $(grep -c "In Function: g" output) ))   ; then
     echo "test passed"
     exit 0
 else
-    echo "ouput and output.ref should be the same"
+    echo "Error while instrumenting"
+    cat output
     exit 1
 fi

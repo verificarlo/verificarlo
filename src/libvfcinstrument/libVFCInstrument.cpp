@@ -150,7 +150,7 @@ namespace {
             for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
                 const bool is_in = SelectedFunctionSet.find(
                         F->getName()) != SelectedFunctionSet.end();
-                if (SelectedFunctionSet.empty() || is_in) {
+                if (SelectedFunctionSet.empty() || VfclibBlackList != is_in) {
                     functions.push_back(&*F);
                 }
             }
