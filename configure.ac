@@ -119,7 +119,7 @@ else
   AC_MSG_FAILURE([found python $ac_python_version ($PYTHON); required >= 2.7])
 fi
 
-AX_PYTHON_PATH(numpy, fatal)
+AX_PYTHON_MODULE(numpy, fatal)
 
 # Generate config files
 
