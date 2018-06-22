@@ -119,6 +119,7 @@ else
   AC_MSG_FAILURE([found python $ac_python_version ($PYTHON); required >= 2.7])
 fi
 
+AM_PATH_PYTHON([2.7])
 AX_PYTHON_MODULE(seaborn, fatal)
 
 # Generate config files
