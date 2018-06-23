@@ -11,7 +11,7 @@ before_install:
   # Get dragonegg
   - wget http://releases.llvm.org/3.5.2/dragonegg-3.5.2.src.tar.xz
   - tar xvf dragonegg-3.5.2.src.tar.xz && cd dragonegg-3.5.2.src
-  - LLVM_CONFIG=llvm-config-3.5 CC=gcc-4.8 make && sudo cp dragonegg.so /usr/local/lib/. && cd ..
+  - LLVM_CONFIG=llvm-config-3.5 GCC=gcc-4.8 make && sudo cp dragonegg.so /usr/local/lib/. && cd ..
 
 install:
   - ./autogen.sh
