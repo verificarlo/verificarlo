@@ -8,10 +8,15 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install libmpfr-dev clang-3.5 llvm-3.5 llvm-3.5-dev dragonegg-4.8 gcc-4.8 g++-4.8 gfortran-4.8 libgfortran-4.8-dev autoconf automake build-essential libedit-dev python-numpy python-matplotlib
 
+  # Get dragonegg
+  - wget http://llvm.org/releases/3.5.2/dragonegg-3.5.2.src.tar.gz
+  - tar xvf dragonegg-3.5.2.src.tar.gz && cd dragonegg-3.5.2
+  - LLVM_CONFIG=llvm-config-3.5 CC=gcc-4.8 make && sudo cp dragonegg.so /usr/local/lib/. && cd ..
+
 install:
   - ./autogen.sh
   - export LIBRARY_PATH=/usr/bin/../lib/gcc/x86_64-linux-gnu/4.8:/usr/bin/../lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu:/lib/x86_64-linux-gnu:/lib/../lib64:/usr/lib/x86_64-linux-gnu:/usr/bin/../lib/gcc/x86_64-linux-gnu/4.8/../../..:/usr/lib/llvm-3.5/bin/../lib:/lib:/usr/lib:$LIBRARY_PATH
-  - ./configure --with-llvm=/usr/lib/llvm-3.5/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.8/plugin/dragonegg.so CC=gcc-4.8 CXX=g++-4.8 || cat config.log
+  - ./configure --with-llvm=/usr/lib/llvm-3.5/bin/ --with-dragonegg=/usr/local/lib/dragonegg.so CC=gcc-4.8 CXX=g++-4.8 || cat config.log
   - make
   - sudo make install
   - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
