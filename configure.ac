@@ -92,6 +92,7 @@ AC_ARG_WITH([python],
             [PYTHON="$withval"])
 
 if test -n "$PYTHON" && test -x "$PYTHON" ; then
+  AM_PATH_PYTHON([2.7])
   AC_MSG_CHECKING([for python])
   AC_MSG_RESULT([user defined: $with_python])
 else
@@ -118,6 +119,9 @@ else
   AC_MSG_FAILURE([found python $ac_python_version ($PYTHON); required >= 2.7])
 fi
 
+AX_PYTHON_MODULE(numpy, fatal)
+AX_PYTHON_MODULE(matplotlib.pyplot, fatal)
+
 # Generate config files
 
 AC_CONFIG_FILES([Makefile
@@ -125,8 +129,14 @@ AC_CONFIG_FILES([Makefile
                  src/libvfcinstrument/Makefile
                  src/libmca-mpfr/Makefile
 		 src/libmca-quad/Makefile
-		 src/common/Makefile
-                 tests/Makefile])
+		 src/libbitmask/Makefile
+		 src/libvfcreport/Makefile
+		 src/libvfctracer/Makefile
+		 src/libvfctracer/Data/Makefile
+		 src/libvfctracer/Format/Makefile		 
+		 src/common/Makefile		
+		 tests/Makefile
+		 postprocess/veritracer/Makefile])
 
 AC_CONFIG_FILES([verificarlo.in], [])
 

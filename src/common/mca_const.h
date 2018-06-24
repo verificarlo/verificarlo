@@ -56,17 +56,19 @@
 #define DOUBLE_GET_SIGN    0x8000000000000000ULL
 //Double precision mask to extract the pseudo mantissa
 #define DOUBLE_GET_PMAN    0x000fffffffffffffULL
+//Double precision mask of 1
+#define DOUBLE_MASK_1      0xffffffffffffffffULL
 
 //Single precision exponent encoding size
 #define FLOAT_EXP_SIZE     8
 //Single precision pseudo mantisa encoding size
 #define FLOAT_PMAN_SIZE    23
-//single precision mantissa size
+//Single precision mantissa size
 #define FLOAT_PREC         24
+//Single precision mask of 1
+#define FLOAT_MASK_1      0xffffffffULL
 
 //Sign encoding size
 #define SIGN_SIZE          1
 //64bit word with msb set to 1
 #define WORD64_MSB         0x8000000000000000ULL
-
-

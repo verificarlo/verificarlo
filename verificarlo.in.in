@@ -34,8 +34,10 @@ PACKAGE_STRING = "@PACKAGE_STRING@"
 LIBDIR = "%LIBDIR%"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
-mcalib_static = "{0}/libmcampfr.a {0}/libmcaquad.a".format(LIBDIR)
-mcalib_dynamic = "-lmcampfr -lmcaquad"
+libvfcreport = LIBDIR + '/libvfcreport.so'
+libvfctracer = LIBDIR + '/libvfctracer.so'
+mcalib_static = "{0}/libmcampfr.a {0}/libmcaquad.a {0}/libbitmask.a".format(LIBDIR)
+mcalib_dynamic = "-lmcampfr -lmcaquad -lbitmask"
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
 mcalib_includes = PROJECT_ROOT + "/../include/"
 vfcwrapper = mcalib_includes + 'vfcwrapper.c'
@@ -46,6 +48,15 @@ dragonegg = "@DRAGONEGG_PATH@"
 gcc = "@GCC_PATH@"
 FORTRAN_EXTENSIONS=[".f", ".f90", ".f77"]
 C_EXTENSIONS=[".c", ".cpp", ".cc", ".cxx"]
+report_level_choices=["module", "function", "basicblock"]
+VERIFICARLO_REPORT_PATH_ENV = 'VERIFICARLO_REPORT_PATH'
+verificarlo_report_filename = "verificarlo_report.csv"
+verificarlo_report_path = ""
+VERITRACER_LOCINFO_PATH_ENV = 'VERITRACER_LOCINFO_PATH'
+veritracer_locinfo_filename = "locationInfo.map" 
+veritracer_locinfo_path = ""
+tracer_format_choices = ['text','binary']
+tracer_level_choices = ['basic', 'temporary']
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
@@ -89,6 +100,26 @@ def shell(cmd):
     except subprocess.CalledProcessError:
         fail('command failed:\n' + cmd)
 
+def add_header_verificarlo_report(report_level, print_percentage):
+    verificarlo_report_path = os.getenv(VERIFICARLO_REPORT_PATH_ENV)+"/"+verificarlo_report_filename
+    if os.path.isfile(verificarlo_report_path):
+        return
+
+    vr_file = open(verificarlo_report_path, "w")
+    header = ""
+    if (report_level == "module"):
+        header = "Module"
+    elif (report_level == "function"):
+        header = "Module,Function"
+    elif (report_level == "basicblock"):
+        header = "Module,Function,BasicBlock"
+    header += ",#FOPS"
+
+    if print_percentage:
+        header += ",add,sub,mul,div"
+
+    vr_file.write(header+"\n")
+
 def linker_mode(sources, options, output, args):
     shell('{clang} -c -O2 -static -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
@@ -124,7 +155,8 @@ def compiler_mode(sources, options, output, args):
     for source in sources:
         basename = os.path.splitext(source)[0]
         ir = basename + '.1.ll'
-        ins = basename + '.2.ll'
+        ins_tracer = basename + '.2.ll'
+        ins_mca = basename + '.3.ll'
 
         # Compile to ir (fortran uses gcc+dragonegg, c uses clang)
         if is_fortran(source):
@@ -144,25 +176,69 @@ def compiler_mode(sources, options, output, args):
 
         selectfunction = ""
         if args.function:
-            selectfunction = "-vfclibinst-function " + args.function
+            selectfunction = "-vfclibinst-function=" + args.function
         elif args.functions_file:
-            selectfunction = "-vfclibinst-function-file " + args.functions_file
+            selectfunction = "-vfclibinst-function-file=" + args.functions_file
 
         # Activate verbose mode
         verbose = ""
         if args.verbose:
             verbose = "-vfclibinst-verbose "
 
+        # Activate black list mode
+        blacklist = ""
+        if args.black_list_mode:
+            blacklist = "-vfclibblack-list "
+        
+        # Activate report mode
+        if args.report_level:
+            report = "-vfclibreport-level=" + str(args.report_level)
+            print_percentage = "-vfclibreport-percentage" if args.print_percentage else ""
+            shell('{opt} -f -load {libvfcreport} -vfclibreport {report} {print_percentage} {ir} > /dev/null'.format(
+                opt=opt,
+                libvfcreport=libvfcreport,
+                report=report,
+                ir=ir,
+                print_percentage=print_percentage
+            ))
+                            
+        # Apply Veritracer instrumentation pass
+        if args.tracer:
+            tracer_format = '-vfclibtracer-format=' + args.tracer_format
+            tracer_bt = '-vfclibtracer-backtrace' if args.tracer_backtrace else ''
+            tracer_debug_mode = '-vfclibtracer-debug' if args.tracer_debug_mode else ''
+            tracer_level = '-vfclibtracer-level=' + args.tracer_level
+            # Apply tracer instrumentation pass
+            shell('{opt} -S -load {libvfctracer} -vfclibtracer {tracer_format} {tracer_bt} {tracer_level} {tracer_debug_mode} {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
+                opt=opt,
+                libvfctracer=libvfctracer,
+                selectfunction=selectfunction,
+                tracer_format=tracer_format,
+                tracer_bt=tracer_bt,
+                tracer_debug_mode=tracer_debug_mode,
+                tracer_level=tracer_level,
+                verbose=verbose,
+                ir=ir,
+                ins=ins_tracer,
+                blacklist=blacklist,
+            ))
+
+            ir = ins_tracer            
+
         # Apply MCA instrumentation pass
-        shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {verbose} {selectfunction} {ir} -o {ins}'.format(
+        shell('{opt} -S -load {libvfcinstrument} -vfclibinst {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
             opt=opt,
             libvfcinstrument=libvfcinstrument,
             selectfunction=selectfunction,
             verbose=verbose,
             ir=ir,
-            ins=ins
-            ))
+            ins=ins_mca,
+            blacklist=blacklist,
+        ))
 
+        ir = ins_mca
+
+        ins = ir
         if not output:
             output = '-o ' + basename + '.o'
         # Produce object file
@@ -181,8 +257,23 @@ if __name__ == "__main__":
     parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
     parser.add_argument('--verbose', action='store_true', help='verbose output')
     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
+    parser.add_argument('--black-list-mode', action='store_true',
+                        help='black list mode, not instrument functions present in <function> or <functions-file>')
+    parser.add_argument('-report', '--report-level', action='store', type=str, default=0, choices=report_level_choices,
+                        help='produces a report for floating-point operations')
+    parser.add_argument('--print-percentage', action='store_true', help="print percentage of floating-points' type for report")
+    parser.add_argument('--tracer', action='store_true', help="veritracer mode")
+    parser.add_argument('--tracer-format', action='store', type=str, default='binary', choices=tracer_format_choices,
+                        help='Output format for tracing values')
+    parser.add_argument('--tracer-level', action='store', type=str, default='basic', choices=tracer_level_choices,
+                        help='Tracing level')
+    parser.add_argument('--tracer-backtrace', action='store_true',
+                        help="veritracer backtrace mode")
+    parser.add_argument('--tracer-debug-mode', action='store_true',
+                        help="veritracer debug mode")
+    
     args, other = parser.parse_known_args()
-
+    
     sources, llvm_options = parse_extra_args(other)
 
     # check input files
@@ -193,6 +284,20 @@ if __name__ == "__main__":
     if args.function and args.functions_file:
         fail("Cannot used --function and --functions-file together")
 
+    if args.report_level:        
+        if not os.getenv('VERIFICARLO_REPORT_PATH'):
+            os.environ['VERIFICARLO_REPORT_PATH'] = os.getenv("PWD")        
+        add_header_verificarlo_report(args.report_level, args.print_percentage)
+
+    if args.tracer:
+        # Need to add debug option to get debug info 
+        llvm_options += " -g "
+        if not os.getenv('VERITRACER_LOCINFO_PATH'):
+            os.environ['VERITRACER_LOCINFO_PATH'] = os.getenv("PWD") + os.sep
+
+        if args.tracer_backtrace:
+            llvm_options += " -rdynamic "
+                
     output = "-o " + args.o if args.o else ""
     if args.c:
         if len(sources) == 0:
