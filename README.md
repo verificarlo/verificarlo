@@ -210,6 +210,7 @@ The `tests/veritracer` directory contains an example of Veritracer usage.
 `veritracer plot` usage on ABINIT [1] code.  
 
 ![](img/figure_1.png)
+
 `veritracer plot` usage on Muller's sequence [2]
 
 
