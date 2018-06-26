@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <img  src="veritracer-logo.png">
+  <img  src="img/veritracer-logo.png">
 </p>
 
 ## Veritracer v0.0.1
@@ -205,11 +205,12 @@ Use the hash value of the variable which is available in the `locationInfo.map`.
 
 The `tests/veritracer` directory contains an example of Veritracer usage.
 
-![](simp_gen.jpg)
+![](img/simp_gen.jpg)
 
 `veritracer plot` usage on ABINIT [1] code.  
 
-![](figure_1.png)
+![](img/figure_1.png)
+
 `veritracer plot` usage on Muller's sequence [2]
 
 
