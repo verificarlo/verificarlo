@@ -77,11 +77,11 @@ def get_key(row):
 def get_value(row):
     try:        
         value = ValueTuple(
-            sdn = row['significant_digit_number'],
-            mean = row['mean'],
-            std = row['std'],
-            max = row['max'],
-            min = row['min'],
+            sdn = float(row['significant_digit_number']),
+            mean = float(row['mean']),
+            std = float(row['std']),
+            max = float(row['max']),
+            min = float(row['min']),
             time = int(row['time'])
         )
             
@@ -399,13 +399,15 @@ def plot_significant_number(values_dict, args):
                prop={'size':args.font_size},
                bbox_to_anchor=(1.1, 0.5))
     
-    plt.tight_layout()
-    plt.subplots_adjust()
-    
     if args.scientific_mode:
         ax1.get_xaxis().get_major_formatter().set_scientific(False)
 
     ax1.ticklabel_format(useOffset=False)        
+    for tick in ax1.get_xticklabels():
+        tick.set_rotation(45)
+
+    plt.tight_layout()
+    plt.subplots_adjust()
 
     if not args.no_show:
         plt.show()
