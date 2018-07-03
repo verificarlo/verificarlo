@@ -64,10 +64,6 @@ using namespace vfctracerData;
 
 namespace vfctracerFormat {
   
-  BinaryFmt::BinaryFmt(Module &M) {
-    this->M = &M;
-  }
-
   Constant* BinaryFmt::CreateProbeFunctionPrototype(Data &D) {
 
     std::string probeFunctionName = vfctracer::probePrefixName
@@ -97,25 +93,26 @@ namespace vfctracerFormat {
 
     Value *value = D.getValue();
     if (value->getType() != D.getDataType()) {
-      errs() << "Value type and Data Type don't match\n";
+      errs() << "Value type and Data type do not match\n";
       errs() << *value->getType() << " != " << *D.getDataType() << "\n";
     }
     Value *valuePtr = D.getAddress();
     Value *locInfoValue = getOrCreateLocInfoValue(D);
-    CallInst *callInst = CREATE_CALL3(cast<Function>(probeFunc),
-				      value,
-				      valuePtr,
-				      locInfoValue);
+    CallInst *callInst = nullptr;
+    if (Function *fun = dyn_cast<Function>(probeFunc)) {
+      callInst = CREATE_CALL3(fun, value, valuePtr, locInfoValue);
+    } else {
+      llvm_unreachable("Probe function cannot be cast into Function Type");
+    }
 
     return callInst;
   }
 
   Type* BinaryFmt::getLocInfoType(Data &D) {
-    if (typeid(D) == typeid(ScalarData)) {
+    if (isa<ScalarData>(D)) {
       return Type::getInt64Ty(M->getContext());
-    } else if (typeid(D) == typeid(VectorData)) {
-      VectorData VD = cast<VectorData>(D);
-      unsigned vectorSize = VD.getVectorSize();
+    } else if (VectorData *VD = dyn_cast<VectorData>(&D)) {
+      unsigned vectorSize = VD->getVectorSize();
       Type *int64Ty = Type::getInt64Ty(M->getContext());
       ArrayType* arrayLocInfoType = ArrayType::get(int64Ty, vectorSize);
       return PointerType::get(arrayLocInfoType,0);
@@ -125,22 +122,18 @@ namespace vfctracerFormat {
   }
 
   Value* BinaryFmt::getOrCreateLocInfoValue(Data &D) {
-    if (typeid(D) == typeid(ScalarData)) {
-
-      std::string locInfo = vfctracer::getLocInfo(D);
+    if (ScalarData *SD = dyn_cast<ScalarData>(&D)) {
+      std::string locInfo = vfctracer::getLocInfo(SD);
       uint64_t keyLocInfo = vfctracer::getOrInsertLocInfoValue(locInfo);
       Type *int64Ty = Type::getInt64Ty(M->getContext());
       Constant *locInfoValue = ConstantInt::get(int64Ty, keyLocInfo, false);
       return locInfoValue;
-
-    } else if (VectorData* VD = dynamic_cast<VectorData*>(&D)) {
-
+    } else if (VectorData* VD = dyn_cast<VectorData>(&D)) {
       std::string locInfoGVname = "arrayLocInfoGV." + VD->getVariableName();
       GlobalVariable * arrayLocInfoGV = M->getGlobalVariable(locInfoGVname);
       Type *int64Ty = Type::getInt64Ty(M->getContext());
       if (arrayLocInfoGV == nullptr) {
-	std::string locInfo = vfctracer::getLocInfo(*VD);
-
+	std::string locInfo = vfctracer::getLocInfo(VD);
 	/* Create vector of locationInfo keys */
 	std::vector<Constant*> locInfoKeyVector;	  
 	for(unsigned int i = 0; i < VD->getVectorSize(); ++i) {
@@ -149,13 +142,11 @@ namespace vfctracerFormat {
 	  Constant *locInfoValue = ConstantInt::get(int64Ty, keyLocInfo, false);
 	  locInfoKeyVector.push_back(locInfoValue);
 	}
-
 	/* Create Globale Variable which contains the constant array */
 	ArrayType* arrayLocInfoType = ArrayType::get(int64Ty, VD->getVectorSize());
 	/* Constant Array containing locationInfo keys */
 	Constant* constArrayLocInfo = ConstantArray::get(arrayLocInfoType,
 							 locInfoKeyVector);
-
 	arrayLocInfoGV = new GlobalVariable(/*Module=*/*M, 
 					    /*Type=*/arrayLocInfoType,
 					    /*isConstant=*/true,
@@ -163,9 +154,7 @@ namespace vfctracerFormat {
 					    /*Initializer=*/constArrayLocInfo,
 					    /*Name=*/locInfoGVname);
       } 
-
       return arrayLocInfoGV;
-
     } else {
       llvm_unreachable("Unknow Data class");
     }

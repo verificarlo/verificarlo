@@ -60,9 +60,9 @@ using namespace vfctracer;
 
 namespace vfctracerData {
   
-  VectorData::VectorData(Instruction *I) : Data(I) {
+  VectorData::VectorData(Instruction *I, DataId id) : Data(I,id) {
         
-    vectorType = static_cast<VectorType*>(baseType);
+    vectorType = cast<VectorType>(baseType);
     baseType = vectorType->getElementType();
     vectorSize = vectorType->getNumElements();
 
@@ -103,31 +103,10 @@ namespace vfctracerData {
     
   Type* VectorData::getVectorType() const { return this->vectorType; }
     
-  std::string VectorData::getOriginalName(const Value *V) {
-    /* Vector are accessed through load and bitcast */
-    /* We need to check if it is the case and thus */
-    /* retrieve the original name attached to the pointer */
-    if (const Instruction *I = dyn_cast<Instruction>(V)) {
-      for (unsigned int i = 0; i < I->getNumOperands(); ++i) {	
-	Value *op = I->getOperand(i); 	  
-	if (const LoadInst *Load = dyn_cast<LoadInst>(op)) {
-	  Value * ptrOp = Load->getOperand(0);
-	  if (const BitCastInst *Bitcast = dyn_cast<BitCastInst>(ptrOp)) {
-	    Value *V = Bitcast->getOperand(0);
-	    return dynamic_cast<ScalarData*>(this)->getOriginalName(V);
-	  }
-	}
-      }	
-    }
-    return "";
-  }
-    
   std::string VectorData::getVariableName() {
-    if (not dataName.empty()) return dataName;
-      
+    if (not dataName.empty()) return dataName;      
     dataName = vfctracer::findName(data);
     if (isTemporaryVariable()) dataName = getOriginalName(data);
-
     return dataName;	
   }     
 

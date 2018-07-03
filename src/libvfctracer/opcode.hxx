@@ -20,7 +20,8 @@ namespace opcode {
   bool isRetOp(const llvm::Instruction *I);
   bool isIgnoreOp(llvm::Instruction &I);
   bool isIgnoreOp(const llvm::Instruction *I);
-
+  bool isVectorOp(llvm::Instruction &I);  
+  bool isVectorOp(const llvm::Instruction *I);
 }
 
 #endif /* OPCODE_HXX */

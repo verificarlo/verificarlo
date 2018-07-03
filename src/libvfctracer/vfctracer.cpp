@@ -173,6 +173,14 @@ namespace vfctracer {
     return locInfo;
   }
 
+  std::string getLocInfo(Data *D) {
+    std::string locInfo = D->getDataTypeName() + " " +
+      D->getFunctionName() + " " +
+      D->getOriginalLine() + " " +
+      D->getVariableName();
+    return locInfo;
+  }
+
   /* Dump mapping information about variables  */
   /* hash : <line> <enclosing function> <name> */
   void dumpMapping(std::ofstream &mappingFile) {
@@ -223,6 +231,63 @@ namespace vfctracer {
     std::string raw_name = tmp.substr(0,pos_sep);
     ltrim(raw_name);    
     return raw_name;
+  }
+
+
+  std::string getOriginalName(const Value *V) {
+
+    if (const Instruction *I = dyn_cast<Instruction>(V)) {
+      if (opcode::isVectorOp(I)) {
+	/* Vector are accessed through load and bitcast */
+	/* We need to check if it is the case and thus */
+	/* retrieve the original name attached to the pointer */
+	if (const Instruction *I = dyn_cast<Instruction>(V)) {
+	  for (unsigned int i = 0; i < I->getNumOperands(); ++i) {	
+	    Value *op = I->getOperand(i);
+	    if (const LoadInst *Load = dyn_cast<LoadInst>(op)) {
+	      Value *ptrOp = Load->getOperand(0);
+	      if (const BitCastInst *Bitcast = dyn_cast<BitCastInst>(ptrOp)) {
+		Value *V = Bitcast->getOperand(0);
+		return getOriginalName(V);
+	      }		
+	      else
+		return vfctracer::temporaryVariableName;
+	    }
+	  }
+	}	
+      }
+    }
+
+    // If the value is defined as a GetElementPtrInstruction,
+    // return the name of the pointer operand instead
+    if (const GetElementPtrInst *I = dyn_cast<GetElementPtrInst>(V)) {
+      return getOriginalName(I->getPointerOperand());
+    }
+    // If the value is a constant Expr,
+    // such as a GetElementPtrInstConstantExpr,
+    // try to get the name of its first operand
+    if (const ConstantExpr *E = dyn_cast<ConstantExpr>(V)) {
+      return getOriginalName(E->getOperand(0));
+    }
+
+    std::string name = vfctracer::findName(V);
+    if (name != vfctracer::temporaryVariableName)  return name;
+    	           
+    std::vector<std::string> nameVector;
+    /* Check wether one of the operands have a name */
+    if (const Instruction *I = dyn_cast<Instruction>(V)) {
+      for (unsigned int i = 0 ; i < I->getNumOperands(); ++i) {
+	Value *v = I->getOperand(i);	  
+	std::string name = vfctracer::findName(v);
+	if (name != vfctracer::temporaryVariableName) nameVector.push_back(name);
+      }
+      std::string to_return = (nameVector.empty()) ? "" : nameVector.front();
+      for (unsigned int i = 1; i < nameVector.size(); i++)
+	to_return += "," + nameVector[i];
+
+      if (not to_return.empty()) return to_return;
+    }      
+    return vfctracer::temporaryVariableName;      
   }
 
 }

@@ -28,12 +28,20 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/BasicBlock.h"
+#include "llvm/Support/Casting.h"
 
 #include "../opcode.hxx"
 
 namespace vfctracerData {
-    
+
+  enum DataId {
+    ScalarId,
+    VectorId
+  };
+  
   class Data {
+  private:
+    const DataId Id;
   protected:
     llvm::Module* M;
     llvm::Function* F;
@@ -49,8 +57,8 @@ namespace vfctracerData {
     opcode::Fops operationCode;
     
   public:
-    Data(llvm::Instruction *I);
-    virtual ~Data() {};
+    Data(llvm::Instruction *I, DataId Id);
+    virtual ~Data() = 0;
     virtual llvm::Instruction* getData() const;    
     virtual llvm::Value* getValue() const;
     virtual llvm::Type* getDataType() const;
@@ -65,32 +73,36 @@ namespace vfctracerData {
     virtual llvm::Value* getAddress() const = 0;	    
     virtual std::string getVariableName() = 0;
     virtual void dump();
+    DataId getValueId() const { return Id; };
   };
 
   class ScalarData : public Data {
   public:
-    ScalarData(llvm::Instruction*);
+    ScalarData(llvm::Instruction*, DataId id = ScalarId);
     llvm::Value* getAddress() const;
-    std::string getOriginalName(const llvm::Value *V) ;
     std::string getVariableName() ;
     std::string getDataTypeName() ;
+    static inline bool classof(const Data* D) {
+      return D->getValueId() == ScalarId;
+    }
   };
 
   class VectorData : public Data {
   private:
     llvm::VectorType *vectorType;
     std::string vectorName;
-    unsigned vectorSize;
-    
+    unsigned vectorSize;    
   public:
-    VectorData(llvm::Instruction *I);
+    VectorData(llvm::Instruction *I, DataId id = VectorId);
     llvm::Value* getAddress() const;    
     llvm::Type* getVectorType() const;
     llvm::Type* getDataType() const ;
     unsigned getVectorSize() const;
-    std::string getOriginalName(const llvm::Value *V);    
     std::string getVariableName() ;
     std::string getDataTypeName();    
+    static inline bool classof(const Data* D) {
+      return D->getValueId() == VectorId;
+    }
   };
 
   Data* CreateData(llvm::Instruction *I);

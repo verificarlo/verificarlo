@@ -94,8 +94,8 @@ static cl::opt<vfctracer::optTracingLevel> VfclibTracingLevel("vfclibtracer-leve
 
 #else
 static cl::opt<vfctracerFormat::optFormat> VfclibFormat("vfclibtracer-format",
-					  cl::desc("Output format"),
-					  cl::value_desc("TracerFormat"),
+							cl::desc("Output format"),
+							cl::value_desc("TracerFormat"),
 							cl::values(clEnumValN(vfctracerFormat::binary,
 									      "binary",
 									      "Binary format" ),
@@ -105,16 +105,16 @@ static cl::opt<vfctracerFormat::optFormat> VfclibFormat("vfclibtracer-format",
 								   NULL) // sentinel 
 							);
 static cl::opt<vfctracer::optTracingLevel> VfclibTracingLevel("vfclibtracer-level",
-							   cl::desc("Tracing Level"),
-							   cl::value_desc("TracingLevel"),
-							   cl::values(clEnumValN(vfctracer::basic,
-										 "basic",
-										 "Basic level"),
-								      clEnumValN(vfctracer::temporary,
-										 "temporary",
-										 "Allows to trace temporary variables"),
-								      NULL) // sentinel
-						      );
+							      cl::desc("Tracing Level"),
+							      cl::value_desc("TracingLevel"),
+							      cl::values(clEnumValN(vfctracer::basic,
+										    "basic",
+										    "Basic level"),
+									 clEnumValN(vfctracer::temporary,
+										    "temporary",
+										    "Allows to trace temporary variables"),
+									 NULL) // sentinel
+							      );
 #endif
  
 static cl::opt<bool> VfclibBacktrace("vfclibtracer-backtrace",
@@ -136,7 +136,7 @@ namespace {
 
   // Each instruction can be translated to a string representation
 
-  std::string Fops2str[] = { "add", "sub", "mul", "div", "store", "ignore"};
+  std::string Fops2str[] = {"add", "sub", "mul", "div", "store", "ignore"};
 
   const std::string tmpVarName = "_";
   const std::string locationInfoStr = "locationInfo.str";
@@ -183,7 +183,7 @@ namespace {
       Value *locInfoValue = Fmt->getOrCreateLocInfoValue(*D);
       std::string backtraceFunctionName = "get_backtrace";
 
-      if (vfctracerData::VectorData* VD = dynamic_cast<vfctracerData::VectorData*>(D))
+      if (const vfctracerData::VectorData* VD = dyn_cast<vfctracerData::VectorData>(D))
 	backtraceFunctionName += "_x" + std::to_string(VD->getVectorSize());
       
       Constant *hookFunc = M->getOrInsertFunction(backtraceFunctionName,
@@ -196,7 +196,10 @@ namespace {
       /* For FP operations, need to insert the probe after the instruction */
       if (opcode::isFPOp(D->getData()))
 	builder.SetInsertPoint(D->getData()->getNextNode());
-      builder.CreateCall(cast<Function>(hookFunc),locInfoValue,"");
+      if (Function *fun = dyn_cast<Function>(hookFunc))
+	builder.CreateCall(cast<Function>(fun),locInfoValue,"");
+      else
+	llvm_unreachable("Hook function cannot be cast into function type");
       return true;
     }
 
@@ -216,12 +219,9 @@ namespace {
         
     bool insertProbe(vfctracerFormat::Format &Fmt, vfctracerData::Data &D) {
       std::string variableName = D.getVariableName();
-      if (VfclibDebug)
-	D.dump(); /* /!\ Dump Data */
-      if (not D.isValidDataType() || D.isTemporaryVariable())
-	return false;
-      if (VfclibInstVerbose)
-	vfctracer::VerboseMessage(D);      
+      if (VfclibDebug) D.dump(); /* /!\ Dump Data */
+      if (not D.isValidDataType() || D.isTemporaryVariable()) return false;
+      if (VfclibInstVerbose) vfctracer::VerboseMessage(D);      
       Constant *probeFunction = Fmt.CreateProbeFunctionPrototype(D);
       CallInst *probeCallInst = Fmt.InsertProbeFunctionCall(D, probeFunction);
       if (probeCallInst == nullptr) {
@@ -241,7 +241,7 @@ namespace {
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8
 	  insertBacktraceCall(&M, ii.getParent()->getParent(), &ii, &Fmt, D);      
 #else
-	  insertBacktraceCall(&M, ii.getFunction(), &ii, &Fmt, D);      
+	insertBacktraceCall(&M, ii.getFunction(), &ii, &Fmt, D);      
 #endif
       }
       return modified;

@@ -54,7 +54,7 @@ namespace vfctracerData {
 
   using namespace llvm;
   
-  Data::Data(Instruction *I) {
+  Data::Data(Instruction *I, DataId id) : Id(id) {
     data = I;
     dataName = "";
     dataRawName = "";

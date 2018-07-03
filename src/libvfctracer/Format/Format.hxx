@@ -34,17 +34,20 @@
 
 namespace vfctracerFormat {
   
-  enum optFormat {
-    binary,
-    text
+  enum FormatId {
+    BinaryId,
+    TextId
   };
-
+    
   class Format {
+    FormatId Id;
   protected:
     llvm::Module* M;
     llvm::Type* locInfoType;
     llvm::Value* locInfoValue;
   public:
+    FormatId getValueId() const { return Id; };
+    Format(FormatId id) : Id(id), M(nullptr), locInfoType(nullptr), locInfoValue(nullptr) {}
     virtual llvm::Type* getLocInfoType(vfctracerData::Data& D) = 0;
     virtual llvm::Constant* CreateProbeFunctionPrototype(vfctracerData::Data& D) = 0;
     virtual llvm::Value* getOrCreateLocInfoValue(vfctracerData::Data& D) = 0;
@@ -53,7 +56,7 @@ namespace vfctracerFormat {
 
   class BinaryFmt : public Format {
   public:
-    BinaryFmt(llvm::Module &M);
+    BinaryFmt(llvm::Module &M) : Format(BinaryId) { this->M = &M; };
     llvm::Type* getLocInfoType(vfctracerData::Data &D);
     llvm::Value* getOrCreateLocInfoValue(vfctracerData::Data &D);
     llvm::Constant* CreateProbeFunctionPrototype(vfctracerData::Data &D);      
@@ -62,7 +65,7 @@ namespace vfctracerFormat {
 
   class TextFmt : public Format {
   public:
-    TextFmt(llvm::Module &M);
+    TextFmt(llvm::Module &M) : Format(TextId) { this->M = &M; };
     llvm::Type* getLocInfoType(vfctracerData::Data &D);
     llvm::Value* getOrCreateLocInfoValue(vfctracerData::Data &D);    
     llvm::Constant* CreateProbeFunctionPrototype(vfctracerData::Data &D);
