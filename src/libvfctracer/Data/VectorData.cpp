@@ -2,7 +2,7 @@
  *                                                                              *
  *  This file is part of Verificarlo.                                           *
  *                                                                              *
- *  Copyright (c) 2017                                                          *
+ *  Copyright (c) 2018                                                          *
  *     Universite de Versailles St-Quentin-en-Yvelines                          *
  *     CMLA, Ecole Normale Superieure de Cachan                                 *
  *                                                                              *
@@ -21,27 +21,27 @@
  *                                                                              *
  ********************************************************************************/
 
-#include <string>
-#include <sstream>
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/Twine.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Metadata.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
-#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Metadata.h"
+#include "llvm/IR/Module.h"
 #include "llvm/IR/TypeBuilder.h"
-#include "llvm/IR/Value.h"
 #include "llvm/IR/User.h"
+#include "llvm/IR/Value.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/ADT/APFloat.h"
+#include <sstream>
+#include <string>
 
-#include <set>
 #include <fstream>
-#include <unordered_map>
 #include <list>
+#include <set>
+#include <unordered_map>
 
 #if LLVM_VERSION_MINOR <= 6
 #define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
@@ -51,69 +51,66 @@
 #define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(nullptr, i, p, ""))
 #endif
 
-#include "Data.hxx"
 #include "../vfctracer.hxx"
+#include "Data.hxx"
 
 using namespace llvm;
 using namespace opcode;
 using namespace vfctracer;
 
 namespace vfctracerData {
-  
-  VectorData::VectorData(Instruction *I, DataId id) : Data(I,id) {
-        
-    vectorType = cast<VectorType>(baseType);
-    baseType = vectorType->getElementType();
-    vectorSize = vectorType->getNumElements();
 
-    switch (vectorSize) {
-    case 2:
-      vectorName = vfctracer::vectorName_x2;
-      break;
-    case 4:
-      vectorName = vfctracer::vectorName_x4;
-      break;
-    default:
-      errs() << "Unsupported operand type: " << *vectorType<< "\n";
-      assert(0);	  
-    }     
-  }
+VectorData::VectorData(Instruction *I, DataId id) : Data(I, id) {
 
-  Type* VectorData::getDataType() const {
-    return this->vectorType;
-  }
+  vectorType = cast<VectorType>(baseType);
+  baseType = vectorType->getElementType();
+  vectorSize = vectorType->getNumElements();
 
-  unsigned VectorData::getVectorSize() const {
-    return this->vectorSize;
+  switch (vectorSize) {
+  case 2:
+    vectorName = vfctracer::vectorName_x2;
+    break;
+  case 4:
+    vectorName = vfctracer::vectorName_x4;
+    break;
+  default:
+    errs() << "Unsupported operand type: " << *vectorType << "\n";
+    assert(0);
   }
+}
 
-  Value* VectorData::getAddress() const {
-    Instruction *I = this->getData();
-    Fops operationCode = getOpCode(*I);      
-    switch (operationCode){
-    case Fops::STORE:
-      return I->getOperand(1);
-    default:
-      /* Temporary FP arithmetic instructions don't have memory address */
-      ConstantPointerNull *nullptrValue =
-	ConstantPointerNull::get(vectorType->getPointerTo());
-      return nullptrValue;
-    }
-  }
-    
-  Type* VectorData::getVectorType() const { return this->vectorType; }
-    
-  std::string VectorData::getVariableName() {
-    if (not dataName.empty()) return dataName;      
-    dataName = vfctracer::findName(data);
-    if (isTemporaryVariable()) dataName = getOriginalName(data);
-    return dataName;	
-  }     
+Type *VectorData::getDataType() const { return this->vectorType; }
 
-  std::string VectorData::getDataTypeName() {
-    if (this->baseTypeName.empty()) 
-      baseTypeName = vectorName + vfctracer::getBaseTypeName(baseType);
-    return baseTypeName;
+unsigned VectorData::getVectorSize() const { return this->vectorSize; }
+
+Value *VectorData::getAddress() const {
+  Instruction *I = this->getData();
+  Fops operationCode = getOpCode(*I);
+  switch (operationCode) {
+  case Fops::STORE:
+    return I->getOperand(1);
+  default:
+    /* Temporary FP arithmetic instructions don't have memory address */
+    ConstantPointerNull *nullptrValue =
+        ConstantPointerNull::get(vectorType->getPointerTo());
+    return nullptrValue;
   }
-    
+}
+
+Type *VectorData::getVectorType() const { return this->vectorType; }
+
+std::string VectorData::getVariableName() {
+  if (not dataName.empty())
+    return dataName;
+  dataName = vfctracer::findName(data);
+  if (isTemporaryVariable())
+    dataName = getOriginalName(data);
+  return dataName;
+}
+
+std::string VectorData::getDataTypeName() {
+  if (this->baseTypeName.empty())
+    baseTypeName = vectorName + vfctracer::getBaseTypeName(baseType);
+  return baseTypeName;
+}
 }

@@ -2,7 +2,7 @@
  *                                                                              *
  *  This file is part of Verificarlo.                                           *
  *                                                                              *
- *  Copyright (c) 2017                                                          *
+ *  Copyright (c) 2018                                                          *
  *     Universite de Versailles St-Quentin-en-Yvelines                          *
  *     CMLA, Ecole Normale Superieure de Cachan                                 *
  *                                                                              *
@@ -27,7 +27,8 @@
 
 using namespace llvm;
 
-vfctracerFormat::Format* vfctracerFormat::CreateFormat(Module &M, vfctracerFormat::optFormat optFmt) {
+vfctracerFormat::Format *
+vfctracerFormat::CreateFormat(Module &M, vfctracerFormat::optFormat optFmt) {
   switch (optFmt) {
   case binary:
     return new vfctracerFormat::BinaryFmt(M);

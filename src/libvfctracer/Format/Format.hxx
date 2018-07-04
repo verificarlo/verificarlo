@@ -2,7 +2,7 @@
  *                                                                              *
  *  This file is part of Verificarlo.                                           *
  *                                                                              *
- *  Copyright (c) 2017                                                          *
+ *  Copyright (c) 2018                                                          *
  *     Universite de Versailles St-Quentin-en-Yvelines                          *
  *     CMLA, Ecole Normale Superieure de Cachan                                 *
  *                                                                              *
@@ -24,56 +24,59 @@
 #ifndef FORMAT_FORMAT_HXX
 #define FORMAT_FORMAT_HXX
 
-#include <string>
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Function.h"
 #include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+#include <string>
 
 #include "../Data/Data.hxx"
 
 namespace vfctracerFormat {
-  
-  enum FormatId {
-    BinaryId,
-    TextId
-  };
-    
-  class Format {
-    FormatId Id;
-  protected:
-    llvm::Module* M;
-    llvm::Type* locInfoType;
-    llvm::Value* locInfoValue;
-  public:
-    FormatId getValueId() const { return Id; };
-    Format(FormatId id) : Id(id), M(nullptr), locInfoType(nullptr), locInfoValue(nullptr) {}
-    virtual llvm::Type* getLocInfoType(vfctracerData::Data& D) = 0;
-    virtual llvm::Constant* CreateProbeFunctionPrototype(vfctracerData::Data& D) = 0;
-    virtual llvm::Value* getOrCreateLocInfoValue(vfctracerData::Data& D) = 0;
-    virtual llvm::CallInst* InsertProbeFunctionCall(vfctracerData::Data& D, llvm::Value *probeFunc) = 0;
-  };
 
-  class BinaryFmt : public Format {
-  public:
-    BinaryFmt(llvm::Module &M) : Format(BinaryId) { this->M = &M; };
-    llvm::Type* getLocInfoType(vfctracerData::Data &D);
-    llvm::Value* getOrCreateLocInfoValue(vfctracerData::Data &D);
-    llvm::Constant* CreateProbeFunctionPrototype(vfctracerData::Data &D);      
-    llvm::CallInst* InsertProbeFunctionCall(vfctracerData::Data &D, llvm::Value *probeFunc);
-  };
+enum FormatId { BinaryId, TextId };
 
-  class TextFmt : public Format {
-  public:
-    TextFmt(llvm::Module &M) : Format(TextId) { this->M = &M; };
-    llvm::Type* getLocInfoType(vfctracerData::Data &D);
-    llvm::Value* getOrCreateLocInfoValue(vfctracerData::Data &D);    
-    llvm::Constant* CreateProbeFunctionPrototype(vfctracerData::Data &D);
-    llvm::CallInst* InsertProbeFunctionCall(vfctracerData::Data &D, llvm::Value *probeFunc);
-  };
-  
-  Format* CreateFormat(llvm::Module &M, vfctracerFormat::optFormat optFmt);
+class Format {
+  FormatId Id;
 
+protected:
+  llvm::Module *M;
+  llvm::Type *locInfoType;
+  llvm::Value *locInfoValue;
+
+public:
+  FormatId getValueId() const { return Id; };
+  Format(FormatId id)
+      : Id(id), M(nullptr), locInfoType(nullptr), locInfoValue(nullptr) {}
+  virtual llvm::Type *getLocInfoType(vfctracerData::Data &D) = 0;
+  virtual llvm::Constant *
+  CreateProbeFunctionPrototype(vfctracerData::Data &D) = 0;
+  virtual llvm::Value *getOrCreateLocInfoValue(vfctracerData::Data &D) = 0;
+  virtual llvm::CallInst *InsertProbeFunctionCall(vfctracerData::Data &D,
+                                                  llvm::Value *probeFunc) = 0;
+};
+
+class BinaryFmt : public Format {
+public:
+  BinaryFmt(llvm::Module &M) : Format(BinaryId) { this->M = &M; };
+  llvm::Type *getLocInfoType(vfctracerData::Data &D);
+  llvm::Value *getOrCreateLocInfoValue(vfctracerData::Data &D);
+  llvm::Constant *CreateProbeFunctionPrototype(vfctracerData::Data &D);
+  llvm::CallInst *InsertProbeFunctionCall(vfctracerData::Data &D,
+                                          llvm::Value *probeFunc);
+};
+
+class TextFmt : public Format {
+public:
+  TextFmt(llvm::Module &M) : Format(TextId) { this->M = &M; };
+  llvm::Type *getLocInfoType(vfctracerData::Data &D);
+  llvm::Value *getOrCreateLocInfoValue(vfctracerData::Data &D);
+  llvm::Constant *CreateProbeFunctionPrototype(vfctracerData::Data &D);
+  llvm::CallInst *InsertProbeFunctionCall(vfctracerData::Data &D,
+                                          llvm::Value *probeFunc);
+};
+
+Format *CreateFormat(llvm::Module &M, vfctracerFormat::optFormat optFmt);
 }
 
 #endif /* FORMAT_FORMAT_HXX */
