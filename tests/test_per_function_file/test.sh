@@ -8,13 +8,15 @@ verificarlo -O0 test.c -o test --functions-file functions.txt --function f --ver
 
 if [ "$?" == 0 ] ; then
     echo "Verificarlo must be stopped"
+    echo "--function --functions-file are incompatible"
     exit 1
 fi
 
-if diff output output.ref > /dev/null ; then
+if ( grep "In Function: f" output && grep "In Function: g" output )  ; then
     echo "test passed"
     exit 0
 else
     echo "ouput and output.ref should be the same"
+    head output output.ref
     exit 1
 fi
