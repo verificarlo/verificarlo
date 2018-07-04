@@ -2,7 +2,7 @@
  *                                                                              *
  *  This file is part of Verificarlo.                                           *
  *                                                                              *
- *  Copyright (c) 2017                                                          *
+ *  Copyright (c) 2018                                                          *
  *     Universite de Versailles St-Quentin-en-Yvelines                          *
  *     CMLA, Ecole Normale Superieure de Cachan                                 *
  *                                                                              *
@@ -21,27 +21,27 @@
  *                                                                              *
  ********************************************************************************/
 
-#include <string>
-#include <sstream>
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/Twine.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Metadata.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
-#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Metadata.h"
+#include "llvm/IR/Module.h"
 #include "llvm/IR/TypeBuilder.h"
-#include "llvm/IR/Value.h"
 #include "llvm/IR/User.h"
+#include "llvm/IR/Value.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/ADT/APFloat.h"
+#include <sstream>
+#include <string>
 
-#include <set>
 #include <fstream>
-#include <unordered_map>
 #include <list>
+#include <set>
+#include <unordered_map>
 
 #if LLVM_VERSION_MINOR <= 6
 #define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
@@ -51,84 +51,50 @@
 #define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(nullptr, i, p, ""))
 #endif
 
-#include "Data.hxx"
 #include "../vfctracer.hxx"
+#include "Data.hxx"
 
 using namespace llvm;
 using namespace opcode;
 using namespace vfctracer;
 
 namespace vfctracerData {
-  
-  ScalarData::ScalarData(Instruction *I) : Data(I) {}
 
-  Value* ScalarData::getAddress() const {  
-    Instruction *I = getData();
-    switch (operationCode){
-    case Fops::STORE:
-      return I->getOperand(1);
-    default:
-      /* Temporary FP arithmetic instructions don't have memory address */
-      PointerType *ptrTy = getDataType()->getPointerTo();
-      ConstantPointerNull *nullptrValue = ConstantPointerNull::get(ptrTy);
-      return nullptrValue;
-    }
+ScalarData::ScalarData(Instruction *I, DataId id) : Data(I, id) {}
+
+Value *ScalarData::getAddress() const {
+  Instruction *I = getData();
+  switch (operationCode) {
+  case Fops::STORE:
+    return I->getOperand(1);
+  default:
+    /* Temporary FP arithmetic instructions don't have memory address */
+    PointerType *ptrTy = getDataType()->getPointerTo();
+    ConstantPointerNull *nullptrValue = ConstantPointerNull::get(ptrTy);
+    return nullptrValue;
   }
-    
-  std::string ScalarData::getOriginalName(const Value *V) {
-    // If the value is defined as a GetElementPtrInstruction,
-    // return the name of the pointer operand instead
-    if (const GetElementPtrInst *I = dyn_cast<GetElementPtrInst>(V)) {
-      return getOriginalName(I->getPointerOperand());
-    }
-    // If the value is a constant Expr,
-    // such as a GetElementPtrInstConstantExpr,
-    // try to get the name of its first operand
-    if (const ConstantExpr *E = dyn_cast<ConstantExpr>(V)) {
-      return getOriginalName(E->getOperand(0));
-    }
+}
 
-    std::string name = vfctracer::findName(V);
-    if (name != vfctracer::temporaryVariableName)  return name;
-    	           
-    std::vector<std::string> nameVector;
-    /* Check wether one of the operands have a name */
-    if (const Instruction *I = dyn_cast<Instruction>(V)) {
-      for (unsigned int i = 0 ; i < I->getNumOperands(); ++i) {
-	Value *v = I->getOperand(i);	  
-	std::string name = vfctracer::findName(v);
-	if (name != vfctracer::temporaryVariableName) nameVector.push_back(name);
-      }
-      std::string to_return = (nameVector.empty()) ? "" : nameVector.front();
-      for (unsigned int i = 1; i < nameVector.size(); i++)
-	to_return += "," + nameVector[i];
+std::string ScalarData::getVariableName() {
+  // check whether the name has already been found
+  if (not dataName.empty())
+    return dataName;
 
-      if (not to_return.empty()) return to_return;
-    }      
-    return vfctracer::temporaryVariableName;      
-  }
-    
-  std::string ScalarData::getVariableName() {
-    // check whether the name has already been found
-    if (not dataName.empty())
-      return dataName;
-
-    if (operationCode == Fops::STORE) {   
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8      
-      dataName = getOriginalName(data->getOperand(0));      
+  if (operationCode == Fops::STORE) {
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8
+    dataName = vfctracer::getOriginalName(data->getOperand(0));
 #else
-      dataName = getOriginalName(data->getOperand(1));      
+    dataName = vfctracer::getOriginalName(data->getOperand(1));
 #endif
-    } else
-      dataName = getOriginalName(data);
+  } else
+    dataName = vfctracer::getOriginalName(data);
 
-    return dataName;	
-  }
-    
-  std::string ScalarData::getDataTypeName() {
-    if (baseTypeName.empty()) 
-      baseTypeName = vfctracer::getBaseTypeName(baseType);
-    return baseTypeName;
-  } 
+  return dataName;
+}
 
+std::string ScalarData::getDataTypeName() {
+  if (baseTypeName.empty())
+    baseTypeName = vfctracer::getBaseTypeName(baseType);
+  return baseTypeName;
+}
 }

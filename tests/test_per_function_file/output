@@ -1,4 +1,0 @@
-In Function: f
-Instrumenting  %5 = fadd double %3, %4
-In Function: g
-Instrumenting  %5 = fsub double %3, %4
