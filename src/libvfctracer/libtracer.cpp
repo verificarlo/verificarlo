@@ -82,7 +82,7 @@ static cl::opt<bool> VfclibBlackList("vfclibblack-list",
 auto binaryOpt = clEnumValN(vfctracerFormat::BinaryId, "binary", "Binary format");
 auto textOpt = clEnumValN(vfctracerFormat::TextId, "text", "Text format");
 auto formatValue = cl::values(binaryOpt, textOpt);
-static cl::opt<vfctracerFormat::optFormat>
+static cl::opt<vfctracerFormat::FormatId>
     VfclibFormat("vfclibtracer-format", cl::desc("Output format"),
                  cl::value_desc("TracerFormat"), formatValue);
 
@@ -95,7 +95,7 @@ static cl::opt<vfctracer::optTracingLevel>
                        cl::value_desc("TracingLevel"), levelOpt);
 
 #else
-static cl::opt<vfctracerFormat::optFormat> VfclibFormat(
+static cl::opt<vfctracerFormat::FormatId> VfclibFormat(
     "vfclibtracer-format", cl::desc("Output format"),
     cl::value_desc("TracerFormat"),
     cl::values(clEnumValN(vfctracerFormat::BinaryId, "binary", "Binary format"),
