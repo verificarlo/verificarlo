@@ -28,11 +28,11 @@
 using namespace llvm;
 
 vfctracerFormat::Format *
-vfctracerFormat::CreateFormat(Module &M, vfctracerFormat::optFormat optFmt) {
+vfctracerFormat::CreateFormat(Module &M, vfctracerFormat::FormatId optFmt) {
   switch (optFmt) {
-  case binary:
+  case BinaryId:
     return new vfctracerFormat::BinaryFmt(M);
-  case text:
+  case TextId:
     return new vfctracerFormat::TextFmt(M);
   default:
     llvm_unreachable("Bad format option given");

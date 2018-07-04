@@ -76,7 +76,7 @@ public:
                                           llvm::Value *probeFunc);
 };
 
-Format *CreateFormat(llvm::Module &M, vfctracerFormat::optFormat optFmt);
+Format *CreateFormat(llvm::Module &M, vfctracerFormat::FormatId optFmt);
 }
 
 #endif /* FORMAT_FORMAT_HXX */
