@@ -15,7 +15,7 @@ check_exit_code() {
 veritracer_analyze() {
     FMT=${1}
     DIR=${2}
-    echo "veritracer analyze -f veritracer.dat --format=${FMT} --prefix-dir=${DIR} --output='${DIR}/veritracer' "
+    echo "veritracer analyze --filename veritracer.dat --format=${FMT} --prefix-dir=${DIR} --output='${DIR}/veritracer' "
     veritracer analyze --filename veritracer.dat --format=${FMT} --prefix-dir=${DIR} --output="${DIR}/veritracer"
     check_exit_code "Error with veritracer analyze"
 }
@@ -59,11 +59,17 @@ for FP_TYPE in "DOUBLE" "FLOAT"; do
 	fi
 	
 	FUNCTION_FILE=functions_to_inst_${LANGUAGE}.txt
-	echo " verificarlo -DNITER=${ITER} -D ${FP_TYPE} --functions-file=$FUNCTION_FILE --tracer --tracer-format=${FMT} --tracer-backtrace  ${SOURCE_FILE} -o muller_${FP_TYPE}_${FMT}_${LANGUAGE} -lm --verbose"
-	verificarlo -DNITER=${ITER} -D ${FP_TYPE} --functions-file=${FUNCTION_FILE} --tracer --tracer-format=${FMT} --tracer-backtrace  ${SOURCE_FILE} -o muller_${FP_TYPE}_${FMT}_${LANGUAGE} -lm --verbose --tracer-debug-mode --tracer-level=temporary 
+
+	echo " verificarlo -DNITER=${ITER} -D ${FP_TYPE} --functions-file=$FUNCTION_FILE --tracer --tracer-format=${FMT} --tracer-backtrace  ${SOURCE_FILE}" \
+	     " -o muller_${FP_TYPE}_${FMT}_${LANGUAGE} -lm --verbose  --tracer-debug-mode --tracer-level=temporary"
+
+	verificarlo -DNITER=${ITER} -D ${FP_TYPE} --functions-file=${FUNCTION_FILE} --tracer --tracer-format=${FMT} --tracer-backtrace  ${SOURCE_FILE} \
+		    -o muller_${FP_TYPE}_${FMT}_${LANGUAGE} -lm --verbose --tracer-debug-mode --tracer-level=temporary 
 	
 	check_exit_code "Error with verificarlo compilation"
 
+	cat locationInfo.map
+	
 	export VERIFICARLO_BACKEND=QUAD
 
 	if [[ ${FP_TYPE} == "DOUBLE" ]]; then

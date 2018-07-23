@@ -22,6 +22,7 @@
  ********************************************************************************/
 
 #include "opcode.hxx"
+#include "vfctracer.hxx"
 
 #include "llvm/IR/Instructions.h"
 #include "llvm/Support/raw_ostream.h"
@@ -45,6 +46,10 @@ Fops getOpCode(const Instruction &I) {
     return Fops::STORE;
   case Instruction::Ret:
     return Fops::RETURN;
+  // case Instruction::Alloca:
+  //   return Fops::ALLOCA;
+  case Instruction::Call:
+    return Fops::CALLINST;
   default:
     return Fops::FOP_IGNORE;
   }
@@ -65,6 +70,10 @@ Fops getOpCode(const Instruction *I) {
     return Fops::STORE;
   case Instruction::Ret:
     return Fops::RETURN;
+  // case Instruction::Alloca:
+  //   return Fops::ALLOCA;
+  case Instruction::Call:
+    return Fops::CALLINST;
   default:
     return Fops::FOP_IGNORE;
   }
@@ -162,6 +171,46 @@ bool isVectorOp(const Instruction *I) {
   return ty->isVectorTy();
 }
 
+bool isCallOp(const Instruction *I) {
+  return isa<llvm::CallInst>(I);
+}
+
+bool isCallOp(const Instruction &I) {
+  return isa<llvm::CallInst>(I);
+}
+  
+bool isProbeOp(const Instruction *I) {
+  if (const CallInst *callInst = dyn_cast<CallInst>(I)) 
+    if (Function *fun = callInst->getCalledFunction())
+      return isCallOp(I) && (fun->getName().find(vfctracer::vfcProbeName) != std::string::npos);
+  return false;  
+}
+
+bool isProbeOp(const Instruction &I) {
+  if (const CallInst *callInst = dyn_cast<CallInst>(&I)) 
+    if (Function *fun = callInst->getCalledFunction())
+      return isCallOp(I) && (fun->getName().find(vfctracer::vfcProbeName) != std::string::npos);
+  return false;
+}
+
+bool isCallFunOp(const Instruction *I, const std::string & functionName) {
+  if (const CallInst *callInst = dyn_cast<CallInst>(I)) {
+    Function *fun = callInst->getCalledFunction();
+    return isCallOp(I) && fun->getName() == functionName;
+  } else {
+    return false;
+  }
+}
+
+bool isCallFunOp(const Instruction &I, const std::string & functionName) {
+  if (const CallInst *callInst = dyn_cast<CallInst>(&I)) {
+    Function *fun = callInst->getCalledFunction();
+    return isCallOp(I) && fun->getName() == functionName;
+  } else {
+    return false;
+  }  
+}
+
 std::string fops_str(Fops op) {
   switch (op) {
   case Fops::FOP_ADD:
@@ -176,6 +225,10 @@ std::string fops_str(Fops op) {
     return "STORE";
   case Fops::RETURN:
     return "RETURN";
+  case Fops::ALLOCA:
+    return "ALLOCA";
+  case Fops::CALLINST:
+    return "CALLINST";
   case Fops::FOP_IGNORE:
     return "IGNORE";
   default:

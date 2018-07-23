@@ -38,45 +38,21 @@
 #include <sstream>
 #include <string>
 
-#include "Data/Data.hxx"
-#include "Format/Format.hxx"
-#include "vfctracer.hxx"
+#include "../libvfctracer/Data/Data.hxx"
+#include "../libvfctracer/Format/Format.hxx"
+#include "../libvfctracer/vfctracer.hxx"
 
 #include <fstream>
 #include <list>
 #include <set>
 #include <unordered_map>
 
-#if LLVM_VERSION_MINOR <= 6
-#define CREATE_CALL2(func, op1, op2) (builder.CreateCall2(func, op1, op2, ""))
-#define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(i, p))
-#else
-#define CREATE_CALL2(func, op1, op2) (builder.CreateCall(func, {op1, op2}, ""))
-#define CREATE_STRUCT_GEP(i, p) (builder.CreateStructGEP(nullptr, i, p, ""))
-#endif
-
 using namespace llvm;
-
-// VfclibInst pass command line arguments
-static cl::opt<std::string>
-    VfclibInstFunction("vfclibinst-function",
-                       cl::desc("Only instrument given FunctionName"),
-                       cl::value_desc("FunctionName"), cl::init(""));
-
-static cl::opt<std::string> VfclibInstFunctionFile(
-    "vfclibinst-function-file",
-    cl::desc("Instrument functions in file FunctionNameFile "),
-    cl::value_desc("FunctionsNameFile"), cl::init(""));
 
 static cl::opt<bool> VfclibInstVerbose("vfclibinst-verbose",
                                        cl::desc("Activate verbose mode"),
                                        cl::value_desc("Verbose"),
                                        cl::init(false));
-
-static cl::opt<bool> VfclibBlackList("vfclibblack-list",
-                                     cl::desc("Activate black list mode"),
-                                     cl::value_desc("BlackList"),
-                                     cl::init(false));
 
 #if LLVM_VERSION_MAJOR == 4
 auto binaryOpt = clEnumValN(vfctracerFormat::BinaryId, "binary", "Binary format");
@@ -93,7 +69,6 @@ auto levelOpt = cl::values(basicOpt, temporaryOpt);
 static cl::opt<vfctracer::optTracingLevel>
     VfclibTracingLevel("vfclibtracer-level", cl::desc("Tracing Level"),
                        cl::value_desc("TracingLevel"), levelOpt);
-
 #else
 static cl::opt<vfctracerFormat::FormatId> VfclibFormat(
     "vfclibtracer-format", cl::desc("Output format"),
@@ -123,44 +98,15 @@ static cl::opt<bool> VfclibDebug("vfclibtracer-debug",
                                  cl::init(false));
 
 namespace {
-
-// Define an enum type to classify the floating points operations
-// that are instrumented by verificarlo
-
-enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, STORE, FOP_IGNORE };
-
-// Each instruction can be translated to a string representation
-
-std::string Fops2str[] = {"add", "sub", "mul", "div", "store", "ignore"};
-
-const std::string tmpVarName = "_";
-const std::string locationInfoStr = "locationInfo.str";
-
-struct VfclibTracer : public ModulePass {
+  
+struct VfclibTracerProbe : public ModulePass {
   static char ID;
-  StructType *mca_interface_type;
-  std::set<std::string> SelectedFunctionSet;
   std::unordered_map<uint64_t, std::string> locationInfoMap;
   std::unordered_map<uint64_t, std::string> locInfoMap;
   std::hash<std::string> hashStrFunction;
   std::ofstream mappingFile;
 
-  VfclibTracer() : ModulePass(ID) {
-    if (not VfclibInstFunctionFile.empty()) {
-      std::string line;
-      std::ifstream loopstream(VfclibInstFunctionFile.c_str());
-      if (loopstream.is_open()) {
-        while (std::getline(loopstream, line)) {
-          SelectedFunctionSet.insert(line);
-        }
-        loopstream.close();
-      } else {
-        errs() << "Cannot open " << VfclibInstFunctionFile << "\n";
-        assert(0);
-      }
-    } else if (not VfclibInstFunction.empty()) {
-      SelectedFunctionSet.insert(VfclibInstFunction);
-    }
+  VfclibTracerProbe() : ModulePass(ID) {
     std::string mappingFilename(getenv("VERITRACER_LOCINFO_PATH"));
     mappingFilename += "/locationInfo.map";
     mappingFile.open(mappingFilename, std::fstream::out | std::fstream::app);
@@ -168,15 +114,28 @@ struct VfclibTracer : public ModulePass {
       errs() << "Cannot open file : " << mappingFilename << "\n";
       exit(1);
     }
-    vfctracer::tracingLevel = VfclibTracingLevel;
   }
 
+  void raiseErrorMsg(vfctracerData::Data * D, const std::string &msg = "") {
+    errs() << "Error while checking vfc_probe argument\n";
+    if (D) D->dump(); else errs() << "nullptr\n";
+    errs() << msg << "\n";
+    exit(1);    
+  }
+
+  void raiseErrorMsg(Instruction * I, const std::string &msg = "") {
+    errs() << "Error while checking vfc_probe argument\n";
+    errs() << *I << "\n";
+    errs() << msg << "\n";
+    exit(1);    
+  }
+  
   bool insertBacktraceCall(Module *M, Function *F, Instruction *I,
                            vfctracerFormat::Format *Fmt,
                            vfctracerData::Data *D) {
     Type *voidTy = Type::getVoidTy(M->getContext());
-    Type *locInfoType = Fmt->getLocInfoType(*D);
-    Value *locInfoValue = Fmt->getOrCreateLocInfoValue(*D);
+    Type *locInfoType = Fmt->getLocInfoType(D);
+    Value *locInfoValue = Fmt->getOrCreateLocInfoValue(D);
     std::string backtraceFunctionName = "get_backtrace";
 
     if (const vfctracerData::VectorData *VD =
@@ -191,35 +150,20 @@ struct VfclibTracer : public ModulePass {
     if (opcode::isFPOp(D->getData()))
       builder.SetInsertPoint(D->getData()->getNextNode());
     if (Function *fun = dyn_cast<Function>(hookFunc))
-      builder.CreateCall(cast<Function>(fun), locInfoValue, "");
+      builder.CreateCall(fun, locInfoValue, "");
     else
       llvm_unreachable("Hook function cannot be cast into function type");
     return true;
-  }
-
-  // Debug function
-  // Print all dbg.intrinsic of function F
-  void printDbgInstrinsic(Function &F) {
-    for (inst_iterator Iter = inst_begin(F), End = inst_end(F); Iter != End;
-         ++Iter) {
-      const Instruction *I = &*Iter;
-      if (const DbgValueInst *DbgValue = dyn_cast<DbgValueInst>(I)) {
-        errs() << *DbgValue << "\n";
-      } else if (const DbgDeclareInst *DbgDeclare =
-                     dyn_cast<DbgDeclareInst>(I)) {
-        errs() << *DbgDeclare << "\n";
-      }
-    }
   }
 
   bool insertProbe(vfctracerFormat::Format &Fmt, vfctracerData::Data &D) {
     std::string variableName = D.getVariableName();
     if (VfclibDebug)
       D.dump(); /* /!\ Dump Data */
-    if (not D.isValidDataType() || D.isTemporaryVariable())
-      return false;
+    if (not D.isValidDataType())
+      raiseErrorMsg(&D, "is not a valid type or is a temporary variable");
     if (VfclibInstVerbose)
-      vfctracer::VerboseMessage(D);
+      vfctracer::VerboseMessage(D,"-probe");
     Constant *probeFunction = Fmt.CreateProbeFunctionPrototype(D);
     CallInst *probeCallInst = Fmt.InsertProbeFunctionCall(D, probeFunction);
     if (probeCallInst == nullptr) {
@@ -229,24 +173,37 @@ struct VfclibTracer : public ModulePass {
     return true;
   }
 
+  void eraseVfcProbeCall(std::vector<vfctracerData::Data*> &toErase) {
+    for (auto &D : toErase)
+      D->getData()->eraseFromParent();      
+  }
+  
   bool runOnBasicBlock(Module &M, BasicBlock &B, vfctracerFormat::Format &Fmt) {
+    std::vector<vfctracerData::Data*> toErase;
     bool modified = false;
     for (Instruction &ii : B) {
-      vfctracerData::Data *D = vfctracerData::CreateData(&ii);
-      if (D == nullptr || not D->isValidOperation() || not D->isValidDataType())
-        continue;
-      modified |= insertProbe(Fmt, *D);
-      if (VfclibBacktrace && modified)
+      if (CallInst *callInst = dyn_cast<CallInst>(&ii))
+	  if (opcode::isProbeOp(callInst)) {	    
+	    vfctracerData::Data *D = vfctracerData::CreateData(callInst);
+	    if (D == nullptr) continue;
+	    if (not D->isValidOperation() || not D->isValidDataType()) {
+	      raiseErrorMsg(D, "Data is not a valid operation or not a valid data type");
+	    }
+	    modified |= insertProbe(Fmt, *D);
+	    if (modified) toErase.push_back(D);
+	    if (VfclibBacktrace && modified){
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8
-        insertBacktraceCall(&M, ii.getParent()->getParent(), &ii, &Fmt, D);
+	      insertBacktraceCall(&M, ii.getParent()->getParent(), &ii, &Fmt, D);
 #else
-        insertBacktraceCall(&M, ii.getFunction(), &ii, &Fmt, D);
+	      insertBacktraceCall(&M, ii.getFunction(), &ii, &Fmt, D);
 #endif
+	    }
+	  }      
     }
-    // M.dump();
+    if (modified) eraseVfcProbeCall(toErase);      
     return modified;
   };
-
+  
   bool runOnFunction(Module &M, Function &F, vfctracerFormat::Format &Fmt) {
     if (VfclibInstVerbose) {
       errs() << "In Function: ";
@@ -258,7 +215,6 @@ struct VfclibTracer : public ModulePass {
     for (Function::iterator bi = F.begin(), be = F.end(); bi != be; ++bi) {
       modified |= runOnBasicBlock(M, *bi, Fmt);
     }
-
     return modified;
   }
 
@@ -268,25 +224,17 @@ struct VfclibTracer : public ModulePass {
     vfctracerFormat::Format *Fmt =
         vfctracerFormat::CreateFormat(M, VfclibFormat);
     
-    // Find the list of functions to instrument
-    // Instrumentation adds stubs to mcalib function which we
-    // never want to instrument.  Therefore it is important to
-    // first find all the functions of interest before
-    // starting instrumentation.
-
     std::vector<Function *> functions;
     for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
-      const bool is_in =
-          SelectedFunctionSet.find(F->getName()) != SelectedFunctionSet.end();
-      if (SelectedFunctionSet.empty() || VfclibBlackList != is_in) {
         functions.push_back(&*F);
-      }
     }
-    // Do the instrumentation on selected functions
-    for (std::vector<Function *>::iterator F = functions.begin();
-         F != functions.end(); ++F) {
-      modified |= runOnFunction(M, **F, *Fmt);
+
+    // Finds functions with vfc_probe functions
+    // and replaces them the veritracer_probe
+    for (auto &F : functions) {
+      modified |= runOnFunction(M, *F, *Fmt);
     }
+    
     // Dump hash value
     vfctracer::dumpMapping(mappingFile);
     // runOnModule must return true if the pass modifies the IR
@@ -295,6 +243,6 @@ struct VfclibTracer : public ModulePass {
 };
 }
 
-char VfclibTracer::ID = 0;
-static RegisterPass<VfclibTracer> X("vfclibtracer", "veritracer pass", false,
+char VfclibTracerProbe::ID = 0;
+static RegisterPass<VfclibTracerProbe> X("vfclibtracer-probe", "veritracer probes pass", false,
                                     false);
