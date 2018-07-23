@@ -36,6 +36,8 @@ enum class Fops {
   FOP_DIV,
   STORE,
   RETURN,
+  ALLOCA,
+  CALLINST,
   FOP_IGNORE
 };
 std::string fops_str(Fops);
@@ -53,6 +55,13 @@ bool isIgnoreOp(llvm::Instruction &I);
 bool isIgnoreOp(const llvm::Instruction *I);
 bool isVectorOp(llvm::Instruction &I);
 bool isVectorOp(const llvm::Instruction *I);
+bool isCallOp(const llvm::Instruction *I);
+bool isCallOp(const llvm::Instruction &I);
+bool isCallFunOp(const llvm::Instruction *I, const std::string & functionName);
+bool isCallFunOp(const llvm::Instruction &I, const std::string & functionName);
+bool isProbeOp(const llvm::Instruction *I);
+bool isProbeOp(const llvm::Instruction &I);
+  
 }
 
 #endif /* OPCODE_HXX */

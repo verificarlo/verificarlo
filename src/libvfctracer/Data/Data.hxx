@@ -34,7 +34,7 @@
 
 namespace vfctracerData {
 
-enum DataId { ScalarId, VectorId };
+  enum DataId { ScalarId, ProbeId, VectorId };
 
 class Data {
 private:
@@ -62,8 +62,8 @@ public:
   virtual llvm::Type *getDataType() const;
   virtual llvm::Type *getDataPtrType() const;
   virtual bool isTemporaryVariable() const;
-  virtual bool isValidOperation();
-  virtual bool isValidDataType();
+  virtual bool isValidOperation() const;
+  virtual bool isValidDataType() const;
   virtual std::string getOriginalLine();
   virtual std::string getFunctionName();
   virtual std::string &getRawName();
@@ -72,6 +72,7 @@ public:
   virtual std::string getVariableName() = 0;
   virtual void dump();
   DataId getValueId() const { return Id; };
+  llvm::Module* getModule();
 };
 
 class ScalarData : public Data {
@@ -104,7 +105,27 @@ public:
   }
 };
 
+// Call used for vfc_probe added by the user
+// data: vfc_probe callinst
+// arg: value to trace, argument of vfc_probe
+class ProbeData : public Data {
+private:
+  llvm::Value *probe_arg;
+public:
+  ProbeData(llvm::Instruction *I, DataId id = ProbeId);
+  llvm::Value *getAddress() const;
+  llvm::Type *getDataType() const;
+  llvm::Value *getValue() const;
+  std::string getVariableName();
+  std::string getDataTypeName();  
+  bool isValidDataType() const ;
+  static inline bool classof(const Data *D) {
+    return D->getValueId() == ProbeId;
+  }
+};
+
 Data *CreateData(llvm::Instruction *I);
 }
+
 
 #endif /* DATA_DATA_HXX */
