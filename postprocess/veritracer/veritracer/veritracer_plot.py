@@ -47,8 +47,14 @@ def init_module(subparsers, veritracer_plugins):
     plot_parser.add_argument('--mean', action="store_true", 
                         help="plot mean of values")
 
+    plot_parser.add_argument('--mean-only', action="store_true", 
+                             help="plot mean of values, do not plot significant digits")
+
     plot_parser.add_argument('--std', action="store_true",
                         help="plot standard deviation of values")
+
+    plot_parser.add_argument('--std-only', action="store_true",
+                             help="plot standard deviation of values, do not plot significant digits")
 
     plot_parser.add_argument('--transparency', type=float, action='store', metavar='', 
                         help="no transparency for plot")
@@ -71,6 +77,9 @@ def init_module(subparsers, veritracer_plugins):
     plot_parser.add_argument('--min-max', action='store_true',
                              help="Plot min/max envelope")
 
+    plot_parser.add_argument('--marker-size', action='store', default=marker_size_default,
+                             help="Marker size")
+    
 def get_key(row):
     return row['hash']
 
@@ -300,14 +309,16 @@ def plot_significant_number(values_dict, args):
 
     fig, ax1 = plt.subplots()
     
-    if args.std or args.mean:
+    if args.std or args.mean or args.std_only or args.mean_only:
         ax2 = plt.twinx()    
         ax2.set_ylabel('Values ($\mu$,$\sigma$)', fontsize=args.font_size)
         ax2.semilogy()
         ax2.tick_params(axis="both",  labelsize=args.font_size)
 
-    title = ax1.set_title('Significant digits evolution', loc="center", size=args.font_size)
-    ax1.set_ylabel('Significant digits (base=$%d$)' % args.base, fontsize=args.font_size)
+    # title = ax1.set_title('Significant digits evolution', loc="center", size=args.font_size)
+    title = ax1.set_title('Minimal Virtual Precision evolution', loc="center", size=args.font_size)
+    ax1.set_ylabel('Minimal Virtual Precision',fontsize=args.font_size)
+    # ax1.set_ylabel('Significant digits (base=$%d$)' % args.base, fontsize=args.font_size)
     
     if args.invocation_mode:
         ax1.set_xlabel('Invocation', fontsize=args.font_size)
@@ -363,32 +374,40 @@ def plot_significant_number(values_dict, args):
             time_list = xrange(len(time_list))
             max_time = max(time_list)
             ax1.set_xlim(-1, max_time + 1 )
-                    
-        if args.backtrace:
-            labels = fast_scatter(ax1, time_list,
-                                  sdn_list, alpha,legends_name,legend_name,
-                                  backtrace_set,map_backtrace_to_color,colors_list)
-        else:
-            label, = ax1.plot(time_list,
-                              sdn_list,
-                              label=legend_name,
-                              alpha=alpha,
-                              marker='o',
-                              markersize=marker_size,
-                              color=colors[color_i],
-                              linestyle='None')
-            labels.append(label)
 
-        if args.mean:
+        if not args.mean_only and not args.std_only:
+            if args.backtrace:
+                labels = fast_scatter(ax1, time_list,
+                                      sdn_list, alpha,legends_name,legend_name,
+                                      backtrace_set,map_backtrace_to_color,colors_list)
+            else:
+                label, = ax1.plot(time_list,
+                                  sdn_list,
+                                  label=legend_name,
+                                  alpha=alpha,
+                                  marker='o',
+                                  markersize=marker_size,
+                                  color=colors[color_i],
+                                  linestyle='None')
+                labels.append(label)
+
+        if args.mean or args.mean_only:
             mean_list = map(lambda value : value.mean, values_list_sorted)
             plot_mean(ax2, time_list, mean_list, legend_name, legends_name, labels, colors[color_i])
-        if args.std:
+        if args.std or args.std_only:
             std_list = map(lambda value : value.std, values_list_sorted)
             plot_std(ax2, time_list, std_list, legend_name, legends_name, labels, colors[color_i])
         if args.min_max:
             plot_minmax_envelope(ax3, values_list_sorted, args)
             
         color_i += 1
+
+    x = np.linspace(0,4,100)
+    y = map(lambda x : x**2, x)
+
+    label, = ax1.plot(x,y,'--r',label="$O(\epsilon^2)$")
+    legends_name.append("$O(\epsilon^2)$")
+    labels.append(label)
     
     plt.legend(labels,
                legends_name,
@@ -417,8 +436,11 @@ def plot_significant_number(values_dict, args):
 
 def set_param(args):
     global alpha
+    global marker_size
+
     alpha = args.transparency if args.transparency else 1.0    
-        
+    marker_size = args.marker_size
+    
 def run(args):
     set_param(args)
     csv_values = read_csv(args)

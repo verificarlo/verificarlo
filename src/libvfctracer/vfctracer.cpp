@@ -65,14 +65,28 @@ locinfomap locInfoMap = {};
 std::hash<std::string> locInfoHasher;
 optTracingLevel tracingLevel;
 
-uint64_t getOrInsertLocInfoValue(std::string &locInfo, std::string ext) {
+uint64_t getOrInsertLocInfoValue(Data &D, std::string &locInfo, std::string ext) {
+  std::string rawName = D.getRawName();
   std::string locInfoExt = locInfo + ext;
-  uint64_t hashLocInfo = locInfoHasher(locInfoExt);
+  uint64_t hashLocInfo = locInfoHasher(locInfoExt+rawName);
   locInfoMap[hashLocInfo] = locInfoExt;
   return hashLocInfo;
 }
 
+uint64_t getOrInsertLocInfoValue(Data *D, std::string &locInfo, std::string ext) {
+  std::string rawName = D->getRawName();
+  std::string locInfoExt = locInfo + ext;
+  uint64_t hashLocInfo = locInfoHasher(locInfoExt+rawName);
+  locInfoMap[hashLocInfo] = locInfoExt;
+  return hashLocInfo;
+}
+    
 std::string getBaseTypeName(Type *baseType) {
+  if (baseType->isPointerTy()) {
+    PointerType *ptrTy = cast<PointerType>(baseType);
+    return getBaseTypeName(ptrTy->getElementType());
+  }
+
   if (baseType->isFloatTy())
     return floatTypeName;
   else if (baseType->isDoubleTy())
@@ -117,10 +131,9 @@ std::string buildTmpExprName(const Value *V) {
       return "ret " + vfctracer::getRawName(I->getOperand(0));
     }
   }
-  return "";
+  return vfctracer::temporaryVariableName;
 }
 
-// renome into findDbgInstVar
 MDNode *findVar(const Value *V, const Function *F) {
   for (const_inst_iterator Iter = inst_begin(F), End = inst_end(F); Iter != End;
        ++Iter) {
@@ -140,7 +153,7 @@ MDNode *findVar(const Value *V, const Function *F) {
 std::string findName(const Value *V) {
   const Function *F = findEnclosingFunc(V);
   if (F != nullptr) {
-    std::string name = "";
+    std::string name = vfctracer::temporaryVariableName;
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8
     name = V->getName();
 #else
@@ -158,8 +171,8 @@ std::string findName(const Value *V) {
   return temporaryVariableName;
 }
 
-void VerboseMessage(Data &D) {
-  errs() << "[Veritracer] Instrumenting" << *D.getData()
+void VerboseMessage(Data &D, const std::string &msg) {
+  errs() << "[Veritracer" + msg + "] Instrumenting" << *D.getData()
          << " | Variable Name = " << D.getVariableName() << " at "
          << D.getOriginalLine() << '\n';
 }
@@ -186,7 +199,7 @@ void dumpMapping(std::ofstream &mappingFile) {
 
 void ltrim(std::string &s) {
   s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-                                  [](int ch) { return !std::isspace(ch); }));
+                                  [](int ch) { return !std::isspace(ch) && ch!=0; }));
 }
 
 /* Ugly hack to redirect a raw_fd_ostream (errs()) into a string */
@@ -278,9 +291,14 @@ std::string getOriginalName(const Value *V) {
         nameVector.push_back(name);
     }
     std::string to_return = (nameVector.empty()) ? "" : nameVector.front();
-    for (unsigned int i = 1; i < nameVector.size(); i++)
-      to_return += "," + nameVector[i];
 
+    if (opcode::isFPOp(I) && nameVector.size() == 2) {      
+      to_return = nameVector[0] + opcode::getOpStr(I) + nameVector[1];
+    } else {
+      for (unsigned int i = 1; i < nameVector.size(); i++)
+	to_return += "," + nameVector[i];
+    }
+    
     if (not to_return.empty())
       return to_return;
   }

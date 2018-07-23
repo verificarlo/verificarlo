@@ -63,8 +63,8 @@ Data::Data(Instruction *I, DataId id) : Id(id) {
   BB = I->getParent();
   F = BB->getParent();
   M = F->getParent();
-  operationCode = opcode::getOpCode(*data);
-
+  operationCode = opcode::getOpCode(data);
+  
   switch (operationCode) {
   case opcode::Fops::STORE:
     baseType = data->getOperand(0)->getType();
@@ -79,13 +79,31 @@ Data::Data(Instruction *I, DataId id) : Id(id) {
       basePointerType = nullptr;
     }
     break;
+  case opcode::Fops::CALLINST:
+    {
+    llvm::CallInst *callInst = dyn_cast<llvm::CallInst>(I);
+    baseType = callInst->getArgOperand(0)->getType();
+    basePointerType = callInst->getArgOperand(0)->getType();
+    }
+    break;    
   default:
     baseType = data->getType();
     basePointerType = baseType->getPointerTo();
   }
 }
 
+Module* Data::getModule() {
+  return M;
+}
+  
 void Data::dump() {
+  if (isa<vfctracerData::ScalarData>(this))
+    errs() << "[ScalarData]\n";
+  else if (isa<vfctracerData::VectorData>(this))
+    errs() << "[VectorData]\n";
+  else if (isa<vfctracerData::ProbeData>(this))
+    errs() << "[ProbeData]\n";
+    
   errs() << "Data: " << *getData() << "\n"
          << "OpCode: " << opcode::fops_str(opcode::getOpCode(data)) << "\n"
          << "RawName: " << getRawName() << "\n"
@@ -112,18 +130,33 @@ std::string Data::getOriginalLine() {
   Instruction *data = getData();
 
   if (opcode::isStoreOp(data)) {
-    if (MDNode *N = vfctracer::findVar(data->getOperand(1), F)) {
+    MDNode *N = data->getMetadata("dbg");
+    MDNode *N1 = vfctracer::findVar(data, F);
+    MDNode *N2 = vfctracer::findVar(data->getOperand(1), F);
+    if (not N) N = N1 == nullptr ? N2 : N1;
+    
+    if (N) {
+      unsigned line = 0, column = 0;
+      std::string File;      
 /* Try to get information about the address variable */
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7
       DIVariable Loc(N);
-      unsigned line = Loc.getLineNumber();
+      line = Loc.getLineNumber();
+      Loc.getFile();
 #else
-      unsigned line = 0;
       if (DILocalVariable *DILocVar = dyn_cast<DILocalVariable>(N)) {
         line = DILocVar->getLine();
+	File = DILocVar->getFilename();
       }
+      if (DILocation *DILocVar = dyn_cast<DILocation>(N)) {
+        line = DILocVar->getLine();
+	column = DILocVar->getColumn();
+	File = DILocVar->getFilename();
+      }
+
 #endif
-      originalLine = std::to_string(line);
+      originalLine = File;
+      originalLine += " " + std::to_string(line) + "." + std::to_string(column);
     }
   } else {
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7
@@ -137,11 +170,16 @@ std::string Data::getOriginalLine() {
     }
 #else
     DebugLoc Loc = data->getDebugLoc();
-    std::string Line = std::to_string(Loc->getLine());
-    std::string Column = std::to_string(Loc->getColumn());
+    if (not Loc) return originalLine;
+    unsigned line = Loc->getLine();
+    std::string Line = std::to_string(line);
+    unsigned column = Loc->getColumn();
+    std::string Column = std::to_string(column);
     std::string File = Loc->getFilename();
     std::string Dir = Loc->getDirectory();
     originalLine = File + " " + Line + "." + Column;
+
+
 #endif
   }
   return originalLine;
@@ -173,7 +211,7 @@ std::string &Data::getRawName() {
   return dataRawName;
 }
 
-bool Data::isValidOperation() {
+bool Data::isValidOperation() const {
   Instruction *I = getData();
   /* Checks that the stored value is not a constant */
   if (opcode::isStoreOp(I))
@@ -184,11 +222,19 @@ bool Data::isValidOperation() {
   return not opcode::isIgnoreOp(I);
 }
 
-bool Data::isValidDataType() {
+bool Data::isValidDataType() const {
   if (baseType->isFloatTy())
     return true;
   else if (baseType->isDoubleTy())
     return true;
+  else if (llvm::PointerType *PtrTy = dyn_cast<llvm::PointerType>(baseType)) {
+    if (PtrTy->getElementType()->isFloatTy())
+      return true;
+    else if (PtrTy->getElementType()->isDoubleTy())
+      return true;
+    else
+      return false;
+  }
   else
     return false;
 }
@@ -202,8 +248,14 @@ Data *CreateData(Instruction *I) {
   if (I->getParent()->getParent() == nullptr)
     return nullptr; /* Instruction is not currently inserted into a function*/
 
-  if (I->getType()->isVectorTy())
+  /* Avoid returning call instruction other than vfc_probe */
+  if (opcode::isCallOp(I) && not opcode::isProbeOp(I))
+    return nullptr;
+  
+  if (opcode::isVectorOp(I))
     return new vfctracerData::VectorData(I);
+  else if (opcode::isProbeOp(I))
+    return new vfctracerData::ProbeData(I);
   else
     return new vfctracerData::ScalarData(I);
 }

@@ -132,6 +132,23 @@ You can change it by modifying the environment variable `VERITRACER_LOCINFO_PATH
 
 It is important to include the necessary link flags if you use extra libraries. For example, you should include `-lm` if you are linking against the math library and include `-lstdc++` if you use functions in the standard C++ library.
 
+### Probes
+
+To trace specific variables, you can use the vfc_probe provided by veritracer.
+First, you need to add the "vfctracer-probe.h" header to your code.
+Then you can use the specific probe depending on your data,
+by passing the pointer and the name of the variable to the function.
+For exemple, if you want to trace the variable `a`:
+
+```c
+#include <vfctracer-probe.h>
+int main(int argc, char *argv[]) {
+  double a = 0;
+  for (int i=0; i < 10000; i++) a += 0.1;
+  vfc_probe_binary64(&a, "a");
+  return 0;
+}
+```
 ### MCA Configuration Parameters
 
 After execution, veritracer produces a file named `veritracer.dat` which contain the raw
