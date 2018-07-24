@@ -134,6 +134,7 @@ AC_CONFIG_FILES([Makefile
 		 src/libvfctracer/Makefile
 		 src/libvfctracer/Data/Makefile
 		 src/libvfctracer/Format/Makefile		 
+		 src/libvfctracer-probe/Makefile
 		 src/common/Makefile		
 		 tests/Makefile
 		 postprocess/veritracer/Makefile])

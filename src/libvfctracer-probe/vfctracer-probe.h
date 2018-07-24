@@ -2,7 +2,7 @@
  *                                                                              *
  *  This file is part of Verificarlo.                                           *
  *                                                                              *
- *  Copyright (c) 2018                                                          *
+ *  Copyright (c) 2015                                                          *
  *     Universite de Versailles St-Quentin-en-Yvelines                          *
  *     CMLA, Ecole Normale Superieure de Cachan                                 *
  *                                                                              *
@@ -21,47 +21,5 @@
  *                                                                              *
  ********************************************************************************/
 
-#ifndef OPCODE_HXX
-#define OPCODE_HXX
-
-#include "llvm/IR/Instructions.h"
-#include <iostream>
-
-namespace opcode {
-
-enum class Fops {
-  FOP_ADD,
-  FOP_SUB,
-  FOP_MUL,
-  FOP_DIV,
-  STORE,
-  RETURN,
-  ALLOCA,
-  CALLINST,
-  FOP_IGNORE
-};
-std::string fops_str(Fops);
-Fops getOpCode(const llvm::Instruction &I);
-Fops getOpCode(const llvm::Instruction *I);
-std::string getOpStr(const llvm::Instruction *I);
-bool isFPOp(llvm::Instruction &I);
-bool isFPOp(const llvm::Instruction *I);
-bool isFPOp(Fops);
-bool isStoreOp(llvm::Instruction &I);
-bool isStoreOp(const llvm::Instruction *I);
-bool isRetOp(llvm::Instruction &I);
-bool isRetOp(const llvm::Instruction *I);
-bool isIgnoreOp(llvm::Instruction &I);
-bool isIgnoreOp(const llvm::Instruction *I);
-bool isVectorOp(llvm::Instruction &I);
-bool isVectorOp(const llvm::Instruction *I);
-bool isCallOp(const llvm::Instruction *I);
-bool isCallOp(const llvm::Instruction &I);
-bool isCallFunOp(const llvm::Instruction *I, const std::string & functionName);
-bool isCallFunOp(const llvm::Instruction &I, const std::string & functionName);
-bool isProbeOp(const llvm::Instruction *I);
-bool isProbeOp(const llvm::Instruction &I);
-  
-}
-
-#endif /* OPCODE_HXX */
+void vfc_probe_binary32(float*, const char*);
+void vfc_probe_binary64(double*, const char*);

@@ -52,19 +52,22 @@ const std::string floatTypeName = "binary32";
 const std::string doubleTypeName = "binary64";
 const std::string vectorName_x2 = "2x";
 const std::string vectorName_x4 = "4x";
-
+const std::string vfcProbeName = "vfc_probe";
+  
 std::string getLocInfo(vfctracerData::Data &D);
 std::string getLocInfo(vfctracerData::Data *D);
-uint64_t getOrInsertLocInfoValue(std::string &locInfo, std::string ext = "");
+uint64_t getOrInsertLocInfoValue(vfctracerData::Data *D, std::string &locInfo, std::string ext = "");
+uint64_t getOrInsertLocInfoValue(vfctracerData::Data &D, std::string &locInfo, std::string ext = "");
 std::string getBaseTypeName(llvm::Type *baseType);
 const llvm::Function *findEnclosingFunc(const llvm::Value *V);
 llvm::MDNode *findVar(const llvm::Value *V, const llvm::Function *F);
 std::string findName(const llvm::Value *V);
-void VerboseMessage(vfctracerData::Data &D);
+  void VerboseMessage(vfctracerData::Data &D, const std::string &msg = "");
 void dumpMapping(std::ofstream &mappingFile);
 std::string getRawName(const llvm::Value *V);
 std::string getRawName(const llvm::Instruction *I);
 std::string getOriginalName(const llvm::Value *V);
+void ltrim(std::string &s);
 }
 
 #endif /* VERITRACER_HXX */

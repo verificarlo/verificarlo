@@ -112,6 +112,12 @@ void vfc_tracer(void) {
 
 }
 
+ __attribute__((destructor(0)))
+void vfc_tracer_end(void) {
+   fclose(trace_FILE_ptr);
+   fclose(backtrace_FILE_ptr);
+}
+
 /* sets verificarlo precision and mode. Returns 0 on success. */
 int vfc_set_precision_and_mode(unsigned int precision, int mode) {
 	if (mode < 0 || mode > 3)
@@ -411,6 +417,10 @@ void _veritracer_probe_binary32(float value, float* value_ptr, uint64_t hash_LI)
   fprintf(trace_FILE_ptr, "binary32 %lu %lu %p %0.6a\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
+void _veritracer_probe_binary32_ptr(float *value, float* value_ptr, uint64_t hash_LI) {
+  fprintf(trace_FILE_ptr, "binary32 %lu %lu %p %0.6a\n", get_timestamp(), hash_LI, value_ptr, *value);
+}
+
 void _veritracer_probe_2xbinary32(float2 value, float* value_ptr, uint64_t hash_LI[2]) {
   const int N = 2;
   uint64_t timestamp = get_timestamp();
@@ -431,6 +441,10 @@ void _veritracer_probe_binary64(double value, double* value_ptr, uint64_t hash_L
   fprintf(trace_FILE_ptr, "binary64 %lu %lu %p %0.13a\n", get_timestamp(), hash_LI, value_ptr, value);
 }
 
+void _veritracer_probe_binary64_ptr(double *value, double *value_ptr, uint64_t hash_LI) {
+  fprintf(trace_FILE_ptr, "binary64 %lu %lu %p %0.13a\n", get_timestamp(), hash_LI, value_ptr, *value);
+}
+				   
 void _veritracer_probe_2xbinary64(double2 value, double* value_ptr, uint64_t hash_LI[2]) {
   const int N = 2;
   uint64_t timestamp = get_timestamp();
@@ -481,6 +495,16 @@ void _veritracer_probe_binary32_binary(float value, float* value_ptr, uint64_t h
   fwrite(&fmt, sizeof_binary32_fmt, 1, trace_FILE_ptr);
 }
 
+void _veritracer_probe_binary32_binary_ptr(float *value, float* value_ptr, uint64_t hash_LI) {
+  struct veritracer_probe_binary32_fmt_t fmt;
+  fmt.sizeof_value = sizeof(value);
+  fmt.timestamp = get_timestamp();
+  fmt.value_ptr = value_ptr;
+  fmt.hash_LI = hash_LI;
+  fmt.value = *value;  
+  fwrite(&fmt, sizeof_binary32_fmt, 1, trace_FILE_ptr);
+}
+
 void _veritracer_probe_2xbinary32_binary(float2 value, float* value_ptr, uint64_t hash_LI[2]) {
   const int N = 2;
   struct veritracer_probe_binary32_fmt_t fmt[N];
@@ -518,6 +542,17 @@ void _veritracer_probe_binary64_binary(double value, double* value_ptr, uint64_t
   fmt.value_ptr = value_ptr;
   fmt.hash_LI = hash_LI;
   fmt.value = value;
+  fwrite(&fmt, sizeof_binary64_fmt, 1, trace_FILE_ptr);
+}
+
+
+void _veritracer_probe_binary64_binary_ptr(double *value, double* value_ptr, uint64_t hash_LI) {
+  struct veritracer_probe_binary64_fmt_t fmt;
+  fmt.sizeof_value = sizeof(double);
+  fmt.timestamp = get_timestamp();
+  fmt.value_ptr = value_ptr;
+  fmt.hash_LI = hash_LI;
+  fmt.value = *value;
   fwrite(&fmt, sizeof_binary64_fmt, 1, trace_FILE_ptr);
 }
 

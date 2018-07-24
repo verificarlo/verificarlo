@@ -36,6 +36,7 @@ PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
 libvfcreport = LIBDIR + '/libvfcreport.so'
 libvfctracer = LIBDIR + '/libvfctracer.so'
+libvfctracer_probe = LIBDIR + '/libvfctracer_probe.so'
 mcalib_static = "{0}/libmcampfr.a {0}/libmcaquad.a {0}/libbitmask.a".format(LIBDIR)
 mcalib_dynamic = "-lmcampfr -lmcaquad -lbitmask"
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
@@ -155,8 +156,9 @@ def compiler_mode(sources, options, output, args):
     for source in sources:
         basename = os.path.splitext(source)[0]
         ir = basename + '.1.ll'
-        ins_tracer = basename + '.2.ll'
-        ins_mca = basename + '.3.ll'
+        ins_tracer_probe = basename + '.2.ll'
+        ins_tracer = basename + '.3.ll'
+        ins_mca = basename + '.4.ll'
 
         # Compile to ir (fortran uses gcc+dragonegg, c uses clang)
         if is_fortran(source):
@@ -201,13 +203,27 @@ def compiler_mode(sources, options, output, args):
                 ir=ir,
                 print_percentage=print_percentage
             ))
-                            
+            
         # Apply Veritracer instrumentation pass
         if args.tracer:
             tracer_format = '-vfclibtracer-format=' + args.tracer_format
             tracer_bt = '-vfclibtracer-backtrace' if args.tracer_backtrace else ''
             tracer_debug_mode = '-vfclibtracer-debug' if args.tracer_debug_mode else ''
             tracer_level = '-vfclibtracer-level=' + args.tracer_level
+            # Apply tracer probes intrusmentation pass
+            shell('{opt} -S -load {libvfctracer_probe} -vfclibtracer-probe {tracer_format} {tracer_bt}  {tracer_debug_mode} {verbose} {ir} -o {ins}'.format(
+                opt=opt,
+                libvfctracer_probe=libvfctracer_probe,
+                tracer_format=tracer_format,
+                tracer_bt=tracer_bt,
+                tracer_debug_mode=tracer_debug_mode,
+                verbose=verbose,
+                ir=ir,
+                ins=ins_tracer_probe,                
+            ))
+
+            ir = ins_tracer_probe          
+
             # Apply tracer instrumentation pass
             shell('{opt} -S -load {libvfctracer} -vfclibtracer {tracer_format} {tracer_bt} {tracer_level} {tracer_debug_mode} {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
                 opt=opt,
