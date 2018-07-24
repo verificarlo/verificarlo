@@ -178,14 +178,14 @@ void VerboseMessage(Data &D, const std::string &msg) {
 }
 
 std::string getLocInfo(Data &D) {
-  std::string locInfo = D.getDataTypeName() + " " + D.getFunctionName() + " " +
-                        D.getOriginalLine() + " " + D.getVariableName();
+  std::string locInfo = D.getDataTypeName() + " ; " + D.getFunctionName() + " ; " +
+                        D.getOriginalLine() + " ; " + D.getVariableName();
   return locInfo;
 }
 
 std::string getLocInfo(Data *D) {
-  std::string locInfo = D->getDataTypeName() + " " + D->getFunctionName() + " " + 
-                        D->getOriginalLine() + " " + D->getVariableName();
+  std::string locInfo = D->getDataTypeName() + " ; " + D->getFunctionName() + " ; " +
+                        D->getOriginalLine() + " ; " + D->getVariableName();
   return locInfo;
 }
 
