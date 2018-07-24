@@ -184,8 +184,8 @@ std::string getLocInfo(Data &D) {
 }
 
 std::string getLocInfo(Data *D) {
-  std::string locInfo = D->getDataTypeName() + " ; " + D->getFunctionName() +
-                        " ; " + D->getOriginalLine() + " ; " + D->getVariableName();
+  std::string locInfo = D->getDataTypeName() + " ; " + D->getFunctionName() + " ; " +
+                        D->getOriginalLine() + " ; " + D->getVariableName();
   return locInfo;
 }
 
