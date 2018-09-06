@@ -93,7 +93,7 @@ CallInst *BinaryFmt::InsertProbeFunctionCall(Data &D, Value *probeFunc) {
   /* For FP operations, we need to insert the probe after the instruction */
   if (opcode::isFPOp(D.getData()))
     builder.SetInsertPoint(D.getData()->getNextNode());
-      
+
   Value *value = D.getValue();
   if (value->getType() != D.getDataType()) {
     errs() << "Value type and Data type do not match\n";

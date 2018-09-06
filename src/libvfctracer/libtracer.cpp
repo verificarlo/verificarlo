@@ -266,7 +266,7 @@ struct VfclibTracer : public ModulePass {
 
     vfctracerFormat::Format *Fmt =
         vfctracerFormat::CreateFormat(M, VfclibFormat);
-    
+
     // Find the list of functions to instrument
     // Instrumentation adds stubs to mcalib function which we
     // never want to instrument.  Therefore it is important to

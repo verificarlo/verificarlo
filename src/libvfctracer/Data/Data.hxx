@@ -127,5 +127,4 @@ public:
 Data *CreateData(llvm::Instruction *I);
 }
 
-
 #endif /* DATA_DATA_HXX */
