@@ -61,25 +61,7 @@ using namespace opcode;
 
 namespace vfctracer {
 
-locinfomap locInfoMap = {};
-std::hash<std::string> locInfoHasher;
-optTracingLevel tracingLevel;
-
-uint64_t getOrInsertLocInfoValue(Data &D, std::string &locInfo, std::string ext) {
-  std::string rawName = D.getRawName();
-  std::string locInfoExt = locInfo + ext;
-  uint64_t hashLocInfo = locInfoHasher(locInfoExt+rawName);
-  locInfoMap[hashLocInfo] = locInfoExt;
-  return hashLocInfo;
-}
-
-uint64_t getOrInsertLocInfoValue(Data *D, std::string &locInfo, std::string ext) {
-  std::string rawName = D->getRawName();
-  std::string locInfoExt = locInfo + ext;
-  uint64_t hashLocInfo = locInfoHasher(locInfoExt+rawName);
-  locInfoMap[hashLocInfo] = locInfoExt;
-  return hashLocInfo;
-}
+optTracingLevel tracingLevel;  
     
 std::string getBaseTypeName(Type *baseType) {
   if (baseType->isPointerTy()) {
@@ -177,18 +159,6 @@ void VerboseMessage(Data &D, const std::string &msg) {
          << D.getOriginalLine() << '\n';
 }
 
-std::string getLocInfo(Data &D) {
-  std::string locInfo = D.getDataTypeName() + " ; " + D.getFunctionName() + " ; " +
-                        D.getOriginalLine() + " ; " + D.getVariableName();
-  return locInfo;
-}
-
-std::string getLocInfo(Data *D) {
-  std::string locInfo = D->getDataTypeName() + " ; " + D->getFunctionName() + " ; " +
-                        D->getOriginalLine() + " ; " + D->getVariableName();
-  return locInfo;
-}
-
 /* Dump mapping information about variables  */
 /* hash : <line> <enclosing function> <name> */
 void dumpMapping(std::ofstream &mappingFile) {
@@ -203,7 +173,7 @@ void ltrim(std::string &s) {
 }
 
 /* Ugly hack to redirect a raw_fd_ostream (errs()) into a string */
-std::string getRawName(const Value *data) {
+const std::string getRawName(const Value *data) {
   std::FILE *tmpF = std::tmpfile();
   int fd = fileno(tmpF);
   llvm::raw_fd_ostream f(fd, false, false);
@@ -223,7 +193,7 @@ std::string getRawName(const Value *data) {
 }
 
 /* Ugly hack to redirect a raw_fd_ostream (errs()) into a string */
-std::string getRawName(const Instruction *data) {
+const std::string getRawName(const Instruction *data) {
   std::FILE *tmpF = std::tmpfile();
   int fd = fileno(tmpF);
   llvm::raw_fd_ostream f(fd, false, false);

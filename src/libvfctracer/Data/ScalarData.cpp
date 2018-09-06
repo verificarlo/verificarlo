@@ -75,10 +75,7 @@ Value *ScalarData::getAddress() const {
   }
 }
 
-std::string ScalarData::getVariableName() {
-  // check whether the name has already been found
-  if (not dataName.empty())
-    return dataName;
+void ScalarData::findVariableName() {
 
   if (operationCode == Fops::STORE) {
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8
@@ -88,13 +85,17 @@ std::string ScalarData::getVariableName() {
 #endif
   } else
     dataName = vfctracer::getOriginalName(data);
-
-  return dataName;
 }
 
-std::string ScalarData::getDataTypeName() {
-  if (baseTypeName.empty())
-    baseTypeName = vfctracer::getBaseTypeName(baseType);
+std::string ScalarData::getVariableName() const {
+   return dataName;
+}
+  
+void ScalarData::findDataTypeName() {
+  baseTypeName = vfctracer::getBaseTypeName(baseType);
+}
+
+std::string ScalarData::getDataTypeName() const {
   return baseTypeName;
 }
 }

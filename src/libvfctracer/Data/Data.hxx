@@ -21,8 +21,8 @@
  *                                                                              *
  ********************************************************************************/
 
-#ifndef DATA_DATA_HXX
-#define DATA_DATA_HXX
+#ifndef _DATA_DATA_HXX__
+#define _DATA_DATA_HXX__
 
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Function.h"
@@ -31,10 +31,13 @@
 #include <string>
 
 #include "../opcode.hxx"
+#include "../LocationInfo.hxx"
+
+using namespace vfctracerLocInfo;
 
 namespace vfctracerData {
 
-  enum DataId { ScalarId, ProbeId, VectorId };
+  enum DataId { ScalarId, ProbeId, VectorId, PredicateId };
 
 class Data {
 private:
@@ -53,7 +56,8 @@ protected:
   std::string baseTypeName;
   std::string originalLine;
   opcode::Fops operationCode;
-
+  vfctracerLocInfo::LocationInfo locInfo;
+  
 public:
   Data(llvm::Instruction *I, DataId Id);
   virtual ~Data() = 0;
@@ -64,23 +68,32 @@ public:
   virtual bool isTemporaryVariable() const;
   virtual bool isValidOperation() const;
   virtual bool isValidDataType() const;
-  virtual std::string getOriginalLine();
-  virtual std::string getFunctionName();
-  virtual std::string &getRawName();
-  virtual std::string getDataTypeName() = 0;
+  virtual void findOriginalLine();
+  virtual std::string getOriginalLine() const;
+  virtual std::string getFunctionName() const;
+  virtual void findRawName();
+  virtual std::string getRawName() const ;
+  virtual void findDataTypeName() = 0;
+  virtual std::string getDataTypeName() const = 0;
   virtual llvm::Value *getAddress() const = 0;
-  virtual std::string getVariableName() = 0;
+  virtual void findVariableName() = 0;
+  virtual std::string getVariableName() const = 0;
   virtual void dump();
   DataId getValueId() const { return Id; };
   llvm::Module* getModule();
+  llvm::Function* getFunction();
+  const vfctracerLocInfo::LocationInfo& getLocInfo() const ;
+  virtual uint64_t getOrInsertLocInfoValue(std::string ext = "");
 };
 
 class ScalarData : public Data {
 public:
   ScalarData(llvm::Instruction *, DataId id = ScalarId);
   llvm::Value *getAddress() const;
-  std::string getVariableName();
-  std::string getDataTypeName();
+  void findVariableName();
+  std::string getVariableName() const;
+  void findDataTypeName();
+  std::string getDataTypeName() const;
   static inline bool classof(const Data *D) {
     return D->getValueId() == ScalarId;
   }
@@ -98,8 +111,10 @@ public:
   llvm::Type *getVectorType() const;
   llvm::Type *getDataType() const;
   unsigned getVectorSize() const;
-  std::string getVariableName();
-  std::string getDataTypeName();
+  void findVariableName();
+  std::string getVariableName() const ;
+  void findDataTypeName();
+  std::string getDataTypeName() const;
   static inline bool classof(const Data *D) {
     return D->getValueId() == VectorId;
   }
@@ -116,16 +131,42 @@ public:
   llvm::Value *getAddress() const;
   llvm::Type *getDataType() const;
   llvm::Value *getValue() const;
-  std::string getVariableName();
-  std::string getDataTypeName();  
+  void findVariableName();
+  std::string getVariableName() const;
+  void findDataTypeName();
+  std::string getDataTypeName() const;  
   bool isValidDataType() const ;
   static inline bool classof(const Data *D) {
     return D->getValueId() == ProbeId;
   }
 };
 
+class PredicateData : public Data {
+private:
+  llvm::Value* condition;
+  llvm::Value* ifBlock;
+  llvm::Value* elseBlock;
+
+public:
+  PredicateData(llvm::Instruction *I, DataId id = PredicateId);
+  llvm::Value *getCondition() const;
+  llvm::Value *getAddress() const;
+  void findDataTypeName();
+  std::string getDataTypeName() const;
+  bool isTemporaryVariable() const;
+  void findVariableName();
+  std::string getVariableName() const ;
+  bool isValidOperation() const;
+  llvm::Value* getValue() const;
+  static inline bool classof(const Data *D) {
+    return D->getValueId() == PredicateId;
+  }
+};
+
+std::string getLocInfoStr(const Data &D);
+  
 Data *CreateData(llvm::Instruction *I);
 }
 
 
-#endif /* DATA_DATA_HXX */
+#endif /* _DATA_DATA_HXX__ */

@@ -53,10 +53,20 @@ struct mca_interface_t {
     float (*floatmul)(float, float);
     float (*floatdiv)(float, float);
 
+    int (*floatgt)(float, float);
+    int (*floatge)(float, float);
+    int (*floatlt)(float, float);
+    int (*floatle)(float, float);
+
     double (*doubleadd)(double, double);
     double (*doublesub)(double, double);
     double (*doublemul)(double, double);
     double (*doublediv)(double, double);
+
+    int (*doublegt)(double, double);
+    int (*doublege)(double, double);
+    int (*doublelt)(double, double);
+    int (*doublele)(double, double);
 
     void (*seed)(void);
     int (*set_mca_mode)(int);
@@ -80,6 +90,14 @@ struct __attribute__((packed)) veritracer_probe_binary64_fmt_t {
   double value;
 };
 
+struct __attribute__((packed)) veritracer_probe_int8_fmt_t {
+  uint32_t sizeof_value;
+  uint64_t timestamp;
+  void *value_ptr;
+  uint64_t hash_LI;
+  int8_t value;
+};
+
 struct __attribute__((packed)) veritracer_probe_int32_fmt_t {
   uint32_t sizeof_value;
   uint64_t timestamp;
@@ -98,5 +116,6 @@ struct __attribute__((packed)) veritracer_probe_int64_fmt_t {
 
 int sizeof_binary32_fmt = sizeof(struct veritracer_probe_binary32_fmt_t);
 int sizeof_binary64_fmt = sizeof(struct veritracer_probe_binary64_fmt_t);
+int sizeof_int8_fmt = sizeof(struct veritracer_probe_int8_fmt_t);
 int sizeof_int32_fmt = sizeof(struct veritracer_probe_int32_fmt_t);
 int sizeof_int64_fmt = sizeof(struct veritracer_probe_int64_fmt_t);

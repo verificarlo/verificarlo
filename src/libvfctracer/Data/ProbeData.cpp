@@ -124,17 +124,21 @@ bool ProbeData::isValidDataType() const {
   }  
   return false;
 }
-    
-std::string ProbeData::getVariableName() {
+
+void ProbeData::findVariableName() {}
+  
+std::string ProbeData::getVariableName() const {
   if (not dataName.empty())
     return dataName;
   else
     llvm_unreachable("Name must be found");
 }
   
-std::string ProbeData::getDataTypeName() {
-  if (baseTypeName.empty())
-    baseTypeName = vfctracer::getBaseTypeName(baseType);
+void ProbeData::findDataTypeName(){
+  baseTypeName = vfctracer::getBaseTypeName(baseType);
+}
+
+std::string ProbeData::getDataTypeName() const {
   return baseTypeName;
 }
 

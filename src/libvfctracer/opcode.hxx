@@ -21,8 +21,8 @@
  *                                                                              *
  ********************************************************************************/
 
-#ifndef OPCODE_HXX
-#define OPCODE_HXX
+#ifndef _OPCODE_HXX__
+#define _OPCODE_HXX__
 
 #include "llvm/IR/Instructions.h"
 #include <iostream>
@@ -38,30 +38,33 @@ enum class Fops {
   RETURN,
   ALLOCA,
   CALLINST,
+  FPCMP,
   FOP_IGNORE
 };
 std::string fops_str(Fops);
 Fops getOpCode(const llvm::Instruction &I);
 Fops getOpCode(const llvm::Instruction *I);
 std::string getOpStr(const llvm::Instruction *I);
-bool isFPOp(llvm::Instruction &I);
+bool isFPOp(const llvm::Instruction &I);
 bool isFPOp(const llvm::Instruction *I);
 bool isFPOp(Fops);
-bool isStoreOp(llvm::Instruction &I);
+bool isStoreOp(const llvm::Instruction &I);
 bool isStoreOp(const llvm::Instruction *I);
-bool isRetOp(llvm::Instruction &I);
+bool isRetOp(const llvm::Instruction &I);
 bool isRetOp(const llvm::Instruction *I);
-bool isIgnoreOp(llvm::Instruction &I);
+bool isIgnoreOp(const llvm::Instruction &I);
 bool isIgnoreOp(const llvm::Instruction *I);
-bool isVectorOp(llvm::Instruction &I);
+bool isVectorOp(const llvm::Instruction &I);
 bool isVectorOp(const llvm::Instruction *I);
 bool isCallOp(const llvm::Instruction *I);
 bool isCallOp(const llvm::Instruction &I);
 bool isCallFunOp(const llvm::Instruction *I, const std::string & functionName);
 bool isCallFunOp(const llvm::Instruction &I, const std::string & functionName);
+bool isPredicateOp(const llvm::Instruction *I);
+bool isPredicateOp(const llvm::Instruction &I);
 bool isProbeOp(const llvm::Instruction *I);
 bool isProbeOp(const llvm::Instruction &I);
   
 }
 
-#endif /* OPCODE_HXX */
+#endif /* _OPCODE_HXX__ */

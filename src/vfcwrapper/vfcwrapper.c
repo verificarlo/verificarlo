@@ -403,6 +403,10 @@ static uint64_t get_timestamp(void) {
 
 /* int */
 
+void _veritracer_probe_int8(int8_t value, int8_t* value_ptr, uint64_t hash_LI) {
+  fprintf(trace_FILE_ptr, "int8 %lu %lu %p %hhd\n", get_timestamp(), hash_LI, value_ptr, value);
+} 
+
 void _veritracer_probe_int32(int32_t value, int32_t* value_ptr, uint64_t hash_LI) {
   fprintf(trace_FILE_ptr, "int32 %lu %lu %p %d\n", get_timestamp(), hash_LI, value_ptr, value);
 }
@@ -462,6 +466,16 @@ void _veritracer_probe_4xbinary64(double4 value, double* value_ptr, uint64_t has
 /* Probes used for the binary format */ 
 
 /* int */
+
+void _veritracer_probe_int8_binary(int8_t value, int8_t* value_ptr, uint64_t hash_LI) {
+  struct veritracer_probe_int8_fmt_t fmt;
+  fmt.sizeof_value = sizeof(value);
+  fmt.timestamp = get_timestamp();
+  fmt.value_ptr = value_ptr;
+  fmt.hash_LI = hash_LI;
+  fmt.value = value;
+  fwrite(&fmt, sizeof_int8_fmt, 1, trace_FILE_ptr);
+}
 
 void _veritracer_probe_int32_binary(int32_t value, int32_t* value_ptr, uint64_t hash_LI) {
   struct veritracer_probe_int32_fmt_t fmt;

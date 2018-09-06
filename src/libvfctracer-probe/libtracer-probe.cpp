@@ -101,9 +101,6 @@ namespace {
   
 struct VfclibTracerProbe : public ModulePass {
   static char ID;
-  std::unordered_map<uint64_t, std::string> locationInfoMap;
-  std::unordered_map<uint64_t, std::string> locInfoMap;
-  std::hash<std::string> hashStrFunction;
   std::ofstream mappingFile;
 
   VfclibTracerProbe() : ModulePass(ID) {

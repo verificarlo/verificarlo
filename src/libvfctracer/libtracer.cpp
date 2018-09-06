@@ -41,6 +41,8 @@
 #include "Data/Data.hxx"
 #include "Format/Format.hxx"
 #include "vfctracer.hxx"
+#include "LocationInfo.hxx"
+#include "RangeID.hxx"
 
 #include <fstream>
 #include <list>
@@ -122,6 +124,11 @@ static cl::opt<bool> VfclibDebug("vfclibtracer-debug",
                                  cl::desc("Enable debug mode"),
                                  cl::init(false));
 
+static cl::opt<bool> VfclibCheckIf("vfclibtracer-check-if",
+				  cl::desc("Activate if instrumentation"),
+				  cl::value_desc("Check if"),
+				  cl::init(false));
+
 namespace {
 
 // Define an enum type to classify the floating points operations
@@ -135,6 +142,8 @@ std::string Fops2str[] = {"add", "sub", "mul", "div", "store", "ignore"};
 
 const std::string tmpVarName = "_";
 const std::string locationInfoStr = "locationInfo.str";
+const std::string locationInfoMapFilename = "locationInfo.map";
+const std::string locationInfoMapPathEnv = "VERITRACER_LOCINFO_PATH";
 
 struct VfclibTracer : public ModulePass {
   static char ID;
@@ -144,7 +153,8 @@ struct VfclibTracer : public ModulePass {
   std::unordered_map<uint64_t, std::string> locInfoMap;
   std::hash<std::string> hashStrFunction;
   std::ofstream mappingFile;
-
+  vfctracerRangeID::RangeIDVector rangeIDvector;
+  
   VfclibTracer() : ModulePass(ID) {
     if (not VfclibInstFunctionFile.empty()) {
       std::string line;
@@ -161,8 +171,8 @@ struct VfclibTracer : public ModulePass {
     } else if (not VfclibInstFunction.empty()) {
       SelectedFunctionSet.insert(VfclibInstFunction);
     }
-    std::string mappingFilename(getenv("VERITRACER_LOCINFO_PATH"));
-    mappingFilename += "/locationInfo.map";
+    std::string mappingFilename(getenv(locationInfoMapPathEnv.c_str()));
+    mappingFilename += "/" + locationInfoMapFilename;
     mappingFile.open(mappingFilename, std::fstream::out | std::fstream::app);
     if (not mappingFile.is_open()) {
       errs() << "Cannot open file : " << mappingFilename << "\n";
@@ -229,9 +239,51 @@ struct VfclibTracer : public ModulePass {
     return true;
   }
 
+  void getOriginalLine(Instruction &I, bool s = false) {
+      DebugLoc Loc = I.getDebugLoc();
+      if (not Loc) return ;
+      unsigned line = Loc->getLine();
+      std::string Line = std::to_string(line);
+      unsigned column = Loc->getColumn();
+      std::string Column = std::to_string(column);
+      std::string File = Loc->getFilename();
+      std::string Dir = Loc->getDirectory();
+      if (Loc->getInlinedAt())
+	errs() << "start " << *Loc->getInlinedAt() << "\n";
+      std::string originalLine = File + " " + Line + "." + Column ;
+      MDNode *md = Loc->getScope();
+      if (DIScope *scope = dyn_cast<DIScope>(md))
+	if (s) errs() << "scope " << *scope->getScope() << "\n";
+      errs() << "original line " << originalLine << "\n";
+  }
+  
+  void checkBranchInst(Instruction &I) {
+    
+    if (BranchInst *bi = dyn_cast<BranchInst>(&I) ){
+      if (not bi->isConditional()) return;
+      errs() << "BI " << *bi << "\n";
+      errs() << "BB label " << bi->getParent()->front() << "\n";
+      Value *cond = bi->getCondition();
+      // Value *ifBr = bi->getOperand(1);
+      // Value *elseBr = bi->getOperand(2);
+      errs() << "cond " << *cond << "\n";
+      errs() << "num succ " << bi->getNumSuccessors() << "\n";
+      // errs() << "if " << *ifBr << "\n";
+      // errs() << "else " << *elseBr << "\n";
+      getOriginalLine(I);
+      errs() << "-----\n";
+	if (Instruction *ii = dyn_cast<Instruction>(cond)) {
+	  getOriginalLine(*ii,true);
+	  errs() << "*****\n\n";
+	}
+    }
+    
+  }
+  
   bool runOnBasicBlock(Module &M, BasicBlock &B, vfctracerFormat::Format &Fmt) {
     bool modified = false;
     for (Instruction &ii : B) {
+      if (isa<BranchInst>(ii))	checkBranchInst(ii);
       vfctracerData::Data *D = vfctracerData::CreateData(&ii);
       if (D == nullptr || not D->isValidOperation() || not D->isValidDataType())
         continue;
@@ -267,7 +319,10 @@ struct VfclibTracer : public ModulePass {
 
     vfctracerFormat::Format *Fmt =
         vfctracerFormat::CreateFormat(M, VfclibFormat);
-    
+
+    if (VfclibCheckIf)
+      rangeIDvector.init();
+      
     // Find the list of functions to instrument
     // Instrumentation adds stubs to mcalib function which we
     // never want to instrument.  Therefore it is important to
@@ -289,6 +344,9 @@ struct VfclibTracer : public ModulePass {
     }
     // Dump hash value
     vfctracer::dumpMapping(mappingFile);
+    
+    if (VfclibCheckIf) rangeIDvector.dump();
+    
     // runOnModule must return true if the pass modifies the IR
     return modified;
   }

@@ -12,9 +12,9 @@ default_traces_path=".vtrace"
 def init_module(subparsers, veritracer_plugins):
     veritracer_plugins["launch"] = run
     launch_parser = subparsers.add_parser("launch", help="Launch parallel executions of binary")
-    launch_parser.add_argument('-b','--binary', type=str, required=True, metavar='',
+    launch_parser.add_argument('-b','--binary', type=str, required=True, metavar='binary',
                                  help="filename of the trace to gather")
-    launch_parser.add_argument('-j','--jobs', type=int, required=True, metavar='',
+    launch_parser.add_argument('-j','--jobs', type=int, required=True, metavar='jobs',
                                  help='number of parallel jobs to run')
     launch_parser.add_argument('--prefix-dir', type=str, default=default_traces_path, metavar='',
                                  help='prefix of the directory')

@@ -197,6 +197,45 @@ static double _bitmask_dbin(double a, double b, const int op) {
 * Compare operations do not require BITMASK 
 ****************************************************************/
 
+static int _floatgt(float a, float b) {
+  // return a > b <-> a - b > 0
+  return _bitmask_sbin(a, b, MCA_SUB) > 0;
+}
+
+static int _floatge(float a, float b) {
+  // return a >= b <-> a - b >= 0
+  return _bitmask_sbin(a, b, MCA_SUB) >= 0;
+}
+
+static int _floatlt(float a, float b) {
+  // return a < b <-> a - b < 0
+  return _bitmask_sbin(a, b, MCA_SUB) < 0;
+}
+
+static int _floatle(float a, float b) {
+  // return a <= b <-> a - b <= 0
+  return _bitmask_sbin(a, b, MCA_SUB) <= 0;
+}
+
+static int _doublegt(double a, double b) {
+  // return a > b <-> a - b > 0
+  return _bitmask_dbin(a, b, MCA_SUB) > 0;
+}
+
+static int _doublege(double a, double b) {
+  // return a >= b <-> a - b >= 0
+  return _bitmask_dbin(a, b, MCA_SUB) >= 0;
+}
+
+static int _doublelt(double a, double b) {
+  // return a < b <-> a - b < 0
+  return _bitmask_dbin(a, b, MCA_SUB) < 0;
+}
+
+static int _doublele(double a, double b) {
+  // return a <= b <-> a - b <= 0
+  return _bitmask_dbin(a, b, MCA_SUB) <= 0;
+}
 
 /************************* FPHOOKS FUNCTIONS *************************
 * These functions correspond to those inserted into the source code
@@ -251,10 +290,18 @@ struct mca_interface_t bitmask_interface = {
 	_floatsub,
 	_floatmul,
 	_floatdiv,
+        _floatgt,
+	_floatge,
+	_floatlt,
+	_floatle,
 	_doubleadd,
 	_doublesub,
 	_doublemul,
 	_doublediv,
+	_doublegt,
+	_doublege,
+	_doublelt,
+	_doublele,
 	_mca_seed,
 	_set_mca_mode,
 	_set_mca_precision

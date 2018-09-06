@@ -31,6 +31,7 @@ using namespace llvm;
 
 namespace opcode {
 
+  
 Fops getOpCode(const Instruction &I) {
   switch (I.getOpcode()) {
   case Instruction::FAdd:
@@ -50,6 +51,8 @@ Fops getOpCode(const Instruction &I) {
   //   return Fops::ALLOCA;
   case Instruction::Call:
     return Fops::CALLINST;
+  case Instruction::FCmp:
+    return Fops::FPCMP;
   default:
     return Fops::FOP_IGNORE;
   }
@@ -74,6 +77,8 @@ Fops getOpCode(const Instruction *I) {
   //   return Fops::ALLOCA;
   case Instruction::Call:
     return Fops::CALLINST;
+  case Instruction::FCmp:
+    return Fops::FPCMP;
   default:
     return Fops::FOP_IGNORE;
   }
@@ -92,6 +97,11 @@ std::string getOpStr(const Instruction *I) {
     return "/";
   case Instruction::Store:
     return "<-";
+  case Instruction::FCmp:
+    {
+    const FCmpInst *fpCmpInst = cast<FCmpInst>(I);
+    return CmpInst::getPredicateName(fpCmpInst->getPredicate());
+    }
   default:
     return "";
   }
@@ -109,7 +119,7 @@ bool isFPOp(Fops op) {
   }
 }
 
-bool isFPOp(Instruction &I) {
+bool isFPOp(const Instruction &I) {
   switch (I.getOpcode()) {
   case Instruction::FAdd:
   case Instruction::FSub:
@@ -133,13 +143,13 @@ bool isFPOp(const Instruction *I) {
   }
 }
 
-bool isStoreOp(Instruction &I) { return I.getOpcode() == Instruction::Store; }
+bool isStoreOp(const Instruction &I) { return I.getOpcode() == Instruction::Store; }
 
 bool isStoreOp(const Instruction *I) {
   return I->getOpcode() == Instruction::Store;
 }
 
-bool isRetOp(Instruction &I) { return I.getOpcode() == Instruction::Ret; }
+bool isRetOp(const Instruction &I) { return I.getOpcode() == Instruction::Ret; }
 
 bool isRetOp(const Instruction *I) {
   return I->getOpcode() == Instruction::Ret;
@@ -153,7 +163,7 @@ bool isIgnoreOp(const Instruction *I) {
   return opcode::getOpCode(I) == Fops::FOP_IGNORE;
 }
 
-bool isVectorOp(Instruction &I) {
+bool isVectorOp(const Instruction &I) {
   Type *ty = nullptr;
   if (isStoreOp(I) or isRetOp(I))
     ty = I.getOperand(0)->getType();
@@ -182,21 +192,21 @@ bool isCallOp(const Instruction &I) {
 bool isProbeOp(const Instruction *I) {
   if (const CallInst *callInst = dyn_cast<CallInst>(I)) 
     if (Function *fun = callInst->getCalledFunction())
-      return isCallOp(I) && (fun->getName().find(vfctracer::vfcProbeName) != std::string::npos);
+      return isCallOp(I) and (fun->getName().find(vfctracer::vfcProbeName) != std::string::npos);
   return false;  
 }
 
 bool isProbeOp(const Instruction &I) {
   if (const CallInst *callInst = dyn_cast<CallInst>(&I)) 
     if (Function *fun = callInst->getCalledFunction())
-      return isCallOp(I) && (fun->getName().find(vfctracer::vfcProbeName) != std::string::npos);
+      return isCallOp(I) and (fun->getName().find(vfctracer::vfcProbeName) != std::string::npos);
   return false;
 }
 
 bool isCallFunOp(const Instruction *I, const std::string & functionName) {
   if (const CallInst *callInst = dyn_cast<CallInst>(I)) {
     Function *fun = callInst->getCalledFunction();
-    return isCallOp(I) && fun->getName() == functionName;
+    return isCallOp(I) and fun->getName() == functionName;
   } else {
     return false;
   }
@@ -205,12 +215,32 @@ bool isCallFunOp(const Instruction *I, const std::string & functionName) {
 bool isCallFunOp(const Instruction &I, const std::string & functionName) {
   if (const CallInst *callInst = dyn_cast<CallInst>(&I)) {
     Function *fun = callInst->getCalledFunction();
-    return isCallOp(I) && fun->getName() == functionName;
+    return isCallOp(I) and fun->getName() == functionName;
   } else {
     return false;
   }  
 }
 
+/* Conditional branch instruction */
+bool isPredicateOp(const Instruction *I) {
+  if (const BranchInst *brInst = dyn_cast<BranchInst>(I))
+    if (brInst->isConditional())
+      if (const CmpInst *cmpI = dyn_cast<CmpInst>(brInst->getCondition()))
+	return cmpI->isFPPredicate();
+  
+  return false;
+}
+  
+/* Conditional branch instruction */
+bool isPredicateOp(const Instruction &I) {
+  if (const BranchInst *brInst = dyn_cast<BranchInst>(&I))
+    if (brInst->isConditional())
+      if (const CmpInst *cmpI = dyn_cast<CmpInst>(brInst->getCondition()))
+	return cmpI->isFPPredicate();
+  
+  return false;  
+}
+  
 std::string fops_str(Fops op) {
   switch (op) {
   case Fops::FOP_ADD:
@@ -229,6 +259,8 @@ std::string fops_str(Fops op) {
     return "ALLOCA";
   case Fops::CALLINST:
     return "CALLINST";
+  case Fops::FPCMP:
+    return "FPCMP";
   case Fops::FOP_IGNORE:
     return "IGNORE";
   default:

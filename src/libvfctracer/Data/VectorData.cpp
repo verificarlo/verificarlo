@@ -99,18 +99,23 @@ Value *VectorData::getAddress() const {
 
 Type *VectorData::getVectorType() const { return this->vectorType; }
 
-std::string VectorData::getVariableName() {
-  if (not dataName.empty())
-    return dataName;
+void VectorData::findVariableName() {
   dataName = vfctracer::findName(data);
   if (isTemporaryVariable())
     dataName = getOriginalName(data);
-  return dataName;
 }
 
-std::string VectorData::getDataTypeName() {
-  if (this->baseTypeName.empty())
-    baseTypeName = vectorName + vfctracer::getBaseTypeName(baseType);
+std::string VectorData::getVariableName() const {
+  return dataName;
+}
+  
+void VectorData::findDataTypeName() {
+  baseTypeName = vectorName + vfctracer::getBaseTypeName(baseType);
+}
+
+std::string VectorData::getDataTypeName() const {
   return baseTypeName;
 }
+
+
 }

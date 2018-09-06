@@ -67,11 +67,11 @@ namespace {
     // Define an enum type to classify the floating points operations
     // that are instrumented by verificarlo
 
-    enum Fops {FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_IGNORE};
+    enum Fops {FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_GT, FOP_GE, FOP_LT, FOP_LE, FOP_IGNORE};
 
     // Each instruction can be translated to a string representation
 
-    std::string Fops2str[] = { "add", "sub", "mul", "div", "ignore"};
+    std::string Fops2str[] = { "add", "sub", "mul", "div", "gt", "ge", "lt", "le", "ignore"};
 
     struct VfclibInst : public ModulePass {
         static char ID;
@@ -117,8 +117,12 @@ namespace {
 
             PointerType * floatInstFun = PointerType::getUnqual(
                     FunctionType::get(Builder.getFloatTy(), floatArgs, false));
+            PointerType * cmpFloatInstFun = PointerType::getUnqual(
+                    FunctionType::get(Builder.getInt1Ty(), floatArgs, false));
             PointerType * doubleInstFun = PointerType::getUnqual(
                     FunctionType::get(Builder.getDoubleTy(), doubleArgs, false));
+            PointerType * cmpDoubleInstFun = PointerType::getUnqual(
+                    FunctionType::get(Builder.getInt1Ty(), doubleArgs, false));
 
             return StructType::get(
 
@@ -127,11 +131,21 @@ namespace {
                 floatInstFun,
                 floatInstFun,
 
+		cmpFloatInstFun,
+		cmpFloatInstFun,
+		cmpFloatInstFun,
+		cmpFloatInstFun,
+
                 doubleInstFun,
                 doubleInstFun,
                 doubleInstFun,
                 doubleInstFun,
 
+                cmpDoubleInstFun,
+                cmpDoubleInstFun,
+                cmpDoubleInstFun,
+                cmpDoubleInstFun,
+		
                 (void *)0
                 );
         }
@@ -188,11 +202,11 @@ namespace {
             Type * retType = I->getType();
             Type * opType = I->getOperand(0)->getType();
             std::string opName = Fops2str[opCode];
-
+	    
             std::string baseTypeName = "";
             std::string vectorName = "";
             Type *baseType = opType;
-
+	    
             // Check for vector types
             if (opType->isVectorTy()) {
                 VectorType *t = static_cast<VectorType *>(opType);
@@ -222,7 +236,6 @@ namespace {
             // For vector types, helper functions in vfcwrapper are called
             if (vectorName != "") {
                 std::string mcaFunctionName = "_" + vectorName + baseTypeName + opName;
-
                 Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName,
                                                            retType,
                                                            opType,
@@ -253,9 +266,9 @@ namespace {
 
                 // Compute the position of the required member fct pointer
                 // opCodes are ordered in the same order than the struct members :-)
-                // There are 4 float members followed by 4 double members.
+                // There are 8 float members followed by 8 double members.
                 int fct_position = opCode;
-                if (baseTypeName == "double") fct_position += 4;
+                if (baseTypeName == "double") fct_position += 8;
                 // Dereference the member at fct_position
                 Value *arg_ptr = CREATE_STRUCT_GEP(
                     mca_interface_type, current_mca_interface, fct_position);
@@ -272,6 +285,26 @@ namespace {
         }
 
 
+        Fops mustReplaceCmp(Instruction &I) {
+	  CmpInst *cmpInst = dyn_cast<CmpInst>(&I);
+	  switch (cmpInst->getPredicate()) {
+	    case CmpInst::Predicate::FCMP_OGT:
+	    case CmpInst::Predicate::FCMP_UGT:
+	      return FOP_GT;
+	    case CmpInst::Predicate::FCMP_OGE:
+	    case CmpInst::Predicate::FCMP_UGE:
+	      return FOP_GE;
+	    case CmpInst::Predicate::FCMP_OLT:
+	    case CmpInst::Predicate::FCMP_ULT:
+	      return FOP_LT;
+	    case CmpInst::Predicate::FCMP_OLE:
+	    case CmpInst::Predicate::FCMP_ULE:
+	      return FOP_LE;
+	    default:
+	      return FOP_IGNORE;
+	  }
+	}
+      
         Fops mustReplace(Instruction &I) {
             switch (I.getOpcode()) {
                 case Instruction::FAdd:
@@ -283,6 +316,8 @@ namespace {
                     return FOP_MUL;
                 case Instruction::FDiv:
                     return FOP_DIV;
+	        case Instruction::FCmp:
+		  return mustReplaceCmp(I);
                 default:
                     return FOP_IGNORE;
             }

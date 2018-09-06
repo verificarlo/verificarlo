@@ -316,6 +316,51 @@ static inline double _mca_dbin(double a, double b, const int qop) {
 
 }
 
+
+/******************** MCA COMPARE FUNCTIONS ********************
+* Compare operations do not require MCA 
+****************************************************************/
+
+static int _floatgt(float a, float b) {
+  // return a > b <-> a - b > 0
+  return _mca_sbin(a, b, MCA_SUB) > 0;
+}
+
+static int _floatge(float a, float b) {
+  // return a >= b <-> a - b >= 0
+  return _mca_sbin(a, b, MCA_SUB) >= 0;
+}
+
+static int _floatlt(float a, float b) {
+  // return a < b <-> a - b < 0
+  return _mca_sbin(a, b, MCA_SUB) < 0;
+}
+
+static int _floatle(float a, float b) {
+  // return a <= b <-> a - b <= 0
+  return _mca_sbin(a, b, MCA_SUB) <= 0;
+}
+
+static int _doublegt(double a, double b) {
+  // return a > b <-> a - b > 0
+  return _mca_dbin(a, b, MCA_SUB) > 0;
+}
+
+static int _doublege(double a, double b) {
+  // return a >= b <-> a - b >= 0
+  return _mca_dbin(a, b, MCA_SUB) >= 0;
+}
+
+static int _doublelt(double a, double b) {
+  // return a < b <-> a - b < 0
+  return _mca_dbin(a, b, MCA_SUB) < 0;
+}
+
+static int _doublele(double a, double b) {
+  // return a <= b <-> a - b <= 0
+  return _mca_dbin(a, b, MCA_SUB) <= 0;
+}
+
 /************************* FPHOOKS FUNCTIONS *************************
 * These functions correspond to those inserted into the source code
 * during source to source compilation and are replacement to floating
@@ -343,8 +388,8 @@ static float _floatdiv(float a, float b) {
 
 
 static double _doubleadd(double a, double b) {
-	double tmp=_mca_dbin(a,b,MCA_ADD);  
-	return tmp;
+        // return a + b 
+        return _mca_dbin(a,b,MCA_ADD);  
 }
 
 static double _doublesub(double a, double b) {
@@ -364,14 +409,22 @@ static double _doublediv(double a, double b) {
 
 
 struct mca_interface_t quad_mca_interface = {
-	_floatadd,
+        _floatadd,
 	_floatsub,
 	_floatmul,
 	_floatdiv,
+        _floatgt,
+	_floatge,
+	_floatlt,
+	_floatle,
 	_doubleadd,
 	_doublesub,
 	_doublemul,
 	_doublediv,
+	_doublegt,
+	_doublege,
+	_doublelt,
+	_doublele,
 	_mca_seed,
 	_set_mca_mode,
 	_set_mca_precision

@@ -21,8 +21,8 @@
  *                                                                              *
  ********************************************************************************/
 
-#ifndef VERITRACER_HXX
-#define VERITRACER_HXX
+#ifndef _VFCTRACER_HXX__
+#define _VFCTRACER_HXX__
 
 #include "llvm/IR/Type.h"
 
@@ -38,12 +38,12 @@
 
 #include "Data/Data.hxx"
 
+using namespace vfctracerData;
+
 namespace vfctracer {
 
 enum optTracingLevel { basic = 0, temporary = 1 };
 extern vfctracer::optTracingLevel tracingLevel;
-
-typedef std::unordered_map<uint64_t, std::string> locinfomap;
 
 const std::string temporaryVariableName = "_";
 const std::string probePrefixName = "_veritracer_probe_";
@@ -54,20 +54,17 @@ const std::string vectorName_x2 = "2x";
 const std::string vectorName_x4 = "4x";
 const std::string vfcProbeName = "vfc_probe";
   
-std::string getLocInfo(vfctracerData::Data &D);
-std::string getLocInfo(vfctracerData::Data *D);
-uint64_t getOrInsertLocInfoValue(vfctracerData::Data *D, std::string &locInfo, std::string ext = "");
-uint64_t getOrInsertLocInfoValue(vfctracerData::Data &D, std::string &locInfo, std::string ext = "");
 std::string getBaseTypeName(llvm::Type *baseType);
 const llvm::Function *findEnclosingFunc(const llvm::Value *V);
 llvm::MDNode *findVar(const llvm::Value *V, const llvm::Function *F);
 std::string findName(const llvm::Value *V);
-  void VerboseMessage(vfctracerData::Data &D, const std::string &msg = "");
+void VerboseMessage(vfctracerData::Data &D, const std::string &msg = "");
 void dumpMapping(std::ofstream &mappingFile);
-std::string getRawName(const llvm::Value *V);
-std::string getRawName(const llvm::Instruction *I);
+std::string const getRawName(const llvm::Value *V) ;
+std::string const getRawName(const llvm::Instruction *I) ;
 std::string getOriginalName(const llvm::Value *V);
 void ltrim(std::string &s);
+
 }
 
-#endif /* VERITRACER_HXX */
+#endif /* _VFCTRACER_HXX__ */

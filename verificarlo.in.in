@@ -56,6 +56,7 @@ verificarlo_report_path = ""
 VERITRACER_LOCINFO_PATH_ENV = 'VERITRACER_LOCINFO_PATH'
 veritracer_locinfo_filename = "locationInfo.map" 
 veritracer_locinfo_path = ""
+VERITRACER_RANGEID_PATH_ENV = "VERITRACER_RANGEID_PATH"
 tracer_format_choices = ['text','binary']
 tracer_level_choices = ['basic', 'temporary']
 
@@ -287,7 +288,11 @@ if __name__ == "__main__":
                         help="veritracer backtrace mode")
     parser.add_argument('--tracer-debug-mode', action='store_true',
                         help="veritracer debug mode")
-    
+    parser.add_argument('--cpp', action='store_true',
+                        help="compile c++ files")
+    parser.add_argument('--check-if', action='store_true',
+                        help="instruments if statement with floating-point comparisons")
+
     args, other = parser.parse_known_args()
     
     sources, llvm_options = parse_extra_args(other)
@@ -301,20 +306,29 @@ if __name__ == "__main__":
         fail("Cannot used --function and --functions-file together")
 
     if args.report_level:        
-        if not os.getenv('VERIFICARLO_REPORT_PATH'):
-            os.environ['VERIFICARLO_REPORT_PATH'] = os.getenv("PWD")        
+        if not os.getenv(VERIFICARLO_REPORT_PATH_ENV):
+            os.environ[VERIFICARLO_REPORT_PATH_ENV] = os.getenv("PWD")        
         add_header_verificarlo_report(args.report_level, args.print_percentage)
 
     if args.tracer:
         # Need to add debug option to get debug info 
         llvm_options += " -g "
-        if not os.getenv('VERITRACER_LOCINFO_PATH'):
-            os.environ['VERITRACER_LOCINFO_PATH'] = os.getenv("PWD") + os.sep
+        if not os.getenv(VERITRACER_LOCINFO_PATH_ENV):
+            os.environ[VERITRACER_LOCINFO_PATH_ENV] = os.getenv("PWD") + os.sep
 
         if args.tracer_backtrace:
             llvm_options += " -rdynamic "
+
+        if args.check_if:
+            if not os.getenv(VERITRACER_RANGEID_PATH_ENV):
+                os.environ[VERITRACER_RANGEID_PATH_ENV] = os.getenv("PWD") + os.sep
                 
     output = "-o " + args.o if args.o else ""
+
+    global clang
+    if args.cpp:
+        clang += "++"
+
     if args.c:
         if len(sources) == 0:
             fail('no input files')

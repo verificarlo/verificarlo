@@ -54,6 +54,8 @@ namespace vfctracerData {
 
 using namespace llvm;
 
+const std::string locInfoSeparator = ";";
+  
 Data::Data(Instruction *I, DataId id) : Id(id) {
   data = I;
   dataName = "";
@@ -95,7 +97,11 @@ Data::Data(Instruction *I, DataId id) : Id(id) {
 Module* Data::getModule() {
   return M;
 }
-  
+
+Function* Data::getFunction() {
+  return F;
+}
+
 void Data::dump() {
   if (isa<vfctracerData::ScalarData>(this))
     errs() << "[ScalarData]\n";
@@ -103,6 +109,8 @@ void Data::dump() {
     errs() << "[VectorData]\n";
   else if (isa<vfctracerData::ProbeData>(this))
     errs() << "[ProbeData]\n";
+  else if (isa<vfctracerData::PredicateData>(this))
+    errs() << "[PredicateData]\n";
     
   errs() << "Data: " << *getData() << "\n"
          << "OpCode: " << opcode::fops_str(opcode::getOpCode(data)) << "\n"
@@ -120,71 +128,17 @@ bool Data::isTemporaryVariable() const {
   return this->dataName.empty() ||
          this->dataName == vfctracer::temporaryVariableName;
 }
-
-std::string Data::getOriginalLine() {
-  if (not originalLine.empty())
-    return originalLine;
-
+  
+void Data::findOriginalLine() {
   originalLine = vfctracer::temporaryVariableName;
-
-  Instruction *data = getData();
-
-  if (opcode::isStoreOp(data)) {
-    MDNode *N = data->getMetadata("dbg");
-    MDNode *N1 = vfctracer::findVar(data, F);
-    MDNode *N2 = vfctracer::findVar(data->getOperand(1), F);
-    if (not N) N = N1 == nullptr ? N2 : N1;
-    
-    if (N) {
-      unsigned line = 0, column = 0;
-      std::string File;      
-/* Try to get information about the address variable */
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7
-      DIVariable Loc(N);
-      line = Loc.getLineNumber();
-      Loc.getFile();
-#else
-      if (DILocalVariable *DILocVar = dyn_cast<DILocalVariable>(N)) {
-        line = DILocVar->getLine();
-	File = DILocVar->getFilename();
-      }
-      if (DILocation *DILocVar = dyn_cast<DILocation>(N)) {
-        line = DILocVar->getLine();
-	column = DILocVar->getColumn();
-	File = DILocVar->getFilename();
-      }
-
-#endif
-      originalLine = File;
-      originalLine += " " + std::to_string(line) + "." + std::to_string(column);
-    }
-  } else {
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7
-    if (MDNode *N = data->getMetadata(LLVMContext::MD_dbg)) {
-      DILocation Loc(N);
-      std::string Line = std::to_string(Loc.getLineNumber());
-      std::string Column = std::to_string(Loc.getColumnNumber());
-      std::string File = Loc.getFilename();
-      std::string Dir = Loc.getDirectory();
-      originalLine = File + " " + Line + "." + Column;
-    }
-#else
-    DebugLoc Loc = data->getDebugLoc();
-    if (not Loc) return originalLine;
-    unsigned line = Loc->getLine();
-    std::string Line = std::to_string(line);
-    unsigned column = Loc->getColumn();
-    std::string Column = std::to_string(column);
-    std::string File = Loc->getFilename();
-    std::string Dir = Loc->getDirectory();
-    originalLine = File + " " + Line + "." + Column;
-
-
-#endif
-  }
+  locInfo = LocationInfo(*getData());
+  originalLine = locInfo.toString();
+}
+  
+std::string Data::getOriginalLine() const {
   return originalLine;
 }
-
+  
 Instruction *Data::getData() const { return data; }
 
 Value *Data::getValue() const {
@@ -202,12 +156,13 @@ Type *Data::getDataType() const { return baseType; }
 
 Type *Data::getDataPtrType() const { return basePointerType; }
 
-std::string Data::getFunctionName() { return F->getName().str(); }
+std::string Data::getFunctionName() const { return F->getName().str(); } 
 
-std::string &Data::getRawName() {
-  if (not dataRawName.empty())
-    return dataRawName;
+void Data::findRawName() {
   dataRawName = vfctracer::getRawName(data);
+}
+  
+std::string Data::getRawName() const {
   return dataRawName;
 }
 
@@ -239,6 +194,27 @@ bool Data::isValidDataType() const {
     return false;
 }
 
+const vfctracerLocInfo::LocationInfo& Data::getLocInfo() const {
+  return locInfo;
+}
+
+std::string getLocInfoStr(const Data &D) {
+  std::string locInfo = D.getDataTypeName() + locInfoSeparator
+    + D.getFunctionName() + locInfoSeparator
+    + D.getOriginalLine() + locInfoSeparator
+    + D.getVariableName();
+  return locInfo;
+}
+
+  
+uint64_t Data::getOrInsertLocInfoValue(std::string ext) {
+  std::string rawName = getRawName();
+  const std::string locInfoExt = getLocInfo().toString() + ext;
+  uint64_t hashLocInfo = vfctracerLocInfo::locInfoHasher(locInfoExt + rawName);
+  vfctracerLocInfo::locInfoMap[hashLocInfo] = locInfoExt;
+  return hashLocInfo;  
+}
+  
 /* Smart constructor */
 Data *CreateData(Instruction *I) {
   /* Checks if instruction is well formed */
@@ -252,11 +228,23 @@ Data *CreateData(Instruction *I) {
   if (opcode::isCallOp(I) && not opcode::isProbeOp(I))
     return nullptr;
   
+  Data * D = nullptr;
+  
   if (opcode::isVectorOp(I))
-    return new vfctracerData::VectorData(I);
+    D = new vfctracerData::VectorData(I);
   else if (opcode::isProbeOp(I))
-    return new vfctracerData::ProbeData(I);
+    D = new vfctracerData::ProbeData(I);
+  else if (opcode::isPredicateOp(I))
+    D = new vfctracerData::PredicateData(I);
   else
-    return new vfctracerData::ScalarData(I);
+    D = new vfctracerData::ScalarData(I);
+
+  if (D->isValidOperation() and D->isValidDataType()) {
+    /* Search loc info after be sure that is a valid data type */
+    D->findOriginalLine();
+    return D;
+  }
+  else
+    return nullptr;
 }
 }
