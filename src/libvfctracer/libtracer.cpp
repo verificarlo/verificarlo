@@ -243,10 +243,9 @@ struct VfclibTracer : public ModulePass {
         insertBacktraceCall(&M, ii.getFunction(), &ii, &Fmt, D);
 #endif
     }
-    // M.dump();
     return modified;
   };
-
+    
   bool runOnFunction(Module &M, Function &F, vfctracerFormat::Format &Fmt) {
     if (VfclibInstVerbose) {
       errs() << "In Function: ";
