@@ -315,10 +315,8 @@ def plot_significant_number(values_dict, args):
         ax2.semilogy()
         ax2.tick_params(axis="both",  labelsize=args.font_size)
 
-    # title = ax1.set_title('Significant digits evolution', loc="center", size=args.font_size)
-    title = ax1.set_title('Minimal Virtual Precision evolution', loc="center", size=args.font_size)
-    ax1.set_ylabel('Minimal Virtual Precision',fontsize=args.font_size)
-    # ax1.set_ylabel('Significant digits (base=$%d$)' % args.base, fontsize=args.font_size)
+    title = ax1.set_title('Significant digits evolution', loc="center", size=args.font_size)
+    ax1.set_ylabel('Significant digits (base=$%d$)' % args.base, fontsize=args.font_size)
     
     if args.invocation_mode:
         ax1.set_xlabel('Invocation', fontsize=args.font_size)
