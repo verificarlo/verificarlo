@@ -401,13 +401,6 @@ def plot_significant_number(values_dict, args):
             plot_minmax_envelope(ax3, values_list_sorted, args)
             
         color_i += 1
-
-    x = np.linspace(0,4,100)
-    y = map(lambda x : x**2, x)
-
-    label, = ax1.plot(x,y,'--r',label="$O(\epsilon^2)$")
-    legends_name.append("$O(\epsilon^2)$")
-    labels.append(label)
     
     plt.legend(labels,
                legends_name,
