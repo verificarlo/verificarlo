@@ -180,7 +180,6 @@ Value *BinaryFmt::getOrCreateLocInfoValue(Data &D) {
   }
 }
 
-
 Value *BinaryFmt::getOrCreateLocInfoValue(Data *D) {
   if (ScalarData *SD = dyn_cast<ScalarData>(D)) {
     std::string locInfo = vfctracer::getLocInfo(SD);

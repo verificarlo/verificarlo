@@ -64,7 +64,6 @@ Data::Data(Instruction *I, DataId id) : Id(id) {
   F = BB->getParent();
   M = F->getParent();
   operationCode = opcode::getOpCode(data);
-  
   switch (operationCode) {
   case opcode::Fops::STORE:
     baseType = data->getOperand(0)->getType();

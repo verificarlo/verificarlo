@@ -246,7 +246,7 @@ struct VfclibTracer : public ModulePass {
     // M.dump();
     return modified;
   };
-
+    
   bool runOnFunction(Module &M, Function &F, vfctracerFormat::Format &Fmt) {
     if (VfclibInstVerbose) {
       errs() << "In Function: ";
