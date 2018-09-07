@@ -1,0 +1,11 @@
+Test on ABINIT/Yales2, a big Trace
+Filters synchronization between GlobalView and other views/TraceCompass would be very interesting to have.
+HoverInfo on the GlobalView is handled by the AbstractTimeGraph from Trace Compass and display unwanted information for our uses, it would be interesting to be able to display what information we want.
+Add a unzoom function on the ZoomView and wheel use for better usability
+Use the environment variable VERITRACER_LOC_INFO_PATH in the python script
+Only one point can be present in a chart and more than one or 0 are present in the trace, it is because the State System transform the one time event as a state with a beginning and ending when another state is entered
+If you use the custom filter on a trace and move to another one, the vertical filter isn't working. OK Now the custom filter is disabled when moving to another trace but the vertical filter stays active on the previous trace if we come back to it.
+In the GlobalView : If we move with the CustomFilter enabled from a trace to another, and come back to the original trace the vertical filter is still enabled when it isn't supposed to.
+On the GlobalView, some trace aren't completely visible at first and we need to Reset Scale to be able to see it entirely.
+The logscale is sometimes unstable and crash on some variables or when activated and deactivated multiple times in a row.
+The axis when in logscale has only one tick with information and doesn't show relevant information on the chart
