@@ -1,0 +1,22 @@
+5063257781645499891:binary64 ; main ; muller.c 30.7 ; t
+17654822924379461313:binary64 ; muller1 ; muller.c 16.29 ; %12  = %7  + %11 
+17160847291229095336:binary64 ; muller1 ; muller.c 15.0 ; u_km1
+12766407525244101961:binary64 ; main ; muller.c 32.11 ; u_km1
+11889027042354140981:binary64 ; muller1 ; muller.c 15.0 ; u_k
+18312608926619837828:binary64 ; muller1 ; muller.c 16.24 ; %6  = double 1.130000e+03 / %5 
+5881285901567957257:binary64 ; muller1 ; muller.c 16.16 ; %7  = double 1.110000e+02 - %6 
+15982400323919728220:binary64 ; main ; muller.c 31.9 ; u_k
+1376559498325180649:binary64 ; muller1 ; muller.c 16.42 ; %10  = %8  * %9 
+16823023939094282395:binary64 ; muller1 ; muller.c 16.3 ; ret %12 
+6480005058054122640:binary64 ; muller1 ; muller.c 16.37 ; %11  = double 3.000000e+03 / %10 
+5063257781645499891:binary64 ; main ; muller.c 30.7 ; t
+17654822924379461313:binary64 ; muller1 ; muller.c 16.29 ; %12  = %7  + %11 
+17160847291229095336:binary64 ; muller1 ; muller.c 15.0 ; u_km1
+12766407525244101961:binary64 ; main ; muller.c 32.11 ; u_km1
+11889027042354140981:binary64 ; muller1 ; muller.c 15.0 ; u_k
+18312608926619837828:binary64 ; muller1 ; muller.c 16.24 ; %6  = double 1.130000e+03 / %5 
+5881285901567957257:binary64 ; muller1 ; muller.c 16.16 ; %7  = double 1.110000e+02 - %6 
+15982400323919728220:binary64 ; main ; muller.c 31.9 ; u_k
+1376559498325180649:binary64 ; muller1 ; muller.c 16.42 ; %10  = %8  * %9 
+16823023939094282395:binary64 ; muller1 ; muller.c 16.3 ; ret %12 
+6480005058054122640:binary64 ; muller1 ; muller.c 16.37 ; %11  = double 3.000000e+03 / %10 

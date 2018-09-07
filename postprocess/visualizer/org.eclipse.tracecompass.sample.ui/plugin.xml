@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.linuxtools.tmf.core.analysis">
+      <module
+            analysis_module="org.eclipse.tracecompass.veritracervisualizer.ui.VeritraceAnalysisModule"
+            automatic="true"
+            id="org.eclipse.tracecompass.veritracervisualizer.ui.veritraceanalysismodule"
+            name="VeriTraceAnalysisModule">
+         <tracetype
+               applies="true"
+               class="org.eclipse.tracecompass.veritracervisualizer.ui.Veritrace">
+         </tracetype>
+      </module>
+   </extension>
+   <extension
+         point="org.eclipse.ui.views">
+      <view
+            class="org.eclipse.tracecompass.veritracervisualizer.ui.VeritraceZoomView"
+            id="org.eclipse.tracecompass.veritracervisualizer.ui.veritracezoomview"
+            name="%view.name.2"
+            restorable="true">
+      </view>
+      <view
+            class="org.eclipse.tracecompass.veritracervisualizer.ui.VeritraceGlobalView"
+            id="org.eclipse.tracecompass.veritracervisualizer.ui.veritraceglobalview"
+            name="%view.name.3"
+            restorable="true">
+      </view>
+   </extension>
+   <extension
+         point="org.eclipse.linuxtools.tmf.core.tracetype">
+      <type
+            event_type="org.eclipse.tracecompass.veritracervisualizer.ui.VeritraceEvent"
+            id="org.eclipse.tracecompass.veritracervisualizer.ui.veritracetype"
+            isDirectory="false"
+            name="Veritracer Trace"
+            trace_type="org.eclipse.tracecompass.veritracervisualizer.ui.Veritrace">
+      </type>
+   </extension>
+   <extension
+         point="org.eclipse.ui.perspectives">
+      <perspective
+            class="org.eclipse.tracecompass.veritracervisualizer.ui.VeritracerPerspectiveFactory"
+            fixed="false"
+            id="org.eclipse.tracecompass.veritracervisualizer.ui.veritracerperspective"
+            name="%perspective.name">
+      </perspective>
+   </extension>
+</plugin>

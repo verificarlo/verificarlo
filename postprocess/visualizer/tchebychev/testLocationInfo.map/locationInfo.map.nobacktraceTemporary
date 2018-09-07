@@ -1,0 +1,63 @@
+verificarlo --tracer --tracer-level=temporary tchebychev.c
+4617119926551405472:binary64 ; horner ; tchebychev.c 64.10 ; %16  = %14  * %15 
+3771875416557614803:binary64 ; horner ; 60 ; r
+17907390203714770427:binary64 ; factored ; tchebychev.c 53.5 ; %66  = %65  * %64 
+9442748300365242361:binary64 ; factored ; tchebychev.c 53.59 ; %63  = %62  + double 5.000000e+00
+16610497716830679691:binary64 ; factored ; tchebychev.c 53.49 ; %62  = %59  - %61 
+18293247670388162812:binary64 ; factored ; tchebychev.c 53.45 ; %59  = %57  * %58 
+246417886818735428:binary64 ; fill_array ; 71 ; step
+7416467020421269162:binary64 ; factored ; tchebychev.c 53.30 ; %55  = %54  + double 5.000000e+00
+7955723090493920232:binary64 ; factored ; tchebychev.c 53.20 ; %54  = %51  - %53 
+4811973351875263564:binary64 ; factored ; tchebychev.c 52.5 ; %47  = %46  * %45 
+5671292477622044055:binary64 ; factored ; tchebychev.c 49.5 ; %13  = %12  * %11 
+17857321288479234784:binary64 ; expanded ; tchebychev.c 33.14 ; %10  = %8  * %9 
+5169205966684476401:binary64 ; factored ; tchebychev.c 51.44 ; %27  = double 2.000000e+00 * %26 
+14622957755214101010:binary64 ; factored ; tchebychev.c 51.5 ; %32  = %31  * %30 
+18343944537744628853:binary64 ; factored ; 45 ; r
+7722709332632423157:binary64 ; horner ; 61 ; z2
+8728885403397212313:binary64 ; factored ; tchebychev.c 46.14 ; %7  = %5  * %6 
+16638624372113679985:binary64 ; factored ; tchebychev.c 52.12 ; %34  = double 4.000000e+00 * %33 
+15464658081387817879:binary64 ; expanded ; tchebychev.c 41.3 ; ret %31 
+11296020003880642786:binary64 ; factored ; tchebychev.c 48.10 ; %9  = double 8.000000e+00 * %8 
+2054426412233707138:binary64 ; expanded ; tchebychev.c 38.7 ; %26  = %25  * %24 
+3515736821832058179:binary64 ; horner ; tchebychev.c 61.14 ; %9  = %7  * %8 
+12243410349453100331:binary64 ; factored ; tchebychev.c 53.26 ; %53  = double 2.000000e+01 * %52 
+7459369314919602878:binary64 ; expanded ; 31 ; z
+14615307238355438781:binary64 ; horner ; 59 ; z
+9671130648238113782:binary64 ; expanded ; 33 ; z2
+13707783449074197212:binary64 ; horner ; tchebychev.c 64.14 ; %21  = %16  + %20 
+10953934252116387388:binary64 ; factored ; 46 ; z2
+10723631181273127341:binary64 ; expanded ; 34 ; p
+14320321386396959068:binary64 ; expanded ; tchebychev.c 37.18 ; %21  = %19  * %20 
+2817163990895125964:binary64 ; factored ; tchebychev.c 54.5 ; %68  = %67  + double 1.000000e+00
+1222523305499110852:binary64 ; expanded ; 32 ; r
+17688518942672931805:binary64 ; factored ; tchebychev.c 52.35 ; %40  = double 4.000000e+00 * %39 
+11833582543032758683:binary64 ; factored ; tchebychev.c 53.55 ; %61  = double 2.000000e+01 * %60 
+2052474331883152425:binary64 ; factored ; tchebychev.c 50.11 ; %15  = %14  + double 1.000000e+00
+4926628363592453363:binary64 ; factored ; tchebychev.c 50.5 ; %17  = %16  * %15 
+8942733246038052619:binary64 ; factored ; tchebychev.c 53.16 ; %51  = %49  * %50 
+1414452924665695655:binary64 ; factored ; tchebychev.c 52.30 ; %45  = %38  * %44 
+7776847617239128456:binary64 ; factored ; tchebychev.c 51.21 ; %21  = double 2.000000e+00 * %20 
+10393751803436456716:binary64 ; factored ; tchebychev.c 53.42 ; %57  = double 1.600000e+01 * %56 
+12157706141962136706:binary64 ; expanded ; tchebychev.c 37.7 ; %23  = %22  + %21 
+8554710593495981802:binary64 ; factored ; tchebychev.c 52.21 ; %36  = double 2.000000e+00 * %35 
+7632256252770597050:binary64 ; factored ; tchebychev.c 51.30 ; %30  = %23  * %29 
+11624021731923071742:binary64 ; factored ; tchebychev.c 51.24 ; %23  = %22  - double 1.000000e+00
+17760062277681199227:binary64 ; factored ; tchebychev.c 53.36 ; %64  = %55  * %63 
+1818575231705112986:binary64 ; factored ; tchebychev.c 51.35 ; %25  = double 4.000000e+00 * %24 
+640393435624803777:binary64 ; factored ; tchebychev.c 49.11 ; %11  = %10  - double 1.000000e+00
+7794921839827509419:binary64 ; factored ; tchebychev.c 51.47 ; %29  = %28  - double 1.000000e+00
+9807954817410108982:binary64 ; factored ; tchebychev.c 53.13 ; %49  = double 1.600000e+01 * %48 
+8382306825648166763:binary64 ; factored ; tchebychev.c 51.39 ; %28  = %25  + %27 
+13513775878612529340:binary64 ; fill_array ; tchebychev.c 71.18 ; %11  = double 1.000000e+00 / %10 
+10897302982165365647:binary64 ; factored ; tchebychev.c 51.12 ; %19  = double 4.000000e+00 * %18 
+13682992101721389213:binary64 ; factored ; tchebychev.c 52.16 ; %37  = %34  - %36 
+7767654550292771294:binary64 ; fill_array ; tchebychev.c 73.13 ; %20  = %18  * %19 
+13036113721316449817:binary64 ; factored ; tchebychev.c 56.3 ; ret %69 
+10561080723831365936:binary64 ; factored ; tchebychev.c 52.24 ; %38  = %37  - double 1.000000e+00
+8109946321180111250:binary64 ; horner ; tchebychev.c 67.3 ; ret %26 
+3855256762127690221:binary64 ; factored ; tchebychev.c 52.44 ; %42  = double 2.000000e+00 * %41 
+4373279016818932988:binary64 ; factored ; tchebychev.c 51.16 ; %22  = %19  + %21 
+6752908120185327606:binary64 ; factored ; tchebychev.c 52.39 ; %43  = %40  - %42 
+1962401746398074055:binary64 ; factored ; 44 ; z
+6049458967673779661:binary64 ; factored ; tchebychev.c 52.47 ; %44  = %43  - double 1.000000e+00
