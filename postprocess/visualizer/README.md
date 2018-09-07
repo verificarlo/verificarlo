@@ -62,7 +62,6 @@ The **logScale** button activate the log scale on the graphs and will make the v
 #### Veritracer Event View
 
 The **Event View** show events contained in the Trace, you can filter on name or type.
-![Filter example](img/event_view_filter.png)
 You can also right-click on the legend line to be able to select which information you want to be shown.
 
 Another possibility to filter exist with the Trace Compass' **Filter** View where you can create and save custom filters to apply to your traces allowing to create powerful custom filters for the Event View.
