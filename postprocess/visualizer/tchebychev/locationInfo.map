@@ -1,0 +1,69 @@
+4983979241425384311:_ fill_array %16  = %14  * %15  binary64
+11935682257915519899:tchebychev.c 73.5 fill_array %16  = %14  * %15  binary64
+2758093999430814784:tchebychev.c 67.3 horner ret %22  binary64
+7526038879626650336:tchebychev.c 64.5 horner %17  = %12  + %16  binary64
+10365960978324358591:tchebychev.c 64.5 horner %12  = %10  * %11  binary64
+7163514099338783632:61 horner %5  = %3  * %4  binary64
+2729529010826804361:tchebychev.c 61.3 horner %5  = %3  * %4  binary64
+1019953959530951363:71 fill_array %7  = double 1.000000e+00 / %6  binary64
+13644721093210009905:tchebychev.c 56.3 factored ret %66  binary64
+4821901581676246498:45 factored %65  = %64  + double 1.000000e+00 binary64
+6511683666392859255:60 horner %17  = %12  + %16  binary64
+7291826173418511898:45 factored %63  = %62  * %61  binary64
+15258441135250510908:tchebychev.c 53.3 factored %63  = %62  * %61  binary64
+2100873750911676539:tchebychev.c 53.3 factored %59  = %56  - %58  binary64
+14757676557843285427:tchebychev.c 53.3 factored %58  = double 2.000000e+01 * %57  binary64
+96656899677538815:tchebychev.c 53.3 factored %52  = %51  + double 5.000000e+00 binary64
+35070296290640354:tchebychev.c 53.3 factored %56  = %54  * %55  binary64
+11769150121851818382:tchebychev.c 50.3 factored %12  = %11  + double 1.000000e+00 binary64
+11739194740271358479:tchebychev.c 49.3 factored %10  = %9  * %8  binary64
+14800901290877333598:tchebychev.c 33.3 expanded %5  = %3  * %4  binary64
+17850313992061337356:tchebychev.c 52.3 factored %37  = double 4.000000e+00 * %36  binary64
+7853665754955209378:tchebychev.c 52.3 factored %41  = %40  - double 1.000000e+00 binary64
+11989852837195218573:tchebychev.c 53.3 factored %46  = double 1.600000e+01 * %45  binary64
+9296680171407800484:tchebychev.c 53.3 factored %61  = %52  * %60  binary64
+14211392694304855352:45 factored %14  = %13  * %12  binary64
+5905959540066401020:tchebychev.c 51.3 factored %16  = double 4.000000e+00 * %15  binary64
+17744415758245051418:tchebychev.c 52.3 factored %34  = %31  - %33  binary64
+10721104300913064169:tchebychev.c 53.3 factored %60  = %59  + double 5.000000e+00 binary64
+127265211531682183:tchebychev.c 53.3 factored %54  = double 1.600000e+01 * %53  binary64
+12226207238047961564:46 factored %4  = %2  * %3  binary64
+7484898654443696868:tchebychev.c 50.3 factored %14  = %13  * %12  binary64
+989545110621860929:tchebychev.c 37.5 expanded %16  = %14  * %15  binary64
+12832838172348568722:tchebychev.c 53.3 factored %48  = %46  * %47  binary64
+6208289900376049292:34 expanded %21  = %20  * %19  binary64
+4755223084839337360:45 factored %10  = %9  * %8  binary64
+2569205886759834365:59 horner z binary64
+15873425315169437054:33 expanded %5  = %3  * %4  binary64
+9373879181317940726:tchebychev.c 51.3 factored %19  = %16  + %18  binary64
+6227475444448956946:tchebychev.c 41.3 expanded ret %26  binary64
+4400132078617679660:tchebychev.c 37.5 expanded %18  = %17  + %16  binary64
+16513434581795837102:tchebychev.c 51.3 factored %26  = %25  - double 1.000000e+00 binary64
+17631715005080564694:tchebychev.c 52.3 factored %44  = %43  * %42  binary64
+18197733151728875180:tchebychev.c 52.3 factored %33  = double 2.000000e+00 * %32  binary64
+17517799887236147840:tchebychev.c 49.3 factored %8  = %7  - double 1.000000e+00 binary64
+11170004092823551247:tchebychev.c 48.3 factored %6  = double 8.000000e+00 * %5  binary64
+13600177092722815535:45 factored %6  = double 8.000000e+00 * %5  binary64
+3796851566446619073:32 expanded %18  = %17  + %16  binary64
+1947333734286801011:tchebychev.c 38.5 expanded %21  = %20  * %19  binary64
+5049336237303014973:44 factored z binary64
+13466736012807532391:tchebychev.c 51.3 factored %20  = %19  - double 1.000000e+00 binary64
+7941377428893396961:tchebychev.c 53.3 factored %50  = double 2.000000e+01 * %49  binary64
+1030509077666929036:tchebychev.c 51.3 factored %24  = double 2.000000e+00 * %23  binary64
+2781398196749187572:tchebychev.c 54.3 factored %65  = %64  + double 1.000000e+00 binary64
+7871143216979583921:tchebychev.c 51.3 factored %18  = double 2.000000e+00 * %17  binary64
+13021261370577350337:tchebychev.c 51.3 factored %25  = %22  + %24  binary64
+4544585899292286694:tchebychev.c 51.3 factored %27  = %20  * %26  binary64
+11729574417372760274:45 factored %29  = %28  * %27  binary64
+7842157137895566533:tchebychev.c 52.3 factored %31  = double 4.000000e+00 * %30  binary64
+5547265972142511274:31 expanded z binary64
+9291551030581654704:tchebychev.c 52.3 factored %35  = %34  - double 1.000000e+00 binary64
+14546464924894917349:tchebychev.c 46.3 factored %4  = %2  * %3  binary64
+3252910638181175425:tchebychev.c 52.3 factored %39  = double 2.000000e+00 * %38  binary64
+9923757591251475470:tchebychev.c 51.3 factored %22  = double 4.000000e+00 * %21  binary64
+18275219121424318938:tchebychev.c 51.3 factored %29  = %28  * %27  binary64
+6317879492315804580:tchebychev.c 52.3 factored %40  = %37  - %39  binary64
+863402179327042665:tchebychev.c 71.3 fill_array %7  = double 1.000000e+00 / %6  binary64
+9641402741321068410:tchebychev.c 52.3 factored %42  = %35  * %41  binary64
+17227519527797235631:45 factored %44  = %43  * %42  binary64
+7458126615871808833:tchebychev.c 53.3 factored %51  = %48  - %50  binary64

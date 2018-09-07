@@ -1,0 +1,114 @@
+#!/usr/bin/python
+#coding: UTF-8
+# import babeltrace
+from babeltrace import CTFWriter
+# import tempfile
+import sys
+from tqdm import tqdm
+import random
+import string
+
+def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+# trace_path = tempfile.mkdtemp()
+if len(sys.argv) == 3:
+    fileInName = sys.argv[1]
+    trace_path = sys.argv[2]
+else:
+    exit("Erreur : Vous devez donner un fichier d'entrée et un emplacement pour créer la trace CTF.")
+
+#print('trace path: {}'.format(trace_path))
+
+fileIn = open(fileInName, "r")
+
+#Pour enlever le header de la boucle
+# print(fileIn.readline())
+
+# for line in tqdm(fileIn.readlines()):
+#    print(line)
+#    print(line.split(','))
+
+writer = CTFWriter.Writer(trace_path)
+writer.add_environment_field("domain", "kernel")
+
+clock = CTFWriter.Clock('my_clock')
+clock.description = 'my clock'
+clock.freq = 1
+writer.add_clock(clock)
+
+stream_class = CTFWriter.StreamClass('my_stream')
+stream_class.clock = clock
+
+context_event = CTFWriter.EventClass('sched_switch')
+
+#Variable d'événements commun
+name = CTFWriter.StringFieldDeclaration()
+id_field = CTFWriter.IntegerFieldDeclaration(64)
+id_field.signed = True
+
+context_event.add_field(id_field, "prev_tid")
+context_event.add_field(id_field, "prev_prio")
+context_event.add_field(id_field, "prev_state")
+context_event.add_field(id_field, "next_tid")
+context_event.add_field(id_field, "next_prio")
+context_event.add_field(name, 'prev_comm')
+context_event.add_field(name, 'next_comm')
+
+
+stream_class.add_event_class(context_event)
+
+stream = writer.create_stream(stream_class)
+
+clock.time = 0
+
+# event = CTFWriter.Event(context_event)
+# event.payload("prev_comm").value = "ibus_daemon"
+# event.payload("prev_tid").value = 1256
+# event.payload("prev_prio").value = 20
+# event.payload("next_prio").value = 20
+# event.payload("prev_state").value = 1
+# event.payload("next_comm").value = "gdbus"
+# event.payload("next_tid").value = 1258
+#
+# stream.append_event(event)
+
+# stream.flush()
+taille = 10
+buf = 0
+line = fileIn.readline()
+line2 = fileIn.readline()
+while(line2 != ""):
+    buf += 1
+    if("#" in line2):
+        line2 = fileIn.readline()
+        line = line2
+        line2 = fileIn.readline()
+    else:
+        event = CTFWriter.Event(context_event)
+    # print(line)
+    # print(line2)
+        tmp = line.split("../")
+        info = tmp[len(tmp)-1].split("\n")[0]
+        tmp2 = line2.split("../")
+        info2 = tmp2[len(tmp2)-1].split("\n")[0]
+        #info[2] est le nom de la fonction
+        event.payload("prev_comm").value = info2
+        event.payload("prev_tid").value = hash(info2)
+        # event.payload("prev_tid").value = buf
+        event.payload("next_comm").value = info
+        event.payload("next_tid").value = hash(info)
+        # event.payload("next_tid").value = -buf
+        event.payload("prev_prio").value = 20
+        event.payload("next_prio").value = 20
+        event.payload("prev_state").value = 1
+
+        stream.append_event(event)
+        if(buf == 1000000):
+            stream.flush()
+            buf = 0
+        line = line2
+        line2 = fileIn.readline()
+
+stream.flush()
+fileIn.close()

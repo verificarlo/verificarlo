@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <description name="Veritracer Visualizer">
+      Contains the features allowing to visualize VeriTracer results.
+   </description>
+   <feature url="features/org.eclipse.tracecompass.veritracervisualizer_1.0.0.201809061308.jar" id="org.eclipse.tracecompass.veritracervisualizer" version="1.0.0.201809061308">
+      <category name="veritracer_visualizer"/>
+   </feature>
+   <category-def name="veritracer_visualizer" label="Veritracer Visualizer">
+      <description>
+         This category contains every features linked to the Veritracer Visualizer.
+      </description>
+   </category-def>
+</site>
