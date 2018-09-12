@@ -49,9 +49,7 @@ public:
   Format(FormatId id)
       : Id(id), M(nullptr), locInfoType(nullptr), locInfoValue(nullptr) {}
   virtual llvm::Type *getLocInfoType(vfctracerData::Data &D) = 0;
-  virtual llvm::Type *getLocInfoType(vfctracerData::Data *D) = 0;
   virtual llvm::Value *getOrCreateLocInfoValue(vfctracerData::Data &D) = 0;
-  virtual llvm::Value *getOrCreateLocInfoValue(vfctracerData::Data *D) = 0;
   virtual llvm::Constant *
   CreateProbeFunctionPrototype(vfctracerData::Data &D) = 0;
   virtual llvm::CallInst *InsertProbeFunctionCall(vfctracerData::Data &D,
@@ -62,9 +60,7 @@ class BinaryFmt : public Format {
 public:
   BinaryFmt(llvm::Module &M) : Format(BinaryId) { this->M = &M; };
   llvm::Type *getLocInfoType(vfctracerData::Data &D);
-  llvm::Type *getLocInfoType(vfctracerData::Data *D);
   llvm::Value *getOrCreateLocInfoValue(vfctracerData::Data &D);
-  llvm::Value *getOrCreateLocInfoValue(vfctracerData::Data *D);
   llvm::Constant *CreateProbeFunctionPrototype(vfctracerData::Data &D);
   llvm::CallInst *InsertProbeFunctionCall(vfctracerData::Data &D,
                                           llvm::Value *probeFunc);
@@ -74,9 +70,7 @@ class TextFmt : public Format {
 public:
   TextFmt(llvm::Module &M) : Format(TextId) { this->M = &M; };
   llvm::Type *getLocInfoType(vfctracerData::Data &D);
-  llvm::Type *getLocInfoType(vfctracerData::Data *D);
   llvm::Value *getOrCreateLocInfoValue(vfctracerData::Data &D);
-  llvm::Value *getOrCreateLocInfoValue(vfctracerData::Data *D);
   llvm::Constant *CreateProbeFunctionPrototype(vfctracerData::Data &D);
   llvm::CallInst *InsertProbeFunctionCall(vfctracerData::Data &D,
                                           llvm::Value *probeFunc);

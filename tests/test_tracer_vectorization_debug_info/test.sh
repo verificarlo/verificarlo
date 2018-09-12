@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+export VERITRACER_LOCINFO_PATH=$PWD
 export VERIFICARLO_PRECISION=53
 
 function_to_inst=sum_kahan

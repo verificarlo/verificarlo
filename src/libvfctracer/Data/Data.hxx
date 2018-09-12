@@ -57,43 +57,45 @@ protected:
   std::string originalLine;
   opcode::Fops operationCode;
   vfctracerLocInfo::LocationInfo locInfo;
+  uint64_t* hashLocInfo;
   
 public:
   Data(llvm::Instruction *I, DataId Id);
   virtual ~Data() = 0;
-  virtual llvm::Instruction *getData() const;
-  virtual llvm::Value *getValue() const;
-  virtual llvm::Type *getDataType() const;
-  virtual llvm::Type *getDataPtrType() const;
-  virtual bool isTemporaryVariable() const;
-  virtual bool isValidOperation() const;
-  virtual bool isValidDataType() const;
-  virtual void findOriginalLine();
-  virtual std::string getOriginalLine() const;
-  virtual std::string getFunctionName() const;
-  virtual void findRawName();
-  virtual std::string getRawName() const ;
-  virtual void findDataTypeName() = 0;
-  virtual std::string getDataTypeName() const = 0;
-  virtual llvm::Value *getAddress() const = 0;
-  virtual void findVariableName() = 0;
-  virtual std::string getVariableName() const = 0;
-  virtual void dump();
   DataId getValueId() const { return Id; };
   llvm::Module* getModule();
   llvm::Function* getFunction();
   const vfctracerLocInfo::LocationInfo& getLocInfo() const ;
-  virtual uint64_t getOrInsertLocInfoValue(std::string ext = "");
+  virtual llvm::Instruction *getData() const;
+  virtual llvm::Value *getValue() const;
+  virtual llvm::Type *getDataType() const;
+  virtual llvm::Type *getDataPtrType() const;
+  virtual std::string getOriginalLine() const;
+  virtual std::string getFunctionName() const;
+  virtual std::string getRawName() const ;
+  virtual std::string getVariableName() const = 0;
+  virtual std::string getDataTypeName() const = 0;
+  virtual llvm::Value *getAddress() const = 0;
+  uint64_t getOrInsertLocInfoValue(std::string ext = "");
+  virtual void findDebugInformation();
+  virtual void findOriginalLine();
+  virtual void findRawName();
+  virtual void findDataTypeName() = 0;
+  virtual void findVariableName() = 0;
+  virtual bool isTemporaryVariable() const;
+  virtual bool isValidOperation() const;
+  virtual bool isValidDataType() const;
+  virtual void dump();
 };
 
 class ScalarData : public Data {
 public:
   ScalarData(llvm::Instruction *, DataId id = ScalarId);
   llvm::Value *getAddress() const;
-  void findVariableName();
   std::string getVariableName() const;
-  void findDataTypeName();
   std::string getDataTypeName() const;
+  void findVariableName();
+  void findDataTypeName();
   static inline bool classof(const Data *D) {
     return D->getValueId() == ScalarId;
   }
@@ -104,17 +106,20 @@ private:
   llvm::VectorType *vectorType;
   std::string vectorName;
   unsigned vectorSize;
-
+  std::vector<uint64_t> hashLocInfoVector;
+  
 public:
   VectorData(llvm::Instruction *I, DataId id = VectorId);
   llvm::Value *getAddress() const;
   llvm::Type *getVectorType() const;
   llvm::Type *getDataType() const;
   unsigned getVectorSize() const;
-  void findVariableName();
   std::string getVariableName() const ;
-  void findDataTypeName();
   std::string getDataTypeName() const;
+  std::vector<uint64_t> getOrInsertLocInfoValue();
+  // void findDebugInformation();
+  void findVariableName();
+  void findDataTypeName();
   static inline bool classof(const Data *D) {
     return D->getValueId() == VectorId;
   }
@@ -131,10 +136,10 @@ public:
   llvm::Value *getAddress() const;
   llvm::Type *getDataType() const;
   llvm::Value *getValue() const;
-  void findVariableName();
   std::string getVariableName() const;
-  void findDataTypeName();
   std::string getDataTypeName() const;  
+  void findDataTypeName();
+  void findVariableName();
   bool isValidDataType() const ;
   static inline bool classof(const Data *D) {
     return D->getValueId() == ProbeId;
@@ -151,13 +156,15 @@ public:
   PredicateData(llvm::Instruction *I, DataId id = PredicateId);
   llvm::Value *getCondition() const;
   llvm::Value *getAddress() const;
-  void findDataTypeName();
   std::string getDataTypeName() const;
-  bool isTemporaryVariable() const;
-  void findVariableName();
-  std::string getVariableName() const ;
-  bool isValidOperation() const;
   llvm::Value* getValue() const;
+  std::string getVariableName() const ;
+  llvm::Type* getDataType() const;
+  void findVariableName();
+  void findDataTypeName();
+  bool isValidOperation() const;
+  bool isTemporaryVariable() const;
+  bool isValidDataType() const;
   static inline bool classof(const Data *D) {
     return D->getValueId() == PredicateId;
   }

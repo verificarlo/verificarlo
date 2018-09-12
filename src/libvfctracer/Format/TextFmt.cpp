@@ -63,6 +63,7 @@ using namespace llvm;
 using namespace opcode;
 using namespace vfctracer;
 using namespace vfctracerData;
+using namespace vfctracerLocInfo;
 
 namespace vfctracerFormat {
 
@@ -70,7 +71,7 @@ Constant *TextFmt::CreateProbeFunctionPrototype(Data &D) {
 
   const std::string dataTypeName = D.getDataTypeName();
   std::string probeFunctionName = vfctracer::probePrefixName +
-                                  dataTypeName;
+    dataTypeName;
   
   if (isa<vfctracerData::ProbeData>(D))
     probeFunctionName += "_ptr";
@@ -116,7 +117,7 @@ CallInst *TextFmt::InsertProbeFunctionCall(Data &D, Value *probeFunc) {
 }
 
 Type *TextFmt::getLocInfoType(Data &D) {
-  if (isa<ScalarData>(D) || isa<ProbeData>(D)) {
+  if (isa<ScalarData>(D) or isa<ProbeData>(D) or isa<PredicateData>(D)) {
     return Type::getInt64Ty(M->getContext());
   } else if (VectorData *VD = dyn_cast<VectorData>(&D)) {
     unsigned vectorSize = VD->getVectorSize();
@@ -124,19 +125,6 @@ Type *TextFmt::getLocInfoType(Data &D) {
     ArrayType *arrayLocInfoType = ArrayType::get(int64Ty, vectorSize);
     return PointerType::get(arrayLocInfoType, 0);
   } else {    
-    llvm_unreachable("Unknow Data type");
-  }
-}
-
-Type *TextFmt::getLocInfoType(Data *D) {
-  if (isa<ScalarData>(D) or isa<ProbeData>(D) or isa<PredicateData>(D) ) {
-    return Type::getInt64Ty(M->getContext());    
-  } else if (VectorData *VD = dyn_cast<VectorData>(D)) {
-    unsigned vectorSize = VD->getVectorSize();
-    Type *int64Ty = Type::getInt64Ty(M->getContext());
-    ArrayType *arrayLocInfoType = ArrayType::get(int64Ty, vectorSize);
-    return PointerType::get(arrayLocInfoType, 0);
-  } else {
     llvm_unreachable("Unknow Data type");
   }
 }
@@ -154,49 +142,9 @@ Value *TextFmt::getOrCreateLocInfoValue(Data &D) {
     if (arrayLocInfoGV == nullptr) {
       /* Create vector of locationInfo keys */
       std::vector<Constant *> locInfoKeyVector;
-      for (unsigned int i = 0; i < VD->getVectorSize(); ++i) {
-        std::string ext = "." + std::to_string(i) + "." + VD->getRawName();
-        uint64_t keyLocInfo = VD->getOrInsertLocInfoValue(ext);
-        Constant *locInfoValue = ConstantInt::get(int64Ty, keyLocInfo, false);
-        locInfoKeyVector.push_back(locInfoValue);
-      }
-      /* Create Globale Variable which contains the constant array */
-      ArrayType *arrayLocInfoType =
-          ArrayType::get(int64Ty, VD->getVectorSize());
-      /* Constant Array containing locationInfo keys */
-      Constant *constArrayLocInfo =
-          ConstantArray::get(arrayLocInfoType, locInfoKeyVector);
-      arrayLocInfoGV =
-          new GlobalVariable(/*Module=*/*M,
-                             /*Type=*/arrayLocInfoType,
-                             /*isConstant=*/true,
-                             /*Linkage=*/GlobalValue::ExternalLinkage,
-                             /*Initializer=*/constArrayLocInfo,
-                             /*Name=*/locInfoGVname);
-    }
-    return arrayLocInfoGV;
-  } else {
-    llvm_unreachable("Unknow Data class");
-  }
-}
-
-Value *TextFmt::getOrCreateLocInfoValue(Data *D) {
-  if (isa<ScalarData>(D) or isa<ProbeData>(D) or isa<PredicateData>(D)) {
-    uint64_t keyLocInfo = D->getOrInsertLocInfoValue();
-    Type *int64Ty = Type::getInt64Ty(M->getContext());
-    Constant *locInfoValue = ConstantInt::get(int64Ty, keyLocInfo, false);
-    return locInfoValue;
-  } else if (VectorData *VD = dyn_cast<VectorData>(D)) {
-    std::string locInfoGVname = "arrayLocInfoGV." + VD->getVariableName() + "." + VD->getRawName();
-    GlobalVariable *arrayLocInfoGV = M->getGlobalVariable(locInfoGVname);
-    Type *int64Ty = Type::getInt64Ty(M->getContext());
-    if (arrayLocInfoGV == nullptr) {
-      /* Create vector of locationInfo keys */
-      std::vector<Constant *> locInfoKeyVector;
-      for (unsigned int i = 0; i < VD->getVectorSize(); ++i) {
-        std::string ext = "." + std::to_string(i) + "." + VD->getRawName();
-        uint64_t keyLocInfo = VD->getOrInsertLocInfoValue(ext);
-        Constant *locInfoValue = ConstantInt::get(int64Ty, keyLocInfo, false);
+      std::vector<uint64_t> locInfoHashVector = VD->getOrInsertLocInfoValue();
+      for (auto &hash : locInfoHashVector) {
+        Constant *locInfoValue = ConstantInt::get(int64Ty, hash, false);
         locInfoKeyVector.push_back(locInfoValue);
       }
       /* Create Globale Variable which contains the constant array */

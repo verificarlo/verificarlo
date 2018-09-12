@@ -79,6 +79,10 @@ VectorData::VectorData(Instruction *I, DataId id) : Data(I, id) {
   }
 }
 
+// void VectorData::findDebugInformation() {
+
+// }
+  
 Type *VectorData::getDataType() const { return this->vectorType; }
 
 unsigned VectorData::getVectorSize() const { return this->vectorSize; }
@@ -116,6 +120,21 @@ void VectorData::findDataTypeName() {
 std::string VectorData::getDataTypeName() const {
   return baseTypeName;
 }
+  
+std::vector<uint64_t> VectorData::getOrInsertLocInfoValue() {
+  if (not hashLocInfoVector.empty()) {
+    return hashLocInfoVector;
+  }
 
-
+  std::string rawName = getRawName();
+  for (unsigned int i = 0; i < getVectorSize(); ++i) {
+    std::string ext = "." + std::to_string(i) + "." + rawName;
+    const std::string locInfoExt = getLocInfoStr(*this) + ext;
+    uint64_t hashLocInfo = vfctracerLocInfo::locInfoHasher(locInfoExt + rawName);
+    vfctracerLocInfo::locInfoMap[hashLocInfo] = locInfoExt;
+    hashLocInfoVector.push_back(hashLocInfo);
+  }
+  return hashLocInfoVector;
+}
+  
 }

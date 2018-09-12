@@ -162,7 +162,7 @@ void VerboseMessage(Data &D, const std::string &msg) {
 /* Dump mapping information about variables  */
 /* hash : <line> <enclosing function> <name> */
 void dumpMapping(std::ofstream &mappingFile) {
-  for (auto &I : locInfoMap) {
+  for (auto &I : vfctracerLocInfo::locInfoMap) {
     mappingFile << I.first << ":" << I.second << "\n";
   }
 }

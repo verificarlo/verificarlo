@@ -38,7 +38,7 @@ enum class Fops {
   RETURN,
   ALLOCA,
   CALLINST,
-  FPCMP,
+  BRANCH,
   FOP_IGNORE
 };
 std::string fops_str(Fops);

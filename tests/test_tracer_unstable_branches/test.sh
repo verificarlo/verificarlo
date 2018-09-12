@@ -1,5 +1,6 @@
 #!/bin/bash
 
+export VERITRACER_LOCINFO_PATH=$PWD
 rm -f locationInfo.map
 make dot
 veritracer launch --jobs=16 --binary="dot_product 10" --force

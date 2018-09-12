@@ -37,6 +37,7 @@ veritracer_launch(){
     check_exit_code "Error with veritracer launch"
 }
 
+export VERITRACER_LOCINFO_PATH=$PWD
 
 for FP_TYPE in "DOUBLE" "FLOAT"; do
 

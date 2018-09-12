@@ -131,8 +131,8 @@ struct VfclibTracerProbe : public ModulePass {
                            vfctracerFormat::Format *Fmt,
                            vfctracerData::Data *D) {
     Type *voidTy = Type::getVoidTy(M->getContext());
-    Type *locInfoType = Fmt->getLocInfoType(D);
-    Value *locInfoValue = Fmt->getOrCreateLocInfoValue(D);
+    Type *locInfoType = Fmt->getLocInfoType(*D);
+    Value *locInfoValue = Fmt->getOrCreateLocInfoValue(*D);
     std::string backtraceFunctionName = "get_backtrace";
 
     if (const vfctracerData::VectorData *VD =

@@ -98,4 +98,6 @@ void ScalarData::findDataTypeName() {
 std::string ScalarData::getDataTypeName() const {
   return baseTypeName;
 }
+
+
 }

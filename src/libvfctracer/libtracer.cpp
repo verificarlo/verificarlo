@@ -149,8 +149,8 @@ struct VfclibTracer : public ModulePass {
   static char ID;
   StructType *mca_interface_type;
   std::set<std::string> SelectedFunctionSet;
-  std::unordered_map<uint64_t, std::string> locationInfoMap;
-  std::unordered_map<uint64_t, std::string> locInfoMap;
+  // std::unordered_map<uint64_t, std::string> locationInfoMap;
+  vfctracerLocInfo::locinfomap locInfoMap;
   std::hash<std::string> hashStrFunction;
   std::ofstream mappingFile;
   vfctracerRangeID::RangeIDVector rangeIDvector;
@@ -226,7 +226,7 @@ struct VfclibTracer : public ModulePass {
     std::string variableName = D.getVariableName();
     if (VfclibDebug)
       D.dump(); /* /!\ Dump Data */
-    if (not D.isValidDataType() || D.isTemporaryVariable())
+    if (D.isTemporaryVariable() and VfclibTracingLevel != vfctracer::optTracingLevel::temporary)
       return false;
     if (VfclibInstVerbose)
       vfctracer::VerboseMessage(D);
@@ -285,8 +285,11 @@ struct VfclibTracer : public ModulePass {
     for (Instruction &ii : B) {
       if (isa<BranchInst>(ii))	checkBranchInst(ii);
       vfctracerData::Data *D = vfctracerData::CreateData(&ii);
-      if (D == nullptr || not D->isValidOperation() || not D->isValidDataType())
+      if (D == nullptr or not D->isValidOperation() or not D->isValidDataType())
         continue;
+      else
+	D->findDebugInformation();
+      
       modified |= insertProbe(Fmt, *D);
       if (VfclibBacktrace && modified)
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8

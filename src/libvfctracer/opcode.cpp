@@ -31,7 +31,6 @@ using namespace llvm;
 
 namespace opcode {
 
-  
 Fops getOpCode(const Instruction &I) {
   switch (I.getOpcode()) {
   case Instruction::FAdd:
@@ -51,8 +50,8 @@ Fops getOpCode(const Instruction &I) {
   //   return Fops::ALLOCA;
   case Instruction::Call:
     return Fops::CALLINST;
-  case Instruction::FCmp:
-    return Fops::FPCMP;
+  case Instruction::Br:
+    return Fops::BRANCH;
   default:
     return Fops::FOP_IGNORE;
   }
@@ -77,8 +76,8 @@ Fops getOpCode(const Instruction *I) {
   //   return Fops::ALLOCA;
   case Instruction::Call:
     return Fops::CALLINST;
-  case Instruction::FCmp:
-    return Fops::FPCMP;
+  case Instruction::Br:
+    return Fops::BRANCH;
   default:
     return Fops::FOP_IGNORE;
   }
@@ -97,10 +96,11 @@ std::string getOpStr(const Instruction *I) {
     return "/";
   case Instruction::Store:
     return "<-";
-  case Instruction::FCmp:
+  case Instruction::Br:
     {
-    const FCmpInst *fpCmpInst = cast<FCmpInst>(I);
-    return CmpInst::getPredicateName(fpCmpInst->getPredicate());
+      const BranchInst *brInst = cast<BranchInst>(I);
+      const FCmpInst *fpCmpInst = cast<FCmpInst>(brInst->getCondition());
+      return CmpInst::getPredicateName(fpCmpInst->getPredicate());
     }
   default:
     return "";
@@ -259,8 +259,8 @@ std::string fops_str(Fops op) {
     return "ALLOCA";
   case Fops::CALLINST:
     return "CALLINST";
-  case Fops::FPCMP:
-    return "FPCMP";
+  case Fops::BRANCH:
+    return "BRANCH";
   case Fops::FOP_IGNORE:
     return "IGNORE";
   default:

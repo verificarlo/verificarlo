@@ -53,8 +53,6 @@
 namespace vfctracerData {
 
 using namespace llvm;
-
-const std::string locInfoSeparator = ";";
   
 Data::Data(Instruction *I, DataId id) : Id(id) {
   data = I;
@@ -66,6 +64,7 @@ Data::Data(Instruction *I, DataId id) : Id(id) {
   F = BB->getParent();
   M = F->getParent();
   operationCode = opcode::getOpCode(data);
+  hashLocInfo = nullptr;
   
   switch (operationCode) {
   case opcode::Fops::STORE:
@@ -198,22 +197,42 @@ const vfctracerLocInfo::LocationInfo& Data::getLocInfo() const {
   return locInfo;
 }
 
+void Data::findDebugInformation() {
+  findVariableName();
+  findDataTypeName();
+  findOriginalLine();
+}
+  
 std::string getLocInfoStr(const Data &D) {
-  std::string locInfo = D.getDataTypeName() + locInfoSeparator
-    + D.getFunctionName() + locInfoSeparator
-    + D.getOriginalLine() + locInfoSeparator
+  std::string locInfo =
+    D.getDataTypeName() + vfctracerLocInfo::locInfoSeparator
+    + D.getFunctionName() + vfctracerLocInfo::locInfoSeparator
+    + D.getOriginalLine() + vfctracerLocInfo::locInfoSeparator
     + D.getVariableName();
   return locInfo;
 }
 
-  
 uint64_t Data::getOrInsertLocInfoValue(std::string ext) {
+  if (hashLocInfo != nullptr)
+    return *hashLocInfo;
+  else
+    hashLocInfo = (uint64_t*)malloc(sizeof(uint64_t));
+  
   std::string rawName = getRawName();
-  const std::string locInfoExt = getLocInfo().toString() + ext;
-  uint64_t hashLocInfo = vfctracerLocInfo::locInfoHasher(locInfoExt + rawName);
-  vfctracerLocInfo::locInfoMap[hashLocInfo] = locInfoExt;
-  return hashLocInfo;  
+  const std::string locInfoExt = getLocInfoStr(*this);
+  *hashLocInfo = vfctracerLocInfo::locInfoHasher(locInfoExt + rawName);
+  vfctracerLocInfo::locInfoMap[*hashLocInfo] = locInfoExt;
+  return *hashLocInfo;  
+
 }
+  
+// uint64_t Data::getOrInsertLocInfoValue(std::string ext) {
+//   std::string rawName = getRawName();
+//   const std::string locInfoExt = getLocInfoStr(*this) + ext;
+//   uint64_t hashLocInfo = vfctracerLocInfo::locInfoHasher(locInfoExt + rawName);
+//   vfctracerLocInfo::locInfoMap[hashLocInfo] = locInfoExt;
+//   return hashLocInfo;  
+// }
   
 /* Smart constructor */
 Data *CreateData(Instruction *I) {
@@ -222,7 +241,7 @@ Data *CreateData(Instruction *I) {
     return nullptr; /* Instruction is not currently inserted into a BasicBlock
                        */
   if (I->getParent()->getParent() == nullptr)
-    return nullptr; /* Instruction is not currently inserted into a function*/
+    return nullptr; /* Instruction is not currently inserted into a Function*/
 
   /* Avoid returning call instruction other than vfc_probe */
   if (opcode::isCallOp(I) && not opcode::isProbeOp(I))
@@ -239,11 +258,8 @@ Data *CreateData(Instruction *I) {
   else
     D = new vfctracerData::ScalarData(I);
 
-  if (D->isValidOperation() and D->isValidDataType()) {
-    /* Search loc info after be sure that is a valid data type */
-    D->findOriginalLine();
+  if (D->isValidOperation() and D->isValidDataType())
     return D;
-  }
   else
     return nullptr;
 }

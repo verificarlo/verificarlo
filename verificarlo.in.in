@@ -206,11 +206,12 @@ def compiler_mode(sources, options, output, args):
             ))
             
         # Apply Veritracer instrumentation pass
-        if args.tracer:
+        if args.tracer:            
             tracer_format = '-vfclibtracer-format=' + args.tracer_format
             tracer_bt = '-vfclibtracer-backtrace' if args.tracer_backtrace else ''
             tracer_debug_mode = '-vfclibtracer-debug' if args.tracer_debug_mode else ''
             tracer_level = '-vfclibtracer-level=' + args.tracer_level
+            tracer_check_if = '-vfclibtracer-check-if' if args.check_if else ''
             # Apply tracer probes intrusmentation pass
             shell('{opt} -S -load {libvfctracer_probe} -vfclibtracer-probe {tracer_format} {tracer_bt}  {tracer_debug_mode} {verbose} {ir} -o {ins}'.format(
                 opt=opt,
@@ -220,13 +221,13 @@ def compiler_mode(sources, options, output, args):
                 tracer_debug_mode=tracer_debug_mode,
                 verbose=verbose,
                 ir=ir,
-                ins=ins_tracer_probe,                
+                ins=ins_tracer_probe
             ))
 
             ir = ins_tracer_probe          
 
             # Apply tracer instrumentation pass
-            shell('{opt} -S -load {libvfctracer} -vfclibtracer {tracer_format} {tracer_bt} {tracer_level} {tracer_debug_mode} {verbose} {selectfunction} {blacklist} {ir} -o {ins}'.format(
+            shell('{opt} -S -load {libvfctracer} -vfclibtracer {tracer_format} {tracer_bt} {tracer_level} {tracer_debug_mode} {verbose} {selectfunction} {blacklist} {tracer_check_if} {ir} -o {ins}'.format(
                 opt=opt,
                 libvfctracer=libvfctracer,
                 selectfunction=selectfunction,
@@ -238,6 +239,7 @@ def compiler_mode(sources, options, output, args):
                 ir=ir,
                 ins=ins_tracer,
                 blacklist=blacklist,
+                tracer_check_if=tracer_check_if
             ))
 
             ir = ins_tracer            
@@ -250,7 +252,7 @@ def compiler_mode(sources, options, output, args):
             verbose=verbose,
             ir=ir,
             ins=ins_mca,
-            blacklist=blacklist,
+            blacklist=blacklist
         ))
 
         ir = ins_mca
