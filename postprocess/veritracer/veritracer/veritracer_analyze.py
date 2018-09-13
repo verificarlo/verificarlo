@@ -11,6 +11,7 @@ import veritracer_math as vtr_math
 import veritracer_format.binary as fmtbinary
 import veritracer_format.text as fmttext
 import veritracer_format.veritracer_format as vtr_fmt
+import veritracer_branchement as vtr_br
 
 csv_header = ["hash","type","time","max","min","median","mean","std","significant_digit_number"]
 
@@ -40,8 +41,12 @@ def init_module(subparsers, veritracer_plugins):
                                  help="verbose mode")
     analyze_parser.add_argument('--format', action='store', choices=['binary','text'], default='binary',
                                  help='veritracer.dat encoding format')
-
-
+    analyze_parser.add_argument('--filename-branch', type=str, default="branchement.dat", metavar='',
+                                help='filename of the branches trace to gather')
+    analyze_parser.add_argument('--output-branch', type=str, default="branchement", metavar='',
+                                help="branchement output filename")
+    
+    
 def parse_file(args, filename):
     if args.format == "binary":
         return fmtbinary.parse_file(filename)
@@ -83,12 +88,12 @@ def compute_stats(values_list):
     time         = values_list.time
     ptr          = values_list.address
     hashv        = values_list.hash
-    list_FP      = values_list.value
-    mean_   = vtr_math.mean(list_FP)
-    std_    = vtr_math.std(mean_, list_FP)
-    median_ = vtr_math.median(list_FP)
-    max_    = max(list_FP)
-    min_    = min(list_FP)    
+    FP_list      = values_list.value
+    mean_   = vtr_math.mean(FP_list)
+    std_    = vtr_math.std(mean_, FP_list)
+    median_ = vtr_math.median(FP_list)
+    max_    = max(FP_list)
+    min_    = min(FP_list)    
     sdn_    = vtr_math.sdn(mean_, std_, sizeof_value)
 
     stats = StatsLine(hash=hashv,
@@ -103,8 +108,8 @@ def compute_stats(values_list):
 
     return stats
     
-def parse_values(list_exp):    
-    return map(lambda x : compute_stats(x), list_exp)
+def parse_values(exp_list):    
+    return map(lambda x : compute_stats(x), exp_list)
 
 def open_csv(filename):
     output = filename
@@ -113,9 +118,9 @@ def open_csv(filename):
     csv_writer.writeheader()
     return csv_writer
 
-def write_csv(filename, list_errors):
+def write_csv(filename, values_list):
     csv_writer = open_csv(filename)
-    for row in list_errors:
+    for row in values_list:
         csv_writer.writerow(row._asdict())
 
 def run(args):
@@ -141,22 +146,29 @@ def run(args):
         if args.verbose:
             print bt_name, dir_list
                 
-        files_list = map(lambda d : d + os.sep + args.filename, dir_list)
-        filesize =  os.path.getsize(files_list[0])
-        output_file = args.output + "." + bt_name
-
+        fp_data_files_list = map(lambda d : d + os.sep + args.filename, dir_list)
+        branch_files_list = map(lambda d : d + os.sep + args.filename_branch, dir_list)
+        
+        filesize =  os.path.getsize(fp_data_files_list[0])
+        fp_data_output_file = args.output + "." + bt_name
+        branch_output_file = args.output_branch + "." + bt_name
+        
         # nb_slices = filesize / args.read_bytes
         # for slc in xrange(nb_slices):
 
         # Parse dir
-        exp_list = parse_directory(args, files_list)
-
+        fp_data_exp_list = parse_directory(args, fp_data_files_list)
+        branch_exp_list = parse_directory(args, branch_files_list)
+        
         # Parse values
-        values_list = parse_values(exp_list)
-
+        fp_data_values_list = parse_values(fp_data_exp_list)
+        branch_values_list = vtr_br.parse_values(branch_exp_list)
+        
         # Write csv
         # output_file_slc = output_file + "." + str(slc)
-        output_file_slc = output_file
-        write_csv(output_file_slc, values_list)
-
+        output_file_slc = fp_data_output_file
+        write_csv(output_file_slc, fp_data_values_list)
+        vtr_br.write_csv(branch_output_file, branch_values_list)
+        
+            
     return True

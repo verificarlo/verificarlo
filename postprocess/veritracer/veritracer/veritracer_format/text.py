@@ -6,7 +6,9 @@ import veritracer.veritracer_math as vtr_math
 
 # Return size in bytes associated to the given format
 def parse_format(fmt):
-    if fmt.find('32') != -1:
+    if fmt.find('8') != -1:
+        return 1
+    elif fmt.find('32') != -1:
         return 4
     elif fmt.find('64') != -1:
         return 8
@@ -22,8 +24,9 @@ def parse_raw_line(line):
     size  = parse_format(line_split[0])
     ptr   = line_split[3]
     time  = int(line_split[1])
-    hashv = int(line_split[2])        
-    val = vtr_math.hexa_to_fp(line_split[4])
+    hashv = int(line_split[2])
+    # Return int if value is a bool
+    val = vtr_math.hexa_to_fp(line_split[4]) if size != 1 else int(line_split[4])
 
     value = vtr_fmt.ValuesLine(format=size,
                                time=time,

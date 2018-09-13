@@ -57,7 +57,10 @@ def parse_file(filename):
             sizeVl = struct.unpack('I',sizeVb)            
             sizeV = sizeVl[0]
             values = []
-            if sizeV == 4:
+            if sizeV == 1:
+                strb = mm.read(25)
+                values = struct.unpack('LPL?', strb)
+            elif sizeV == 4:
                 strb = mm.read(28)
                 values = struct.unpack('LPLf', strb)
             elif sizeV == 8:

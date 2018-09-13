@@ -56,11 +56,13 @@ int verificarlo_bitmask_mode = VERIFICARLO_BITMASK_MODE_DEFAULT;
 /* File for outputting values produced by veritracer */
 static FILE *trace_FILE_ptr = NULL;
 static FILE *backtrace_FILE_ptr = NULL;
+static FILE *branchement_FILE_ptr = NULL;
 static int backtrace_fd = -1;
 static void *backtrace_buffer[SIZE_MAX_BACKTRACE];
 static char string_buffer[SIZE_MAX_BACKTRACE];
 static const char trace_filename[] = "veritracer.dat";
 static const char backtrace_filename[] = "backtrace.dat";
+static const char branchement_filename[] = "branchement.dat";
 static const char backtrace_separator[] = "###\n";
 
 /* This is the vtable for the current MCA backend */
@@ -110,12 +112,18 @@ void vfc_tracer(void) {
     errx(EXIT_FAILURE, "Could not open %s : %s\n",
 	 backtrace_filename, strerror(errno));
 
+  branchement_FILE_ptr = fopen(branchement_filename, "wb");
+  if (branchement_FILE_ptr == NULL)
+    errx(EXIT_FAILURE, "Could not open %s : %s\n",
+	 branchement_filename, strerror(errno));
+  
 }
 
  __attribute__((destructor(0)))
 void vfc_tracer_end(void) {
    fclose(trace_FILE_ptr);
    fclose(backtrace_FILE_ptr);
+   fclose(branchement_FILE_ptr);
 }
 
 /* sets verificarlo precision and mode. Returns 0 on success. */
@@ -404,7 +412,7 @@ static uint64_t get_timestamp(void) {
 /* int */
 
 void _veritracer_probe_int8(int8_t value, int8_t* value_ptr, uint64_t hash_LI) {
-  fprintf(trace_FILE_ptr, "int8 %lu %lu %p %hhd\n", get_timestamp(), hash_LI, value_ptr, value);
+  fprintf(branchement_FILE_ptr, "int8 %lu %lu %p %hhd\n", get_timestamp(), hash_LI, value_ptr, value);
 } 
 
 void _veritracer_probe_int32(int32_t value, int32_t* value_ptr, uint64_t hash_LI) {
@@ -474,7 +482,7 @@ void _veritracer_probe_int8_binary(int8_t value, int8_t* value_ptr, uint64_t has
   fmt.value_ptr = value_ptr;
   fmt.hash_LI = hash_LI;
   fmt.value = value;
-  fwrite(&fmt, sizeof_int8_fmt, 1, trace_FILE_ptr);
+  fwrite(&fmt, sizeof_int8_fmt, 1, branchement_FILE_ptr);
 }
 
 void _veritracer_probe_int32_binary(int32_t value, int32_t* value_ptr, uint64_t hash_LI) {
