@@ -48,6 +48,24 @@ __attribute__ ((noinline))  REAL sum_kahan(const REAL f[],int N)
     return sum;
 }
 
+
+/* __attribute__ ((noinline))  REAL sum_naive(REAL f[], int N) */
+  float sum_naive(float f[], int N)
+{
+
+  /* REAL sum = 0.0, sum2, sum4; */
+  float sum = 0.0;
+  int i;
+
+  for (i=0;i<N;i++) {
+    f[i] = f[i]+f[i];
+    /* sum += f[i]+f[i]; */
+  }
+
+  return sum;
+}
+
+
 void fill_array(REAL f[],int N)
 {
 /* fill array with random values between 0 and 1 */

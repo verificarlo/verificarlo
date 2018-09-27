@@ -1,5 +1,5 @@
 ACLOCAL_AMFLAGS=-I m4
-SUBDIRS=src/
+SUBDIRS=src/ postprocess/veritracer
 dist_bin_SCRIPTS=verificarlo
 
 

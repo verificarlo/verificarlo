@@ -231,6 +231,45 @@ static double _mca_dunr(double a, mpfr_unr mpfr_op) {
 * Compare operations do not require MCA 
 ****************************************************************/
 
+static int _floatgt(float a, float b) {
+  // return a > b <-> a - b > 0
+  return _mca_sbin(a,b,(mpfr_bin)MP_SUB) > 0;
+}
+
+static int _floatge(float a, float b) {
+  // return a >= b <-> a - b >= 0
+  return _mca_sbin(a,b,(mpfr_bin)MP_SUB) >= 0;
+}
+
+static int _floatlt(float a, float b) {
+  // return a < b <-> a - b < 0
+  return _mca_sbin(a,b,(mpfr_bin)MP_SUB) < 0;
+}
+
+static int _floatle(float a, float b) {
+  // return a <= b <-> a - b <= 0
+  return _mca_sbin(a,b,(mpfr_bin)MP_SUB) <= 0;
+}
+
+static int _doublegt(double a, double b) {
+  // return a > b <-> a - b > 0
+  return _mca_dbin(a,b,(mpfr_bin)MP_SUB) > 0;
+}
+
+static int _doublege(double a, double b) {
+  // return a >= b <-> a - b >= 0
+  return _mca_dbin(a,b,(mpfr_bin)MP_SUB) >= 0;
+}
+
+static int _doublelt(double a, double b) {
+  // return a < b <-> a - b < 0
+  return _mca_dbin(a,b,(mpfr_bin)MP_SUB) < 0;
+}
+
+static int _doublele(double a, double b) {
+  // return a <= b <-> a - b <= 0
+  return _mca_dbin(a,b,(mpfr_bin)MP_SUB) <= 0;
+}
 
 /************************* FPHOOKS FUNCTIONS *************************
 * These functions correspond to those inserted into the source code
@@ -258,7 +297,6 @@ static float _floatdiv(float a, float b) {
 	return _mca_sbin(a, b, (mpfr_bin)MP_DIV);
 }
 
-
 static double _doubleadd(double a, double b) {
 	//return a + b
 	return _mca_dbin(a, b, (mpfr_bin)MP_ADD);
@@ -285,10 +323,18 @@ struct mca_interface_t mpfr_mca_interface = {
 	_floatsub,
 	_floatmul,
 	_floatdiv,
+        _floatgt,
+	_floatge,
+	_floatlt,
+	_floatle,
 	_doubleadd,
 	_doublesub,
 	_doublemul,
 	_doublediv,
+	_doublegt,
+	_doublege,
+	_doublelt,
+	_doublele,
 	_mca_seed,
 	_set_mca_mode,
 	_set_mca_precision
