@@ -60,6 +60,18 @@ for x in x_values:
     s_values.append(s)
 
 
+x_err = []
+y_err = []
+with open(fname[0:-3]+"err") as f:
+    for line in f:
+        cols = line.split()
+        x_err.append(float(cols[0]))
+
+        err = float(cols[3])
+        s = min(-math.log10(err), prec_dec)
+        y_err.append(s)
+
+
 # Plot all statistics
 plt.style.use('bmh')
 
@@ -72,6 +84,7 @@ plt.suptitle(title)
 plt.subplot(311)
 plt.ylabel("$s$")
 plt.plot(x_values, s_values, '.')
+plt.plot(x_err,    y_err, '+', color='g')
 
 # Plot standard deviation
 plt.subplot(312)
