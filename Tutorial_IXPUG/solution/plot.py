@@ -106,4 +106,5 @@ plt.subplots_adjust(top=0.9)
 plotname=version+"-"+prec_b+".pdf"
 plt.savefig(plotname, format='pdf')
 
-#plt.show()
+# Show plot
+plt.show()
