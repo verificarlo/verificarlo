@@ -110,7 +110,7 @@ def launch(binary_path, args):
     timeout = args.timeout
 
     try:
-        jobs_pool = mp.Pool(processes=jobs)
+        jobs_pool = mp.Pool()
         binary_args = [(i,binary_path, force) for i in range(1,jobs+1)]
         re = jobs_pool.map_async(run_binary, binary_args)
         check_return_code(re, timeout)
