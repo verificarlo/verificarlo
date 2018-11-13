@@ -6,8 +6,11 @@
 // michael.frechtling@sydney.edu.au
 //
 // Copyright (C) 2015
-//     Universite de Versailles St-Quentin-en-Yvelines                          *
-//     CMLA, Ecole Normale Superieure de Cachan                                 *
+//     Universite de Versailles St-Quentin-en-Yvelines
+//     CMLA, Ecole Normale Superieure de Cachan
+//
+// Copyright (C) 2018
+//     Universite de Versailles St-Quentin-en-Yvelines
 //
 // Changelog:
 //
