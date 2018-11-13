@@ -98,6 +98,14 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
 	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
 		return 0;
 	}
+
+  /* If the result is exact in the current virtual precision, do not add any
+   * noise */
+  mpfr_prec_t min_prec = mpfr_min_prec(a);
+  if (min_prec <= MCALIB_T) {
+    return 0;
+  }
+
 	//get_exp reproduce frexp behavior, i.e. exp corresponding to a normalization in the interval [1/2 1[
 	//remove one to normalize in [1 2[ like ieee numbers
 	mpfr_exp_t e_a = mpfr_get_exp(a)-1;
