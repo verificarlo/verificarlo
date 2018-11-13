@@ -246,7 +246,7 @@ static bool _is_representableq(__float128 *qa) {
 static bool _is_representabled(double *da) {
   /* Check if *da is exactly representable
    * in the current virtual precision */
-  int64_t p_mantissa = (*((uint64_t*)da))&DOUBLE_GET_PMAN;
+  uint64_t p_mantissa = (*((uint64_t*)da))&DOUBLE_GET_PMAN;
   /* here we know that (MCALIB_T-1) < 53 */
   return ((p_mantissa << (MCALIB_T-1)) == 0);
 }
