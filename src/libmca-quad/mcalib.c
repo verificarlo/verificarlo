@@ -44,6 +44,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "../common/quadmath-imp.h"
 #include "libmca-quad.h"
@@ -60,6 +61,7 @@ static int 	MCALIB_T		    = 53;
 #define MCA_MUL 3
 #define MCA_DIV 4
 
+#define min(a,b) ((a)<(b)?(a):(b))
 
 static float _mca_sbin(float a, float b, int qop);
 
@@ -216,14 +218,33 @@ __float128 qnoise(int exp){
 }
 
 static int _mca_inexactq(__float128 *qa) {
-
 	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
 		return 0;
 	}
 
-	//if (qa == 0) {
-	//	return 0;
-	//}
+  /* Check if *qa is exactly representable
+   * in the current virtual precision */
+  uint64_t hx,lx;
+  GET_FLT128_WORDS64(hx,lx,*qa);
+
+  /* compute representable bits in hx and lx */
+  char bits_in_hx = min((MCALIB_T-1), QUAD_HX_PMAN_SIZE);
+  char bits_in_lx = (MCALIB_T-1) - bits_in_hx;
+
+  /* check bits in lx */
+  bool representable = ((lx << bits_in_lx) == 0) ;
+
+  /* check bits in hx,
+   * the test always succeeds when bits_in_hx == QUAD_HX_PMAN_SIZE */
+  if (bits_in_hx < QUAD_HX_PMAN_SIZE) {
+    representable &= ((hx << (1 + QUAD_EXP_SIZE + bits_in_hx)) == 0);
+  }
+
+  /* if the number is representable in current virtual precision,
+   * do not add any noise */
+  if (representable) {
+    return 0;
+  }
 
 	int32_t e_a=0;
 	e_a=rexpq(*qa);
@@ -233,10 +254,22 @@ static int _mca_inexactq(__float128 *qa) {
 }
 
 static int _mca_inexactd(double *da) {
-
 	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
 		return 0;
 	}
+
+  /* Check if *da is exactly representable
+   * in the current virtual precision */
+
+  int64_t p_mantissa = (*((uint64_t*)da))&DOUBLE_GET_PMAN;
+  bool representable = ((p_mantissa << (MCALIB_T-1)) == 0);
+
+  /* if the number is representable in current virtual precision,
+   * do not add any noise */
+  if (representable) {
+    return 0;
+  }
+
 	int32_t e_a=0;
 	e_a=rexpd(*da);
 	int32_t e_n = e_a - (MCALIB_T - 1);
