@@ -15,7 +15,7 @@
 // provides a reentrant, independent generator of better quality than
 // the one provided in libc.
 //
-// 2015-11-14 remove effectless comparison functions, llvm will not 
+// 2015-11-14 remove effectless comparison functions, llvm will not
 // instrument it.
 //
 // This file is part of the Monte Carlo Arithmetic Library, (MCALIB). MCALIB is
@@ -103,7 +103,7 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
 	mpfr_exp_t e_a = mpfr_get_exp(a)-1;
 	mpfr_prec_t p_a = mpfr_get_prec(a);
 	mpfr_t mpfr_rand, mpfr_offset, mpfr_zero;
-	e_a = e_a - MCALIB_T;
+	e_a = e_a - (MCALIB_T - 1);
 	mpfr_inits2(p_a, mpfr_rand, mpfr_offset, mpfr_zero, (mpfr_ptr) 0);
 	mpfr_set_d(mpfr_zero, 0., rnd_mode);
 	int cmp = mpfr_cmp(a, mpfr_zero);
@@ -228,7 +228,7 @@ static double _mca_dunr(double a, mpfr_unr mpfr_op) {
 }
 
 /******************** MCA COMPARE FUNCTIONS ********************
-* Compare operations do not require MCA 
+* Compare operations do not require MCA
 ****************************************************************/
 
 

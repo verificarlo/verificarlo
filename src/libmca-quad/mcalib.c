@@ -32,7 +32,7 @@
 // required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits
 //
 // 2015-11-16 New version using double precision for single precision operation
-// 
+//
 // 2016-07-14 Support denormalized numbers
 //
 // 2017-04-25 Rewrite debug and validate the noise addition operation
@@ -85,7 +85,7 @@ static int _set_mca_precision(int precision){
 
 /******************** MCA RANDOM FUNCTIONS ********************
 * The following functions are used to calculate the random
-* perturbations used for MCA 
+* perturbations used for MCA
 ***************************************************************/
 
 /* random generator internal state */
@@ -171,7 +171,7 @@ __float128 qnoise(int exp){
 	//noise will be a subnormal
 	//build HX with sign of d_rand, exp
 	uint64_t u_hx=((uint64_t)(-QUAD_EXP_MIN + QUAD_EXP_COMP)) << QUAD_HX_PMAN_SIZE;
-	//add the sign bit 
+	//add the sign bit
 	uint64_t sign= u_rand&DOUBLE_GET_SIGN;
 	u_hx=u_hx+sign;
 	//erase the sign bit from u_rand
@@ -183,7 +183,7 @@ __float128 qnoise(int exp){
 		u_hx+=u_rand>>(-exp-QUAD_EXP_MIN+QUAD_EXP_SIZE+1/*SIGN_SIZE*/);
 		//build LX with the remaining bits of the noise (-exp-QUAD_EXP_MIN-QUAD_HX_PMAN_SIZE) at the msb of LX
 		//remove the bit already used in hx and put the remaining at msb of LX
-		uint64_t u_lx=u_rand<<(QUAD_HX_PMAN_SIZE+exp+QUAD_EXP_MIN);	
+		uint64_t u_lx=u_rand<<(QUAD_HX_PMAN_SIZE+exp+QUAD_EXP_MIN);
         	SET_FLT128_WORDS64(noise, u_hx,u_lx );
 	}else{ //the higher part of the noise start  in LX of noise
 		//the noise as been already implicitly shifeted by QUAD_HX_PMAN_SIZE when starting in LX
@@ -207,7 +207,7 @@ __float128 qnoise(int exp){
   uint64_t p_mantissa=u_rand&DOUBLE_GET_PMAN;
   hx+=(p_mantissa)>>(DOUBLE_PMAN_SIZE-QUAD_HX_PMAN_SIZE);//4=52 (double pmantissa) - 48
   //...and the last 4 in lx at msb
-  //uint64_t 
+  //uint64_t
   lx=(p_mantissa)<<(SIGN_SIZE+DOUBLE_EXP_SIZE+QUAD_HX_PMAN_SIZE);//60=1(s)+11(exp double)+48(hx)
   SET_FLT128_WORDS64(noise, hx, lx);
   int prec = 20;
@@ -227,7 +227,7 @@ static int _mca_inexactq(__float128 *qa) {
 
 	int32_t e_a=0;
 	e_a=rexpq(*qa);
-	int32_t e_n = e_a - MCALIB_T;
+	int32_t e_n = e_a - (MCALIB_T - 1);
 	__float128 noise = qnoise(e_n);
 	*qa=noise+*qa;
 }
@@ -239,7 +239,7 @@ static int _mca_inexactd(double *da) {
 	}
 	int32_t e_a=0;
 	e_a=rexpd(*da);
-	int32_t e_n = e_a - MCALIB_T;
+	int32_t e_n = e_a - (MCALIB_T - 1);
 	double d_rand = (_mca_rand() - 0.5);
 	*da = *da + pow2d(e_n)*d_rand;
 }
@@ -343,7 +343,7 @@ static float _floatdiv(float a, float b) {
 
 
 static double _doubleadd(double a, double b) {
-	double tmp=_mca_dbin(a,b,MCA_ADD);  
+	double tmp=_mca_dbin(a,b,MCA_ADD);
 	return tmp;
 }
 
