@@ -99,10 +99,10 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
 		return 0;
 	}
 
-  /* If the result is exact in the current virtual precision, do not add any
-   * noise */
+  /* In RR, if the result is exact in the current virtual precision, do not add
+   * any noise */
   mpfr_prec_t min_prec = mpfr_min_prec(a);
-  if (min_prec <= MCALIB_T) {
+  if (MCALIB_OP_TYPE == MCAMODE_RR && min_prec <= MCALIB_T) {
     return 0;
   }
 

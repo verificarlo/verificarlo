@@ -217,11 +217,7 @@ __float128 qnoise(int exp){
    return noise;
 }
 
-static int _mca_inexactq(__float128 *qa) {
-	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
-		return 0;
-	}
-
+static bool _is_representableq(__float128 *qa) {
   /* Check if *qa is exactly representable
    * in the current virtual precision */
   uint64_t hx,lx;
@@ -232,17 +228,35 @@ static int _mca_inexactq(__float128 *qa) {
   char bits_in_lx = (MCALIB_T-1) - bits_in_hx;
 
   /* check bits in lx */
+  /* here we know that bits_in_lx < 64 */
   bool representable = ((lx << bits_in_lx) == 0) ;
 
   /* check bits in hx,
-   * the test always succeeds when bits_in_hx == QUAD_HX_PMAN_SIZE */
+   * the test always succeeds when bits_in_hx == QUAD_HX_PMAN_SIZE,
+   * cannot remove the test since << 64 is undefined in C. */
   if (bits_in_hx < QUAD_HX_PMAN_SIZE) {
     representable &= ((hx << (1 + QUAD_EXP_SIZE + bits_in_hx)) == 0);
   }
 
-  /* if the number is representable in current virtual precision,
+  return representable;
+}
+
+static bool _is_representabled(double *da) {
+  /* Check if *da is exactly representable
+   * in the current virtual precision */
+  int64_t p_mantissa = (*((uint64_t*)da))&DOUBLE_GET_PMAN;
+  /* here we know that (MCALIB_T-1) < 53 */
+  return ((p_mantissa << (MCALIB_T-1)) == 0);
+}
+
+static int _mca_inexactq(__float128 *qa) {
+	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
+		return 0;
+	}
+
+  /* In RR if the number is representable in current virtual precision,
    * do not add any noise */
-  if (representable) {
+  if (MCALIB_OP_TYPE == MCAMODE_RR && _is_representableq(qa)) {
     return 0;
   }
 
@@ -258,15 +272,9 @@ static int _mca_inexactd(double *da) {
 		return 0;
 	}
 
-  /* Check if *da is exactly representable
-   * in the current virtual precision */
-
-  int64_t p_mantissa = (*((uint64_t*)da))&DOUBLE_GET_PMAN;
-  bool representable = ((p_mantissa << (MCALIB_T-1)) == 0);
-
-  /* if the number is representable in current virtual precision,
+  /* In RR if the number is representable in current virtual precision,
    * do not add any noise */
-  if (representable) {
+  if (MCALIB_OP_TYPE == MCAMODE_RR && _is_representabled(da)) {
     return 0;
   }
 
