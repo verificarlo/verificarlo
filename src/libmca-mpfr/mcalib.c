@@ -41,14 +41,13 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "libmca-mpfr.h"
-#include "../vfcwrapper/vfcwrapper.h"
-#include "../common/tinymt64.h"
 #include "../common/mca_const.h"
+#include "../common/tinymt64.h"
+#include "../vfcwrapper/vfcwrapper.h"
+#include "libmca-mpfr.h"
 
-
-static int 	MCALIB_OP_TYPE 		= MCAMODE_IEEE;
-static int 	MCALIB_T		    = 53;
+static int MCALIB_OP_TYPE = MCAMODE_IEEE;
+static int MCALIB_T = 53;
 
 #define MP_ADD &mpfr_add
 #define MP_SUB &mpfr_sub
@@ -69,19 +68,18 @@ static double _mca_dunr(double a, mpfr_unr mpfr_op);
 * MCA mode of operation.
 ***************************************************************/
 
-static int _set_mca_mode(int mode){
-	if (mode < 0 || mode > 3)
-		return -1;
+static int _set_mca_mode(int mode) {
+  if (mode < 0 || mode > 3)
+    return -1;
 
-	MCALIB_OP_TYPE = mode;
-	return 0;
+  MCALIB_OP_TYPE = mode;
+  return 0;
 }
 
-static int _set_mca_precision(int precision){
-	MCALIB_T = precision;
-	return 0;
+static int _set_mca_precision(int precision) {
+  MCALIB_T = precision;
+  return 0;
 }
-
 
 /******************** MCA RANDOM FUNCTIONS ********************
 * The following functions are used to calculate the random
@@ -93,14 +91,14 @@ static int _set_mca_precision(int precision){
 static tinymt64_t random_state;
 
 static double _mca_rand(void) {
-	/* Returns a random double in the (0,1) open interval */
-	return tinymt64_generate_doubleOO(&random_state);
+  /* Returns a random double in the (0,1) open interval */
+  return tinymt64_generate_doubleOO(&random_state);
 }
 
 static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
-	if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
-		return 0;
-	}
+  if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
+    return 0;
+  }
 
   /* In RR, if the result is exact in the current virtual precision, do not add
    * any noise */
@@ -109,44 +107,45 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
     return 0;
   }
 
-	//get_exp reproduce frexp behavior, i.e. exp corresponding to a normalization in the interval [1/2 1[
-	//remove one to normalize in [1 2[ like ieee numbers
-	mpfr_exp_t e_a = mpfr_get_exp(a)-1;
-	mpfr_prec_t p_a = mpfr_get_prec(a);
-	mpfr_t mpfr_rand, mpfr_offset, mpfr_zero;
-	e_a = e_a - (MCALIB_T - 1);
-	mpfr_inits2(p_a, mpfr_rand, mpfr_offset, mpfr_zero, (mpfr_ptr) 0);
-	mpfr_set_d(mpfr_zero, 0., rnd_mode);
-	int cmp = mpfr_cmp(a, mpfr_zero);
-	if (cmp == 0) {
-		mpfr_clear(mpfr_rand);
-		mpfr_clear(mpfr_offset);
-		mpfr_clear(mpfr_zero);
-		return 0;
-	}
-	double d_rand = (_mca_rand() - 0.5);
-	double d_offset = pow(2, e_a);
-	mpfr_set_d(mpfr_rand, d_rand, rnd_mode);
-	mpfr_set_d(mpfr_offset, d_offset, rnd_mode);
-	mpfr_mul(mpfr_rand, mpfr_rand, mpfr_offset, rnd_mode);
-	mpfr_add(a, a, mpfr_rand, rnd_mode);
-	mpfr_clear(mpfr_rand);
-	mpfr_clear(mpfr_offset);
-	mpfr_clear(mpfr_zero);
+  // get_exp reproduce frexp behavior, i.e. exp corresponding to a normalization
+  // in the interval [1/2 1[
+  // remove one to normalize in [1 2[ like ieee numbers
+  mpfr_exp_t e_a = mpfr_get_exp(a) - 1;
+  mpfr_prec_t p_a = mpfr_get_prec(a);
+  mpfr_t mpfr_rand, mpfr_offset, mpfr_zero;
+  e_a = e_a - (MCALIB_T - 1);
+  mpfr_inits2(p_a, mpfr_rand, mpfr_offset, mpfr_zero, (mpfr_ptr)0);
+  mpfr_set_d(mpfr_zero, 0., rnd_mode);
+  int cmp = mpfr_cmp(a, mpfr_zero);
+  if (cmp == 0) {
+    mpfr_clear(mpfr_rand);
+    mpfr_clear(mpfr_offset);
+    mpfr_clear(mpfr_zero);
+    return 0;
+  }
+  double d_rand = (_mca_rand() - 0.5);
+  double d_offset = pow(2, e_a);
+  mpfr_set_d(mpfr_rand, d_rand, rnd_mode);
+  mpfr_set_d(mpfr_offset, d_offset, rnd_mode);
+  mpfr_mul(mpfr_rand, mpfr_rand, mpfr_offset, rnd_mode);
+  mpfr_add(a, a, mpfr_rand, rnd_mode);
+  mpfr_clear(mpfr_rand);
+  mpfr_clear(mpfr_offset);
+  mpfr_clear(mpfr_zero);
 }
 
 static void _mca_seed(void) {
-	const int key_length = 3;
-	uint64_t init_key[key_length];
-	struct timeval t1;
-	gettimeofday(&t1, NULL);
+  const int key_length = 3;
+  uint64_t init_key[key_length];
+  struct timeval t1;
+  gettimeofday(&t1, NULL);
 
-	/* Hopefully the following seed is good enough for Montercarlo */
-	init_key[0] = t1.tv_sec;
-	init_key[1] = t1.tv_usec;
-	init_key[2] = getpid();
+  /* Hopefully the following seed is good enough for Montercarlo */
+  init_key[0] = t1.tv_sec;
+  init_key[1] = t1.tv_usec;
+  init_key[2] = getpid();
 
-	tinymt64_init_by_array(&random_state, init_key, key_length);
+  tinymt64_init_by_array(&random_state, init_key, key_length);
 }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
@@ -157,91 +156,90 @@ static void _mca_seed(void) {
 *******************************************************************/
 
 static float _mca_sbin(float a, float b, mpfr_bin mpfr_op) {
-	mpfr_t mpfr_a, mpfr_b, mpfr_r;
-	mpfr_prec_t prec = FLOAT_PREC + MCALIB_T;
-	mpfr_rnd_t rnd = MPFR_RNDN;
-	mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr) 0);
-	mpfr_set_flt(mpfr_a, a, rnd);
-	mpfr_set_flt(mpfr_b, b, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(mpfr_a, rnd);
-		_mca_inexact(mpfr_b, rnd);
-	}
-	mpfr_op(mpfr_r, mpfr_a, mpfr_b, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(mpfr_r, rnd);
-	}
-	float ret = mpfr_get_flt(mpfr_r, rnd);
-	mpfr_clear(mpfr_a);
-	mpfr_clear(mpfr_b);
-	mpfr_clear(mpfr_r);
-	return NEAREST_FLOAT(ret);
+  mpfr_t mpfr_a, mpfr_b, mpfr_r;
+  mpfr_prec_t prec = FLOAT_PREC + MCALIB_T;
+  mpfr_rnd_t rnd = MPFR_RNDN;
+  mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr)0);
+  mpfr_set_flt(mpfr_a, a, rnd);
+  mpfr_set_flt(mpfr_b, b, rnd);
+  if (MCALIB_OP_TYPE != MCAMODE_RR) {
+    _mca_inexact(mpfr_a, rnd);
+    _mca_inexact(mpfr_b, rnd);
+  }
+  mpfr_op(mpfr_r, mpfr_a, mpfr_b, rnd);
+  if (MCALIB_OP_TYPE != MCAMODE_PB) {
+    _mca_inexact(mpfr_r, rnd);
+  }
+  float ret = mpfr_get_flt(mpfr_r, rnd);
+  mpfr_clear(mpfr_a);
+  mpfr_clear(mpfr_b);
+  mpfr_clear(mpfr_r);
+  return NEAREST_FLOAT(ret);
 }
 
 static float _mca_sunr(float a, mpfr_unr mpfr_op) {
-	mpfr_t mpfr_a, mpfr_r;
-	mpfr_prec_t prec = FLOAT_PREC + MCALIB_T;
-	mpfr_rnd_t rnd = MPFR_RNDN;
-	mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr) 0);
-	mpfr_set_flt(mpfr_a, a, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(mpfr_a, rnd);
-	}
-	mpfr_op(mpfr_r, mpfr_a, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(mpfr_r, rnd);
-	}
-	float ret = mpfr_get_flt(mpfr_r, rnd);
-	mpfr_clear(mpfr_a);
-	mpfr_clear(mpfr_r);
-	return NEAREST_FLOAT(ret);
+  mpfr_t mpfr_a, mpfr_r;
+  mpfr_prec_t prec = FLOAT_PREC + MCALIB_T;
+  mpfr_rnd_t rnd = MPFR_RNDN;
+  mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr)0);
+  mpfr_set_flt(mpfr_a, a, rnd);
+  if (MCALIB_OP_TYPE != MCAMODE_RR) {
+    _mca_inexact(mpfr_a, rnd);
+  }
+  mpfr_op(mpfr_r, mpfr_a, rnd);
+  if (MCALIB_OP_TYPE != MCAMODE_PB) {
+    _mca_inexact(mpfr_r, rnd);
+  }
+  float ret = mpfr_get_flt(mpfr_r, rnd);
+  mpfr_clear(mpfr_a);
+  mpfr_clear(mpfr_r);
+  return NEAREST_FLOAT(ret);
 }
 
 static double _mca_dbin(double a, double b, mpfr_bin mpfr_op) {
-	mpfr_t mpfr_a, mpfr_b, mpfr_r;
-	mpfr_prec_t prec = DOUBLE_PREC + MCALIB_T;
-	mpfr_rnd_t rnd = MPFR_RNDN;
-	mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr) 0);
-	mpfr_set_d(mpfr_a, a, rnd);
-	mpfr_set_d(mpfr_b, b, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(mpfr_a, rnd);
-		_mca_inexact(mpfr_b, rnd);
-	}
-	mpfr_op(mpfr_r, mpfr_a, mpfr_b, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(mpfr_r, rnd);
-	}
-	double ret = mpfr_get_d(mpfr_r, rnd);
-	mpfr_clear(mpfr_a);
-	mpfr_clear(mpfr_b);
-	mpfr_clear(mpfr_r);
-	return NEAREST_DOUBLE(ret);
+  mpfr_t mpfr_a, mpfr_b, mpfr_r;
+  mpfr_prec_t prec = DOUBLE_PREC + MCALIB_T;
+  mpfr_rnd_t rnd = MPFR_RNDN;
+  mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr)0);
+  mpfr_set_d(mpfr_a, a, rnd);
+  mpfr_set_d(mpfr_b, b, rnd);
+  if (MCALIB_OP_TYPE != MCAMODE_RR) {
+    _mca_inexact(mpfr_a, rnd);
+    _mca_inexact(mpfr_b, rnd);
+  }
+  mpfr_op(mpfr_r, mpfr_a, mpfr_b, rnd);
+  if (MCALIB_OP_TYPE != MCAMODE_PB) {
+    _mca_inexact(mpfr_r, rnd);
+  }
+  double ret = mpfr_get_d(mpfr_r, rnd);
+  mpfr_clear(mpfr_a);
+  mpfr_clear(mpfr_b);
+  mpfr_clear(mpfr_r);
+  return NEAREST_DOUBLE(ret);
 }
 
 static double _mca_dunr(double a, mpfr_unr mpfr_op) {
-	mpfr_t mpfr_a, mpfr_r;
-	mpfr_prec_t prec = DOUBLE_PREC + MCALIB_T;
-	mpfr_rnd_t rnd = MPFR_RNDN;
-	mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr) 0);
-	mpfr_set_d(mpfr_a, a, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_RR) {
-		_mca_inexact(mpfr_a, rnd);
-	}
-	mpfr_op(mpfr_r, mpfr_a, rnd);
-	if (MCALIB_OP_TYPE != MCAMODE_PB) {
-		_mca_inexact(mpfr_r, rnd);
-	}
-	double ret = mpfr_get_d(mpfr_r, rnd);
-	mpfr_clear(mpfr_a);
-	mpfr_clear(mpfr_r);
-	return NEAREST_DOUBLE(ret);
+  mpfr_t mpfr_a, mpfr_r;
+  mpfr_prec_t prec = DOUBLE_PREC + MCALIB_T;
+  mpfr_rnd_t rnd = MPFR_RNDN;
+  mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr)0);
+  mpfr_set_d(mpfr_a, a, rnd);
+  if (MCALIB_OP_TYPE != MCAMODE_RR) {
+    _mca_inexact(mpfr_a, rnd);
+  }
+  mpfr_op(mpfr_r, mpfr_a, rnd);
+  if (MCALIB_OP_TYPE != MCAMODE_PB) {
+    _mca_inexact(mpfr_r, rnd);
+  }
+  double ret = mpfr_get_d(mpfr_r, rnd);
+  mpfr_clear(mpfr_a);
+  mpfr_clear(mpfr_r);
+  return NEAREST_DOUBLE(ret);
 }
 
 /******************** MCA COMPARE FUNCTIONS ********************
 * Compare operations do not require MCA
 ****************************************************************/
-
 
 /************************* FPHOOKS FUNCTIONS *************************
 * These functions correspond to those inserted into the source code
@@ -250,57 +248,46 @@ static double _mca_dunr(double a, mpfr_unr mpfr_op) {
 **********************************************************************/
 
 static float _floatadd(float a, float b) {
-	//return a + b
-	return _mca_sbin(a, b,(mpfr_bin)MP_ADD);
+  // return a + b
+  return _mca_sbin(a, b, (mpfr_bin)MP_ADD);
 }
 
 static float _floatsub(float a, float b) {
-	//return a - b
-	return _mca_sbin(a, b, (mpfr_bin)MP_SUB);
+  // return a - b
+  return _mca_sbin(a, b, (mpfr_bin)MP_SUB);
 }
 
 static float _floatmul(float a, float b) {
-	//return a * b
-	return _mca_sbin(a, b, (mpfr_bin)MP_MUL);
+  // return a * b
+  return _mca_sbin(a, b, (mpfr_bin)MP_MUL);
 }
 
 static float _floatdiv(float a, float b) {
-	//return a / b
-	return _mca_sbin(a, b, (mpfr_bin)MP_DIV);
+  // return a / b
+  return _mca_sbin(a, b, (mpfr_bin)MP_DIV);
 }
 
-
 static double _doubleadd(double a, double b) {
-	//return a + b
-	return _mca_dbin(a, b, (mpfr_bin)MP_ADD);
+  // return a + b
+  return _mca_dbin(a, b, (mpfr_bin)MP_ADD);
 }
 
 static double _doublesub(double a, double b) {
-	//return a - b
-	return _mca_dbin(a, b, (mpfr_bin)MP_SUB);
+  // return a - b
+  return _mca_dbin(a, b, (mpfr_bin)MP_SUB);
 }
 
 static double _doublemul(double a, double b) {
-	//return a * b
-	return _mca_dbin(a, b, (mpfr_bin)MP_MUL);
+  // return a * b
+  return _mca_dbin(a, b, (mpfr_bin)MP_MUL);
 }
 
 static double _doublediv(double a, double b) {
-	//return a / b
-	return _mca_dbin(a, b, (mpfr_bin)MP_DIV);
+  // return a / b
+  return _mca_dbin(a, b, (mpfr_bin)MP_DIV);
 }
 
-
 struct mca_interface_t mpfr_mca_interface = {
-	_floatadd,
-	_floatsub,
-	_floatmul,
-	_floatdiv,
-	_doubleadd,
-	_doublesub,
-	_doublemul,
-	_doublediv,
-	_mca_seed,
-	_set_mca_mode,
-	_set_mca_precision
-};
+    _floatadd,  _floatsub,     _floatmul,         _floatdiv,
+    _doubleadd, _doublesub,    _doublemul,        _doublediv,
+    _mca_seed,  _set_mca_mode, _set_mca_precision};
