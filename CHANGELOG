@@ -1,5 +1,15 @@
 Verificarlo CHANGELOG
 
+[v0.2.1] 2018/11/22
+    * Support for LLVM up to 4.0.1
+    * Command line option to instrument a list of functions
+    * Multiple bug fixes in the backends
+    * Fix for Boost codes; verificarlo is initialized before C++ constructors
+    * Fix bug in vfcInstrumenter for parentless instructions
+    * In RR mode exact operations are preserved
+    * Add Kahan 2x2 test
+    * Add RR exact operations tests
+
 [v0.2.0] 2016/12/09
     * Support for LLVM up to 3.8
     * Support for standalone installation with make install
@@ -12,8 +22,10 @@ Verificarlo CHANGELOG
     * Added tests to compare QUAD and MPFR backends
 
 [v0.0.2] 2015/12/29
-    * Support for multiple MCA backends. LLVM instrumentations goes through a backend vtable.
-    * New faster QUAD backend, MCA operations on doubles are computed using GCC __float128 type.
+    * Support for multiple MCA backends. LLVM instrumentations goes
+      through a backend vtable.
+    * New faster QUAD backend, MCA operations on doubles are computed
+      using GCC __float128 type.
     * vfcwrapper public API has changed
 
 [v0.0.1] 2015/10/22
