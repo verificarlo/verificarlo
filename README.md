@@ -1,6 +1,6 @@
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
-## Verificarlo v0.2.0
+## Verificarlo v0.2.1
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
 
@@ -158,6 +158,9 @@ but is recent and still experimental.
 One should note when using the QUAD backend, that the round operations during
 MCA computation always use round-to-zero mode.
 
+In Random Round mode, the exact operations in given virtual precision are
+preserved. 
+
 ### Examples
 
 The `tests/` directory contains various examples of Verificarlo usage.
@@ -207,6 +210,8 @@ For questions, feedbacks or discussions about Verificarlo you can join our group
 https://groups.google.com/forum/#!forum/verificarlo
 
 ### License
+Copyright (c) 2018
+   Universite de Versailles St-Quentin-en-Yvelines
 
 Copyright (c) 2015
    Universite de Versailles St-Quentin-en-Yvelines
