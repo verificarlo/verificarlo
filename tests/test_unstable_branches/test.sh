@@ -1,0 +1,42 @@
+#!/bin/bash
+set -e
+
+# Clean up previous coverage files
+rm -f *.gcno *.gcda *.gcov
+
+# To use verificarlo with branch coverage we add the --coverage cli option
+verificarlo --coverage unst_branch.c -o unst_branch
+
+gcov_report() {
+  # Clean up previous coverage files
+  rm -f *.gcda *.gcov
+
+  # Run the program 50 times
+  for i in $(seq 50); do
+    ./unst_branch > /dev/null
+  done
+
+  # The llvm-cov tool generates a gcov branch report
+  llvm-cov gcov -f -b unst_branch.1.gcda > /dev/null
+}
+
+# First we run the program 50 times in IEEE mode
+export VERIFICARLO_MCAMODE=IEEE
+gcov_report
+cp unst_branch.c.gcov unst_branch.c.gcov.IEEE
+
+# First we run the program 50 times in RR 53 mode
+export VERIFICARLO_PRECISION=53
+export VERIFICARLO_MCAMODE=RR
+gcov_report
+cp unst_branch.c.gcov unst_branch.c.gcov.RR53
+
+if diff -u unst_branch.c.gcov.IEEE unst_branch.c.gcov.RR53; then
+  echo
+  echo "No unstable branch detected. Test failed."
+  exit 1
+else
+  echo
+  echo "Unstable branch detected!"
+  exit 0
+fi
