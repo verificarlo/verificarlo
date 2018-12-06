@@ -183,7 +183,7 @@ $ postprocess/vfc-vtk.py --help
 ### Unstable branch detection
 
 It is possible to use Verificarlo to detect branches that are unstable due to
-numerical errors.  To detect unstable branches we rely
+numerical errors.  To detect unstable branches we rely on
 [llvm-cov](https://llvm.org/docs/CommandGuide/llvm-cov.html) coverage reports.
 To activate coverage mode in verificarlo, you should use the `--coverage` flag.
 
