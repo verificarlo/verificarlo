@@ -180,6 +180,22 @@ For more information about `vfc-vtk.py`, please use the online help:
 $ postprocess/vfc-vtk.py --help
 ```
 
+### Unstable branch detection
+
+It is possible to use Verificarlo to detect branches that are unstable due to
+numerical errors.  To detect unstable branches we rely on
+[llvm-cov](https://llvm.org/docs/CommandGuide/llvm-cov.html) coverage reports.
+To activate coverage mode in verificarlo, you should use the `--coverage` flag.
+
+This is demonstrated in
+[`tests/test_unstable_branches/`](https://github.com/verificarlo/verificarlo/tree/master/tests/test_unstable_branches/);
+the idea first introduced by [verrou](https://github.com/edf-hpc/verrou), is to
+compare coverage reports between multiple IEEE executions and multiple MCA
+executions.
+
+Branches that are unstable only under MCA noise, are identified as numerically
+unstable.
+
 ### How to cite Verificarlo
 
 

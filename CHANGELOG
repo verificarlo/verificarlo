@@ -1,5 +1,8 @@
 Verificarlo CHANGELOG
 
+UNRELEASED
+    * Unstable branch detection
+
 [v0.2.1] 2018/11/22
     * Support for LLVM up to 4.0.1
     * Command line option to instrument a list of functions
