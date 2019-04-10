@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "../common/mca_const.h"
 #include "../common/quadmath-imp.h"
@@ -416,7 +417,46 @@ static double _doublediv(double a, double b) {
   return _mca_dbin(a, b, MCA_DIV);
 }
 
+
+static bool  _float_false(float a, float b){ return 0; }
+static bool  _float_oeq(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a==b)); }
+static bool  _float_ogt(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a>b)); }
+static bool  _float_oge(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a>=b)); }
+static bool  _float_olt(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a<b)); }
+static bool  _float_ole(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a<=b)); }
+static bool  _float_one(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a!=b)); }
+static bool  _float_ord(float a, float b){ return ((!isnan(a))&&(!isnan(b))); }
+static bool  _float_ueq(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a==b)); }
+static bool  _float_ugt(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a>b)); }
+static bool  _float_uge(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a>=b)); }
+static bool  _float_ult(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a<b)); }
+static bool  _float_ule(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a<=b)); }
+static bool  _float_une(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a!=b)); }
+static bool  _float_uno(float a, float b){ return ((!isnan(a))||(!isnan(b))); }
+static bool  _float_true(float a, float b){ return 1; }
+
+static bool  _double_false(double a, double b){ return 0; }
+static bool  _double_oeq(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a==b)); }
+static bool  _double_ogt(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a>b)); }
+static bool  _double_oge(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a>=b)); }
+static bool  _double_olt(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a<b)); }
+static bool  _double_ole(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a<=b)); }
+static bool  _double_one(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a!=b)); }
+static bool  _double_ord(double a, double b){ return ((!isnan(a))&&(!isnan(b))); }
+static bool  _double_ueq(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a==b)); }
+static bool  _double_ugt(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a>b)); }
+static bool  _double_uge(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a>=b)); }
+static bool  _double_ult(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a<b)); }
+static bool  _double_ule(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a<=b)); }
+static bool  _double_une(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a!=b)); }
+static bool  _double_uno(double a, double b){ return ((!isnan(a))||(!isnan(b))); }
+static bool  _double_true(double a, double b){ return 1; }
+
 struct mca_interface_t quad_mca_interface = {
     _floatadd,  _floatsub,     _floatmul,         _floatdiv,
     _doubleadd, _doublesub,    _doublemul,        _doublediv,
+    _float_false, _float_oeq, _float_ogt, _float_oge, _float_olt, _float_ole, _float_one, _float_ord,
+    _float_ueq, _float_ugt, _float_uge, _float_ult, _float_ule, _float_une, _float_uno, _float_true,
+    _double_false, _double_oeq, _double_ogt, _double_oge, _double_olt, _double_ole, _double_one, _double_ord,
+    _double_ueq, _double_ugt, _double_uge, _double_ult, _double_ule, _double_une, _double_uno, _double_true,
     _mca_seed,  _set_mca_mode, _set_mca_precision};
