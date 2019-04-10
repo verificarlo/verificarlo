@@ -60,11 +60,11 @@ namespace {
     // Define an enum type to classify the floating points operations
     // that are instrumented by verificarlo
 
-    enum Fops {FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_IGNORE};
+    enum Fops {FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_IGNORE};
 
     // Each instruction can be translated to a string representation
 
-    std::string Fops2str[] = { "add", "sub", "mul", "div", "ignore"};
+    std::string Fops2str[] = { "add", "sub", "mul", "div", "cmp", "ignore"};
 
     struct VfclibInst : public ModulePass {
         static char ID;
@@ -112,17 +112,57 @@ namespace {
             PointerType * doubleInstFun = PointerType::getUnqual(
                     FunctionType::get(Builder.getDoubleTy(), doubleArgs, false));
 
+			PointerType * floatcompInstFun = PointerType::getUnqual(
+	               	FunctionType::get(Builder.getInt1Ty(), floatArgs, false));
+		    PointerType * doublecompInstFun = PointerType::getUnqual(
+	                FunctionType::get(Builder.getInt1Ty(), doubleArgs, false));
+
+
             return StructType::get(
 
                 floatInstFun,
                 floatInstFun,
-                floatInstFun,
-                floatInstFun,
+				floatInstFun,
+				floatInstFun,
 
+				doubleInstFun,
                 doubleInstFun,
                 doubleInstFun,
                 doubleInstFun,
-                doubleInstFun,
+
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+				floatcompInstFun,
+
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
+				doublecompInstFun,
 
                 (void *)0
                 );
@@ -209,6 +249,94 @@ namespace {
                 assert(0);
             }
 
+		    if (FCmpInst *FCI = dyn_cast<FCmpInst>(I)) {
+			    std::string mcaFunctionName = "_" + vectorName + baseTypeName + "_" ;
+				// Comparison fct start à N°8
+				int fct_position = 8;
+				// Comparison with double starts at position +=16
+			    if (baseTypeName == "double") fct_position += 16;
+
+
+			    switch (FCI->getPredicate()){
+				     case FCmpInst::FCMP_FALSE:
+				     		fct_position += 0;
+				     		mcaFunctionName += "false"; break;
+				     case FCmpInst::FCMP_OEQ:	// (A!=QNAN)&&(B!=QNAN)&&(A==B)
+				     		fct_position += 1;
+				     		mcaFunctionName += "oeq"; break;
+				     case FCmpInst::FCMP_OGT: // (A!=QNAN)&&(B!=QNAN)&&(A>B)
+				     		fct_position += 2;
+				     		mcaFunctionName += "ogt"; break;
+				     case FCmpInst::FCMP_OGE: // (A!=QNAN)&&(B!=QNAN)&&(A>=B)
+				     		fct_position += 3;
+				     		mcaFunctionName += "oge"; break;
+				     case FCmpInst::FCMP_OLT: // (A!=QNAN)&&(B!=QNAN)&&(A<B)
+				     		fct_position += 4;
+				     		mcaFunctionName += "olt"; break;
+				     case FCmpInst::FCMP_OLE: // (A!=QNAN)&&(B!=QNAN)&&(A<=B)
+				     		fct_position += 5;
+				     		mcaFunctionName += "ole"; break;
+				     case FCmpInst::FCMP_ONE: // (A!=QNAN)&&(B!=QNAN)&&(A!=B)
+						    fct_position += 6;
+				     		mcaFunctionName += "one"; break;
+				     case FCmpInst::FCMP_ORD: // (A!=QNAN)&&(B!=QNAN)
+				     		fct_position += 7;
+				     		mcaFunctionName += "ord"; break;
+				     case FCmpInst::FCMP_UEQ: // (A==QNAN)||(B==QNAN)||(A==B)
+				     		fct_position += 8;
+						    mcaFunctionName += "ueq"; break;
+				     case FCmpInst::FCMP_UGT: // (A!=QNAN)||(B!=QNAN)||(A>B)
+				     		fct_position += 9;
+				     		mcaFunctionName += "ugt"; break;
+				     case FCmpInst::FCMP_UGE: // (A!=QNAN)||(B!=QNAN)||(A>=B)
+				     		fct_position += 10;
+				     		mcaFunctionName += "uge"; break;
+				     case FCmpInst::FCMP_ULT: // (A!=QNAN)||(B!=QNAN)||(A<B)
+				     		fct_position += 11;
+				     		mcaFunctionName += "ult"; break;
+				     case FCmpInst::FCMP_ULE: // (A!=QNAN)||(B!=QNAN)||(A<=B)
+				     		fct_position += 12;
+				     		mcaFunctionName += "ule"; break;
+				     case FCmpInst::FCMP_UNE: // (A!=QNAN)||(B!=QNAN)||(A!=B)
+				     		fct_position += 13;
+				     		mcaFunctionName += "une"; break;
+				     case FCmpInst::FCMP_UNO: // (A!=QNAN)||(B!=QNAN)
+				     		fct_position += 14;
+				     		mcaFunctionName += "uno"; break;
+				     case FCmpInst::FCMP_TRUE:
+				     		fct_position += 15;
+				     		mcaFunctionName += "true"; break;
+				     default:
+				     	errs() << "Unsupported Comparison " << FCI->getPredicate() << "\n";
+                 	    assert(0);
+				}
+
+				 // We use a builder adding instructions before the
+				 // instruction to replace
+				 Builder.SetInsertPoint(I);
+
+				 // Get a pointer to the global vtable
+				 // The vtable is accessed through the global structure
+				 // _vfc_current_mca_interface of type mca_interface_t which is
+				 // declared in ../vfcwrapper/vfcwrapper.c
+
+				 Constant *current_mca_interface =
+						 M.getOrInsertGlobal("_vfc_current_mca_interface", mca_interface_type);
+
+				 // Dereference the member at fct_position
+				 Value *arg_ptr = CREATE_STRUCT_GEP(
+						 mca_interface_type, current_mca_interface, fct_position);
+				 Value *fct_ptr = Builder.CreateLoad(arg_ptr, "");
+
+				 // Create a call instruction. It
+				 // will _replace_ I after it is returned.
+				 Instruction *newInst = CREATE_CALL2(
+						 fct_ptr,
+						 FCI->getOperand(0), FCI->getOperand(1));
+
+				 return newInst;
+
+			}else
             // For vector types, helper functions in vfcwrapper are called
             if (vectorName != "") {
                 std::string mcaFunctionName = "_" + vectorName + baseTypeName + opName;
@@ -273,6 +401,8 @@ namespace {
                     return FOP_MUL;
                 case Instruction::FDiv:
                     return FOP_DIV;
+				case Instruction::FCmp:
+	                return FOP_CMP;
                 default:
                     return FOP_IGNORE;
             }
@@ -301,4 +431,3 @@ namespace {
 
 char VfclibInst::ID = 0;
 static RegisterPass<VfclibInst> X("vfclibinst", "verificarlo instrument pass", false, false);
-
