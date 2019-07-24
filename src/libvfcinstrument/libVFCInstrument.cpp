@@ -7,6 +7,8 @@
  *     CMLA, Ecole Normale Superieure de Cachan                                 *
  *  Copyright (c) 2018                                                          *
  *     Universite de Versailles St-Quentin-en-Yvelines                          *
+ *  Copyright (c) 2019                                                          *
+ *     Verificarlo contributors                                                 *
  *                                                                              *
  *  Verificarlo is free software: you can redistribute it and/or modify         *
  *  it under the terms of the GNU General Public License as published by        *
