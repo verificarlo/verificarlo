@@ -196,6 +196,13 @@ executions.
 Branches that are unstable only under MCA noise, are identified as numerically
 unstable.
 
+### Branch instrumentation
+
+Verificarlo can instrument floating point comparison operations. By default,
+comparison operations are not instrumented and default backends do not make use of
+this feature. If your backend requires instrumenting floating point comparisons, you
+must call `verificarlo` with the `--inst-fcmp` flag.
+
 ### How to cite Verificarlo
 
 
