@@ -34,6 +34,27 @@
 /* seeds all the MCA backends */
 void vfc_seed(void);
 
+/* float compare predicates, must follow the same order than
+ * the result of getPredicate() in LLVM FCMPInstruction */
+enum FCMP_PREDICATE {
+  FCMP_FALSE,
+  FCMP_OEQ,
+  FCMP_OGT,
+  FCMP_OGE,
+  FCMP_OLT,
+  FCMP_OLE,
+  FCMP_ONE,
+  FCMP_ORD,
+  FCMP_UNO,
+  FCMP_UEQ,
+  FCMP_UGT,
+  FCMP_UGE,
+  FCMP_ULT,
+  FCMP_ULE,
+  FCMP_UNE,
+  FCMP_TRUE,
+};
+
 /* sets verificarlo precision and mode. Returns 0 on success. */
 int vfc_set_precision_and_mode(unsigned int precision, int mode);
 
@@ -43,45 +64,13 @@ struct mca_interface_t {
     float (*floatsub)(float, float);
     float (*floatmul)(float, float);
     float (*floatdiv)(float, float);
+    bool  (*floatcmp)(float, float, enum FCMP_PREDICATE);
 
     double (*doubleadd)(double, double);
     double (*doublesub)(double, double);
     double (*doublemul)(double, double);
     double (*doublediv)(double, double);
-
-    bool (*float_false)(float, float);
-    bool (*float_oeq)(float, float);
-    bool (*float_ogt)(float, float);
-    bool (*float_oge)(float, float);
-    bool (*float_olt)(float, float);
-    bool (*float_ole)(float, float);
-    bool (*float_one)(float, float);
-    bool (*float_ord)(float, float);
-    bool (*float_ueq)(float, float);
-    bool (*float_ugt)(float, float);
-    bool (*float_uge)(float, float);
-    bool (*float_ult)(float, float);
-    bool (*float_ule)(float, float);
-    bool (*float_une)(float, float);
-    bool (*float_uno)(float, float);
-    bool (*float_true)(float, float);
-
-    bool (*double_false)(double, double);
-    bool (*double_oeq)(double, double);
-    bool (*double_ogt)(double, double);
-    bool (*double_oge)(double, double);
-    bool (*double_olt)(double, double);
-    bool (*double_ole)(double, double);
-    bool (*double_one)(double, double);
-    bool (*double_ord)(double, double);
-    bool (*double_ueq)(double, double);
-    bool (*double_ugt)(double, double);
-    bool (*double_uge)(double, double);
-    bool (*double_ult)(double, double);
-    bool (*double_ule)(double, double);
-    bool (*double_une)(double, double);
-    bool (*double_uno)(double, double);
-    bool (*double_true)(double, double);
+    bool  (*doublecmp)(double, double, enum FCMP_PREDICATE);
 
     void (*seed)(void);
     int (*set_mca_mode)(int);
