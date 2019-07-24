@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+source ../paths.sh
+
 # Clean up previous coverage files
 rm -f *.gcno *.gcda *.gcov
 
@@ -17,7 +19,7 @@ gcov_report() {
   done
 
   # The llvm-cov tool generates a gcov branch report
-  llvm-cov gcov -f -b unst_branch.1.gcda > /dev/null
+  $LLVM_BINDIR/llvm-cov gcov -f -b unst_branch.1.gcda > /dev/null
 }
 
 # First we run the program 50 times in IEEE mode
