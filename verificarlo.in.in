@@ -148,17 +148,22 @@ def compiler_mode(sources, options, output, args):
         elif args.functions_file:
             selectfunction = "-vfclibinst-function-file " + args.functions_file
 
+        extra_args = ""
+
         # Activate verbose mode
-        verbose = ""
         if args.verbose:
-            verbose = "-vfclibinst-verbose "
+            extra_args += "-vfclibinst-verbose "
+
+        # Activate fcmp instrumentation
+        if args.inst_fcmp:
+            extra_args += "-vfclibinst-inst-fcmp "
 
         # Apply MCA instrumentation pass
-        shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {verbose} {selectfunction} {ir} -o {ins}'.format(
+        shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {extra_args} {selectfunction} {ir} -o {ins}'.format(
             opt=opt,
             libvfcinstrument=libvfcinstrument,
             selectfunction=selectfunction,
-            verbose=verbose,
+            extra_args=extra_args,
             ir=ir,
             ins=ins
             ))
@@ -180,6 +185,7 @@ if __name__ == "__main__":
     parser.add_argument('--functions-file', metavar='file', help='only instrument functions in <functions-file>')
     parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
     parser.add_argument('--verbose', action='store_true', help='verbose output')
+    parser.add_argument('--inst-fcmp', action='store_true', help='instrument floating point comparisons')
     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
     args, other = parser.parse_known_args()
 

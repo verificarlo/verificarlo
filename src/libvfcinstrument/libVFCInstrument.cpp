@@ -46,20 +46,23 @@
 
 using namespace llvm;
 // VfclibInst pass command line arguments
-static cl::opt<std::string>
-    VfclibInstFunction("vfclibinst-function",
-                       cl::desc("Only instrument given FunctionName"),
-                       cl::value_desc("FunctionName"), cl::init(""));
+static cl::opt<std::string> VfclibInstFunction("vfclibinst-function",
+    cl::desc("Only instrument given FunctionName"),
+    cl::value_desc("FunctionName"), cl::init(""));
 
-static cl::opt<std::string> VfclibInstFunctionFile(
-    "vfclibinst-function-file",
+static cl::opt<std::string> VfclibInstFunctionFile( "vfclibinst-function-file",
     cl::desc("Instrument functions in file FunctionNameFile "),
     cl::value_desc("FunctionsNameFile"), cl::init(""));
 
 static cl::opt<bool> VfclibInstVerbose("vfclibinst-verbose",
-                                       cl::desc("Activate verbose mode"),
-                                       cl::value_desc("Verbose"),
-                                       cl::init(false));
+    cl::desc("Activate verbose mode"),
+    cl::value_desc("Verbose"),
+    cl::init(false));
+
+static cl::opt<bool> VfclibInstInstrumentFCMP("vfclibinst-inst-fcmp",
+    cl::desc("Instrument floating point comparisons"),
+    cl::value_desc("InstrumentFCMP"),
+    cl::init(false));
 
 namespace {
 // Define an enum type to classify the floating points operations
@@ -300,7 +303,12 @@ struct VfclibInst : public ModulePass {
     case Instruction::FDiv:
       return FOP_DIV;
     case Instruction::FCmp:
-      return FOP_CMP;
+      // Only instrument FCMP if the flag --inst-fcmp is passed
+      if (VfclibInstInstrumentFCMP) {
+        return FOP_CMP;
+      } else {
+        return FOP_IGNORE;
+      }
     default:
       return FOP_IGNORE;
     }
