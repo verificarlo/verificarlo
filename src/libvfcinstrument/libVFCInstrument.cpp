@@ -35,9 +35,11 @@
 #include <set>
 
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 6
+#define CREATE_CALL3(func, op1, op2, op3) (Builder.CreateCall3(func, op1, op2, op3, ""))
 #define CREATE_CALL2(func, op1, op2) (Builder.CreateCall2(func, op1, op2, ""))
 #define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(i, p))
 #else
+#define CREATE_CALL3(func, op1, op2, op3) (Builder.CreateCall(func, {op1, op2, op3}, ""))
 #define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
 #define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
 #endif
@@ -104,11 +106,17 @@ struct VfclibInst : public ModulePass {
     // three functions are user called functions and are not
     // needed here.
 
-    SmallVector<Type *, 2> floatArgs, doubleArgs;
+    SmallVector<Type *, 2> floatArgs, doubleArgs, floatCmpArgs, doubleCmpArgs;
     floatArgs.push_back(Builder.getFloatTy());
     floatArgs.push_back(Builder.getFloatTy());
     doubleArgs.push_back(Builder.getDoubleTy());
     doubleArgs.push_back(Builder.getDoubleTy());
+    floatCmpArgs.push_back(Builder.getFloatTy());
+    floatCmpArgs.push_back(Builder.getFloatTy());
+    floatCmpArgs.push_back(Builder.getInt8Ty());
+    doubleCmpArgs.push_back(Builder.getDoubleTy());
+    doubleCmpArgs.push_back(Builder.getDoubleTy());
+    doubleCmpArgs.push_back(Builder.getInt32Ty());
 
     PointerType *floatInstFun = PointerType::getUnqual(
         FunctionType::get(Builder.getFloatTy(), floatArgs, false));
@@ -116,28 +124,15 @@ struct VfclibInst : public ModulePass {
         FunctionType::get(Builder.getDoubleTy(), doubleArgs, false));
 
     PointerType *floatcompInstFun = PointerType::getUnqual(
-        FunctionType::get(Builder.getInt1Ty(), floatArgs, false));
+        FunctionType::get(Builder.getInt1Ty(), floatCmpArgs, false));
     PointerType *doublecompInstFun = PointerType::getUnqual(
-        FunctionType::get(Builder.getInt1Ty(), doubleArgs, false));
+        FunctionType::get(Builder.getInt1Ty(), doubleCmpArgs, false));
 
     return StructType::get(
 
-        floatInstFun, floatInstFun, floatInstFun, floatInstFun,
+        floatInstFun, floatInstFun, floatInstFun, floatInstFun, floatcompInstFun,
 
-        doubleInstFun, doubleInstFun, doubleInstFun, doubleInstFun,
-
-        floatcompInstFun, floatcompInstFun, floatcompInstFun, floatcompInstFun,
-        floatcompInstFun, floatcompInstFun, floatcompInstFun, floatcompInstFun,
-        floatcompInstFun, floatcompInstFun, floatcompInstFun, floatcompInstFun,
-        floatcompInstFun, floatcompInstFun, floatcompInstFun, floatcompInstFun,
-
-        doublecompInstFun, doublecompInstFun, doublecompInstFun,
-        doublecompInstFun, doublecompInstFun, doublecompInstFun,
-        doublecompInstFun, doublecompInstFun, doublecompInstFun,
-        doublecompInstFun, doublecompInstFun, doublecompInstFun,
-        doublecompInstFun, doublecompInstFun, doublecompInstFun,
-        doublecompInstFun,
-
+        doubleInstFun, doubleInstFun, doubleInstFun, doubleInstFun, doublecompInstFun,
         (void *)0);
   }
 
@@ -182,12 +177,54 @@ struct VfclibInst : public ModulePass {
     return modified;
   }
 
-  Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction *I,
-                                  Fops opCode) {
-
+  Instruction *replaceScalar(Module &M, BasicBlock &B, Instruction *I, Fops opCode) {
     LLVMContext &Context = M.getContext();
     IRBuilder<> Builder(Context);
     StructType *mca_interface_type = getMCAInterfaceType(Builder);
+
+    Type *opType = I->getOperand(0)->getType();
+    Type *baseType = opType;
+
+    // We use a builder adding instructions before the
+    // instruction to replace
+    Builder.SetInsertPoint(I);
+
+    // Get a pointer to the global vtable
+    // The vtable is accessed through the global structure
+    // _vfc_current_mca_interface of type mca_interface_t which is
+    // declared in ../vfcwrapper/vfcwrapper.c
+
+    Constant *current_mca_interface =
+        M.getOrInsertGlobal("_vfc_current_mca_interface", mca_interface_type);
+
+    // Compute the position of the required member fct pointer
+    // opCodes are ordered in the same order than the struct members :-)
+    // There are 5 float members followed by 5 double members.
+    int fct_position = opCode;
+    if (baseType->isDoubleTy()) fct_position += 5;
+    // Dereference the member at fct_position
+    Value *arg_ptr = CREATE_STRUCT_GEP(mca_interface_type,
+                                       current_mca_interface, fct_position);
+    Value *fct_ptr = Builder.CreateLoad(arg_ptr, "");
+
+    // Create a call instruction. It
+    // will _replace_ I after it is returned.
+    Instruction *newInst;
+    if (opCode == FOP_CMP) {
+      FCmpInst * FCI = static_cast<FCmpInst *>(I);
+      newInst =
+        CREATE_CALL3(fct_ptr, I->getOperand(0), I->getOperand(1),
+            Builder.getInt32(FCI->getPredicate()));
+    } else {
+      newInst =
+        CREATE_CALL2(fct_ptr, I->getOperand(0), I->getOperand(1));
+    }
+    return newInst;
+  }
+
+  Instruction *replaceVector(Module &M, BasicBlock &B, Instruction *I, Fops opCode) {
+    LLVMContext &Context = M.getContext();
+    IRBuilder<> Builder(Context);
 
     Type *retType = I->getType();
     Type *opType = I->getOperand(0)->getType();
@@ -197,20 +234,17 @@ struct VfclibInst : public ModulePass {
     std::string vectorName = "";
     Type *baseType = opType;
 
-    // Check for vector types
-    if (opType->isVectorTy()) {
-      VectorType *t = static_cast<VectorType *>(opType);
-      baseType = t->getElementType();
-      unsigned size = t->getNumElements();
+    VectorType *t = static_cast<VectorType *>(opType);
+    baseType = t->getElementType();
+    unsigned size = t->getNumElements();
 
-      if (size == 2) {
-        vectorName = "2x";
-      } else if (size == 4) {
-        vectorName = "4x";
-      } else {
-        errs() << "Unsuported vector size: " << size << "\n";
-        assert(0);
-      }
+    if (size == 2) {
+      vectorName = "2x";
+    } else if (size == 4) {
+      vectorName = "4x";
+    } else {
+      errs() << "Unsuported vector size: " << size << "\n";
+      assert(0);
     }
 
     // Check the type of the operation
@@ -223,154 +257,34 @@ struct VfclibInst : public ModulePass {
       assert(0);
     }
 
-    if (FCmpInst *FCI = dyn_cast<FCmpInst>(I)) {
-      std::string mcaFunctionName = "_" + vectorName + baseTypeName + "_";
-      // Comparison fct start à N°8
-      int fct_position = 8;
-      // Comparison with double starts at position +=16
-      if (baseTypeName == "double")
-        fct_position += 16;
+    // For vector types, helper functions in vfcwrapper are called
+    std::string mcaFunctionName = "_" + vectorName + baseTypeName + opName;
 
-      switch (FCI->getPredicate()) {
-      case FCmpInst::FCMP_FALSE:
-        fct_position += 0;
-        mcaFunctionName += "false";
-        break;
-      case FCmpInst::FCMP_OEQ: // (A!=QNAN)&&(B!=QNAN)&&(A==B)
-        fct_position += 1;
-        mcaFunctionName += "oeq";
-        break;
-      case FCmpInst::FCMP_OGT: // (A!=QNAN)&&(B!=QNAN)&&(A>B)
-        fct_position += 2;
-        mcaFunctionName += "ogt";
-        break;
-      case FCmpInst::FCMP_OGE: // (A!=QNAN)&&(B!=QNAN)&&(A>=B)
-        fct_position += 3;
-        mcaFunctionName += "oge";
-        break;
-      case FCmpInst::FCMP_OLT: // (A!=QNAN)&&(B!=QNAN)&&(A<B)
-        fct_position += 4;
-        mcaFunctionName += "olt";
-        break;
-      case FCmpInst::FCMP_OLE: // (A!=QNAN)&&(B!=QNAN)&&(A<=B)
-        fct_position += 5;
-        mcaFunctionName += "ole";
-        break;
-      case FCmpInst::FCMP_ONE: // (A!=QNAN)&&(B!=QNAN)&&(A!=B)
-        fct_position += 6;
-        mcaFunctionName += "one";
-        break;
-      case FCmpInst::FCMP_ORD: // (A!=QNAN)&&(B!=QNAN)
-        fct_position += 7;
-        mcaFunctionName += "ord";
-        break;
-      case FCmpInst::FCMP_UEQ: // (A==QNAN)||(B==QNAN)||(A==B)
-        fct_position += 8;
-        mcaFunctionName += "ueq";
-        break;
-      case FCmpInst::FCMP_UGT: // (A!=QNAN)||(B!=QNAN)||(A>B)
-        fct_position += 9;
-        mcaFunctionName += "ugt";
-        break;
-      case FCmpInst::FCMP_UGE: // (A!=QNAN)||(B!=QNAN)||(A>=B)
-        fct_position += 10;
-        mcaFunctionName += "uge";
-        break;
-      case FCmpInst::FCMP_ULT: // (A!=QNAN)||(B!=QNAN)||(A<B)
-        fct_position += 11;
-        mcaFunctionName += "ult";
-        break;
-      case FCmpInst::FCMP_ULE: // (A!=QNAN)||(B!=QNAN)||(A<=B)
-        fct_position += 12;
-        mcaFunctionName += "ule";
-        break;
-      case FCmpInst::FCMP_UNE: // (A!=QNAN)||(B!=QNAN)||(A!=B)
-        fct_position += 13;
-        mcaFunctionName += "une";
-        break;
-      case FCmpInst::FCMP_UNO: // (A!=QNAN)||(B!=QNAN)
-        fct_position += 14;
-        mcaFunctionName += "uno";
-        break;
-      case FCmpInst::FCMP_TRUE:
-        fct_position += 15;
-        mcaFunctionName += "true";
-        break;
-      default:
-        errs() << "Unsupported Comparison " << FCI->getPredicate() << "\n";
-        assert(0);
-      }
-
-      // We use a builder adding instructions before the
-      // instruction to replace
-      Builder.SetInsertPoint(I);
-
-      // Get a pointer to the global vtable
-      // The vtable is accessed through the global structure
-      // _vfc_current_mca_interface of type mca_interface_t which is
-      // declared in ../vfcwrapper/vfcwrapper.c
-
-      Constant *current_mca_interface =
-          M.getOrInsertGlobal("_vfc_current_mca_interface", mca_interface_type);
-
-      // Dereference the member at fct_position
-      Value *arg_ptr = CREATE_STRUCT_GEP(mca_interface_type,
-                                         current_mca_interface, fct_position);
-      Value *fct_ptr = Builder.CreateLoad(arg_ptr, "");
-
-      // Create a call instruction. It
-      // will _replace_ I after it is returned.
-      Instruction *newInst =
-          CREATE_CALL2(fct_ptr, FCI->getOperand(0), FCI->getOperand(1));
-
-      return newInst;
-
-    }
-    else if (vectorName != "") {
-      // For vector types, helper functions in vfcwrapper are called
-      std::string mcaFunctionName = "_" + vectorName + baseTypeName + opName;
-
+    // For vector types we call directly a hardcoded helper function
+    // no need to go through the vtable at this stage.
+    Instruction *newInst;
+    if (opCode == FOP_CMP) {
+      FCmpInst * FCI = static_cast<FCmpInst *>(I);
       Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName, retType,
-                                                 opType, opType, (Type *)0);
-
-      // For vector types we call directly a hardcoded helper function
-      // no need to go through the vtable at this stage.
-      Instruction *newInst =
-          CREATE_CALL2(hookFunc, I->getOperand(0), I->getOperand(1));
-
-      return newInst;
+          opType, opType, Builder.getInt32Ty(), (Type *)0);
+      newInst = CREATE_CALL3(hookFunc, I->getOperand(0), I->getOperand(1),
+          Builder.getInt32(FCI->getPredicate()));
     }
-    // For scalar types, we go directly through the struct of pointer function
     else {
+      Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName, retType,
+          opType, opType, (Type *)0);
+      newInst = CREATE_CALL2(hookFunc, I->getOperand(0), I->getOperand(1));
+    }
 
-      // We use a builder adding instructions before the
-      // instruction to replace
-      Builder.SetInsertPoint(I);
+    return newInst;
+  }
 
-      // Get a pointer to the global vtable
-      // The vtable is accessed through the global structure
-      // _vfc_current_mca_interface of type mca_interface_t which is
-      // declared in ../vfcwrapper/vfcwrapper.c
-
-      Constant *current_mca_interface =
-          M.getOrInsertGlobal("_vfc_current_mca_interface", mca_interface_type);
-
-      // Compute the position of the required member fct pointer
-      // opCodes are ordered in the same order than the struct members :-)
-      // There are 4 float members followed by 4 double members.
-      int fct_position = opCode;
-      if (baseTypeName == "double") fct_position += 4;
-      // Dereference the member at fct_position
-      Value *arg_ptr = CREATE_STRUCT_GEP(mca_interface_type,
-                                         current_mca_interface, fct_position);
-      Value *fct_ptr = Builder.CreateLoad(arg_ptr, "");
-
-      // Create a call instruction. It
-      // will _replace_ I after it is returned.
-      Instruction *newInst =
-          CREATE_CALL2(fct_ptr, I->getOperand(0), I->getOperand(1));
-
-      return newInst;
+  Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction *I, Fops opCode) {
+    Type *opType = I->getOperand(0)->getType();
+    if (opType->isVectorTy()) {
+      return replaceVector(M, B, I, opCode);
+    } else {
+      return replaceScalar(M, B, I, opCode);
     }
   }
 

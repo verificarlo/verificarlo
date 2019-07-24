@@ -288,45 +288,49 @@ static double _doublediv(double a, double b) {
   return _mca_dbin(a, b, (mpfr_bin)MP_DIV);
 }
 
-static bool  _float_false(float a, float b){ return 0; }
-static bool  _float_oeq(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a==b)); }
-static bool  _float_ogt(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a>b)); }
-static bool  _float_oge(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a>=b)); }
-static bool  _float_olt(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a<b)); }
-static bool  _float_ole(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a<=b)); }
-static bool  _float_one(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a!=b)); }
-static bool  _float_ord(float a, float b){ return ((!isnan(a))&&(!isnan(b))); }
-static bool  _float_ueq(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a==b)); }
-static bool  _float_ugt(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a>b)); }
-static bool  _float_uge(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a>=b)); }
-static bool  _float_ult(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a<b)); }
-static bool  _float_ule(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a<=b)); }
-static bool  _float_une(float a, float b){ return ((!isnan(a))||(!isnan(b))||(a!=b)); }
-static bool  _float_uno(float a, float b){ return ((!isnan(a))||(!isnan(b))); }
-static bool  _float_true(float a, float b){ return 1; }
+static bool _floatcmp(float a, float b, enum FCMP_PREDICATE p) {
+  switch(p) {
+    case FCMP_FALSE: return false;
+    case FCMP_OEQ: return ((!isnan(a))&&(!isnan(b))&&(a==b));
+    case FCMP_OGT: return ((!isnan(a))&&(!isnan(b))&&(a>b));
+    case FCMP_OGE: return ((!isnan(a))&&(!isnan(b))&&(a>=b));
+    case FCMP_OLT: return ((!isnan(a))&&(!isnan(b))&&(a<b));
+    case FCMP_OLE: return ((!isnan(a))&&(!isnan(b))&&(a<=b));
+    case FCMP_ONE: return ((!isnan(a))&&(!isnan(b))&&(a!=b));
+    case FCMP_ORD: return ((!isnan(a))&&(!isnan(b)));
+    case FCMP_UEQ: return ((!isnan(a))||(!isnan(b))||(a==b));
+    case FCMP_UGT: return ((!isnan(a))||(!isnan(b))||(a>b));
+    case FCMP_UGE: return ((!isnan(a))||(!isnan(b))||(a>=b));
+    case FCMP_ULT: return ((!isnan(a))||(!isnan(b))||(a<b));
+    case FCMP_ULE: return ((!isnan(a))||(!isnan(b))||(a<=b));
+    case FCMP_UNE: return ((!isnan(a))||(!isnan(b))||(a!=b));
+    case FCMP_UNO: return ((!isnan(a))||(!isnan(b)));
+    case FCMP_TRUE: return true;
+  }
+}
 
-static bool  _double_false(double a, double b){ return 0; }
-static bool  _double_oeq(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a==b)); }
-static bool  _double_ogt(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a>b)); }
-static bool  _double_oge(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a>=b)); }
-static bool  _double_olt(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a<b)); }
-static bool  _double_ole(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a<=b)); }
-static bool  _double_one(double a, double b){ return ((!isnan(a))&&(!isnan(b))&&(a!=b)); }
-static bool  _double_ord(double a, double b){ return ((!isnan(a))&&(!isnan(b))); }
-static bool  _double_ueq(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a==b)); }
-static bool  _double_ugt(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a>b)); }
-static bool  _double_uge(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a>=b)); }
-static bool  _double_ult(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a<b)); }
-static bool  _double_ule(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a<=b)); }
-static bool  _double_une(double a, double b){ return ((!isnan(a))||(!isnan(b))||(a!=b)); }
-static bool  _double_uno(double a, double b){ return ((!isnan(a))||(!isnan(b))); }
-static bool  _double_true(double a, double b){ return 1; }
+static bool _doublecmp(double a, double b, enum FCMP_PREDICATE p) {
+  switch(p) {
+    case FCMP_FALSE: return false;
+    case FCMP_OEQ: return ((!isnan(a))&&(!isnan(b))&&(a==b));
+    case FCMP_OGT: return ((!isnan(a))&&(!isnan(b))&&(a>b));
+    case FCMP_OGE: return ((!isnan(a))&&(!isnan(b))&&(a>=b));
+    case FCMP_OLT: return ((!isnan(a))&&(!isnan(b))&&(a<b));
+    case FCMP_OLE: return ((!isnan(a))&&(!isnan(b))&&(a<=b));
+    case FCMP_ONE: return ((!isnan(a))&&(!isnan(b))&&(a!=b));
+    case FCMP_ORD: return ((!isnan(a))&&(!isnan(b)));
+    case FCMP_UEQ: return ((!isnan(a))||(!isnan(b))||(a==b));
+    case FCMP_UGT: return ((!isnan(a))||(!isnan(b))||(a>b));
+    case FCMP_UGE: return ((!isnan(a))||(!isnan(b))||(a>=b));
+    case FCMP_ULT: return ((!isnan(a))||(!isnan(b))||(a<b));
+    case FCMP_ULE: return ((!isnan(a))||(!isnan(b))||(a<=b));
+    case FCMP_UNE: return ((!isnan(a))||(!isnan(b))||(a!=b));
+    case FCMP_UNO: return ((!isnan(a))||(!isnan(b)));
+    case FCMP_TRUE: return true;
+  }
+}
 
 struct mca_interface_t mpfr_mca_interface = {
-    _floatadd,  _floatsub,     _floatmul,         _floatdiv,
-    _doubleadd, _doublesub,    _doublemul,        _doublediv,
-    _float_false, _float_oeq, _float_ogt, _float_oge, _float_olt, _float_ole, _float_one, _float_ord,
-    _float_ueq, _float_ugt, _float_uge, _float_ult, _float_ule, _float_une, _float_uno, _float_true,
-    _double_false, _double_oeq, _double_ogt, _double_oge, _double_olt, _double_ole, _double_one, _double_ord,
-    _double_ueq, _double_ugt, _double_uge, _double_ult, _double_ule, _double_une, _double_uno, _double_true,
+    _floatadd, _floatsub, _floatmul, _floatdiv, _floatcmp,
+    _doubleadd, _doublesub, _doublemul, _doublediv, _doublecmp,
     _mca_seed,  _set_mca_mode, _set_mca_precision};
