@@ -124,9 +124,11 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/libvfcinstrument/Makefile
                  src/libmca-mpfr/Makefile
-		 src/libmca-quad/Makefile
-		 src/common/Makefile
-                 tests/Makefile])
+                 src/libmca-quad/Makefile
+                 src/common/Makefile
+                 tests/Makefile
+                 tests/paths.sh
+                ])
 
 AC_CONFIG_FILES([verificarlo.in], [])
 

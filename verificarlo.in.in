@@ -106,7 +106,7 @@ def linker_mode(sources, options, output, args):
             options=options,
             mcalib_static=mcalib_static,
             gfortran=gfortran))
-       
+
     else:
         f.write('{output} {sources} {options} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
             output=output,
