@@ -288,7 +288,6 @@ static double _doublediv(double a, double b) {
   return _mca_dbin(a, b, (mpfr_bin)MP_DIV);
 }
 
-
 static bool  _float_false(float a, float b){ return 0; }
 static bool  _float_oeq(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a==b)); }
 static bool  _float_ogt(float a, float b){ return ((!isnan(a))&&(!isnan(b))&&(a>b)); }
@@ -323,7 +322,6 @@ static bool  _double_une(double a, double b){ return ((!isnan(a))||(!isnan(b))||
 static bool  _double_uno(double a, double b){ return ((!isnan(a))||(!isnan(b))); }
 static bool  _double_true(double a, double b){ return 1; }
 
-
 struct mca_interface_t mpfr_mca_interface = {
     _floatadd,  _floatsub,     _floatmul,         _floatdiv,
     _doubleadd, _doublesub,    _doublemul,        _doublediv,
@@ -332,4 +330,3 @@ struct mca_interface_t mpfr_mca_interface = {
     _double_false, _double_oeq, _double_ogt, _double_oge, _double_olt, _double_ole, _double_one, _double_ord,
     _double_ueq, _double_ugt, _double_uge, _double_ult, _double_ule, _double_une, _double_uno, _double_true,
     _mca_seed,  _set_mca_mode, _set_mca_precision};
-    
