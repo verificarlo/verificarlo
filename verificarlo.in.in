@@ -96,7 +96,7 @@ def linker_mode(sources, options, output, args):
     positionmode = "static" if args.static else "fPIC"
     shell('{clang} -c -O2 -{positionmode} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
-        mode=positionmode,
+        positionmode=positionmode,
         vfcwrapper=vfcwrapper,
         mcalib_includes=mcalib_includes))
 
