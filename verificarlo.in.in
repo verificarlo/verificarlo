@@ -44,23 +44,28 @@ clang = '@CLANG_PATH@'
 opt = llvm_bindir + '/opt'
 dragonegg = "@DRAGONEGG_PATH@"
 gcc = "@GCC_PATH@"
-FORTRAN_EXTENSIONS=[".f", ".f90", ".f77"]
-C_EXTENSIONS=[".c", ".cpp", ".cc", ".cxx"]
+FORTRAN_EXTENSIONS = [".f", ".f90", ".f77"]
+C_EXTENSIONS = [".c", ".cpp", ".cc", ".cxx"]
+
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
     def _get_option_tuples(self, option_string):
         return []
 
+
 def fail(msg):
     print(sys.argv[0] + ': ' + msg, file=sys.stderr)
     sys.exit(1)
 
+
 def is_fortran(name):
     return os.path.splitext(name)[1].lower() in FORTRAN_EXTENSIONS
 
+
 def is_c(name):
     return os.path.splitext(name)[1].lower() in C_EXTENSIONS
+
 
 def parse_extra_args(args):
     sources = []
@@ -68,26 +73,24 @@ def parse_extra_args(args):
 
     for a in args:
         if is_fortran(a):
-	    if not dragonegg:
-		fail("fortran not supported. "
-		     + "--without-fortran was used during configuration.")
-	    sources.append(a)
-	elif is_c(a):
-            sources.append(a)
+            if not dragonegg:
+                fail("fortran not supported. "
+                     + "--without-fortran was used during configuration.")
+                sources.append(a)
+            elif is_c(a):
+                sources.append(a)
         else:
             options.append(a)
 
     return sources, ' '.join(options)
 
-def fail(msg):
-    print(sys.argv[0] + ': ' + msg, file=sys.stderr)
-    sys.exit(1)
 
 def shell(cmd):
     try:
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError:
         fail('command failed:\n' + cmd)
+
 
 def linker_mode(sources, options, output, args):
     shell('{clang} -c -O2 -static -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
@@ -98,7 +101,7 @@ def linker_mode(sources, options, output, args):
     # Only include lgfortran if fortran support is enabled
     gfortran = "-lgfortran" if dragonegg else ""
 
-    f=tempfile.NamedTemporaryFile()
+    f = tempfile.NamedTemporaryFile()
     if args.static:
         f.write('{output} {sources} {options} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
             output=output,
@@ -119,6 +122,7 @@ def linker_mode(sources, options, output, args):
     f.flush()
     shell('{clang} @{temp}'.format(clang=clang, temp=f.name))
     f.close()
+
 
 def compiler_mode(sources, options, output, args):
     for source in sources:
@@ -176,6 +180,7 @@ def compiler_mode(sources, options, output, args):
             output=output,
             ins=ins,
             options=options))
+
 
 if __name__ == "__main__":
     parser = NoPrefixParser(description='Compiles a program replacing floating point operation with calls to the mcalib (Montecarlo Arithmetic).')
