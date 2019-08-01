@@ -93,8 +93,10 @@ def shell(cmd):
 
 
 def linker_mode(sources, options, output, args):
-    shell('{clang} -c -O2 -static -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
+    mode = "static" if args.static else "fPIC"
+    shell('{clang} -c -O2 -{mode} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
+        mode=mode,
         vfcwrapper=vfcwrapper,
         mcalib_includes=mcalib_includes))
 
