@@ -113,6 +113,10 @@ directly:
    $ verificarlo *.c *.f90 -o ./program
 ```
 
+If you are trying to compile a shared library, such as those built by the Cython
+extension to Python, you can then also set the shared linker environment variable
+(`LDSHARED='verificarlo -shared'`) to enable position-independent linking.
+
 If you only wish to instrument a specific function in your program, use the
 `--function` option:
 
