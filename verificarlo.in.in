@@ -76,9 +76,9 @@ def parse_extra_args(args):
             if not dragonegg:
                 fail("fortran not supported. "
                      + "--without-fortran was used during configuration.")
-                sources.append(a)
-            elif is_c(a):
-                sources.append(a)
+            sources.append(a)
+        elif is_c(a):
+            sources.append(a)
         else:
             options.append(a)
 
@@ -93,8 +93,8 @@ def shell(cmd):
 
 
 def linker_mode(sources, options, output, args):
-    positionmode = "static" if args.static else "fPIC"
-    shell('{clang} -c -O2 -{positionmode} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
+    positionmode = "-static" if args.static else "-fPIC"
+    shell('{clang} -c -O2 {positionmode} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
         positionmode=positionmode,
         vfcwrapper=vfcwrapper,
