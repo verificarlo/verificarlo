@@ -3,7 +3,8 @@
 #                                                                              *
 #  This file is part of Verificarlo.                                           *
 #                                                                              *
-#  Copyright (c) 2015-2016                                                     *
+#  Copyright (c) 2015-2019                                                     *
+#     Verificarlo contributors                                                 *
 #     Universite de Versailles St-Quentin-en-Yvelines                          *
 #     CMLA, Ecole Normale Superieure de Cachan                                 *
 #                                                                              *
@@ -66,6 +67,9 @@ def is_fortran(name):
 def is_c(name):
     return os.path.splitext(name)[1].lower() in C_EXTENSIONS
 
+def shell_escape(argument):
+    # prevents argument expansion in shell call
+    return "'" + argument + "'"
 
 def parse_extra_args(args):
     sources = []
@@ -80,7 +84,7 @@ def parse_extra_args(args):
         elif is_c(a):
             sources.append(a)
         else:
-            options.append(a)
+            options.append(shell_escape(a))
 
     return sources, ' '.join(options)
 
@@ -199,12 +203,12 @@ if __name__ == "__main__":
     sources, llvm_options = parse_extra_args(other)
 
     # check input files
-
     if len(sources) > 1 and args.o:
         fail('cannot specify -o when generating multiple output files')
 
+    # check mutually excluding args
     if args.function and args.functions_file:
-        fail("Cannot used --function and --functions-file together")
+        fail('Cannot use --function and --functions-file together')
 
     output = "-o " + args.o if args.o else ""
     if args.c:
