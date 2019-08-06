@@ -1,7 +1,12 @@
 #!/bin/bash
 
-if !python3 -c "import cython" 2>/dev/null; then
+if python3 --version 2>/dev/null ; then
+  if !python3 -c "import cython" 2>/dev/null; then
     echo "this test is not running without Cython installed"
+    exit 0
+  fi
+else
+    echo "this test is not running without python3 installed"
     exit 0
 fi
 
