@@ -87,7 +87,7 @@ AC_DEFUN([AX_LLVM],
   if test "$LLVM_VERSION_MINOR" -gt 4; then
     LLVM_LDFLAGS="`$LLVM_CONFIG --ldflags` `$LLVM_CONFIG --system-libs`"
   else
-    LLVM_LDFLAGS="`$LLVM_CONFIG --ldflags`"
+    LLVM_LDFLAGS="`$LLVM_CONFIG --ldflags` `$LLVM_CONFIG --libs`"
   fi
   LLVM_LIBS=`$LLVM_CONFIG --libs $3`
   LLVM_LIBDIR=`$LLVM_CONFIG --libdir`
