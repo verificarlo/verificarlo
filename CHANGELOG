@@ -2,6 +2,10 @@ Verificarlo CHANGELOG
 
 UNRELEASED
     * Unstable branch detection
+    * Branch instrumentation
+    * Fixed linking of shared libraries
+    * Fixed shell expansion in optional arguments
+    * Improved support for complex inclusion/exclusion schemes
 
 [v0.2.1] 2018/11/22
     * Support for LLVM up to 4.0.1

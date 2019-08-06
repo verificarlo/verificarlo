@@ -9,7 +9,7 @@ A tool for automatic Montecarlo Arithmetic analysis.
 ### Using Verificarlo through its Docker image
 
 A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/. 
-This image uses the last git master version of Verificarlo and includes support for Fortran and uses llvm-3.5 and gcc-4.7.
+This image uses the latest git master version of Verificarlo and includes support for Fortran. It uses llvm-3.5 and gcc-4.7.
 
 Example of usage:
 
@@ -194,9 +194,11 @@ module3 *
 Inclusion and exclusion files can be used together, in that case inclusion
 takes precedence over inclusion.
 
-### Examples
+### Examples and Tutorial
 
 The `tests/` directory contains various examples of Verificarlo usage.
+
+A [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) in french and english is available.
 
 ### Postprocessing
 
