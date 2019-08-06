@@ -155,8 +155,11 @@ def compiler_mode(sources, options, output, args):
         selectfunction = ""
         if args.function:
             selectfunction = "-vfclibinst-function " + args.function
-        elif args.functions_file:
-            selectfunction = "-vfclibinst-function-file " + args.functions_file
+        else:
+            if args.include_file:
+                selectfunction = "-vfclibinst-include-file " + args.include_file
+            if args.exclude_file:
+                selectfunction += " -vfclibinst-exclude-file " + args.exclude_file
 
         extra_args = ""
 
@@ -193,7 +196,8 @@ if __name__ == "__main__":
     parser.add_argument('-c', action='store_true', help='only run preprocess, compile, and assemble steps')
     parser.add_argument('-o', metavar='file', help='write output to <file>')
     parser.add_argument('--function', metavar='function', help='only instrument <function>')
-    parser.add_argument('--functions-file', metavar='file', help='only instrument functions in <functions-file>')
+    parser.add_argument('--include-file', metavar='file', help='white-list module and functions')
+    parser.add_argument('--exclude-file', metavar='file', help='black-list module and functions')
     parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
     parser.add_argument('--verbose', action='store_true', help='verbose output')
     parser.add_argument('--inst-fcmp', action='store_true', help='instrument floating point comparisons')
@@ -207,8 +211,8 @@ if __name__ == "__main__":
         fail('cannot specify -o when generating multiple output files')
 
     # check mutually excluding args
-    if args.function and args.functions_file:
-        fail('Cannot use --function and --functions-file together')
+    if args.function and (args.include_file or args.exclude_file):
+        fail('Cannot use --function and --include-file/--exclude-file together')
 
     output = "-o " + args.o if args.o else ""
     if args.c:

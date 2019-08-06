@@ -1,70 +1,81 @@
-/********************************************************************************
- *                                                                              *
- *  This file is part of Verificarlo.                                           *
- *                                                                              *
- *  Copyright (c) 2015                                                          *
- *     Universite de Versailles St-Quentin-en-Yvelines                          *
- *     CMLA, Ecole Normale Superieure de Cachan                                 *
- *  Copyright (c) 2018                                                          *
- *     Universite de Versailles St-Quentin-en-Yvelines                          *
- *  Copyright (c) 2019                                                          *
- *     Verificarlo contributors                                                 *
- *                                                                              *
- *  Verificarlo is free software: you can redistribute it and/or modify         *
- *  it under the terms of the GNU General Public License as published by        *
- *  the Free Software Foundation, either version 3 of the License, or           *
- *  (at your option) any later version.                                         *
- *                                                                              *
- *  Verificarlo is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of              *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               *
- *  GNU General Public License for more details.                                *
- *                                                                              *
- *  You should have received a copy of the GNU General Public License           *
- *  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.        *
- *                                                                              *
- ********************************************************************************/
+/******************************************************************************
+ *                                                                            *
+ *  This file is part of Verificarlo.                                         *
+ *                                                                            *
+ *  Copyright (c) 2015                                                        *
+ *     Universite de Versailles St-Quentin-en-Yvelines                        *
+ *     CMLA, Ecole Normale Superieure de Cachan                               *
+ *  Copyright (c) 2018                                                        *
+ *     Universite de Versailles St-Quentin-en-Yvelines                        *
+ *  Copyright (c) 2019                                                        *
+ *     Verificarlo contributors                                               *
+ *                                                                            *
+ *  Verificarlo is free software: you can redistribute it and/or modify       *
+ *  it under the terms of the GNU General Public License as published by      *
+ *  the Free Software Foundation, either version 3 of the License, or         *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ *  Verificarlo is distributed in the hope that it will be useful,            *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of            *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
+ *  GNU General Public License for more details.                              *
+ *                                                                            *
+ *  You should have received a copy of the GNU General Public License         *
+ *  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.      *
+ *                                                                            *
+ ******************************************************************************/
 
 #include "../../config.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 #include <fstream>
 #include <set>
+#include <utility>
 
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 6
-#define CREATE_CALL3(func, op1, op2, op3) (Builder.CreateCall3(func, op1, op2, op3, ""))
+#define CREATE_CALL3(func, op1, op2, op3)                                      \
+  (Builder.CreateCall3(func, op1, op2, op3, ""))
 #define CREATE_CALL2(func, op1, op2) (Builder.CreateCall2(func, op1, op2, ""))
 #define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(i, p))
 #else
-#define CREATE_CALL3(func, op1, op2, op3) (Builder.CreateCall(func, {op1, op2, op3}, ""))
+#define CREATE_CALL3(func, op1, op2, op3)                                      \
+  (Builder.CreateCall(func, {op1, op2, op3}, ""))
 #define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
 #define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
 #endif
 
 using namespace llvm;
 // VfclibInst pass command line arguments
-static cl::opt<std::string> VfclibInstFunction("vfclibinst-function",
-    cl::desc("Only instrument given FunctionName"),
-    cl::value_desc("FunctionName"), cl::init(""));
+static cl::opt<std::string>
+    VfclibInstFunction("vfclibinst-function",
+                       cl::desc("Only instrument given FunctionName"),
+                       cl::value_desc("FunctionName"), cl::init(""));
 
-static cl::opt<std::string> VfclibInstFunctionFile( "vfclibinst-function-file",
-    cl::desc("Instrument functions in file FunctionNameFile "),
-    cl::value_desc("FunctionsNameFile"), cl::init(""));
+static cl::opt<std::string> VfclibInstIncludeFile(
+    "vfclibinst-include-file",
+    cl::desc("Only instrument modules / functions in file IncludeNameFile "),
+    cl::value_desc("IncludeNameFile"), cl::init(""));
+
+static cl::opt<std::string> VfclibInstExcludeFile(
+    "vfclibinst-exclude-file",
+    cl::desc("Do not instrument modules / functions in file ExcludeNameFile "),
+    cl::value_desc("ExcludeNameFile"), cl::init(""));
 
 static cl::opt<bool> VfclibInstVerbose("vfclibinst-verbose",
-    cl::desc("Activate verbose mode"),
-    cl::value_desc("Verbose"),
-    cl::init(false));
+                                       cl::desc("Activate verbose mode"),
+                                       cl::value_desc("Verbose"),
+                                       cl::init(false));
 
-static cl::opt<bool> VfclibInstInstrumentFCMP("vfclibinst-inst-fcmp",
-    cl::desc("Instrument floating point comparisons"),
-    cl::value_desc("InstrumentFCMP"),
-    cl::init(false));
+static cl::opt<bool>
+    VfclibInstInstrumentFCMP("vfclibinst-inst-fcmp",
+                             cl::desc("Instrument floating point comparisons"),
+                             cl::value_desc("InstrumentFCMP"), cl::init(false));
 
 namespace {
 // Define an enum type to classify the floating points operations
@@ -79,24 +90,46 @@ std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
 struct VfclibInst : public ModulePass {
   static char ID;
 
-  std::set<std::string> SelectedFunctionSet;
+  std::set<std::string> IncludedFunctionSet;
+  std::set<std::string> ExcludedFunctionSet;
 
-  VfclibInst() : ModulePass(ID) {
-    if (not VfclibInstFunctionFile.empty()) {
-      std::string line;
-      std::ifstream loopstream(VfclibInstFunctionFile.c_str());
-      if (loopstream.is_open()) {
-        while (std::getline(loopstream, line)) {
-          SelectedFunctionSet.insert(line);
-        }
-        loopstream.close();
-      } else {
-        errs() << "Cannot open " << VfclibInstFunctionFile << "\n";
-        assert(0);
-      }
-    } else if (not VfclibInstFunction.empty()) {
-      SelectedFunctionSet.insert(VfclibInstFunction);
+  VfclibInst() : ModulePass(ID) {}
+
+  void parseFunctionSetFile(Module &M, cl::opt<std::string> &fileName,
+                            std::set<std::string> &FunctionSet) {
+    // Skip if empty fileName
+    if (fileName.empty()) {
+      return;
     }
+
+    // Open File
+    std::ifstream loopstream(fileName.c_str());
+    if (!loopstream.is_open()) {
+      errs() << "Cannot open " << fileName << "\n";
+      report_fatal_error("libVFCInstrument fatal error");
+    }
+
+    // Parse File, if module name matches, add function to FunctionSet
+    int lineno = 0;
+    std::string line;
+    // drop the .1.ll suffix in the module name
+    StringRef mod_name = StringRef(M.getModuleIdentifier()).drop_back(5);
+    while (std::getline(loopstream, line)) {
+      lineno++;
+      std::pair<StringRef, StringRef> p = StringRef(line).split(" ");
+
+      if (p.second.equals("")) {
+        errs() << "Syntax error in exclusion/inclusion file " << fileName << ":"
+               << lineno << "\n";
+        report_fatal_error("libVFCInstrument fatal error");
+      } else {
+        if (p.first.trim().equals(mod_name) || p.first.trim().equals("*")) {
+          FunctionSet.insert(p.second.trim());
+        }
+      }
+    }
+
+    loopstream.close();
   }
 
   StructType *getMCAInterfaceType(IRBuilder<> &Builder) {
@@ -135,26 +168,47 @@ struct VfclibInst : public ModulePass {
 
     return StructType::get(
 
-        floatInstFun, floatInstFun, floatInstFun, floatInstFun, floatcompInstFun,
+        floatInstFun, floatInstFun, floatInstFun, floatInstFun,
+        floatcompInstFun,
 
-        doubleInstFun, doubleInstFun, doubleInstFun, doubleInstFun, doublecompInstFun,
-        (void *)0);
+        doubleInstFun, doubleInstFun, doubleInstFun, doubleInstFun,
+        doublecompInstFun, (void *)0);
   }
 
   bool runOnModule(Module &M) {
     bool modified = false;
 
-    // Find the list of functions to instrument
-    // Instrumentation adds stubs to mcalib function which we
-    // never want to instrument.  Therefore it is important to
-    // first find all the functions of interest before
-    // starting instrumentation.
+    // Parse both included and excluded function set
+    parseFunctionSetFile(M, VfclibInstIncludeFile, IncludedFunctionSet);
+    parseFunctionSetFile(M, VfclibInstExcludeFile, ExcludedFunctionSet);
 
+    // Parse instrument single function option (--function)
+    if (!VfclibInstFunction.empty()) {
+      IncludedFunctionSet.insert(VfclibInstFunction);
+      ExcludedFunctionSet.insert("*");
+    }
+
+    // Find the list of functions to instrument
     std::vector<Function *> functions;
     for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
-      const bool is_in =
-          SelectedFunctionSet.find(F->getName()) != SelectedFunctionSet.end();
-      if (SelectedFunctionSet.empty() || is_in) {
+      // White-list
+      if (IncludedFunctionSet.find("*") != IncludedFunctionSet.end() ||
+          IncludedFunctionSet.find(F->getName()) != IncludedFunctionSet.end()) {
+        functions.push_back(&*F);
+        continue;
+      }
+
+      // Black-list
+      if (ExcludedFunctionSet.find("*") != ExcludedFunctionSet.end() ||
+          ExcludedFunctionSet.find(F->getName()) != ExcludedFunctionSet.end()) {
+        continue;
+      }
+
+      // If black-list is empty and while-list is not, we are done
+      if (VfclibInstExcludeFile.empty() && !VfclibInstIncludeFile.empty()) {
+        continue;
+      } else {
+        // Everything else is neither white-listed or black-listed
         functions.push_back(&*F);
       }
     }
@@ -182,7 +236,8 @@ struct VfclibInst : public ModulePass {
     return modified;
   }
 
-  Instruction *replaceScalar(Module &M, BasicBlock &B, Instruction *I, Fops opCode) {
+  Instruction *replaceScalar(Module &M, BasicBlock &B, Instruction *I,
+                             Fops opCode) {
     LLVMContext &Context = M.getContext();
     IRBuilder<> Builder(Context);
     StructType *mca_interface_type = getMCAInterfaceType(Builder);
@@ -206,7 +261,8 @@ struct VfclibInst : public ModulePass {
     // opCodes are ordered in the same order than the struct members :-)
     // There are 5 float members followed by 5 double members.
     int fct_position = opCode;
-    if (baseType->isDoubleTy()) fct_position += 5;
+    if (baseType->isDoubleTy())
+      fct_position += 5;
     // Dereference the member at fct_position
     Value *arg_ptr = CREATE_STRUCT_GEP(mca_interface_type,
                                        current_mca_interface, fct_position);
@@ -216,18 +272,17 @@ struct VfclibInst : public ModulePass {
     // will _replace_ I after it is returned.
     Instruction *newInst;
     if (opCode == FOP_CMP) {
-      FCmpInst * FCI = static_cast<FCmpInst *>(I);
-      newInst =
-        CREATE_CALL3(fct_ptr, I->getOperand(0), I->getOperand(1),
-            Builder.getInt32(FCI->getPredicate()));
+      FCmpInst *FCI = static_cast<FCmpInst *>(I);
+      newInst = CREATE_CALL3(fct_ptr, I->getOperand(0), I->getOperand(1),
+                             Builder.getInt32(FCI->getPredicate()));
     } else {
-      newInst =
-        CREATE_CALL2(fct_ptr, I->getOperand(0), I->getOperand(1));
+      newInst = CREATE_CALL2(fct_ptr, I->getOperand(0), I->getOperand(1));
     }
     return newInst;
   }
 
-  Instruction *replaceVector(Module &M, BasicBlock &B, Instruction *I, Fops opCode) {
+  Instruction *replaceVector(Module &M, BasicBlock &B, Instruction *I,
+                             Fops opCode) {
     LLVMContext &Context = M.getContext();
     IRBuilder<> Builder(Context);
 
@@ -269,22 +324,23 @@ struct VfclibInst : public ModulePass {
     // no need to go through the vtable at this stage.
     Instruction *newInst;
     if (opCode == FOP_CMP) {
-      FCmpInst * FCI = static_cast<FCmpInst *>(I);
-      Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName, retType,
-          opType, opType, Builder.getInt32Ty(), (Type *)0);
+      FCmpInst *FCI = static_cast<FCmpInst *>(I);
+      Constant *hookFunc =
+          M.getOrInsertFunction(mcaFunctionName, retType, opType, opType,
+                                Builder.getInt32Ty(), (Type *)0);
       newInst = CREATE_CALL3(hookFunc, I->getOperand(0), I->getOperand(1),
-          Builder.getInt32(FCI->getPredicate()));
-    }
-    else {
+                             Builder.getInt32(FCI->getPredicate()));
+    } else {
       Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName, retType,
-          opType, opType, (Type *)0);
+                                                 opType, opType, (Type *)0);
       newInst = CREATE_CALL2(hookFunc, I->getOperand(0), I->getOperand(1));
     }
 
     return newInst;
   }
 
-  Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction *I, Fops opCode) {
+  Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction *I,
+                                  Fops opCode) {
     Type *opType = I->getOperand(0)->getType();
     if (opType->isVectorTy()) {
       return replaceVector(M, B, I, opCode);
@@ -342,4 +398,5 @@ struct VfclibInst : public ModulePass {
 } // namespace
 
 char VfclibInst::ID = 0;
-static RegisterPass<VfclibInst> X("vfclibinst", "verificarlo instrument pass", false, false);
+static RegisterPass<VfclibInst> X("vfclibinst", "verificarlo instrument pass",
+                                  false, false);
