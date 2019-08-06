@@ -380,40 +380,35 @@ static inline double _mca_dbin(double a, double b, const int qop) {
 * point operators
 **********************************************************************/
 
-static float _floatadd(float a, float b) { return _mca_sbin(a, b, MCA_ADD); }
+static float _floatadd(float a, float b) {
+  return _mca_sbin(a, b, MCA_ADD);
+}
 
 static float _floatsub(float a, float b) {
-  // return a - b
   return _mca_sbin(a, b, MCA_SUB);
 }
 
 static float _floatmul(float a, float b) {
-  // return a * b
   return _mca_sbin(a, b, MCA_MUL);
 }
 
 static float _floatdiv(float a, float b) {
-  // return a / b
   return _mca_sbin(a, b, MCA_DIV);
 }
 
 static double _doubleadd(double a, double b) {
-  double tmp = _mca_dbin(a, b, MCA_ADD);
-  return tmp;
+  return _mca_dbin(a, b, MCA_ADD);
 }
 
 static double _doublesub(double a, double b) {
-  // return a - b
   return _mca_dbin(a, b, MCA_SUB);
 }
 
 static double _doublemul(double a, double b) {
-  // return a * b
   return _mca_dbin(a, b, MCA_MUL);
 }
 
 static double _doublediv(double a, double b) {
-  // return a / b
   return _mca_dbin(a, b, MCA_DIV);
 }
 
