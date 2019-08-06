@@ -27,7 +27,10 @@ did_not_instrument f2 a
 
 echo "SUBTEST 2: Check that --include (white-list only mode) works with *"
 cat > include.txt <<HERE
+#this is a comment followed by a blank line
+
 * f1
+
 HERE
 verificarlo --verbose -c --include-file include.txt a.c 2> a
 did_instrument f1 a
