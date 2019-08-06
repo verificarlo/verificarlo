@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-THRESHOLD = 1
+THRESHOLD = 2
 
 import sys
 
@@ -14,7 +14,7 @@ for quad, mpfr in zip(file("out_quad"), file("out_mpfr")):
 	max = delta
         print "ERROR:", q, m
 
-if max > THRESHOLD:        
+if max > THRESHOLD:
         print "MAX > THRESHOLD"
 	sys.exit(1)
 

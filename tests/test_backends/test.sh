@@ -16,12 +16,12 @@ Check() {
         export VERIFICARLO_BACKEND="QUAD"
         ./test > out_quad.orig
         cat out_quad.orig | grep 'TEST>' | cut -d'>' -f 2 > out_quad
-        
         ./check.py
         if [ $? -ne 0 ] ; then
             echo "error"
-        else 
-	    echo "ok for precision $PREC"
+            exit 1
+        else
+            echo "ok for precision $PREC"
         fi
     done
 }
@@ -29,8 +29,8 @@ Check() {
 # Test operates at different precisions, and different operands.
 # It compares s': the estimated number of significant digits across the MCA samples.
 
-
 for op in "+" "*" "/" ; do
+    export VERIFICARLO_MCAMODE="MCA"
     echo "Checking $op float"
     verificarlo -D REAL=float -D SAMPLES=1000 -D OPERATION="$op" -O0 -lm --function operate test.c -o test
     Check 24
