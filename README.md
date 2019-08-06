@@ -117,13 +117,6 @@ If you are trying to compile a shared library, such as those built by the Cython
 extension to Python, you can then also set the shared linker environment variable
 (`LDSHARED='verificarlo -shared'`) to enable position-independent linking.
 
-If you only wish to instrument a specific function in your program, use the
-`--function` option:
-
-```bash
-   $ verificarlo *.c -o ./program --function=specificfunction
-```
-
 When invoked with the `--verbose` flag, verificarlo provides detailed output of
 the instrumentation process.
 
@@ -164,6 +157,42 @@ MCA computation always use round-to-zero mode.
 
 In Random Round mode, the exact operations in given virtual precision are
 preserved. 
+
+## Inclusion / Exclusion
+
+If you only wish to instrument a specific function in your program, use the
+`--function` option:
+
+```bash
+   $ verificarlo *.c -o ./program --function=specificfunction
+```
+
+For more complex scenarios, a white-list / black-list mechanism is also available
+through the options `--include-file INCLUSION-FILE` and `--exclude-file EXCLUSION-FILE`.
+
+`INCLUSION-FILE` and `EXCLUSION-FILE` are files specifying which modules and
+functions should be included or excluded from Verificarlo instrumentation.
+Each line has a module name followed by a function name. Both the module or
+function name can be replaced by the wildcard `*`. Empty lines or lines
+starting with `#` are ignored.
+
+```
+# include.txt
+# this inclusion file will instrument f1 in main.c and util.c, and instrument
+# f2 in util.c everything else will be excluded.
+main f1
+util f1
+util f2
+
+# exclude.txt
+# this exclusion file will exclude f3 from all modules and all functions in
+# module3.c
+* f3
+module3 *
+```
+
+Inclusion and exclusion files can be used together, in that case inclusion
+takes precedence over inclusion.
 
 ### Examples
 
@@ -237,6 +266,9 @@ For questions, feedbacks or discussions about Verificarlo you can join our group
 https://groups.google.com/forum/#!forum/verificarlo
 
 ### License
+Copyright (c) 2019
+   Verificarlo Contributors
+
 Copyright (c) 2018
    Universite de Versailles St-Quentin-en-Yvelines
 
