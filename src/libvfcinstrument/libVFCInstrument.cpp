@@ -116,7 +116,12 @@ struct VfclibInst : public ModulePass {
     StringRef mod_name = StringRef(M.getModuleIdentifier()).drop_back(5);
     while (std::getline(loopstream, line)) {
       lineno++;
-      std::pair<StringRef, StringRef> p = StringRef(line).split(" ");
+      StringRef l = StringRef(line);
+      // Ignore empty or commented lines
+      if (l.startswith("#") || l.trim() == "") {
+        continue;
+      }
+      std::pair<StringRef, StringRef> p = l.split(" ");
 
       if (p.second.equals("")) {
         errs() << "Syntax error in exclusion/inclusion file " << fileName << ":"
