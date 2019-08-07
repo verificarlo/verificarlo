@@ -50,19 +50,25 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "../../common/float_const.h"
 #include "../../common/interflop.h"
 #include "../../common/tinymt64.h"
+
+#include "quadmath-imp.h"
+
+// define the available MCA modes of operation
+#define MCAMODE_IEEE 0
+#define MCAMODE_MCA  1
+#define MCAMODE_PB   2
+#define MCAMODE_RR   3
 
 /* define default environment variables and default parameters */
 #define MCA_PRECISION "VERIFICARLO_PRECISION"
 #define MCA_MODE "VERIFICARLO_MCAMODE"
 #define MCA_PRECISION_DEFAULT 53
-#define VERIFICARLO_MCAMODE_DEFAULT MCAMODE_MCA
+#define MCAMODE_DEFAULT MCAMODE_MCA
 
-#include "mca_const.h"
-#include "quadmath-imp.h"
-
-static int MCALIB_OP_TYPE = MCAMODE_IEEE;
+static int MCALIB_OP_TYPE = MCAMODE_DEFAULT;
 static int MCALIB_T = 53;
 
 // possible op values
@@ -423,7 +429,8 @@ static void _interflop_div_double(double a, double b, double *c,
 struct interflop_backend_interface_t interflop_init(void **context) {
   char *endptr;
 
-  int mca_precision, mca_mode;
+  int mca_precision = MCA_PRECISION_DEFAULT;
+  int mca_mode = MCAMODE_DEFAULT;
 
   /* If INTERFLOP_MCA_PRECISION is set, try to parse it */
   char *precision = getenv(MCA_PRECISION);

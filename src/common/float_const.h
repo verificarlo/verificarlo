@@ -1,9 +1,3 @@
-// define the available MCA modes of operation
-#define MCAMODE_IEEE 0
-#define MCAMODE_MCA  1
-#define MCAMODE_PB   2
-#define MCAMODE_RR   3
-
 //Round to nearest using cast
 //Works for standard type, aka double to float, if the ieee rounding flag is set to nearest
 //WARNING: For quad to double we notice that the behavior is always round toward zero
