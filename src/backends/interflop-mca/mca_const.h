@@ -1,3 +1,9 @@
+// define the available MCA modes of operation
+#define MCAMODE_IEEE 0
+#define MCAMODE_MCA  1
+#define MCAMODE_PB   2
+#define MCAMODE_RR   3
+
 //Round to nearest using cast
 //Works for standard type, aka double to float, if the ieee rounding flag is set to nearest
 //WARNING: For quad to double we notice that the behavior is always round toward zero
@@ -7,7 +13,7 @@
 
 //Quad precision exponent encoding size
 #define QUAD_EXP_SIZE      15
-//Quad precision pseudo mantissa encoding size 
+//Quad precision pseudo mantissa encoding size
 #define QUAD_PMAN_SIZE  112
 //Quad precision pseudo mantissa encoding size in the word containing the 64 msb
 #define QUAD_HX_PMAN_SIZE  48
@@ -38,7 +44,7 @@
 #define DOUBLE_EXP_SIZE    11
 //Double precision pseudo-mantissa encoding size
 #define DOUBLE_PMAN_SIZE   52
-//Double precision mantissa size 
+//Double precision mantissa size
 #define DOUBLE_PREC        53
 //Double precison exponent complement
 #define DOUBLE_EXP_COMP    1023

@@ -1,27 +1,27 @@
-/********************************************************************************
- *                                                                              *
- *  This file is part of Verificarlo.                                           *
- *                                                                              *
- *  Copyright (c) 2015                                                          *
- *     Universite de Versailles St-Quentin-en-Yvelines                          *
- *     CMLA, Ecole Normale Superieure de Cachan                                 *
- *  Copyright (c) 2018                                                          *
- *     Universite de Versailles St-Quentin-en-Yvelines                          *
- *                                                                              *
- *  Verificarlo is free software: you can redistribute it and/or modify         *
- *  it under the terms of the GNU General Public License as published by        *
- *  the Free Software Foundation, either version 3 of the License, or           *
- *  (at your option) any later version.                                         *
- *                                                                              *
- *  Verificarlo is distributed in the hope that it will be useful,              *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of              *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               *
- *  GNU General Public License for more details.                                *
- *                                                                              *
- *  You should have received a copy of the GNU General Public License           *
- *  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.        *
- *                                                                              *
- ********************************************************************************/
+/*****************************************************************************
+ *                                                                           *
+ *  This file is part of Verificarlo.                                        *
+ *                                                                           *
+ *  Copyright (c) 2015                                                       *
+ *     Universite de Versailles St-Quentin-en-Yvelines                       *
+ *     CMLA, Ecole Normale Superieure de Cachan                              *
+ *  Copyright (c) 2018                                                       *
+ *     Universite de Versailles St-Quentin-en-Yvelines                       *
+ *                                                                           *
+ *  Verificarlo is free software: you can redistribute it and/or modify      *
+ *  it under the terms of the GNU General Public License as published by     *
+ *  the Free Software Foundation, either version 3 of the License, or        *
+ *  (at your option) any later version.                                      *
+ *                                                                           *
+ *  Verificarlo is distributed in the hope that it will be useful,           *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
+ *  GNU General Public License for more details.                             *
+ *                                                                           *
+ *  You should have received a copy of the GNU General Public License        *
+ *  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.     *
+ *                                                                           *
+ *****************************************************************************/
 
 // Changelog:
 //
@@ -39,7 +39,9 @@
 //
 // 2017-04-25 Rewrite debug and validate the noise addition operation
 //
+// 2019-08-07 Fix memory leak and convert to interflop
 
+#include <errno.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -47,13 +49,18 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <stdbool.h>
 
-#include "../common/mca_const.h"
-#include "../common/quadmath-imp.h"
-#include "../common/tinymt64.h"
-#include "../vfcwrapper/vfcwrapper.h"
-#include "libmca-quad.h"
+#include "../../common/interflop.h"
+#include "../../common/tinymt64.h"
+
+/* define default environment variables and default parameters */
+#define MCA_PRECISION "VERIFICARLO_PRECISION"
+#define MCA_MODE "VERIFICARLO_MCAMODE"
+#define MCA_PRECISION_DEFAULT 53
+#define VERIFICARLO_MCAMODE_DEFAULT MCAMODE_MCA
+
+#include "mca_const.h"
+#include "quadmath-imp.h"
 
 static int MCALIB_OP_TYPE = MCAMODE_IEEE;
 static int MCALIB_T = 53;
@@ -71,9 +78,9 @@ static float _mca_sbin(float a, float b, int qop);
 static double _mca_dbin(double a, double b, int qop);
 
 /******************** MCA CONTROL FUNCTIONS *******************
-* The following functions are used to set virtual precision and
-* MCA mode of operation.
-***************************************************************/
+ * The following functions are used to set virtual precision and
+ * MCA mode of operation.
+ ***************************************************************/
 
 static int _set_mca_mode(int mode) {
   if (mode < 0 || mode > 3)
@@ -89,9 +96,9 @@ static int _set_mca_precision(int precision) {
 }
 
 /******************** MCA RANDOM FUNCTIONS ********************
-* The following functions are used to calculate the random
-* perturbations used for MCA
-***************************************************************/
+ * The following functions are used to calculate the random
+ * perturbations used for MCA
+ ***************************************************************/
 
 /* random generator internal state */
 static tinymt64_t random_state;
@@ -103,8 +110,7 @@ static double _mca_rand(void) {
 
 static inline double pow2d(int exp) {
   double res = 0;
-  uint64_t *x = malloc(sizeof(uint64_t));
-
+  uint64_t x[1];
   // specials
   if (exp == 0)
     return 1;
@@ -154,7 +160,7 @@ static inline uint32_t rexpd(double x) {
   return exp;
 }
 
-__float128 qnoise(int exp) {
+static inline __float128 qnoise(int exp) {
   double d_rand = (_mca_rand() - 0.5);
   uint64_t u_rand = *((uint64_t *)&d_rand);
   __float128 noise;
@@ -198,8 +204,6 @@ __float128 qnoise(int exp) {
       uint64_t u_lx = u_rand >> (-exp - QUAD_EXP_MIN - QUAD_HX_PMAN_SIZE);
       SET_FLT128_WORDS64(noise, u_hx, u_lx);
     }
-    int prec = 20;
-    int width = 46;
     // char buf[128];
     // int len=quadmath_snprintf (buf, sizeof(buf), "%+-#*.20Qe", width, noise);
     // if ((size_t) len < sizeof(buf))
@@ -220,8 +224,6 @@ __float128 qnoise(int exp) {
   lx = (p_mantissa) << (SIGN_SIZE + DOUBLE_EXP_SIZE +
                         QUAD_HX_PMAN_SIZE); // 60=1(s)+11(exp double)+48(hx)
   SET_FLT128_WORDS64(noise, hx, lx);
-  int prec = 20;
-  int width = 46;
   return noise;
 }
 
@@ -273,6 +275,7 @@ static int _mca_inexactq(__float128 *qa) {
   int32_t e_n = e_a - (MCALIB_T - 1);
   __float128 noise = qnoise(e_n);
   *qa = noise + *qa;
+  return 1;
 }
 
 static int _mca_inexactd(double *da) {
@@ -291,6 +294,7 @@ static int _mca_inexactd(double *da) {
   int32_t e_n = e_a - (MCALIB_T - 1);
   double d_rand = (_mca_rand() - 0.5);
   *da = *da + pow2d(e_n) * d_rand;
+  return 1;
 }
 
 static void _mca_seed(void) {
@@ -308,11 +312,11 @@ static void _mca_seed(void) {
 }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
-* The following set of functions perform the MCA operation. Operands
-* are first converted to quad  format (GCC), inbound and outbound
-* perturbations are applied using the _mca_inexact function, and the
-* result converted to the original format for return
-*******************************************************************/
+ * The following set of functions perform the MCA operation. Operands
+ * are first converted to quad  format (GCC), inbound and outbound
+ * perturbations are applied using the _mca_inexact function, and the
+ * result converted to the original format for return
+ *******************************************************************/
 
 // perform_bin_op: applies the binary operator (op) to (a) and (b)
 // and stores the result in (res)
@@ -375,86 +379,102 @@ static inline double _mca_dbin(double a, double b, const int qop) {
 }
 
 /************************* FPHOOKS FUNCTIONS *************************
-* These functions correspond to those inserted into the source code
-* during source to source compilation and are replacement to floating
-* point operators
-**********************************************************************/
+ * These functions correspond to those inserted into the source code
+ * during source to source compilation and are replacement to floating
+ * point operators
+ **********************************************************************/
 
-static float _floatadd(float a, float b) {
-  return _mca_sbin(a, b, MCA_ADD);
+static void _interflop_add_float(float a, float b, float *c, void *context) {
+  *c = _mca_sbin(a, b, MCA_ADD);
 }
 
-static float _floatsub(float a, float b) {
-  return _mca_sbin(a, b, MCA_SUB);
+static void _interflop_sub_float(float a, float b, float *c, void *context) {
+  *c = _mca_sbin(a, b, MCA_SUB);
 }
 
-static float _floatmul(float a, float b) {
-  return _mca_sbin(a, b, MCA_MUL);
+static void _interflop_mul_float(float a, float b, float *c, void *context) {
+  *c = _mca_sbin(a, b, MCA_MUL);
 }
 
-static float _floatdiv(float a, float b) {
-  return _mca_sbin(a, b, MCA_DIV);
+static void _interflop_div_float(float a, float b, float *c, void *context) {
+  *c = _mca_sbin(a, b, MCA_DIV);
 }
 
-static double _doubleadd(double a, double b) {
-  return _mca_dbin(a, b, MCA_ADD);
+static void _interflop_add_double(double a, double b, double *c,
+                                  void *context) {
+  *c = _mca_dbin(a, b, MCA_ADD);
 }
 
-static double _doublesub(double a, double b) {
-  return _mca_dbin(a, b, MCA_SUB);
+static void _interflop_sub_double(double a, double b, double *c,
+                                  void *context) {
+  *c = _mca_dbin(a, b, MCA_SUB);
 }
 
-static double _doublemul(double a, double b) {
-  return _mca_dbin(a, b, MCA_MUL);
+static void _interflop_mul_double(double a, double b, double *c,
+                                  void *context) {
+  *c = _mca_dbin(a, b, MCA_MUL);
 }
 
-static double _doublediv(double a, double b) {
-  return _mca_dbin(a, b, MCA_DIV);
+static void _interflop_div_double(double a, double b, double *c,
+                                  void *context) {
+  *c = _mca_dbin(a, b, MCA_DIV);
 }
 
-static bool _floatcmp(float a, float b, enum FCMP_PREDICATE p) {
-  switch(p) {
-    case FCMP_FALSE: return false;
-    case FCMP_OEQ: return ((!isnan(a))&&(!isnan(b))&&(a==b));
-    case FCMP_OGT: return ((!isnan(a))&&(!isnan(b))&&(a>b));
-    case FCMP_OGE: return ((!isnan(a))&&(!isnan(b))&&(a>=b));
-    case FCMP_OLT: return ((!isnan(a))&&(!isnan(b))&&(a<b));
-    case FCMP_OLE: return ((!isnan(a))&&(!isnan(b))&&(a<=b));
-    case FCMP_ONE: return ((!isnan(a))&&(!isnan(b))&&(a!=b));
-    case FCMP_ORD: return ((!isnan(a))&&(!isnan(b)));
-    case FCMP_UEQ: return ((!isnan(a))||(!isnan(b))||(a==b));
-    case FCMP_UGT: return ((!isnan(a))||(!isnan(b))||(a>b));
-    case FCMP_UGE: return ((!isnan(a))||(!isnan(b))||(a>=b));
-    case FCMP_ULT: return ((!isnan(a))||(!isnan(b))||(a<b));
-    case FCMP_ULE: return ((!isnan(a))||(!isnan(b))||(a<=b));
-    case FCMP_UNE: return ((!isnan(a))||(!isnan(b))||(a!=b));
-    case FCMP_UNO: return ((!isnan(a))||(!isnan(b)));
-    case FCMP_TRUE: return true;
+struct interflop_backend_interface_t interflop_init(void **context) {
+  char *endptr;
+
+  int mca_precision, mca_mode;
+
+  /* If INTERFLOP_MCA_PRECISION is set, try to parse it */
+  char *precision = getenv(MCA_PRECISION);
+  if (precision != NULL) {
+    errno = 0;
+    int val = strtol(precision, &endptr, 10);
+    if (errno != 0 || val <= 0) {
+      /* Invalid value provided */
+      fprintf(stderr,
+              MCA_PRECISION " invalid value provided, defaulting to default\n");
+    } else {
+      mca_precision = val;
+    }
   }
-}
 
-static bool _doublecmp(double a, double b, enum FCMP_PREDICATE p) {
-  switch(p) {
-    case FCMP_FALSE: return false;
-    case FCMP_OEQ: return ((!isnan(a))&&(!isnan(b))&&(a==b));
-    case FCMP_OGT: return ((!isnan(a))&&(!isnan(b))&&(a>b));
-    case FCMP_OGE: return ((!isnan(a))&&(!isnan(b))&&(a>=b));
-    case FCMP_OLT: return ((!isnan(a))&&(!isnan(b))&&(a<b));
-    case FCMP_OLE: return ((!isnan(a))&&(!isnan(b))&&(a<=b));
-    case FCMP_ONE: return ((!isnan(a))&&(!isnan(b))&&(a!=b));
-    case FCMP_ORD: return ((!isnan(a))&&(!isnan(b)));
-    case FCMP_UEQ: return ((!isnan(a))||(!isnan(b))||(a==b));
-    case FCMP_UGT: return ((!isnan(a))||(!isnan(b))||(a>b));
-    case FCMP_UGE: return ((!isnan(a))||(!isnan(b))||(a>=b));
-    case FCMP_ULT: return ((!isnan(a))||(!isnan(b))||(a<b));
-    case FCMP_ULE: return ((!isnan(a))||(!isnan(b))||(a<=b));
-    case FCMP_UNE: return ((!isnan(a))||(!isnan(b))||(a!=b));
-    case FCMP_UNO: return ((!isnan(a))||(!isnan(b)));
-    case FCMP_TRUE: return true;
+  _set_mca_precision(mca_precision);
+
+  /* If INTERFLOP_MCA_MODE is set, try to parse it */
+  char *mode = getenv(MCA_MODE);
+  if (mode != NULL) {
+    if (strcmp("IEEE", mode) == 0) {
+      mca_mode = MCAMODE_IEEE;
+    } else if (strcmp("MCA", mode) == 0) {
+      mca_mode = MCAMODE_MCA;
+    } else if (strcmp("PB", mode) == 0) {
+      mca_mode = MCAMODE_PB;
+    } else if (strcmp("RR", mode) == 0) {
+      mca_mode = MCAMODE_RR;
+    } else {
+      /* Invalid value provided */
+      fprintf(stderr,
+              MCA_MODE " invalid value provided, defaulting to default\n");
+    }
   }
-}
 
-struct mca_interface_t quad_mca_interface = {
-    _floatadd, _floatsub, _floatmul, _floatdiv, _floatcmp,
-    _doubleadd, _doublesub, _doublemul, _doublediv, _doublecmp,
-    _mca_seed,  _set_mca_mode, _set_mca_precision};
+  _set_mca_mode(mca_mode);
+
+  struct interflop_backend_interface_t interflop_backend_mca = {
+      _interflop_add_float,
+      _interflop_sub_float,
+      _interflop_mul_float,
+      _interflop_div_float,
+      NULL,
+      _interflop_add_double,
+      _interflop_sub_double,
+      _interflop_mul_double,
+      _interflop_div_double,
+      NULL};
+
+  /* Initialize the random seed */
+  _mca_seed();
+
+  return interflop_backend_mca;
+}
