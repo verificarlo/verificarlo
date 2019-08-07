@@ -1,11 +1,13 @@
 Verificarlo CHANGELOG
 
-UNRELEASED
-    * Unstable branch detection
-    * Branch instrumentation
+[v0.2.2] 2019/08/07
+    * Unstable branch detection with gcov
+    * Branch instrumentation of FCMP instructions
     * Fixed linking of shared libraries
     * Fixed shell expansion in optional arguments
+    * Fix bug with configure LLVM flags in m4/ax_llvm
     * Improved support for complex inclusion/exclusion schemes
+    * Add new tests
 
 [v0.2.1] 2018/11/22
     * Support for LLVM up to 4.0.1
