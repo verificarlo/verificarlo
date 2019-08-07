@@ -52,13 +52,13 @@ __attribute__((constructor)) static void vfc_init(void) {
   /* For each backend, load and register the backend vtable interface */
   char *token = strtok(vfc_backends, " ");
   while (token) {
-    warn("Loading backend %s", token);
-
     /* load the backend .so */
     void *handle = dlopen(token, RTLD_NOW);
     if (handle == NULL) {
-      errx(1, "Cannot load backend %s: %s", token, strerror(errno));
+      errx(1, "Cannot load backend %s: dlopen error", token);
     }
+
+    warn("Loading backend %s", token);
 
     /* reset dl errors */
     dlerror();
