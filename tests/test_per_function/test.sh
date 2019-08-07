@@ -1,5 +1,6 @@
 #!/bin/bash
 
+export VFC_BACKENDS="libinterflop_mca.so"
 verificarlo test.c -o test --function=f
 
 export VERIFICARLO_PRECISION=40

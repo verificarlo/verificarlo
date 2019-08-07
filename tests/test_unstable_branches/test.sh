@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export VFC_BACKENDS="libinterflop_mca.so"
+
 source ../paths.sh
 
 # Clean up previous coverage files

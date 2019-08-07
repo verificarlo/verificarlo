@@ -1,4 +1,5 @@
 #!/bin/bash
+export VFC_BACKENDS="libinterflop_mca.so"
 
 # Compile program with -O2
 verificarlo -O2 test.c -o test

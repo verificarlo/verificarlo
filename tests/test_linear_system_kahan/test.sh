@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+export VFC_BACKENDS="libinterflop_mca.so"
 export VERIFICARLO_PRECISION=53
 
 verificarlo --function solve -O0 linear.c -o test

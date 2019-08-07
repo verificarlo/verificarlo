@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+export VFC_BACKENDS="libinterflop_mca.so"
 
 # Compile tchebychev.c using MCA lib instrumentation
 

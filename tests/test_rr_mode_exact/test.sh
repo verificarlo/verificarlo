@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+export VFC_BACKENDS="libinterflop_mca.so"
 export VERIFICARLO_PRECISION=24
 export VERIFICARLO_MCAMODE=RR
 
