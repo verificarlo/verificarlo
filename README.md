@@ -1,6 +1,6 @@
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
-## Verificarlo v0.2.1
+## Verificarlo v0.2.2
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
 
