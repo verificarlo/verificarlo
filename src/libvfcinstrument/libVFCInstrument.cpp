@@ -137,49 +137,6 @@ struct VfclibInst : public ModulePass {
     loopstream.close();
   }
 
-  StructType *getMCAInterfaceType(IRBuilder<> &Builder) {
-
-    // Verificarlo instrumentation calls the mca backend using
-    // a vtable implemented as a structure.
-    //
-    // Here we declare the struct type corresponding to the
-    // mca_interface_t defined in ../vfcwrapper/vfcwrapper.h
-    //
-    // Only the functions instrumented are declared. The last
-    // three functions are user called functions and are not
-    // needed here.
-
-    SmallVector<Type *, 2> floatArgs, doubleArgs, floatCmpArgs, doubleCmpArgs;
-    floatArgs.push_back(Builder.getFloatTy());
-    floatArgs.push_back(Builder.getFloatTy());
-    doubleArgs.push_back(Builder.getDoubleTy());
-    doubleArgs.push_back(Builder.getDoubleTy());
-    floatCmpArgs.push_back(Builder.getFloatTy());
-    floatCmpArgs.push_back(Builder.getFloatTy());
-    floatCmpArgs.push_back(Builder.getInt8Ty());
-    doubleCmpArgs.push_back(Builder.getDoubleTy());
-    doubleCmpArgs.push_back(Builder.getDoubleTy());
-    doubleCmpArgs.push_back(Builder.getInt32Ty());
-
-    PointerType *floatInstFun = PointerType::getUnqual(
-        FunctionType::get(Builder.getFloatTy(), floatArgs, false));
-    PointerType *doubleInstFun = PointerType::getUnqual(
-        FunctionType::get(Builder.getDoubleTy(), doubleArgs, false));
-
-    PointerType *floatcompInstFun = PointerType::getUnqual(
-        FunctionType::get(Builder.getInt1Ty(), floatCmpArgs, false));
-    PointerType *doublecompInstFun = PointerType::getUnqual(
-        FunctionType::get(Builder.getInt1Ty(), doubleCmpArgs, false));
-
-    return StructType::get(
-
-        floatInstFun, floatInstFun, floatInstFun, floatInstFun,
-        floatcompInstFun,
-
-        doubleInstFun, doubleInstFun, doubleInstFun, doubleInstFun,
-        doublecompInstFun, (void *)0);
-  }
-
   bool runOnModule(Module &M) {
     bool modified = false;
 
@@ -241,75 +198,33 @@ struct VfclibInst : public ModulePass {
     return modified;
   }
 
-  Instruction *replaceScalar(Module &M, BasicBlock &B, Instruction *I,
-                             Fops opCode) {
+  Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction *I,
+                                  Fops opCode) {
     LLVMContext &Context = M.getContext();
     IRBuilder<> Builder(Context);
-    StructType *mca_interface_type = getMCAInterfaceType(Builder);
 
     Type *opType = I->getOperand(0)->getType();
-    Type *baseType = opType;
-
-    // We use a builder adding instructions before the
-    // instruction to replace
-    Builder.SetInsertPoint(I);
-
-    // Get a pointer to the global vtable
-    // The vtable is accessed through the global structure
-    // _vfc_current_mca_interface of type mca_interface_t which is
-    // declared in ../vfcwrapper/vfcwrapper.c
-
-    Constant *current_mca_interface =
-        M.getOrInsertGlobal("_vfc_current_mca_interface", mca_interface_type);
-
-    // Compute the position of the required member fct pointer
-    // opCodes are ordered in the same order than the struct members :-)
-    // There are 5 float members followed by 5 double members.
-    int fct_position = opCode;
-    if (baseType->isDoubleTy())
-      fct_position += 5;
-    // Dereference the member at fct_position
-    Value *arg_ptr = CREATE_STRUCT_GEP(mca_interface_type,
-                                       current_mca_interface, fct_position);
-    Value *fct_ptr = Builder.CreateLoad(arg_ptr, "");
-
-    // Create a call instruction. It
-    // will _replace_ I after it is returned.
-    Instruction *newInst;
-    if (opCode == FOP_CMP) {
-      FCmpInst *FCI = static_cast<FCmpInst *>(I);
-      newInst = CREATE_CALL3(fct_ptr, I->getOperand(0), I->getOperand(1),
-                             Builder.getInt32(FCI->getPredicate()));
-    } else {
-      newInst = CREATE_CALL2(fct_ptr, I->getOperand(0), I->getOperand(1));
-    }
-    return newInst;
-  }
-
-  Instruction *replaceVector(Module &M, BasicBlock &B, Instruction *I,
-                             Fops opCode) {
-    LLVMContext &Context = M.getContext();
-    IRBuilder<> Builder(Context);
-
     Type *retType = I->getType();
-    Type *opType = I->getOperand(0)->getType();
     std::string opName = Fops2str[opCode];
 
     std::string baseTypeName = "";
     std::string vectorName = "";
     Type *baseType = opType;
 
-    VectorType *t = static_cast<VectorType *>(opType);
-    baseType = t->getElementType();
-    unsigned size = t->getNumElements();
+    // Should we add a vector prefix?
+    if (opType->isVectorTy()) {
+      VectorType *t = static_cast<VectorType *>(opType);
+      baseType = t->getElementType();
+      unsigned size = t->getNumElements();
 
-    if (size == 2) {
-      vectorName = "2x";
-    } else if (size == 4) {
-      vectorName = "4x";
-    } else {
-      errs() << "Unsuported vector size: " << size << "\n";
-      assert(0);
+      if (size == 2) {
+        vectorName = "2x";
+      } else if (size == 4) {
+        vectorName = "4x";
+      } else {
+        errs() << "Unsuported vector size: " << size << "\n";
+        assert(0);
+      }
     }
 
     // Check the type of the operation
@@ -322,10 +237,10 @@ struct VfclibInst : public ModulePass {
       assert(0);
     }
 
-    // For vector types, helper functions in vfcwrapper are called
+    // Build name of the helper function in vfcwrapper
     std::string mcaFunctionName = "_" + vectorName + baseTypeName + opName;
 
-    // For vector types we call directly a hardcoded helper function
+    // We call directly a hardcoded helper function
     // no need to go through the vtable at this stage.
     Instruction *newInst;
     if (opCode == FOP_CMP) {
@@ -342,16 +257,6 @@ struct VfclibInst : public ModulePass {
     }
 
     return newInst;
-  }
-
-  Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction *I,
-                                  Fops opCode) {
-    Type *opType = I->getOperand(0)->getType();
-    if (opType->isVectorTy()) {
-      return replaceVector(M, B, I, opCode);
-    } else {
-      return replaceScalar(M, B, I, opCode);
-    }
   }
 
   Fops mustReplace(Instruction &I) {
@@ -378,7 +283,6 @@ struct VfclibInst : public ModulePass {
   }
 
   bool runOnBasicBlock(Module &M, BasicBlock &B) {
-
     bool modified = false;
     for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
       Instruction &I = *ii;
