@@ -22,6 +22,7 @@
  *                                                                           *
  *****************************************************************************/
 
+#include <math.h>
 #include <dlfcn.h>
 #include <err.h>
 #include <errno.h>
@@ -32,14 +33,21 @@
 
 #include "interflop.h"
 
+typedef double double2 __attribute__((ext_vector_type(2)));
+typedef double double4 __attribute__((ext_vector_type(4)));
+typedef float float2 __attribute__((ext_vector_type(2)));
+typedef float float4 __attribute__((ext_vector_type(4)));
+typedef bool bool2 __attribute__((ext_vector_type(2)));
+typedef bool bool4 __attribute__((ext_vector_type(4)));
+
+typedef struct interflop_backend_interface_t (*interflop_init_t)(
+    void **context);
+
 #define MAX_BACKENDS 16
 
 struct interflop_backend_interface_t backends[MAX_BACKENDS];
 void *contexts[MAX_BACKENDS];
 unsigned char loaded_backends = 0;
-
-typedef struct interflop_backend_interface_t (*interflop_init_t)(
-    void **context);
 
 /* vfc_init is run when loading vfcwrapper and initializes vfc backends */
 __attribute__((constructor)) static void vfc_init(void) {
@@ -68,7 +76,7 @@ __attribute__((constructor)) static void vfc_init(void) {
         (interflop_init_t)dlsym(handle, "interflop_init");
     const char *dlsym_error = dlerror();
     if (dlsym_error) {
-      errx(1, "Cannot find interflop_init function in backend %s: %s", token,
+      errx(1, "No interflop_init function in backend %s: %s", token,
            strerror(errno));
     }
 
@@ -85,83 +93,32 @@ __attribute__((constructor)) static void vfc_init(void) {
   }
 }
 
-typedef double double2 __attribute__((ext_vector_type(2)));
-typedef double double4 __attribute__((ext_vector_type(4)));
-typedef float float2 __attribute__((ext_vector_type(2)));
-typedef float float4 __attribute__((ext_vector_type(4)));
-typedef bool bool2 __attribute__((ext_vector_type(2)));
-typedef bool bool4 __attribute__((ext_vector_type(4)));
-
 /* Arithmetic wrappers */
 
-float _floatadd(float a, float b) {
-  float c;
-  for (int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_add_float(a, b, &c, NULL);
-  }
-  return c;
+#define define_arithmetic_wrapper(precision, operation) \
+precision _##precision##operation(precision a, precision b) { \
+  precision c = NAN; \
+  for (unsigned char i = 0; i < loaded_backends; i++) { \
+    if (backends[i].interflop_##operation##_##precision) {\
+      backends[i].interflop_##operation##_##precision (a, b, &c, NULL); \
+    } \
+  } \
+  return c; \
 }
 
-float _floatsub(float a, float b) {
-  float c;
-  for (int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_sub_float(a, b, &c, NULL);
-  }
-  return c;
-}
-
-float _floatmul(float a, float b) {
-  float c;
-  for (int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_mul_float(a, b, &c, NULL);
-  }
-  return c;
-}
-
-float _floatdiv(float a, float b) {
-  float c;
-  for (int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_div_float(a, b, &c, NULL);
-  }
-  return c;
-}
+define_arithmetic_wrapper(float, add);
+define_arithmetic_wrapper(float, sub);
+define_arithmetic_wrapper(float, mul);
+define_arithmetic_wrapper(float, div);
+define_arithmetic_wrapper(double, add);
+define_arithmetic_wrapper(double, sub);
+define_arithmetic_wrapper(double, mul);
+define_arithmetic_wrapper(double, div);
 
 bool _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
   bool c;
   for (int i = 0; i < loaded_backends; i++) {
     backends[i].interflop_cmp_float(p, a, b, &c, NULL);
-  }
-  return c;
-}
-
-double _doubleadd(double a, double b) {
-  double c;
-  for (int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_add_double(a, b, &c, NULL);
-  }
-  return c;
-}
-
-double _doublesub(double a, double b) {
-  double c;
-  for (int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_sub_double(a, b, &c, NULL);
-  }
-  return c;
-}
-
-double _doublemul(double a, double b) {
-  double c;
-  for (int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_mul_double(a, b, &c, NULL);
-  }
-  return c;
-}
-
-double _doublediv(double a, double b) {
-  double c;
-  for (int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_div_double(a, b, &c, NULL);
   }
   return c;
 }
@@ -176,129 +133,47 @@ bool _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
 
 /* Arithmetic vector wrappers */
 
-double2 _2xdoubleadd(double2 a, double2 b) {
-  double2 c;
-
-  c[0] = _doubleadd(a[0], b[0]);
-  c[1] = _doubleadd(a[1], b[1]);
-  return c;
+#define define_2x_wrapper(precision, operation) \
+precision##2 _2x##precision##operation(precision##2 a, precision##2 b) { \
+  precision##2 c; \
+  c[0] = _##precision##operation (a[0], b[0]); \
+  c[1] = _##precision##operation (a[1], b[1]); \
+  return c; \
 }
 
-double2 _2xdoublesub(double2 a, double2 b) {
-  double2 c;
-
-  c[0] = _doublesub(a[0], b[0]);
-  c[1] = _doublesub(a[1], b[1]);
-  return c;
+#define define_4x_wrapper(precision, operation) \
+precision##4 _4x##precision##operation(precision##4 a, precision##4 b) { \
+  precision##4 c; \
+  c[0] = _##precision##operation (a[0], b[0]); \
+  c[1] = _##precision##operation (a[1], b[1]); \
+  c[2] = _##precision##operation (a[2], b[2]); \
+  c[3] = _##precision##operation (a[3], b[3]); \
+  return c; \
 }
 
-double2 _2xdoublemul(double2 a, double2 b) {
-  double2 c;
+define_2x_wrapper(float, add);
+define_2x_wrapper(float, sub);
+define_2x_wrapper(float, mul);
+define_2x_wrapper(float, div);
+define_2x_wrapper(double, add);
+define_2x_wrapper(double, sub);
+define_2x_wrapper(double, mul);
+define_2x_wrapper(double, div);
 
-  c[0] = _doublemul(a[0], b[0]);
-  c[1] = _doublemul(a[1], b[1]);
-  return c;
-}
-
-double2 _2xdoublediv(double2 a, double2 b) {
-  double2 c;
-
-  c[0] = _doublediv(a[0], b[0]);
-  c[1] = _doublediv(a[1], b[1]);
-  return c;
-}
+define_4x_wrapper(float, add);
+define_4x_wrapper(float, sub);
+define_4x_wrapper(float, mul);
+define_4x_wrapper(float, div);
+define_4x_wrapper(double, add);
+define_4x_wrapper(double, sub);
+define_4x_wrapper(double, mul);
+define_4x_wrapper(double, div);
 
 bool2 _2xdoublecmp(enum FCMP_PREDICATE p, double2 a, double2 b) {
   bool2 c;
 
   c[0] = _doublecmp(p, a[0], b[0]);
   c[1] = _doublecmp(p, a[1], b[1]);
-  return c;
-}
-
-/*********************************************************/
-
-double4 _4xdoubleadd(double4 a, double4 b) {
-  double4 c;
-
-  c[0] = _doubleadd(a[0], b[0]);
-  c[1] = _doubleadd(a[1], b[1]);
-  c[2] = _doubleadd(a[2], b[2]);
-  c[3] = _doubleadd(a[3], b[3]);
-  return c;
-}
-
-double4 _4xdoublesub(double4 a, double4 b) {
-  double4 c;
-
-  c[0] = _doublesub(a[0], b[0]);
-  c[1] = _doublesub(a[1], b[1]);
-  c[2] = _doublesub(a[2], b[2]);
-  c[3] = _doublesub(a[3], b[3]);
-  return c;
-}
-
-double4 _4xdoublemul(double4 a, double4 b) {
-  double4 c;
-
-  c[0] = _doublemul(a[0], b[0]);
-  c[1] = _doublemul(a[1], b[1]);
-  c[2] = _doublemul(a[2], b[2]);
-  c[3] = _doublemul(a[3], b[3]);
-  return c;
-}
-
-double4 _4xdoublediv(double4 a, double4 b) {
-  double4 c;
-
-  c[0] = _doublediv(a[0], b[0]);
-  c[1] = _doublediv(a[1], b[1]);
-  c[2] = _doublediv(a[2], b[2]);
-  c[3] = _doublediv(a[3], b[3]);
-  return c;
-}
-
-bool4 _4xdoublecmp(enum FCMP_PREDICATE p, double4 a, double4 b) {
-  bool4 c;
-
-  c[0] = _doublecmp(p, a[0], b[0]);
-  c[1] = _doublecmp(p, a[1], b[1]);
-  c[2] = _doublecmp(p, a[2], b[2]);
-  c[3] = _doublecmp(p, a[3], b[3]);
-  return c;
-}
-
-/*********************************************************/
-
-float2 _2xfloatadd(float2 a, float2 b) {
-  float2 c;
-
-  c[0] = _floatadd(a[0], b[0]);
-  c[1] = _floatadd(a[1], b[1]);
-  return c;
-}
-
-float2 _2xfloatsub(float2 a, float2 b) {
-  float2 c;
-
-  c[0] = _floatsub(a[0], b[0]);
-  c[1] = _floatsub(a[1], b[1]);
-  return c;
-}
-
-float2 _2xfloatmul(float2 a, float2 b) {
-  float2 c;
-
-  c[0] = _floatmul(a[0], b[0]);
-  c[1] = _floatmul(a[1], b[1]);
-  return c;
-}
-
-float2 _2xfloatdiv(float2 a, float2 b) {
-  float2 c;
-
-  c[0] = _floatdiv(a[0], b[0]);
-  c[1] = _floatdiv(a[1], b[1]);
   return c;
 }
 
@@ -310,45 +185,13 @@ bool2 _2xfloatcmp(enum FCMP_PREDICATE p, float2 a, float2 b) {
   return c;
 }
 
-/*********************************************************/
+bool4 _4xdoublecmp(enum FCMP_PREDICATE p, double4 a, double4 b) {
+  bool4 c;
 
-float4 _4xfloatadd(float4 a, float4 b) {
-  float4 c;
-
-  c[0] = _floatadd(a[0], b[0]);
-  c[1] = _floatadd(a[1], b[1]);
-  c[2] = _floatadd(a[2], b[2]);
-  c[3] = _floatadd(a[3], b[3]);
-  return c;
-}
-
-float4 _4xfloatsub(float4 a, float4 b) {
-  float4 c;
-
-  c[0] = _floatsub(a[0], b[0]);
-  c[1] = _floatsub(a[1], b[1]);
-  c[2] = _floatsub(a[2], b[2]);
-  c[3] = _floatsub(a[3], b[3]);
-  return c;
-}
-
-float4 _4xfloatmul(float4 a, float4 b) {
-  float4 c;
-
-  c[0] = _floatmul(a[0], b[0]);
-  c[1] = _floatmul(a[1], b[1]);
-  c[2] = _floatmul(a[2], b[2]);
-  c[3] = _floatmul(a[3], b[3]);
-  return c;
-}
-
-float4 _4xfloatdiv(float4 a, float4 b) {
-  float4 c;
-
-  c[0] = _floatdiv(a[0], b[0]);
-  c[1] = _floatdiv(a[1], b[1]);
-  c[2] = _floatdiv(a[2], b[2]);
-  c[3] = _floatdiv(a[3], b[3]);
+  c[0] = _doublecmp(p, a[0], b[0]);
+  c[1] = _doublecmp(p, a[1], b[1]);
+  c[2] = _doublecmp(p, a[2], b[2]);
+  c[3] = _doublecmp(p, a[3], b[3]);
   return c;
 }
 
