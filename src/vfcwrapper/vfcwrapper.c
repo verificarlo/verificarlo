@@ -58,7 +58,7 @@ __attribute__((constructor)) static void vfc_init(void) {
   }
 
   /* For each backend, load and register the backend vtable interface */
-  char *token = strtok(vfc_backends, " ");
+  char *token = strtok(vfc_backends, ";");
   while (token) {
     /* load the backend .so */
     void *handle = dlopen(token, RTLD_NOW);
@@ -90,6 +90,10 @@ __attribute__((constructor)) static void vfc_init(void) {
 
     /* parse next backend token */
     token = strtok(NULL, "");
+  }
+
+  if (loaded_backends == 0) {
+    errx(1, "VFC_BACKENDS syntax error, at least one backend should be provided");
   }
 }
 
