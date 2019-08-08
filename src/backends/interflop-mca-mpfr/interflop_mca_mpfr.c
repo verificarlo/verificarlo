@@ -298,7 +298,8 @@ static void _interflop_div_double(double a, double b, double *c,
   *c = _mca_dbin(a, b, (mpfr_bin)MP_DIV);
 }
 
-struct interflop_backend_interface_t interflop_init(void **context) {
+struct interflop_backend_interface_t interflop_init(int argc, char ** argv,
+    void **context) {
   char *endptr;
 
   int mca_precision = MCA_PRECISION_DEFAULT;

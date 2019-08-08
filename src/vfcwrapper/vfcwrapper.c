@@ -22,10 +22,10 @@
  *                                                                           *
  *****************************************************************************/
 
-#include <math.h>
 #include <dlfcn.h>
 #include <err.h>
 #include <errno.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,9 +41,10 @@ typedef bool bool2 __attribute__((ext_vector_type(2)));
 typedef bool bool4 __attribute__((ext_vector_type(4)));
 
 typedef struct interflop_backend_interface_t (*interflop_init_t)(
-    void **context);
+    int argc, char **argv, void **context);
 
 #define MAX_BACKENDS 16
+#define MAX_ARGS 256
 
 struct interflop_backend_interface_t backends[MAX_BACKENDS];
 void *contexts[MAX_BACKENDS];
@@ -57,11 +58,29 @@ __attribute__((constructor)) static void vfc_init(void) {
     errx(1, "VFC_BACKENDS is empty, at least one backend should be provided");
   }
 
-  /* For each backend, load and register the backend vtable interface */
-  char *token = strtok(vfc_backends, ";");
+  /* For each backend, load and register the backend vtable interface
+     Backends .so are separated by semi-colons in the VFC_BACKENDS
+     env variable */
+  char *semicolonptr;
+  char *token = strtok_r(vfc_backends, ";", &semicolonptr);
   while (token) {
+
+    /* Parse each backend arguments, argv[0] is the backend name */
+    int backend_argc = 0;
+    char *backend_argv[MAX_ARGS];
+    char *spaceptr;
+    char *arg = strtok_r(token, " ", &spaceptr);
+    while (arg) {
+      if (backend_argc >= MAX_ARGS) {
+        errx(1, "VFC_BACKENDS syntax error: too many arguments");
+      }
+      backend_argv[backend_argc++] = arg;
+      arg = strtok_r(NULL, " ", &spaceptr);
+    }
+    backend_argv[backend_argc] = NULL;
+
     /* load the backend .so */
-    void *handle = dlopen(token, RTLD_NOW);
+    void *handle = dlopen(backend_argv[0], RTLD_NOW);
     if (handle == NULL) {
       errx(1, "Cannot load backend %s: dlopen error", token);
     }
@@ -85,30 +104,33 @@ __attribute__((constructor)) static void vfc_init(void) {
       fprintf(stderr, "No more than %d backends can be used simultaneously",
               MAX_BACKENDS);
     }
-    backends[loaded_backends] = handle_init(&contexts[loaded_backends]);
+    backends[loaded_backends] =
+        handle_init(backend_argc, backend_argv, &contexts[loaded_backends]);
     loaded_backends++;
 
     /* parse next backend token */
-    token = strtok(NULL, "");
+    token = strtok_r(NULL, ";", &semicolonptr);
   }
 
   if (loaded_backends == 0) {
-    errx(1, "VFC_BACKENDS syntax error, at least one backend should be provided");
+    errx(1,
+         "VFC_BACKENDS syntax error: at least one backend should be provided");
   }
 }
 
 /* Arithmetic wrappers */
 
-#define define_arithmetic_wrapper(precision, operation) \
-precision _##precision##operation(precision a, precision b) { \
-  precision c = NAN; \
-  for (unsigned char i = 0; i < loaded_backends; i++) { \
-    if (backends[i].interflop_##operation##_##precision) {\
-      backends[i].interflop_##operation##_##precision (a, b, &c, NULL); \
-    } \
-  } \
-  return c; \
-}
+#define define_arithmetic_wrapper(precision, operation)                        \
+  precision _##precision##operation(precision a, precision b) {                \
+    precision c = NAN;                                                         \
+    for (unsigned char i = 0; i < loaded_backends; i++) {                      \
+      if (backends[i].interflop_##operation##_##precision) {                   \
+        backends[i].interflop_##operation##_##precision(a, b, &c,              \
+                                                        contexts[i]);          \
+      }                                                                        \
+    }                                                                          \
+    return c;                                                                  \
+  }
 
 define_arithmetic_wrapper(float, add);
 define_arithmetic_wrapper(float, sub);
@@ -122,7 +144,7 @@ define_arithmetic_wrapper(double, div);
 bool _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
   bool c;
   for (int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_cmp_float(p, a, b, &c, NULL);
+    backends[i].interflop_cmp_float(p, a, b, &c, contexts[i]);
   }
   return c;
 }
@@ -130,30 +152,30 @@ bool _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
 bool _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
   bool c;
   for (int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_cmp_double(p, a, b, &c, NULL);
+    backends[i].interflop_cmp_double(p, a, b, &c, contexts[i]);
   }
   return c;
 }
 
 /* Arithmetic vector wrappers */
 
-#define define_2x_wrapper(precision, operation) \
-precision##2 _2x##precision##operation(precision##2 a, precision##2 b) { \
-  precision##2 c; \
-  c[0] = _##precision##operation (a[0], b[0]); \
-  c[1] = _##precision##operation (a[1], b[1]); \
-  return c; \
-}
+#define define_2x_wrapper(precision, operation)                                \
+  precision##2 _2x##precision##operation(precision##2 a, precision##2 b) {     \
+    precision##2 c;                                                            \
+    c[0] = _##precision##operation(a[0], b[0]);                                \
+    c[1] = _##precision##operation(a[1], b[1]);                                \
+    return c;                                                                  \
+  }
 
-#define define_4x_wrapper(precision, operation) \
-precision##4 _4x##precision##operation(precision##4 a, precision##4 b) { \
-  precision##4 c; \
-  c[0] = _##precision##operation (a[0], b[0]); \
-  c[1] = _##precision##operation (a[1], b[1]); \
-  c[2] = _##precision##operation (a[2], b[2]); \
-  c[3] = _##precision##operation (a[3], b[3]); \
-  return c; \
-}
+#define define_4x_wrapper(precision, operation)                                \
+  precision##4 _4x##precision##operation(precision##4 a, precision##4 b) {     \
+    precision##4 c;                                                            \
+    c[0] = _##precision##operation(a[0], b[0]);                                \
+    c[1] = _##precision##operation(a[1], b[1]);                                \
+    c[2] = _##precision##operation(a[2], b[2]);                                \
+    c[3] = _##precision##operation(a[3], b[3]);                                \
+    return c;                                                                  \
+  }
 
 define_2x_wrapper(float, add);
 define_2x_wrapper(float, sub);

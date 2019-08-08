@@ -39,6 +39,11 @@ struct interflop_backend_interface_t {
 
 /* interflop_init: called at initialization before using a backend.
  * It returns an interflop_backend_interface_t structure with callbacks
- * for each of the numerical instrument hooks */
+ * for each of the numerical instrument hooks.
+ *
+ * argv will be deallocated after the call. If the backends, wants to make it
+ * persistent it should copy it.
+ * */
 
-struct interflop_backend_interface_t interflop_init(void **context);
+struct interflop_backend_interface_t interflop_init(int argc, char **argv,
+                                                    void **context);
