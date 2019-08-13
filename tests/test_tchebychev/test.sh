@@ -1,12 +1,11 @@
 #!/bin/bash
 set -e
-export VFC_BACKENDS="libinterflop_mca.so"
 
 # Compile tchebychev.c using MCA lib instrumentation
 
 # Tchebychev polynom becomes unstable around 1, when computed with
 # single precision
-export VERIFICARLO_PRECISION=23
+export VFC_BACKENDS="libinterflop_mca.so --precision 23"
 
 verificarlo tchebychev.c -o tchebychev
 

@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-export VFC_BACKENDS="libinterflop_mca.so"
 
 source ../paths.sh
 
@@ -25,13 +24,12 @@ gcov_report() {
 }
 
 # First we run the program 50 times in IEEE mode
-export VERIFICARLO_MCAMODE=IEEE
+export VFC_BACKENDS="libinterflop_mca.so --mode ieee"
 gcov_report
 cp unst_branch.c.gcov unst_branch.c.gcov.IEEE
 
 # First we run the program 50 times in RR 53 mode
-export VERIFICARLO_PRECISION=53
-export VERIFICARLO_MCAMODE=RR
+export VFC_BACKENDS="libinterflop_mca.so --mode rr --precision 53"
 gcov_report
 cp unst_branch.c.gcov unst_branch.c.gcov.RR53
 

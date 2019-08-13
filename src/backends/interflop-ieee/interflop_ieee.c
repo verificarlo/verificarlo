@@ -1,13 +1,16 @@
-#include <getopt.h>
+#include <argp.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "../../common/interflop.h"
 
-static int debug = 0;
+typedef struct {
+  int debug;
+} t_context;
+
 #define debug_print(fmt, ...)                                                  \
   do {                                                                         \
-    if (debug)                                                                 \
+    if (((t_context *)context)->debug)                                         \
       fprintf(stderr, fmt, __VA_ARGS__);                                       \
   } while (0)
 
@@ -167,24 +170,31 @@ static void _interflop_cmp_double(enum FCMP_PREDICATE p, double a, double b,
               *c ? "true" : "false");
 }
 
+static struct argp_option options[] = {
+  /* --debug, sets the variable debug = true */
+  {"debug", 'd', 0, 0, "enable debug output"},
+  {0}};
+
+static error_t parse_opt(int key, char *arg, struct argp_state *state) {
+  t_context * ctx = (t_context*) state->input;
+  switch (key)
+    {
+    case 'd':
+      ctx->debug = 1;
+      break;
+    default:
+      return ARGP_ERR_UNKNOWN;
+    }
+}
+
+static struct argp argp = {options, parse_opt, "", ""};
+
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
+  t_context * ctx = malloc(sizeof(t_context));
   /* parse backend arguments */
-  while (1) {
-    static struct option long_options[] = {
-        /* --debug, sets the variable debug = true */
-        {"debug", no_argument, &debug, 1},
-        {0, 0, 0, 0}};
-    int option_index = 0;
-    int c = getopt_long_only(argc, argv, "", long_options, &option_index);
-    /* Detect end of the options or errors */
-    if (c == -1)
-      break;
-    if (c != 0)
-      abort();
-  }
-  /* since backends can be loaded multiple twice, reset getopt state */
-  optind = 1;
+  argp_parse (&argp, argc, argv, 0, 0, ctx);
+  *context = ctx;
 
   struct interflop_backend_interface_t interflop_backend_ieee = {
       _interflop_add_float,  _interflop_sub_float,  _interflop_mul_float,

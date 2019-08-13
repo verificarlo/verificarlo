@@ -53,6 +53,7 @@ unsigned char loaded_backends = 0;
 __attribute__((constructor)) static void vfc_init(void) {
   /* Parse VFC_BACKENDS */
   char *vfc_backends = getenv("VFC_BACKENDS");
+  //fprintf(stderr, "VFC_BACKENDS = %s\n", vfc_backends);
   if (vfc_backends == NULL) {
     errx(1, "VFC_BACKENDS is empty, at least one backend should be provided");
   }

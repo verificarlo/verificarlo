@@ -1,8 +1,7 @@
 #!/bin/bash
 set -e
 
-export VFC_BACKENDS="libinterflop_mca.so"
-export VERIFICARLO_PRECISION=53
+export VFC_BACKENDS="libinterflop_mca.so --precision 24"
 
 verificarlo --function sum_kahan -O0 kahan.c -o test
 

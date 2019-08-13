@@ -41,8 +41,11 @@
 //
 // 2019-08-07 Fix memory leak and convert to interflop
 
+#include <argp.h>
+#include <err.h>
 #include <errno.h>
 #include <math.h>
+#include <strings.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -56,20 +59,20 @@
 
 #include "quadmath-imp.h"
 
-// define the available MCA modes of operation
+/* define the available MCA modes of operation */
 #define MCAMODE_IEEE 0
-#define MCAMODE_MCA  1
-#define MCAMODE_PB   2
-#define MCAMODE_RR   3
+#define MCAMODE_MCA 1
+#define MCAMODE_PB 2
+#define MCAMODE_RR 3
+
+static const char * MCAMODE[] = {"ieee", "mca", "pb", "rr"};
 
 /* define default environment variables and default parameters */
-#define MCA_PRECISION "VERIFICARLO_PRECISION"
-#define MCA_MODE "VERIFICARLO_MCAMODE"
 #define MCA_PRECISION_DEFAULT 53
 #define MCAMODE_DEFAULT MCAMODE_MCA
 
 static int MCALIB_OP_TYPE = MCAMODE_DEFAULT;
-static int MCALIB_T = 53;
+static int MCALIB_T = MCA_PRECISION_DEFAULT;
 
 // possible op values
 #define MCA_ADD 1
@@ -426,48 +429,59 @@ static void _interflop_div_double(double a, double b, double *c,
   *c = _mca_dbin(a, b, MCA_DIV);
 }
 
+
+static struct argp_option options[] = {
+  /* --debug, sets the variable debug = true */
+  {"precision", 'p', "PRECISION", 0, "select precision (PRECISION >= 0)"},
+  {"mode", 'm', "MODE", 0, "select MCA mode among {ieee, mca, pb, rr}"},
+  {0}};
+
+static error_t parse_opt(int key, char *arg, struct argp_state *state) {
+  char *endptr;
+  switch (key)
+    {
+    case 'p':
+      /* precision */
+      errno = 0;
+      int val = strtol(arg, &endptr, 10);
+      if (errno != 0 || val <= 0) {
+        errx(1, "interflop_mca: --precision invalid value provided, must be a positive integer.");
+      } else {
+        _set_mca_precision(val);
+      }
+      break;
+    case 'm':
+      /* mode */
+      if (strcasecmp(MCAMODE[MCAMODE_IEEE], arg) == 0) {
+        _set_mca_mode(MCAMODE_IEEE);
+      } else if (strcasecmp(MCAMODE[MCAMODE_MCA], arg) == 0) {
+        _set_mca_mode(MCAMODE_MCA);
+      } else if (strcasecmp(MCAMODE[MCAMODE_PB], arg) == 0) {
+        _set_mca_mode(MCAMODE_PB);
+      } else if (strcasecmp(MCAMODE[MCAMODE_RR], arg) == 0) {
+        _set_mca_mode(MCAMODE_RR);
+      } else {
+        errx(1, "interflop_mca: --mode invalid value provided, must be one of: {ieee, mca, pb, rr}.");
+      }
+      break;
+    default:
+      return ARGP_ERR_UNKNOWN;
+    }
+  return 0;
+}
+
+static struct argp argp = {options, parse_opt, "", ""};
+
 struct interflop_backend_interface_t interflop_init(int argc, char ** argv,
     void **context) {
-  char *endptr;
 
-  int mca_precision = MCA_PRECISION_DEFAULT;
-  int mca_mode = MCAMODE_DEFAULT;
+  _set_mca_precision(MCA_PRECISION_DEFAULT);
+  _set_mca_mode(MCAMODE_DEFAULT);
 
-  /* If INTERFLOP_MCA_PRECISION is set, try to parse it */
-  char *precision = getenv(MCA_PRECISION);
-  if (precision != NULL) {
-    errno = 0;
-    int val = strtol(precision, &endptr, 10);
-    if (errno != 0 || val <= 0) {
-      /* Invalid value provided */
-      fprintf(stderr,
-              MCA_PRECISION " invalid value provided, defaulting to default\n");
-    } else {
-      mca_precision = val;
-    }
-  }
+  /* parse backend arguments */
+  argp_parse (&argp, argc, argv, 0, 0, 0);
 
-  _set_mca_precision(mca_precision);
-
-  /* If INTERFLOP_MCA_MODE is set, try to parse it */
-  char *mode = getenv(MCA_MODE);
-  if (mode != NULL) {
-    if (strcmp("IEEE", mode) == 0) {
-      mca_mode = MCAMODE_IEEE;
-    } else if (strcmp("MCA", mode) == 0) {
-      mca_mode = MCAMODE_MCA;
-    } else if (strcmp("PB", mode) == 0) {
-      mca_mode = MCAMODE_PB;
-    } else if (strcmp("RR", mode) == 0) {
-      mca_mode = MCAMODE_RR;
-    } else {
-      /* Invalid value provided */
-      fprintf(stderr,
-              MCA_MODE " invalid value provided, defaulting to default\n");
-    }
-  }
-
-  _set_mca_mode(mca_mode);
+  warnx("interflop_mca: loaded backend with precision = %d and mode = %s", MCALIB_T, MCAMODE[MCALIB_OP_TYPE]);
 
   struct interflop_backend_interface_t interflop_backend_mca = {
       _interflop_add_float,
