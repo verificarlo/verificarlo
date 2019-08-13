@@ -26,15 +26,15 @@ struct interflop_backend_interface_t {
   void (*interflop_sub_float)(float a, float b, float *c, void *context);
   void (*interflop_mul_float)(float a, float b, float *c, void *context);
   void (*interflop_div_float)(float a, float b, float *c, void *context);
-  void (*interflop_cmp_float)(enum FCMP_PREDICATE p, float a, float b, bool *c,
+  void (*interflop_cmp_float)(enum FCMP_PREDICATE p, float a, float b, int *c,
                               void *context);
 
   void (*interflop_add_double)(double a, double b, double *c, void *context);
   void (*interflop_sub_double)(double a, double b, double *c, void *context);
   void (*interflop_mul_double)(double a, double b, double *c, void *context);
   void (*interflop_div_double)(double a, double b, double *c, void *context);
-  void (*interflop_cmp_double)(enum FCMP_PREDICATE p, double a, double b, bool *c,
-                               void *context);
+  void (*interflop_cmp_double)(enum FCMP_PREDICATE p, double a, double b,
+                               int *c, void *context);
 };
 
 /* interflop_init: called at initialization before using a backend.

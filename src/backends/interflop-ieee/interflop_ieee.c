@@ -1,11 +1,10 @@
 #include <getopt.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "../../common/interflop.h"
 
-static int debug = false;
+static int debug = 0;
 #define debug_print(fmt, ...)                                                  \
   do {                                                                         \
     if (debug)                                                                 \
@@ -33,42 +32,59 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
 }
 
 static void _interflop_cmp_float(enum FCMP_PREDICATE p, float a, float b,
-                                 bool *c, void *context) {
+                                 int *c, void *context) {
   switch (p) {
   case FCMP_FALSE:
-    *c = false;
+    *c = 0;
+    break;
   case FCMP_OEQ:
     *c = ((!isnan(a)) && (!isnan(b)) && (a == b));
+    break;
   case FCMP_OGT:
     *c = ((!isnan(a)) && (!isnan(b)) && (a > b));
+    break;
   case FCMP_OGE:
     *c = ((!isnan(a)) && (!isnan(b)) && (a >= b));
+    break;
   case FCMP_OLT:
     *c = ((!isnan(a)) && (!isnan(b)) && (a < b));
+    break;
   case FCMP_OLE:
     *c = ((!isnan(a)) && (!isnan(b)) && (a <= b));
+    break;
   case FCMP_ONE:
     *c = ((!isnan(a)) && (!isnan(b)) && (a != b));
+    break;
   case FCMP_ORD:
     *c = ((!isnan(a)) && (!isnan(b)));
+    break;
   case FCMP_UEQ:
     *c = ((!isnan(a)) || (!isnan(b)) || (a == b));
+    break;
   case FCMP_UGT:
     *c = ((!isnan(a)) || (!isnan(b)) || (a > b));
+    break;
   case FCMP_UGE:
     *c = ((!isnan(a)) || (!isnan(b)) || (a >= b));
+    break;
   case FCMP_ULT:
     *c = ((!isnan(a)) || (!isnan(b)) || (a < b));
+    break;
   case FCMP_ULE:
     *c = ((!isnan(a)) || (!isnan(b)) || (a <= b));
+    break;
   case FCMP_UNE:
     *c = ((!isnan(a)) || (!isnan(b)) || (a != b));
+    break;
   case FCMP_UNO:
     *c = ((!isnan(a)) || (!isnan(b)));
+    break;
   case FCMP_TRUE:
-    *c = true;
+    *c = 1;
+    break;
   }
-  debug_print("interflop_ieee %g FCMP(%d) %g -> %g\n", a, p, b, *c);
+  debug_print("interflop_ieee %g FCMP(%d) %g -> %s\n", a, p, b,
+              *c ? "true" : "false");
 }
 
 static void _interflop_add_double(double a, double b, double *c,
@@ -96,42 +112,59 @@ static void _interflop_div_double(double a, double b, double *c,
 }
 
 static void _interflop_cmp_double(enum FCMP_PREDICATE p, double a, double b,
-                                  bool *c, void *context) {
+                                  int *c, void *context) {
   switch (p) {
   case FCMP_FALSE:
-    *c = false;
+    *c = 0;
+    break;
   case FCMP_OEQ:
     *c = ((!isnan(a)) && (!isnan(b)) && (a == b));
+    break;
   case FCMP_OGT:
     *c = ((!isnan(a)) && (!isnan(b)) && (a > b));
+    break;
   case FCMP_OGE:
     *c = ((!isnan(a)) && (!isnan(b)) && (a >= b));
+    break;
   case FCMP_OLT:
     *c = ((!isnan(a)) && (!isnan(b)) && (a < b));
+    break;
   case FCMP_OLE:
     *c = ((!isnan(a)) && (!isnan(b)) && (a <= b));
+    break;
   case FCMP_ONE:
     *c = ((!isnan(a)) && (!isnan(b)) && (a != b));
+    break;
   case FCMP_ORD:
     *c = ((!isnan(a)) && (!isnan(b)));
+    break;
   case FCMP_UEQ:
     *c = ((!isnan(a)) || (!isnan(b)) || (a == b));
+    break;
   case FCMP_UGT:
     *c = ((!isnan(a)) || (!isnan(b)) || (a > b));
+    break;
   case FCMP_UGE:
     *c = ((!isnan(a)) || (!isnan(b)) || (a >= b));
+    break;
   case FCMP_ULT:
     *c = ((!isnan(a)) || (!isnan(b)) || (a < b));
+    break;
   case FCMP_ULE:
     *c = ((!isnan(a)) || (!isnan(b)) || (a <= b));
+    break;
   case FCMP_UNE:
     *c = ((!isnan(a)) || (!isnan(b)) || (a != b));
+    break;
   case FCMP_UNO:
     *c = ((!isnan(a)) || (!isnan(b)));
+    break;
   case FCMP_TRUE:
-    *c = true;
+    *c = 1;
+    break;
   }
-  debug_print("interflop_ieee %g FCMP(%d) %g -> %g\n", a, p, b, *c);
+  debug_print("interflop_ieee %g FCMP(%d) %g -> %s\n", a, p, b,
+              *c ? "true" : "false");
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,

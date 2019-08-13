@@ -26,7 +26,6 @@
 #include <err.h>
 #include <errno.h>
 #include <math.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,8 +36,8 @@ typedef double double2 __attribute__((ext_vector_type(2)));
 typedef double double4 __attribute__((ext_vector_type(4)));
 typedef float float2 __attribute__((ext_vector_type(2)));
 typedef float float4 __attribute__((ext_vector_type(4)));
-typedef bool bool2 __attribute__((ext_vector_type(2)));
-typedef bool bool4 __attribute__((ext_vector_type(4)));
+typedef int int2 __attribute__((ext_vector_type(2)));
+typedef int int4 __attribute__((ext_vector_type(4)));
 
 typedef struct interflop_backend_interface_t (*interflop_init_t)(
     int argc, char **argv, void **context);
@@ -85,7 +84,7 @@ __attribute__((constructor)) static void vfc_init(void) {
       errx(1, "Cannot load backend %s: dlopen error", token);
     }
 
-    warn("Loading backend %s", token);
+    warnx("verificarlo loaded backend %s", token);
 
     /* reset dl errors */
     dlerror();
@@ -141,17 +140,17 @@ define_arithmetic_wrapper(double, sub);
 define_arithmetic_wrapper(double, mul);
 define_arithmetic_wrapper(double, div);
 
-bool _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
-  bool c;
-  for (int i = 0; i < loaded_backends; i++) {
+int _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
+  int c;
+  for (unsigned int i = 0; i < loaded_backends; i++) {
     backends[i].interflop_cmp_float(p, a, b, &c, contexts[i]);
   }
   return c;
 }
 
-bool _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
-  bool c;
-  for (int i = 0; i < loaded_backends; i++) {
+int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
+  int c;
+  for (unsigned int i = 0; i < loaded_backends; i++) {
     backends[i].interflop_cmp_double(p, a, b, &c, contexts[i]);
   }
   return c;
@@ -195,25 +194,22 @@ define_4x_wrapper(double, sub);
 define_4x_wrapper(double, mul);
 define_4x_wrapper(double, div);
 
-bool2 _2xdoublecmp(enum FCMP_PREDICATE p, double2 a, double2 b) {
-  bool2 c;
-
+int2 _2xdoublecmp(enum FCMP_PREDICATE p, double2 a, double2 b) {
+  int2 c;
   c[0] = _doublecmp(p, a[0], b[0]);
   c[1] = _doublecmp(p, a[1], b[1]);
   return c;
 }
 
-bool2 _2xfloatcmp(enum FCMP_PREDICATE p, float2 a, float2 b) {
-  bool2 c;
-
+int2 _2xfloatcmp(enum FCMP_PREDICATE p, float2 a, float2 b) {
+  int2 c;
   c[0] = _floatcmp(p, a[0], b[0]);
   c[1] = _floatcmp(p, a[1], b[1]);
   return c;
 }
 
-bool4 _4xdoublecmp(enum FCMP_PREDICATE p, double4 a, double4 b) {
-  bool4 c;
-
+int4 _4xdoublecmp(enum FCMP_PREDICATE p, double4 a, double4 b) {
+  int4 c;
   c[0] = _doublecmp(p, a[0], b[0]);
   c[1] = _doublecmp(p, a[1], b[1]);
   c[2] = _doublecmp(p, a[2], b[2]);
@@ -221,9 +217,8 @@ bool4 _4xdoublecmp(enum FCMP_PREDICATE p, double4 a, double4 b) {
   return c;
 }
 
-bool4 _4xfloatcmp(enum FCMP_PREDICATE p, float4 a, float4 b) {
-  bool4 c;
-
+int4 _4xfloatcmp(enum FCMP_PREDICATE p, float4 a, float4 b) {
+  int4 c;
   c[0] = _floatcmp(p, a[0], b[0]);
   c[1] = _floatcmp(p, a[1], b[1]);
   c[2] = _floatcmp(p, a[2], b[2]);

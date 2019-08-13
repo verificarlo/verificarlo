@@ -198,10 +198,9 @@ struct VfclibInst : public ModulePass {
     return modified;
   }
 
-  Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction *I,
-                                  Fops opCode) {
+  Value *replaceWithMCACall(Module &M, Instruction *I, Fops opCode) {
     LLVMContext &Context = M.getContext();
-    IRBuilder<> Builder(Context);
+    IRBuilder<> Builder(I);
 
     Type *opType = I->getOperand(0)->getType();
     Type *retType = I->getType();
@@ -212,10 +211,11 @@ struct VfclibInst : public ModulePass {
     Type *baseType = opType;
 
     // Should we add a vector prefix?
+    unsigned size = 1;
     if (opType->isVectorTy()) {
       VectorType *t = static_cast<VectorType *>(opType);
       baseType = t->getElementType();
-      unsigned size = t->getNumElements();
+      size = t->getNumElements();
 
       if (size == 2) {
         vectorName = "2x";
@@ -242,14 +242,19 @@ struct VfclibInst : public ModulePass {
 
     // We call directly a hardcoded helper function
     // no need to go through the vtable at this stage.
-    Instruction *newInst;
+    Value *newInst;
     if (opCode == FOP_CMP) {
       FCmpInst *FCI = static_cast<FCmpInst *>(I);
+      Type *res = Builder.getInt32Ty();
+      if (size > 1) {
+        res = VectorType::get(res, size);
+      }
       Constant *hookFunc =
-          M.getOrInsertFunction(mcaFunctionName, retType, opType, opType,
-                                Builder.getInt32Ty(), (Type *)0);
-      newInst = CREATE_CALL3(hookFunc, I->getOperand(0), I->getOperand(1),
-                             Builder.getInt32(FCI->getPredicate()));
+          M.getOrInsertFunction(mcaFunctionName, res, Builder.getInt32Ty(),
+                                opType, opType, (Type *)0);
+      newInst = CREATE_CALL3(hookFunc, Builder.getInt32(FCI->getPredicate()),
+                             FCI->getOperand(0), FCI->getOperand(1));
+      newInst = Builder.CreateIntCast(newInst, retType, true);
     } else {
       Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName, retType,
                                                  opType, opType, (Type *)0);
@@ -291,13 +296,8 @@ struct VfclibInst : public ModulePass {
         continue;
       if (VfclibInstVerbose)
         errs() << "Instrumenting" << I << '\n';
-      Instruction *newInst = replaceWithMCACall(M, B, &I, opCode);
-
-      // Remove instruction from parent so it can be
-      // inserted in a new context
-      if (newInst->getParent() != NULL)
-        newInst->removeFromParent();
-      ReplaceInstWithInst(B.getInstList(), ii, newInst);
+      Value *value = replaceWithMCACall(M, &I, opCode);
+      ReplaceInstWithValue(B.getInstList(), ii, value);
       modified = true;
     }
 
