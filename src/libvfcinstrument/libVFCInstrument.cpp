@@ -156,7 +156,7 @@ struct VfclibInst : public ModulePass {
     doubleArgs.push_back(Builder.getDoubleTy());
     floatCmpArgs.push_back(Builder.getFloatTy());
     floatCmpArgs.push_back(Builder.getFloatTy());
-    floatCmpArgs.push_back(Builder.getInt8Ty());
+    floatCmpArgs.push_back(Builder.getInt32Ty());
     doubleCmpArgs.push_back(Builder.getDoubleTy());
     doubleCmpArgs.push_back(Builder.getDoubleTy());
     doubleCmpArgs.push_back(Builder.getInt32Ty());
@@ -241,10 +241,8 @@ struct VfclibInst : public ModulePass {
     return modified;
   }
 
-  Instruction *replaceScalar(Module &M, BasicBlock &B, Instruction *I,
-                             Fops opCode) {
-    LLVMContext &Context = M.getContext();
-    IRBuilder<> Builder(Context);
+  Value *replaceScalar(Module &M, Instruction *I, Fops opCode) {
+    IRBuilder<> Builder(I);
     StructType *mca_interface_type = getMCAInterfaceType(Builder);
 
     Type *opType = I->getOperand(0)->getType();
@@ -275,7 +273,7 @@ struct VfclibInst : public ModulePass {
 
     // Create a call instruction. It
     // will _replace_ I after it is returned.
-    Instruction *newInst;
+    Value *newInst;
     if (opCode == FOP_CMP) {
       FCmpInst *FCI = static_cast<FCmpInst *>(I);
       newInst = CREATE_CALL3(fct_ptr, I->getOperand(0), I->getOperand(1),
@@ -286,10 +284,8 @@ struct VfclibInst : public ModulePass {
     return newInst;
   }
 
-  Instruction *replaceVector(Module &M, BasicBlock &B, Instruction *I,
-                             Fops opCode) {
-    LLVMContext &Context = M.getContext();
-    IRBuilder<> Builder(Context);
+  Value *replaceVector(Module &M, Instruction *I, Fops opCode) {
+    IRBuilder<> Builder(I);
 
     Type *retType = I->getType();
     Type *opType = I->getOperand(0)->getType();
@@ -327,14 +323,16 @@ struct VfclibInst : public ModulePass {
 
     // For vector types we call directly a hardcoded helper function
     // no need to go through the vtable at this stage.
-    Instruction *newInst;
+    Value *newInst;
     if (opCode == FOP_CMP) {
       FCmpInst *FCI = static_cast<FCmpInst *>(I);
+      Type *res = VectorType::get(Builder.getInt32Ty(), size);
       Constant *hookFunc =
-          M.getOrInsertFunction(mcaFunctionName, retType, opType, opType,
+          M.getOrInsertFunction(mcaFunctionName, res, opType, opType,
                                 Builder.getInt32Ty(), (Type *)0);
       newInst = CREATE_CALL3(hookFunc, I->getOperand(0), I->getOperand(1),
                              Builder.getInt32(FCI->getPredicate()));
+      newInst = Builder.CreateIntCast(newInst, retType, true);
     } else {
       Constant *hookFunc = M.getOrInsertFunction(mcaFunctionName, retType,
                                                  opType, opType, (Type *)0);
@@ -344,13 +342,12 @@ struct VfclibInst : public ModulePass {
     return newInst;
   }
 
-  Instruction *replaceWithMCACall(Module &M, BasicBlock &B, Instruction *I,
-                                  Fops opCode) {
+  Value *replaceWithMCACall(Module &M, Instruction *I, Fops opCode) {
     Type *opType = I->getOperand(0)->getType();
     if (opType->isVectorTy()) {
-      return replaceVector(M, B, I, opCode);
+      return replaceVector(M, I, opCode);
     } else {
-      return replaceScalar(M, B, I, opCode);
+      return replaceScalar(M, I, opCode);
     }
   }
 
@@ -387,13 +384,8 @@ struct VfclibInst : public ModulePass {
         continue;
       if (VfclibInstVerbose)
         errs() << "Instrumenting" << I << '\n';
-      Instruction *newInst = replaceWithMCACall(M, B, &I, opCode);
-
-      // Remove instruction from parent so it can be
-      // inserted in a new context
-      if (newInst->getParent() != NULL)
-        newInst->removeFromParent();
-      ReplaceInstWithInst(B.getInstList(), ii, newInst);
+      Value *val = replaceWithMCACall(M, &I, opCode);
+      ReplaceInstWithValue(B.getInstList(), ii, val);
       modified = true;
     }
 
