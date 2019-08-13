@@ -160,8 +160,8 @@ typedef double double2 __attribute__((ext_vector_type(2)));
 typedef double double4 __attribute__((ext_vector_type(4)));
 typedef float float2 __attribute__((ext_vector_type(2)));
 typedef float float4 __attribute__((ext_vector_type(4)));
-typedef bool bool2 __attribute__((ext_vector_type(2)));
-typedef bool bool4 __attribute__((ext_vector_type(4)));
+typedef int int2 __attribute__((ext_vector_type(2)));
+typedef int int4 __attribute__((ext_vector_type(4)));
 
 /* Arithmetic vector wrappers */
 
@@ -197,8 +197,8 @@ double2 _2xdoublediv(double2 a, double2 b) {
     return c;
 }
 
-bool2 _2xdoublecmp(double2 a, double2 b, enum FCMP_PREDICATE p) {
-    bool2 c;
+int2 _2xdoublecmp(double2 a, double2 b, enum FCMP_PREDICATE p) {
+    int2 c;
 
     c[0] = _vfc_current_mca_interface.doublecmp(a[0],b[0],p);
     c[1] = _vfc_current_mca_interface.doublecmp(a[1],b[1],p);
@@ -247,8 +247,8 @@ double4 _4xdoublediv(double4 a, double4 b) {
     return c;
 }
 
-bool4 _4xdoublecmp(double4 a, double4 b, enum FCMP_PREDICATE p) {
-    bool4 c;
+int4 _4xdoublecmp(double4 a, double4 b, enum FCMP_PREDICATE p) {
+    int4 c;
 
     c[0] = _vfc_current_mca_interface.doublecmp(a[0],b[0],p);
     c[1] = _vfc_current_mca_interface.doublecmp(a[1],b[1],p);
@@ -291,8 +291,8 @@ float2 _2xfloatdiv(float2 a, float2 b) {
     return c;
 }
 
-bool2 _2xfloatcmp(float2 a, float2 b, enum FCMP_PREDICATE p) {
-    bool2 c;
+int2 _2xfloatcmp(float2 a, float2 b, enum FCMP_PREDICATE p) {
+    int2 c;
 
     c[0] = _vfc_current_mca_interface.floatcmp(a[0],b[0],p);
     c[1] = _vfc_current_mca_interface.floatcmp(a[1],b[1],p);
@@ -341,8 +341,8 @@ float4 _4xfloatdiv(float4 a, float4 b) {
     return c;
 }
 
-bool4 _4xfloatcmp(float4 a, float4 b, enum FCMP_PREDICATE p) {
-    bool4 c;
+int4 _4xfloatcmp(float4 a, float4 b, enum FCMP_PREDICATE p) {
+    int4 c;
 
     c[0] = _vfc_current_mca_interface.floatcmp(a[0],b[0],p);
     c[1] = _vfc_current_mca_interface.floatcmp(a[1],b[1],p);
