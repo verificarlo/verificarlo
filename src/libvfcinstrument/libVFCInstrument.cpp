@@ -246,7 +246,12 @@ struct VfclibInst : public ModulePass {
     StructType *mca_interface_type = getMCAInterfaceType(Builder);
 
     Type *opType = I->getOperand(0)->getType();
+    // Check that the type of the operation is supported
     Type *baseType = opType;
+    if (!baseType->isDoubleTy() && !baseType->isFloatTy()) {
+      errs() << "Unsupported operand type: " << *opType << "\n";
+      return nullptr;
+    }
 
     // We use a builder adding instructions before the
     // instruction to replace
@@ -305,7 +310,7 @@ struct VfclibInst : public ModulePass {
       vectorName = "4x";
     } else {
       errs() << "Unsuported vector size: " << size << "\n";
-      assert(0);
+      return nullptr;
     }
 
     // Check the type of the operation
@@ -315,7 +320,7 @@ struct VfclibInst : public ModulePass {
       baseTypeName = "float";
     } else {
       errs() << "Unsupported operand type: " << *opType << "\n";
-      assert(0);
+      return nullptr;
     }
 
     // For vector types, helper functions in vfcwrapper are called
@@ -385,7 +390,8 @@ struct VfclibInst : public ModulePass {
       if (VfclibInstVerbose)
         errs() << "Instrumenting" << I << '\n';
       Value *val = replaceWithMCACall(M, &I, opCode);
-      ReplaceInstWithValue(B.getInstList(), ii, val);
+      if (val != nullptr)
+        ReplaceInstWithValue(B.getInstList(), ii, val);
       modified = true;
     }
 
