@@ -17,6 +17,8 @@ export FC=$str
 export LDSHARED="$str -shared"
 
 # Build library
+rm -f *.so
+python3 setup.py clean
 python3 setup.py build_ext --inplace
 
 num=200
