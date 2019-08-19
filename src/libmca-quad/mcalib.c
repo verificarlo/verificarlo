@@ -103,7 +103,7 @@ static double _mca_rand(void) {
 
 static inline double pow2d(int exp) {
   double res = 0;
-  uint64_t *x = malloc(sizeof(uint64_t));
+  uint64_t x[1];
 
   // specials
   if (exp == 0)
@@ -154,7 +154,7 @@ static inline uint32_t rexpd(double x) {
   return exp;
 }
 
-__float128 qnoise(int exp) {
+static inline __float128 qnoise(int exp) {
   double d_rand = (_mca_rand() - 0.5);
   uint64_t u_rand = *((uint64_t *)&d_rand);
   __float128 noise;
@@ -198,8 +198,6 @@ __float128 qnoise(int exp) {
       uint64_t u_lx = u_rand >> (-exp - QUAD_EXP_MIN - QUAD_HX_PMAN_SIZE);
       SET_FLT128_WORDS64(noise, u_hx, u_lx);
     }
-    int prec = 20;
-    int width = 46;
     // char buf[128];
     // int len=quadmath_snprintf (buf, sizeof(buf), "%+-#*.20Qe", width, noise);
     // if ((size_t) len < sizeof(buf))
@@ -220,8 +218,6 @@ __float128 qnoise(int exp) {
   lx = (p_mantissa) << (SIGN_SIZE + DOUBLE_EXP_SIZE +
                         QUAD_HX_PMAN_SIZE); // 60=1(s)+11(exp double)+48(hx)
   SET_FLT128_WORDS64(noise, hx, lx);
-  int prec = 20;
-  int width = 46;
   return noise;
 }
 
@@ -273,6 +269,7 @@ static int _mca_inexactq(__float128 *qa) {
   int32_t e_n = e_a - (MCALIB_T - 1);
   __float128 noise = qnoise(e_n);
   *qa = noise + *qa;
+  return 1;
 }
 
 static int _mca_inexactd(double *da) {
@@ -291,6 +288,7 @@ static int _mca_inexactd(double *da) {
   int32_t e_n = e_a - (MCALIB_T - 1);
   double d_rand = (_mca_rand() - 0.5);
   *da = *da + pow2d(e_n) * d_rand;
+  return 1;
 }
 
 static void _mca_seed(void) {
