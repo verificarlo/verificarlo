@@ -1,5 +1,10 @@
 Verificarlo CHANGELOG
 
+[v0.2.3] 2019/08/19
+    * Correctly detect non supported fp types
+    * Fix handling of boolean vectors
+    * Fix memory leak in quad backend
+
 [v0.2.2] 2019/08/07
     * Unstable branch detection with gcov
     * Branch instrumentation of FCMP instructions
