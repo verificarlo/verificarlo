@@ -223,7 +223,7 @@ struct VfclibInst : public ModulePass {
         vectorName = "4x";
       } else {
         errs() << "Unsuported vector size: " << size << "\n";
-        assert(0);
+        return nullptr;
       }
     }
 
@@ -234,7 +234,7 @@ struct VfclibInst : public ModulePass {
       baseTypeName = "float";
     } else {
       errs() << "Unsupported operand type: " << *opType << "\n";
-      assert(0);
+      return nullptr;
     }
 
     // Build name of the helper function in vfcwrapper
@@ -297,7 +297,8 @@ struct VfclibInst : public ModulePass {
       if (VfclibInstVerbose)
         errs() << "Instrumenting" << I << '\n';
       Value *value = replaceWithMCACall(M, &I, opCode);
-      ReplaceInstWithValue(B.getInstList(), ii, value);
+      if (value != nullptr)
+        ReplaceInstWithValue(B.getInstList(), ii, value);
       modified = true;
     }
 

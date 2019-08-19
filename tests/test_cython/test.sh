@@ -19,6 +19,8 @@ export LDSHARED="$str -shared"
 
 python3 setup.py clean
 # Build library
+rm -f *.so
+python3 setup.py clean
 python3 setup.py build_ext --inplace
 
 num=200

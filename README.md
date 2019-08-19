@@ -1,8 +1,9 @@
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
-# Verificarlo v0.2.2
+## Verificarlo v0.2.3
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
+[![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
 
 A tool for automatic Montecarlo Arithmetic analysis.
 
