@@ -96,9 +96,11 @@ def shell(cmd):
 
 def linker_mode(sources, options, output, args):
     positionmode = "-static" if args.static else "-fPIC"
-    shell('{clang} -c -O2 {positionmode} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
+    instfcmp = "-DINST_FCMP" if args.inst_fcmp else ""
+    shell('{clang} -c -O2 {positionmode} {instfcmp} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
         positionmode=positionmode,
+        instfcmp=instfcmp,
         vfcwrapper=vfcwrapper,
         mcalib_includes=mcalib_includes))
 

@@ -49,11 +49,26 @@ struct interflop_backend_interface_t backends[MAX_BACKENDS];
 void *contexts[MAX_BACKENDS];
 unsigned char loaded_backends = 0;
 
+/* Checks that a least one of the loaded backend implements the chosen
+ * operation at a given precision */
+#define check_backends_implements(precision, operation)                        \
+  do {                                                                         \
+    int res = 0;                                                               \
+    for (unsigned char i = 0; i < loaded_backends; i++) {                      \
+      if (backends[i].interflop_##operation##_##precision) {                   \
+        res = 1;                                                               \
+        break;                                                                 \
+      }                                                                        \
+    }                                                                          \
+    if (res == 0)                                                              \
+      errx(1, "No backend instruments " #operation " for " #precision ".\n"    \
+              "Include one backend in VFC_BACKENDS that provides it");         \
+  } while (0)
+
 /* vfc_init is run when loading vfcwrapper and initializes vfc backends */
 __attribute__((constructor)) static void vfc_init(void) {
   /* Parse VFC_BACKENDS */
   char *vfc_backends = getenv("VFC_BACKENDS");
-  //fprintf(stderr, "VFC_BACKENDS = %s\n", vfc_backends);
   if (vfc_backends == NULL) {
     errx(1, "VFC_BACKENDS is empty, at least one backend should be provided");
   }
@@ -116,6 +131,20 @@ __attribute__((constructor)) static void vfc_init(void) {
     errx(1,
          "VFC_BACKENDS syntax error: at least one backend should be provided");
   }
+
+  /* Check that at least one backend implements each required operation */
+  check_backends_implements(float, add);
+  check_backends_implements(float, sub);
+  check_backends_implements(float, mul);
+  check_backends_implements(float, div);
+  check_backends_implements(double, add);
+  check_backends_implements(double, sub);
+  check_backends_implements(double, mul);
+  check_backends_implements(double, div);
+#ifdef INST_FCMP
+  check_backends_implements(float, cmp);
+  check_backends_implements(double, cmp);
+#endif
 }
 
 /* Arithmetic wrappers */
@@ -144,7 +173,9 @@ define_arithmetic_wrapper(double, div);
 int _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
   int c;
   for (unsigned int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_cmp_float(p, a, b, &c, contexts[i]);
+    if (backends[i].interflop_cmp_float) {
+      backends[i].interflop_cmp_float(p, a, b, &c, contexts[i]);
+    }
   }
   return c;
 }
@@ -152,7 +183,9 @@ int _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
 int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
   int c;
   for (unsigned int i = 0; i < loaded_backends; i++) {
-    backends[i].interflop_cmp_double(p, a, b, &c, contexts[i]);
+    if (backends[i].interflop_cmp_double) {
+      backends[i].interflop_cmp_double(p, a, b, &c, contexts[i]);
+    }
   }
   return c;
 }
