@@ -35,8 +35,6 @@ PACKAGE_STRING = "@PACKAGE_STRING@"
 LIBDIR = "%LIBDIR%"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
-mcalib_static = "{0}/libmcampfr.a {0}/libmcaquad.a".format(LIBDIR)
-mcalib_dynamic = "-lmcampfr -lmcaquad"
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
 mcalib_includes = PROJECT_ROOT + "/../include/"
 vfcwrapper = mcalib_includes + 'vfcwrapper.c'
@@ -98,9 +96,11 @@ def shell(cmd):
 
 def linker_mode(sources, options, output, args):
     positionmode = "-static" if args.static else "-fPIC"
-    shell('{clang} -c -O2 {positionmode} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
+    instfcmp = "-DINST_FCMP" if args.inst_fcmp else ""
+    shell('{clang} -c -O2 {positionmode} {instfcmp} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
         positionmode=positionmode,
+        instfcmp=instfcmp,
         vfcwrapper=vfcwrapper,
         mcalib_includes=mcalib_includes))
 
@@ -109,20 +109,17 @@ def linker_mode(sources, options, output, args):
 
     f = tempfile.NamedTemporaryFile()
     if args.static:
-        f.write('{output} {sources} {options} -static .vfcwrapper.o {mcalib_static} -lmpfr -lgmp {gfortran} -lm'.format(
+        f.write('{output} {sources} {options} -static .vfcwrapper.o -lmpfr -lgmp {gfortran} -lm -ldl'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
-            mcalib_static=mcalib_static,
             gfortran=gfortran))
-
     else:
-        f.write('{output} {sources} {options} .vfcwrapper.o {mcalib_options} {mcalib_dynamic} {gfortran}'.format(
+        f.write('{output} {sources} {options} .vfcwrapper.o {mcalib_options} {gfortran} -ldl'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
             mcalib_options=mcalib_options,
-            mcalib_dynamic=mcalib_dynamic,
             gfortran=gfortran))
 
     f.flush()

@@ -7,10 +7,11 @@
 
 A tool for automatic Montecarlo Arithmetic analysis.
 
-### Using Verificarlo through its Docker image
+## Using Verificarlo through its Docker image
 
 A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/. 
-This image uses the latest git master version of Verificarlo and includes support for Fortran. It uses llvm-3.5 and gcc-4.7.
+This image uses the latest git master version of Verificarlo and includes
+support for Fortran. It uses llvm-3.5 and gcc-4.7.
 
 Example of usage:
 
@@ -29,19 +30,20 @@ $ docker pull verificarlo/verificarlo
 $ docker run -v $PWD:/workdir verificarlo/verificarlo \
    verificarlo test.c -o test
 $ docker run -v $PWD:/workdir verificarlo/verificarlo \
-   ./test
+   VFC_BACKENDS="libinterflop_mca.so" ./test
 999.99999999999795364
 $ docker run -v $PWD:/workdir verificarlo/verificarlo \
-   ./test
+   VFC_BACKENDS="libinterflop_mca.so" ./test
 999.99999999999761258
 ```
 
-### Installation
+## Installation
 
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt from 3.3 up to 4.0.1 (the last version with Fortran support is 3.6), http://clang.llvm.org/
+  * LLVM, clang and opt from 3.3 up to 4.0.1 (the last version with Fortran
+    support is 3.6), http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
   * python, version >= 2.7
   * autotools (automake, autoconf)
@@ -55,7 +57,8 @@ Then run the following command inside verificarlo directory:
    $ sudo make install
 ```
 
-If you do not care about Fortran support, you can avoid installing gfortran and dragonegg, by passing the option `--without-dragonegg` to `configure`:
+If you do not care about Fortran support, you can avoid installing gfortran and
+dragonegg, by passing the option `--without-dragonegg` to `configure`:
 
 ```bash
    $ ./autogen.sh
@@ -99,7 +102,7 @@ install procedure:
    $ make installcheck
 ```
 
-### Usage
+## Usage
 
 To automatically instrument a program with Verificarlo you must compile it using
 the `verificarlo` command. First make sure that the verificarlo installation
@@ -121,37 +124,105 @@ extension to Python, you can then also set the shared linker environment variabl
 When invoked with the `--verbose` flag, verificarlo provides detailed output of
 the instrumentation process.
 
-It is important to include the necessary link flags if you use extra libraries. For example, you should include `-lm` if you are linking against the math library and include `-lstdc++` if you use functions in the standard C++ library.
+It is important to include the necessary link flags if you use extra libraries.
+For example, you should include `-lm` if you are linking against the math
+library and include `-lstdc++` if you use functions in the standard C++
+library.
 
-### MCA Configuration Parameters
+## Backends
 
-Two environement variables control the Montecarlo Arithmetic parameters.
+Once your program is compiled with Verificarlo, it can be instrumented with
+different floating-point backends.
+At least one backend must be selected when running your application, 
 
-The environement variable `VERIFICARLO_MCAMODE` controls the arithmetic error
-mode. It accepts the following values:
+```bash
+   $ verificarlo *.c -o program
+   $ ./program
+   program: VFC_BACKENDS is empty, at least one backend should be provided
+```
 
- * `MCA`: (default mode) Montecarlo Arithmetic with inbound and outbound errors
- * `IEEE`: the program uses standard IEEE arithmetic, no errors are introduced
- * `PB`: Precision Bounding inbound errors only
- * `RR`: Random Rounding outbound errors only
+Backends are distributed as dynamic libraries. They are loaded with the
+environment variable `VFC_BACKENDS`. 
 
-The environement variable `VERIFICARLO_PRECISION` controls the virtual precision
-used for the floating point operations. It accepts an integer value that
-represents the virtual precision at which MCA operations are performed. Its
-default value is 53. For a more precise definition of the virtual precision, you
-can refer to https://hal.archives-ouvertes.fr/hal-01192668.
+```bash
+   $ VFC_BACKENDS="libinterflop_mca.so" ./program
+```
 
-Verificarlo supports two MCA backends. The environement variable
-`VERIFICARLO_BACKEND` is used to select the backend. It can be set to `QUAD` or
-`MPFR`
+Multiple backends can be loaded at the same time; they will be chained in the
+order of appearance in the `VFC_BACKENDS` variable. They must be separated with
+semi-colons,
 
-The default backend, MPFR, uses the GNU multiple precision library to compute
-MCA operations. It is heavily based on mcalib MPFR backend.
+```bash
+   $ VFC_BACKENDS="libinterflop_ieee.so; libinterflop_mca.so" ./program"
+```
 
-Verificarlo offers an alternative MCA backend: the QUAD backend. QUAD backend
-uses the GCC quad types to compute MCA operations on doubles and the double type
-to compute MCA operations on floats. It is much faster than the MPFR backend,
-but is recent and still experimental.
+Finally backends options can be configured by passing command line arguments
+after each backend,
+
+```bash
+   $ VFC_BACKENDS="libinterflop_ieee.so --debug; \
+                   libinterflop_mca.so --precision 10 --mode rr" \ 
+                   ./program"
+```
+
+### IEEE Backend (libinterflop_ieee.so)
+
+The IEEE backend implements straighforward IEEE-754 arithmetic. 
+It should have no effect on the output and behavior of your program.
+
+The option `--debug` enables verbose output that prints every instrumented
+floating-point operation.
+
+```bash
+VFC_BACKENDS="libinterflop_ieee.so --help" ./test
+test: verificarlo loaded backend libinterflop_ieee.so
+Usage: libinterflop_ieee.so [OPTION...]
+
+  -d, --debug                enable debug output
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+
+VFC_BACKENDS="libinterflop_ieee.so --debug" ./test
+test: verificarlo loaded backend libinterflop_ieee.so
+interflop_ieee 1.23457e-05 - 9.87654e+12 -> -9.87654e+12
+interflop_ieee 1.23457e-05 * 9.87654e+12 -> 1.21933e+08
+interflop_ieee 1.23457e-05 / 9.87654e+12 -> 1.25e-18
+...
+```
+
+### MCA Backend (libinterflop_mca.so)
+
+The MCA backends implements Montecarlo Arithmetic.  It uses quad types to
+compute MCA operations on doubles and the double type to compute MCA operations
+on floats. It is much faster than the MCA-MPFR backend, but it is recent and
+still experimental.
+
+```
+VFC_BACKENDS="libinterflop_mca.so --help" ./test
+test: verificarlo loaded backend libinterflop_mca.so
+Usage: libinterflop_mca.so [OPTION...] 
+
+  -m, --mode=MODE            select MCA mode among {ieee, mca, pb, rr}
+  -p, --precision=PRECISION  select precision (PRECISION >= 0)
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+```
+
+Two options control the behavior of the MCA backend.
+
+The option `--mode=MODE` controls the arithmetic error mode. It accepts the
+following case insensitive values:
+
+ * `mca`: (default mode) Montecarlo Arithmetic with inbound and outbound errors
+ * `ieee`: the program uses standard IEEE arithmetic, no errors are introduced
+ * `pb`: Precision Bounding inbound errors only
+ * `rr`: Random Rounding outbound errors only
+
+The option `--precision=PRECISION` controls the virtual precision used for the
+floating point operations. It accepts an integer value that represents the
+virtual precision at which MCA operations are performed. Its default value is
+53. For a more precise definition of the virtual precision, you can refer to
+https://hal.archives-ouvertes.fr/hal-01192668.
 
 One should note when using the QUAD backend, that the round operations during
 MCA computation always use round-to-zero mode.
@@ -159,7 +230,15 @@ MCA computation always use round-to-zero mode.
 In Random Round mode, the exact operations in given virtual precision are
 preserved. 
 
-## Inclusion / Exclusion
+### MCA-MPFR Backend (libinterflop_mca_mpfr.so)
+
+The MCA-MPFR backends is an alternative and slower implementation of Montecarlo
+Arithmetic. It uses the GNU multiple precision library to compute MCA
+operations. It is heavily based on mcalib MPFR backend.
+
+MCA-MPFR backend accepts the same options than the MCA backend.
+
+## Verificarlo inclusion / exclusion options
 
 If you only wish to instrument a specific function in your program, use the
 `--function` option:
@@ -168,8 +247,9 @@ If you only wish to instrument a specific function in your program, use the
    $ verificarlo *.c -o ./program --function=specificfunction
 ```
 
-For more complex scenarios, a white-list / black-list mechanism is also available
-through the options `--include-file INCLUSION-FILE` and `--exclude-file EXCLUSION-FILE`.
+For more complex scenarios, a white-list / black-list mechanism is also
+available through the options `--include-file INCLUSION-FILE` and
+`--exclude-file EXCLUSION-FILE`.
 
 `INCLUSION-FILE` and `EXCLUSION-FILE` are files specifying which modules and
 functions should be included or excluded from Verificarlo instrumentation.
@@ -195,13 +275,14 @@ module3 *
 Inclusion and exclusion files can be used together, in that case inclusion
 takes precedence over inclusion.
 
-### Examples and Tutorial
+## Examples and Tutorial
 
 The `tests/` directory contains various examples of Verificarlo usage.
 
-A [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) in french and english is available.
+A [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) in
+english and french is available.
 
-### Postprocessing
+## Postprocessing
 
 The `postprocessing/` directory contains postprocessing tools to compute floating
 point accuracy information from a set of verificarlo generated outputs.
@@ -216,7 +297,7 @@ For more information about `vfc-vtk.py`, please use the online help:
 $ postprocess/vfc-vtk.py --help
 ```
 
-### Unstable branch detection
+## Unstable branch detection
 
 It is possible to use Verificarlo to detect branches that are unstable due to
 numerical errors.  To detect unstable branches we rely on
@@ -232,14 +313,14 @@ executions.
 Branches that are unstable only under MCA noise, are identified as numerically
 unstable.
 
-### Branch instrumentation
+## Branch instrumentation
 
 Verificarlo can instrument floating point comparison operations. By default,
 comparison operations are not instrumented and default backends do not make use of
 this feature. If your backend requires instrumenting floating point comparisons, you
 must call `verificarlo` with the `--inst-fcmp` flag.
 
-### How to cite Verificarlo
+## How to cite Verificarlo
 
 
 If you use Verificarlo in your research, please cite the following paper:
@@ -262,13 +343,13 @@ A preprint is available at https://hal.archives-ouvertes.fr/hal-01192668/file/ve
 
 Thanks !
 
-### Discussion Group
+## Discussion Group
 
 For questions, feedbacks or discussions about Verificarlo you can join our group at,
 
 https://groups.google.com/forum/#!forum/verificarlo
 
-### License
+## License
 Copyright (c) 2019
    Verificarlo Contributors
 

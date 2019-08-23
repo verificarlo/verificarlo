@@ -29,8 +29,8 @@ fi
 
 # Test correct interposition for scalar and vector cases
 verificarlo --inst-fcmp run.c -o run
-./run
+VFC_BACKENDS="libinterflop_ieee.so --debug" ./run
 verificarlo --inst-fcmp -O2 run.c -o run
-./run
+VFC_BACKENDS="libinterflop_ieee.so --debug" ./run
 
 exit 0

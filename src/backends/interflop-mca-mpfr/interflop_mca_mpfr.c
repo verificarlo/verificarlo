@@ -1,5 +1,4 @@
-// The Monte Carlo Arihmetic Library - A tool for automated rounding error
-// analysis of floating point software.
+// Interflop Monte Carlo Arithmetic MPFR Backend
 //
 // Copyright (C) 2014 The Computer Engineering Laboratory, The
 // University of Sydney. Maintained by Michael Frechtling:
@@ -9,7 +8,8 @@
 //     Universite de Versailles St-Quentin-en-Yvelines
 //     CMLA, Ecole Normale Superieure de Cachan
 //
-// Copyright (C) 2018
+// Copyright (C) 2018-2019
+//     Verificarlo contributors
 //     Universite de Versailles St-Quentin-en-Yvelines
 //
 // Changelog:
@@ -34,21 +34,38 @@
 // You should have received a copy of the GNU General Public License along with
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <argp.h>
+#include <err.h>
+#include <errno.h>
 #include <math.h>
 #include <mpfr.h>
+#include <string.h>
+#include <strings.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <stdbool.h>
 
-#include "../common/mca_const.h"
-#include "../common/tinymt64.h"
-#include "../vfcwrapper/vfcwrapper.h"
-#include "libmca-mpfr.h"
+#include "../../common/float_const.h"
+#include "../../common/interflop.h"
+#include "../../common/tinymt64.h"
 
-static int MCALIB_OP_TYPE = MCAMODE_IEEE;
-static int MCALIB_T = 53;
+/* define the available MCA modes of operation */
+#define MCAMODE_IEEE 0
+#define MCAMODE_MCA 1
+#define MCAMODE_PB 2
+#define MCAMODE_RR 3
+
+static const char * MCAMODE[] = {"ieee", "mca", "pb", "rr"};
+
+/* define default environment variables and default parameters */
+#define MCA_PRECISION_DEFAULT 53
+#define MCAMODE_DEFAULT MCAMODE_MCA
+
+static int MCALIB_OP_TYPE = MCAMODE_DEFAULT;
+static int MCALIB_T = MCA_PRECISION_DEFAULT;
 
 #define MP_ADD &mpfr_add
 #define MP_SUB &mpfr_sub
@@ -65,9 +82,9 @@ static double _mca_dbin(double a, double b, mpfr_bin mpfr_op);
 static double _mca_dunr(double a, mpfr_unr mpfr_op);
 
 /******************** MCA CONTROL FUNCTIONS *******************
-* The following functions are used to set virtual precision and
-* MCA mode of operation.
-***************************************************************/
+ * The following functions are used to set virtual precision and
+ * MCA mode of operation.
+ ***************************************************************/
 
 static int _set_mca_mode(int mode) {
   if (mode < 0 || mode > 3)
@@ -83,10 +100,10 @@ static int _set_mca_precision(int precision) {
 }
 
 /******************** MCA RANDOM FUNCTIONS ********************
-* The following functions are used to calculate the random
-* perturbations used for MCA and apply these to MPFR format
-* operands
-***************************************************************/
+ * The following functions are used to calculate the random
+ * perturbations used for MCA and apply these to MPFR format
+ * operands
+ ***************************************************************/
 
 /* random generator internal state */
 static tinymt64_t random_state;
@@ -150,11 +167,11 @@ static void _mca_seed(void) {
 }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
-* The following set of functions perform the MCA operation. Operands
-* are first converted to MPFR format, inbound and outbound perturbations
-* are applied using the _mca_inexact function, and the result converted
-* to the original format for return
-*******************************************************************/
+ * The following set of functions perform the MCA operation. Operands
+ * are first converted to MPFR format, inbound and outbound perturbations
+ * are applied using the _mca_inexact function, and the result converted
+ * to the original format for return
+ *******************************************************************/
 
 static float _mca_sbin(float a, float b, mpfr_bin mpfr_op) {
   mpfr_t mpfr_a, mpfr_b, mpfr_r;
@@ -238,99 +255,116 @@ static double _mca_dunr(double a, mpfr_unr mpfr_op) {
   return NEAREST_DOUBLE(ret);
 }
 
-/******************** MCA COMPARE FUNCTIONS ********************
-* Compare operations do not require MCA
-****************************************************************/
-
 /************************* FPHOOKS FUNCTIONS *************************
-* These functions correspond to those inserted into the source code
-* during source to source compilation and are replacement to floating
-* point operators
-**********************************************************************/
+ * These functions correspond to those inserted into the source code
+ * during source to source compilation and are replacement to floating
+ * point operators
+ **********************************************************************/
 
-static float _floatadd(float a, float b) {
-  // return a + b
-  return _mca_sbin(a, b, (mpfr_bin)MP_ADD);
+static void _interflop_add_float(float a, float b, float *c, void *context) {
+  *c = _mca_sbin(a, b, (mpfr_bin)MP_ADD);
 }
 
-static float _floatsub(float a, float b) {
-  // return a - b
-  return _mca_sbin(a, b, (mpfr_bin)MP_SUB);
+static void _interflop_sub_float(float a, float b, float *c, void *context) {
+  *c = _mca_sbin(a, b, (mpfr_bin)MP_SUB);
 }
 
-static float _floatmul(float a, float b) {
-  // return a * b
-  return _mca_sbin(a, b, (mpfr_bin)MP_MUL);
+static void _interflop_mul_float(float a, float b, float *c, void *context) {
+  *c = _mca_sbin(a, b, (mpfr_bin)MP_MUL);
 }
 
-static float _floatdiv(float a, float b) {
-  // return a / b
-  return _mca_sbin(a, b, (mpfr_bin)MP_DIV);
+static void _interflop_div_float(float a, float b, float *c, void *context) {
+  *c = _mca_sbin(a, b, (mpfr_bin)MP_DIV);
 }
 
-static double _doubleadd(double a, double b) {
-  // return a + b
-  return _mca_dbin(a, b, (mpfr_bin)MP_ADD);
+static void _interflop_add_double(double a, double b, double *c,
+                                  void *context) {
+  *c = _mca_dbin(a, b, (mpfr_bin)MP_ADD);
 }
 
-static double _doublesub(double a, double b) {
-  // return a - b
-  return _mca_dbin(a, b, (mpfr_bin)MP_SUB);
+static void _interflop_sub_double(double a, double b, double *c,
+                                  void *context) {
+  *c = _mca_dbin(a, b, (mpfr_bin)MP_SUB);
 }
 
-static double _doublemul(double a, double b) {
-  // return a * b
-  return _mca_dbin(a, b, (mpfr_bin)MP_MUL);
+static void _interflop_mul_double(double a, double b, double *c,
+                                  void *context) {
+  *c = _mca_dbin(a, b, (mpfr_bin)MP_MUL);
 }
 
-static double _doublediv(double a, double b) {
-  // return a / b
-  return _mca_dbin(a, b, (mpfr_bin)MP_DIV);
+static void _interflop_div_double(double a, double b, double *c,
+                                  void *context) {
+  *c = _mca_dbin(a, b, (mpfr_bin)MP_DIV);
 }
 
-static bool _floatcmp(float a, float b, enum FCMP_PREDICATE p) {
-  switch(p) {
-    case FCMP_FALSE: return false;
-    case FCMP_OEQ: return ((!isnan(a))&&(!isnan(b))&&(a==b));
-    case FCMP_OGT: return ((!isnan(a))&&(!isnan(b))&&(a>b));
-    case FCMP_OGE: return ((!isnan(a))&&(!isnan(b))&&(a>=b));
-    case FCMP_OLT: return ((!isnan(a))&&(!isnan(b))&&(a<b));
-    case FCMP_OLE: return ((!isnan(a))&&(!isnan(b))&&(a<=b));
-    case FCMP_ONE: return ((!isnan(a))&&(!isnan(b))&&(a!=b));
-    case FCMP_ORD: return ((!isnan(a))&&(!isnan(b)));
-    case FCMP_UEQ: return ((!isnan(a))||(!isnan(b))||(a==b));
-    case FCMP_UGT: return ((!isnan(a))||(!isnan(b))||(a>b));
-    case FCMP_UGE: return ((!isnan(a))||(!isnan(b))||(a>=b));
-    case FCMP_ULT: return ((!isnan(a))||(!isnan(b))||(a<b));
-    case FCMP_ULE: return ((!isnan(a))||(!isnan(b))||(a<=b));
-    case FCMP_UNE: return ((!isnan(a))||(!isnan(b))||(a!=b));
-    case FCMP_UNO: return ((!isnan(a))||(!isnan(b)));
-    case FCMP_TRUE: return true;
-  }
+
+static struct argp_option options[] = {
+  /* --debug, sets the variable debug = true */
+  {"precision", 'p', "PRECISION", 0, "select precision (PRECISION >= 0)"},
+  {"mode", 'm', "MODE", 0, "select MCA mode among {ieee, mca, pb, rr}"},
+  {0}};
+
+static error_t parse_opt(int key, char *arg, struct argp_state *state) {
+  char *endptr;
+  switch (key)
+    {
+    case 'p':
+      /* precision */
+      errno = 0;
+      int val = strtol(arg, &endptr, 10);
+      if (errno != 0 || val <= 0) {
+        errx(1, "interflop_mca: --precision invalid value provided, must be a positive integer.");
+      } else {
+        _set_mca_precision(val);
+      }
+      break;
+    case 'm':
+      /* mode */
+      if (strcasecmp(MCAMODE[MCAMODE_IEEE], arg) == 0) {
+        _set_mca_mode(MCAMODE_IEEE);
+      } else if (strcasecmp(MCAMODE[MCAMODE_MCA], arg) == 0) {
+        _set_mca_mode(MCAMODE_MCA);
+      } else if (strcasecmp(MCAMODE[MCAMODE_PB], arg) == 0) {
+        _set_mca_mode(MCAMODE_PB);
+      } else if (strcasecmp(MCAMODE[MCAMODE_RR], arg) == 0) {
+        _set_mca_mode(MCAMODE_RR);
+      } else {
+        errx(1, "interflop_mca: --mode invalid value provided, must be one of: {ieee, mca, pb, rr}.");
+      }
+      break;
+    default:
+      return ARGP_ERR_UNKNOWN;
+    }
+  return 0;
 }
 
-static bool _doublecmp(double a, double b, enum FCMP_PREDICATE p) {
-  switch(p) {
-    case FCMP_FALSE: return false;
-    case FCMP_OEQ: return ((!isnan(a))&&(!isnan(b))&&(a==b));
-    case FCMP_OGT: return ((!isnan(a))&&(!isnan(b))&&(a>b));
-    case FCMP_OGE: return ((!isnan(a))&&(!isnan(b))&&(a>=b));
-    case FCMP_OLT: return ((!isnan(a))&&(!isnan(b))&&(a<b));
-    case FCMP_OLE: return ((!isnan(a))&&(!isnan(b))&&(a<=b));
-    case FCMP_ONE: return ((!isnan(a))&&(!isnan(b))&&(a!=b));
-    case FCMP_ORD: return ((!isnan(a))&&(!isnan(b)));
-    case FCMP_UEQ: return ((!isnan(a))||(!isnan(b))||(a==b));
-    case FCMP_UGT: return ((!isnan(a))||(!isnan(b))||(a>b));
-    case FCMP_UGE: return ((!isnan(a))||(!isnan(b))||(a>=b));
-    case FCMP_ULT: return ((!isnan(a))||(!isnan(b))||(a<b));
-    case FCMP_ULE: return ((!isnan(a))||(!isnan(b))||(a<=b));
-    case FCMP_UNE: return ((!isnan(a))||(!isnan(b))||(a!=b));
-    case FCMP_UNO: return ((!isnan(a))||(!isnan(b)));
-    case FCMP_TRUE: return true;
-  }
-}
+static struct argp argp = {options, parse_opt, "", ""};
 
-struct mca_interface_t mpfr_mca_interface = {
-    _floatadd, _floatsub, _floatmul, _floatdiv, _floatcmp,
-    _doubleadd, _doublesub, _doublemul, _doublediv, _doublecmp,
-    _mca_seed,  _set_mca_mode, _set_mca_precision};
+struct interflop_backend_interface_t interflop_init(int argc, char ** argv,
+    void **context) {
+
+  _set_mca_precision(MCA_PRECISION_DEFAULT);
+  _set_mca_mode(MCAMODE_DEFAULT);
+
+  /* parse backend arguments */
+  argp_parse (&argp, argc, argv, 0, 0, 0);
+
+  warnx("interflop_mca_mpfr: loaded backend with precision = %d and mode = %s", MCALIB_T, MCAMODE[MCALIB_OP_TYPE]);
+
+  struct interflop_backend_interface_t interflop_backend_mca = {
+      _interflop_add_float,
+      _interflop_sub_float,
+      _interflop_mul_float,
+      _interflop_div_float,
+      NULL,
+      _interflop_add_double,
+      _interflop_sub_double,
+      _interflop_mul_double,
+      _interflop_div_double,
+      NULL};
+
+  /* Initialize the random seed */
+  _mca_seed();
+
+  return interflop_backend_mca;
+}

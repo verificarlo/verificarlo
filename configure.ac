@@ -122,10 +122,12 @@ fi
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-                 src/libvfcinstrument/Makefile
-                 src/libmca-mpfr/Makefile
-                 src/libmca-quad/Makefile
                  src/common/Makefile
+                 src/libvfcinstrument/Makefile
+                 src/backends/Makefile
+                 src/backends/interflop-ieee/Makefile
+                 src/backends/interflop-mca/Makefile
+                 src/backends/interflop-mca-mpfr/Makefile
                  tests/Makefile
                  tests/paths.sh
                 ])

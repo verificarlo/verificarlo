@@ -1,12 +1,11 @@
 #!/bin/bash
 set -e
-export VERIFICARLO_PRECISION=24
-export VERIFICARLO_MCAMODE=RR
 
+# Test 24 RR for float
 for EXP in FLOAT FLOAT_POW2; do
   verificarlo -D${EXP} -O0 rr_mode.c -o rr_mode
-  for BACKEND in MPFR QUAD; do
-    export VERIFICARLO_BACKEND=${BACKEND}
+  for BACKEND in libinterflop_mca.so libinterflop_mca_mpfr.so; do
+    export VFC_BACKENDS="$BACKEND --precision 24 --mode rr"
     rm -f output_${BACKEND}_${EXP}
     for i in `seq 100`; do
       ./rr_mode >> output_${BACKEND}_${EXP}
@@ -16,15 +15,13 @@ for EXP in FLOAT FLOAT_POW2; do
   done
 done
 
-export VERIFICARLO_PRECISION=53
-export VERIFICARLO_MCAMODE=RR
-
+# Test 53 RR for double
 for EXP in DOUBLE DOUBLE_POW2; do
   verificarlo -D${EXP} -O0 rr_mode.c -o rr_mode
-  for BACKEND in MPFR QUAD; do
-    export VERIFICARLO_BACKEND=${BACKEND}
+  for BACKEND in libinterflop_mca.so libinterflop_mca_mpfr.so; do
+    export VFC_BACKENDS="$BACKEND --precision 53 --mode rr"
     rm -f output_${BACKEND}_${EXP}
-    for i in `seq 1000`; do
+    for i in `seq 100`; do
       ./rr_mode >> output_${BACKEND}_${EXP}
     done
     echo Testing $EXP with $BACKEND
