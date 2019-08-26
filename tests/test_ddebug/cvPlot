@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Réalise l'étude de convergence du calcul d'intégrale
+export VFC_BACKENDS="libinterflop_ieee.so"
+./unitTest 1.1 >cvPlot.dat
+export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision=24"
+./unitTest 1.1 >cvPlot1.dat
+./unitTest 1.1 >cvPlot2.dat
+./unitTest 1.1 >cvPlot3.dat
+
+# Calcule le "rapport signal sur bruit" en post-traitement
+./util/avg-stdev --col=2 cvPlot*.dat >cvPlot.stat
+
+# Produit une courbe représentant l'erreur en fonction du nombre de rectangles dans "cvPlot.pdf"
+gnuplot cvPlot.gp

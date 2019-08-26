@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Arguments en ligne de commande:
+# - répertoire contenant les sorties de référence
+# - répertoire contenant les sorties à évaluer
+REFDIR=$1
+CURDIR=$2
+
+cat ${CURDIR}/stdev
+test -e ${CURDIR}/OK

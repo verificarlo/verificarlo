@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Arguments en ligne de commande:
+# - répertoire contenant les sorties de référence
+# - répertoire contenant les sorties à évaluer
+REFDIR=$1
+CURDIR=$2
+
+./util/avg-stdev --col=2 --dev-max=1e-6 ${REFDIR}/res.dat ${CURDIR}/res.dat 2>&1 >${CURDIR}/res.stat
