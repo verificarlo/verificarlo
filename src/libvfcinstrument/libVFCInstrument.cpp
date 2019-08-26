@@ -289,16 +289,25 @@ struct VfclibInst : public ModulePass {
 
   bool runOnBasicBlock(Module &M, BasicBlock &B) {
     bool modified = false;
+    std::set<std::pair<Instruction *, Fops>> WorkList;
     for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
       Instruction &I = *ii;
       Fops opCode = mustReplace(I);
       if (opCode == FOP_IGNORE)
         continue;
+      WorkList.insert(std::make_pair(&I, opCode));
+    }
+
+    for (auto p : WorkList) {
+      Instruction *I = p.first;
+      Fops opCode = p.second;
       if (VfclibInstVerbose)
         errs() << "Instrumenting" << I << '\n';
-      Value *value = replaceWithMCACall(M, &I, opCode);
-      if (value != nullptr)
+      Value *value = replaceWithMCACall(M, I, opCode);
+      if (value != nullptr) {
+        BasicBlock::iterator ii(I);
         ReplaceInstWithValue(B.getInstList(), ii, value);
+      }
       modified = true;
     }
 
