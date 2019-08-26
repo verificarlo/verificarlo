@@ -1,0 +1,108 @@
+#!/usr/bin/python
+
+import argparse
+import re
+import numpy
+from fractions import Fraction
+import math
+import sys
+
+parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                 description="""
+
+Compute statistics about the data contained in the provided data FILEs.""",
+                                 epilog="""
+
+Each FILE is supposed to contain array-like data, represented as decimal numbers
+displayed in rows and space-separated columns. All FILEs must have the same
+array structure: same number of rows and columns. The output produced respects
+the same formatting, except each input column is replaced with a column
+presenting the averaged data across input FILEs.
+
+Explained another way, if FILE #k contains x_{i,j}^k in its i-th row and j-th
+column, the output will contain mu_{i,j} such that:
+
+     mu_{i,j} = average( x_{i,j}^k for all k ).
+
+
+Additionally, for all columns listed with `--col', an extra column is output,
+presenting the relative standard deviation of the data in the column.
+
+The maximal observed standard deviation is output on the standard error. If it
+is higher than the maximal value set using the `--dev-max' option, the return
+value is 1. Otherwise the program returns 0.
+""")
+parser.add_argument('filenames', metavar='FILE', type=str, nargs='+',
+                    help='data file')
+parser.add_argument('--dev-max', dest='epsilon', type=float, action='store',
+                    metavar="EPSILON", default=1.,
+                    help='maximum tolerance for the standard deviation (default: 1)')
+parser.add_argument('--col', dest="cols", metavar="COL", type=int, action='append',
+                    default=[],
+                    help='generate stdev for this column. May be used multiple times')
+
+args = parser.parse_args()
+
+
+def DataFile(filename):
+    sep = re.compile(r"\s+")
+    with open(filename, "r") as f:
+        for line in f:
+            vals = [Fraction(s) for s in sep.split(line.strip())]
+            yield vals
+
+files = [DataFile(f) for f in args.filenames]
+
+maxval = 0.
+header = False
+while True:
+    try:
+        data = [next(f) for f in files]
+
+        if not header:
+            J = 1
+            for j in xrange(len(data[0])):
+                if j+1 in args.cols:
+                    if j!=0: sys.stdout.write("   ")
+                    sys.stdout.write("%-23s " % ("# (%d)" % J)); J+=1
+                    sys.stdout.write("%-23s " % ("# (%d)" % J)); J+=1
+                    sys.stdout.write("   ")
+                else:
+                    sys.stdout.write("%-23s " % ("# (%d)" % J)); J+=1
+            sys.stdout.write("\n")
+            for j in xrange(len(data[0])):
+                if j+1 in args.cols:
+                    if j!= 0: sys.stdout.write("   ")
+                    sys.stdout.write("%-23s " % ("# input col %d (avg)" % (j+1)))
+                    sys.stdout.write("%-23s " % ("# input col %d (std)" % (j+1)))
+                    sys.stdout.write("   ")
+                else:
+                    sys.stdout.write("%-23s " % ("# input col %d (avg)" % (j+1)))
+            sys.stdout.write("\n")
+            header = True
+
+        for j in xrange(len(data[0])):
+            vals = [d[j] for d in data]
+
+            # Compute average deviation
+            N     = len(vals)
+            mu    = sum(vals) / N
+
+            # Compute standard deviation if necessary
+            if j+1 in args.cols:
+                sigma = math.sqrt(float(sum(((x-mu)**2 for x in vals))/N))
+                maxval = max(maxval, sigma/mu)
+                if j!=0: sys.stdout.write("   ")
+                sys.stdout.write("%.17e %.17e    " % (mu, sigma/abs(mu)))
+            else:
+                sys.stdout.write("%.17e " % mu)
+
+        sys.stdout.write("\n")
+    except StopIteration:
+        break
+
+sys.stderr.write("max dev: %.17e\n" % maxval)
+if maxval > args.epsilon:
+    sys.exit(1)
+else:
+    sys.exit(0)

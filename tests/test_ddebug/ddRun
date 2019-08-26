@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Arguments en ligne de commande:
+# - le répertoire où les résultats doivent être stockés
+OUTDIR=$1
+
+# Lancement du code en stockant les résultats dans ${OUTDIR}
+./unitTest >${OUTDIR}/res.dat

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Arguments en ligne de commande:
+# - le répertoire où les résultats doivent être stockés
+OUTDIR=$1
+
+# Lancement du code avec en stockant les résultats dans ${OUTDIR}
+for i in $(seq 3); do
+    ./unitTest >${OUTDIR}/res_$i.dat
+done
+
+./util/avg-stdev --col=2 --dev-max=1e-6 ${OUTDIR}/res*.dat \
+                 2>${OUTDIR}/stdev >${OUTDIR}/res.stat \
+    && touch ${OUTDIR}/OK
