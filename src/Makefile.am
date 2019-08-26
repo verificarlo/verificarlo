@@ -1,2 +1,2 @@
-SUBDIRS=common libvfcinstrument backends
-include_HEADERS=vfcwrapper/vfcwrapper.c common/interflop.h
+SUBDIRS=common libvfcinstrument backends vfcwrapper
+include_HEADERS=common/interflop.h

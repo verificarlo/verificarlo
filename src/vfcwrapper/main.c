@@ -22,13 +22,19 @@
  *                                                                           *
  *****************************************************************************/
 
+#include <assert.h>
 #include <dlfcn.h>
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "interflop.h"
 
@@ -48,6 +54,68 @@ typedef struct interflop_backend_interface_t (*interflop_init_t)(
 struct interflop_backend_interface_t backends[MAX_BACKENDS];
 void *contexts[MAX_BACKENDS];
 unsigned char loaded_backends = 0;
+
+static char *dd_filter_path = NULL;
+static char *dd_generate_path = NULL;
+
+/* Hashset implementation for deltadebug */
+
+struct hashset_st {
+  size_t nbits;
+  size_t mask;
+
+  size_t capacity;
+  size_t *items;
+  size_t nitems;
+  size_t n_deleted_items;
+};
+typedef struct hashset_st *hashset_t;
+
+hashset_t hashset_create(void);
+void hashset_destroy(hashset_t set);
+size_t hashset_num_items(hashset_t set);
+int hashset_add(hashset_t set, void *item);
+int hashset_is_member(hashset_t set, void *item);
+
+hashset_t dd_must_instrument;
+
+void ddebug_generate_inclusion(char *dd_generate_path, hashset_t set) {
+  int output = open(dd_generate_path, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
+  if (output == -1) {
+    errx(1, "cannot open DDEBUG_GEN file %s", dd_generate_path);
+  }
+  for (int i = 0; i < set->capacity; i++) {
+    if (set->items[i] != 0 && set->items[i] != 1) {
+      pid_t pid = fork();
+      if (pid == 0) {
+        char addr[19];
+        char executable[64];
+        snprintf(addr, 19, "%p", (void *)set->items[i]);
+        snprintf(executable, 64, "/proc/%d/exe", getppid());
+        dup2(output, 1);
+        execlp("addr2line", "/usr/bin/addr2line", "-paCs", "-e", executable,
+               addr, NULL);
+        errx(1, "error running addr2line");
+      } else {
+        int status;
+        wait(&status);
+        assert(status == 0);
+      }
+    }
+  }
+  close(output);
+}
+
+__attribute__((destructor)) static void vfc_atexit(void) {
+#ifdef DDEBUG
+  if (dd_generate_path) {
+    ddebug_generate_inclusion(dd_generate_path, dd_must_instrument);
+    warnx("ddebug: generated complete inclusion file at %s\n",
+          dd_generate_path);
+  }
+  hashset_destroy(dd_must_instrument);
+#endif
+}
 
 /* Checks that a least one of the loaded backend implements the chosen
  * operation at a given precision */
@@ -116,8 +184,8 @@ __attribute__((constructor)) static void vfc_init(void) {
 
     /* Register backend */
     if (loaded_backends == MAX_BACKENDS) {
-      fprintf(stderr, "No more than %d backends can be used simultaneously",
-              MAX_BACKENDS);
+      errx(1, "No more than %d backends can be used simultaneously",
+          MAX_BACKENDS);
     }
     backends[loaded_backends] =
         handle_init(backend_argc, backend_argv, &contexts[loaded_backends]);
@@ -145,13 +213,61 @@ __attribute__((constructor)) static void vfc_init(void) {
   check_backends_implements(float, cmp);
   check_backends_implements(double, cmp);
 #endif
+
+#ifdef DDEBUG
+  /* Initialize ddebug */
+  dd_must_instrument = hashset_create();
+  dd_filter_path = getenv("VFC_DDEBUG_INCLUDE");
+  dd_generate_path = getenv("VFC_DDEBUG_GEN");
+  if (dd_filter_path && dd_generate_path) {
+    errx(1, "VFC_DDEBUG_INCLUDE and VFC_DDEBUG_GEN should not be both defined "
+            "at the same time");
+  }
+  FILE *input = fopen(dd_filter_path, "r");
+  if (input) {
+    void *addr;
+    char line[2048];
+    int lineno = 0;
+    while (fgets(line, sizeof line, input)) {
+      lineno++;
+      if (sscanf(line, "%p", &addr) == 1) {
+        hashset_add(dd_must_instrument, addr);
+      } else {
+        errx(1, "ddebug: error parsing VFC_DDEBUG_INCLUDE %s at line %d",
+             dd_filter_path, lineno);
+      }
+    }
+    warnx("ddebug: only %zu addresses will be instrumented\n",
+          hashset_num_items(dd_must_instrument));
+  }
+#endif
 }
 
 /* Arithmetic wrappers */
+#ifdef DDEBUG
+/* When delta-debug run flags are passed*/
+#define ddebug(operator)                                                       \
+  void *addr = __builtin_return_address(0);                                    \
+  if (dd_filter_path) {                                                        \
+    if (!hashset_is_member(dd_must_instrument, addr)) {                        \
+      return a operator b;                                                     \
+    } else {                                                                   \
+    }                                                                          \
+  } else if (dd_generate_path) {                                               \
+    hashset_add(dd_must_instrument, addr);                                     \
+  }
 
-#define define_arithmetic_wrapper(precision, operation)                        \
+#else
+/* When delta-debug flags are not passed do nothing */
+#define ddebug(operator)                                                       \
+  do {                                                                         \
+  } while (0)
+#endif
+
+#define define_arithmetic_wrapper(precision, operation, operator)              \
   precision _##precision##operation(precision a, precision b) {                \
     precision c = NAN;                                                         \
+    ddebug(operator);                                                          \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
       if (backends[i].interflop_##operation##_##precision) {                   \
         backends[i].interflop_##operation##_##precision(a, b, &c,              \
@@ -161,14 +277,14 @@ __attribute__((constructor)) static void vfc_init(void) {
     return c;                                                                  \
   }
 
-define_arithmetic_wrapper(float, add);
-define_arithmetic_wrapper(float, sub);
-define_arithmetic_wrapper(float, mul);
-define_arithmetic_wrapper(float, div);
-define_arithmetic_wrapper(double, add);
-define_arithmetic_wrapper(double, sub);
-define_arithmetic_wrapper(double, mul);
-define_arithmetic_wrapper(double, div);
+define_arithmetic_wrapper(float, add, +);
+define_arithmetic_wrapper(float, sub, -);
+define_arithmetic_wrapper(float, mul, *);
+define_arithmetic_wrapper(float, div, /);
+define_arithmetic_wrapper(double, add, +);
+define_arithmetic_wrapper(double, sub, -);
+define_arithmetic_wrapper(double, mul, *);
+define_arithmetic_wrapper(double, div, /);
 
 int _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
   int c;
@@ -259,3 +375,5 @@ int4 _4xfloatcmp(enum FCMP_PREDICATE p, float4 a, float4 b) {
   c[3] = _floatcmp(p, a[3], b[3]);
   return c;
 }
+
+
