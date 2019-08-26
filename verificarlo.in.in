@@ -107,7 +107,7 @@ def linker_mode(sources, options, output, args):
     # Only include lgfortran if fortran support is enabled
     gfortran = "-lgfortran" if dragonegg else ""
 
-    f = tempfile.NamedTemporaryFile()
+    f = tempfile.NamedTemporaryFile(mode='w+')
     if args.static:
         f.write('{output} {sources} {options} -static .vfcwrapper.o -lmpfr -lgmp {gfortran} -lm -ldl'.format(
             output=output,
