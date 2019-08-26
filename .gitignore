@@ -15,6 +15,7 @@
 **/Makefile
 *.in
 verificarlo
+src/vfcwrapper/vfcwrapper.c
 configure
 autom4te.cache
 stamp-h1
