@@ -2,7 +2,6 @@
 
 import argparse
 import re
-import numpy
 from fractions import Fraction
 import math
 import sys
