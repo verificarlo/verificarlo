@@ -215,7 +215,6 @@ class DDStoch(DD.DD):
             print("FAILURE: the reference is not valid ")
             print("Suggestions:")
             print("\t1) check the correctness of the %s script"%self.compare_)
-            print("\t2) if your code contains C++ code (libraries included), check the presence of the valgrind option --demangle=no in the run script")
 
             print("Files to analyze:")
             print("\t run output: " +  os.path.join(self.ref_,"dd.out") + " " + os.path.join(self.ref_,"dd.err"))
@@ -481,7 +480,6 @@ class DDStoch(DD.DD):
         print("Suggestions:")
         print("\t1) check the correctness of the %s script : the failure criteria may be too large"%self.compare_)
         print("\t2) check if the number of samples INTERFLOP_DD_NRUNS is sufficient ")
-        print("\t3) if your code contains C++ code (libraries included), check the presence of the valgrind option --demangle=no in the run script")
 
         dirname = md5Name(delta)
         print("Directory to analyze: %s"%dirname)
@@ -503,8 +501,7 @@ class DDStoch(DD.DD):
         print("FAILURE: the comparison between interflop with activated symbols in nearest mode (ref) and interflop without activated symbols failed")
 
         print("Suggestions:")
-        print("\t1) check the libm library is correctly excluded")
-        print("\t2) check if reproducibilty discrepancies are larger than the failure criteria of the script %s"%self.compare_)
+        print("\t1) check if reproducibilty discrepancies are larger than the failure criteria of the script %s"%self.compare_)
         failure()
 
     def reference(self):

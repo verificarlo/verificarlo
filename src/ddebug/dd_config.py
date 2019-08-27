@@ -164,7 +164,7 @@ class ddConfig:
 
 
     def get_EnvDoc(self,PREFIX="INTERFLOP"):
-        doc="""List of en variable :
+        doc="""List of environnment variables:
         PREFIXENV_DD_NRUNS : int (default:5)
         PREFIXENV_DD_NUM_THREADS : int (default None)
         PREFIXENV_DD_ALGO : in ["ddmax", "rddmin"] (default "rddmin")
