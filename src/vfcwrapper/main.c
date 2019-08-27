@@ -38,6 +38,18 @@
 
 #include "interflop.h"
 
+/* In delta-debug we retrieve the return address of
+ * instrumented operations. Call op size allows us
+ * to compute the previous instruction so that the
+ * user sees the address of the actual operation */
+#ifdef __x86_64__
+#define CALL_OP_SIZE 5
+#else
+/* On other architectures we assume an instruction is
+ * 4 bytes */
+#define CALL_OP_SIZE 4
+#endif
+
 typedef double double2 __attribute__((ext_vector_type(2)));
 typedef double double4 __attribute__((ext_vector_type(4)));
 typedef float float2 __attribute__((ext_vector_type(2)));
@@ -90,7 +102,7 @@ void ddebug_generate_inclusion(char *dd_generate_path, hashset_t set) {
       if (pid == 0) {
         char addr[19];
         char executable[64];
-        snprintf(addr, 19, "%p", (void *)set->items[i]);
+        snprintf(addr, 19, "%p", (void *)(set->items[i] - CALL_OP_SIZE));
         snprintf(executable, 64, "/proc/%d/exe", getppid());
         dup2(output, 1);
         execlp("addr2line", "/usr/bin/addr2line", "-fpaCs", "-e", executable,
@@ -185,7 +197,7 @@ __attribute__((constructor)) static void vfc_init(void) {
     /* Register backend */
     if (loaded_backends == MAX_BACKENDS) {
       errx(1, "No more than %d backends can be used simultaneously",
-          MAX_BACKENDS);
+           MAX_BACKENDS);
     }
     backends[loaded_backends] =
         handle_init(backend_argc, backend_argv, &contexts[loaded_backends]);
@@ -231,7 +243,7 @@ __attribute__((constructor)) static void vfc_init(void) {
     while (fgets(line, sizeof line, input)) {
       lineno++;
       if (sscanf(line, "%p", &addr) == 1) {
-        hashset_add(dd_must_instrument, addr);
+        hashset_add(dd_must_instrument, addr + CALL_OP_SIZE);
       } else {
         errx(1, "ddebug: error parsing VFC_DDEBUG_INCLUDE %s at line %d",
              dd_filter_path, lineno);
@@ -375,5 +387,3 @@ int4 _4xfloatcmp(enum FCMP_PREDICATE p, float4 a, float4 b) {
   c[3] = _floatcmp(p, a[3], b[3]);
   return c;
 }
-
-
