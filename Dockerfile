@@ -7,8 +7,7 @@ FROM ubuntu:14.04
 MAINTAINER Pablo Oliveira <pablo.oliveira@uvsq.fr>
 
 # Retrieve dependencies
-RUN apt-get -y update
-RUN apt-get -y install --no-install-recommends bash ca-certificates make git libmpfr-dev clang-3.5 llvm-3.5 llvm-3.5-dev dragonegg-4.7 gcc-4.7 g++-4.7 gfortran-4.7 libgfortran-4.7-dev autoconf automake libedit-dev libtool libz-dev python && rm -rf /var/lib/apt/lists/
+RUN apt-get -y update && apt-get -y install --no-install-recommends bash ca-certificates make git libmpfr-dev clang-3.5 llvm-3.5 llvm-3.5-dev dragonegg-4.7 gcc-4.7 g++-4.7 gfortran-4.7 libgfortran-4.7-dev autoconf automake libedit-dev libtool libz-dev python3 binutils && rm -rf /var/lib/apt/lists/
 ENV LIBRARY_PATH /usr/lib/gcc/x86_64-linux-gnu/4.7:/usr/lib/llvm-3.5/lib:$LIBRARY_PATH
 
 # Download and configure verificarlo from git master
@@ -22,6 +21,7 @@ RUN \
 
 ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
 ENV PATH /usr/local/bin:$PATH
+ENV PYTHONPATH=/usr/local/lib/python3.4/site-packages/:$PYHONPATH
 RUN cd verificarlo && make && make install && make installcheck
 
 # Setup working directory
