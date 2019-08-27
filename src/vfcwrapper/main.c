@@ -93,7 +93,7 @@ void ddebug_generate_inclusion(char *dd_generate_path, hashset_t set) {
         snprintf(addr, 19, "%p", (void *)set->items[i]);
         snprintf(executable, 64, "/proc/%d/exe", getppid());
         dup2(output, 1);
-        execlp("addr2line", "/usr/bin/addr2line", "-paCs", "-e", executable,
+        execlp("addr2line", "/usr/bin/addr2line", "-fpaCs", "-e", executable,
                addr, NULL);
         errx(1, "error running addr2line");
       } else {
