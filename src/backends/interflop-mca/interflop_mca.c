@@ -169,6 +169,8 @@ static inline uint32_t rexpd(double x) {
   return exp;
 }
 
+/* Returns the MCA noise for the quad format
+ * qnoise = 2^(exp)*d_rand */
 static inline __float128 qnoise(int exp) {
   double d_rand = (_mca_rand() - 0.5);
   uint64_t u_rand = *((uint64_t *)&d_rand);
@@ -176,7 +178,7 @@ static inline __float128 qnoise(int exp) {
   uint64_t hx, lx;
   // specials
   if (exp == 0)
-    return 1;
+    return d_rand;
 
   if (exp > QUAD_EXP_MAX) { /*exceed max exponent*/
     SET_FLT128_WORDS64(noise, QINF_hx, QINF_lx);
