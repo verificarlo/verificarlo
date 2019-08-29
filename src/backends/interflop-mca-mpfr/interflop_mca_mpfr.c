@@ -121,7 +121,15 @@ static double _mca_rand(void) {
 static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
   /* if we are in IEEE mode, we return a noise equal to 0 */
   /* if a is NaN, Inf or 0, we don't disturb it */
-  if ((MCALIB_OP_TYPE == MCAMODE_IEEE) || (mpfr_regular_p(a) == 0)) return 0;
+  if ((MCALIB_OP_TYPE == MCAMODE_IEEE) || (mpfr_regular_p(a) == 0)) {
+    return 0;
+  }
+  /* In RR, if the result is exact in the current virtual precision, do not add
+   * any noise */
+  mpfr_prec_t min_prec = mpfr_min_prec(a);
+  if (MCALIB_OP_TYPE == MCAMODE_RR && min_prec <= MCALIB_T) {
+    return 0;
+  }
   /* get_exp reproduce frexp behavior,  */
   /* i.e. exp corresponding to a normalization in the interval [1/2 1[ */
   /* remove one to normalize in [1 2[ like ieee numbers */
@@ -133,7 +141,7 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
   mpfr_set_d(mpfr_rand, d_rand, rnd_mode);
   /* rand = rand * 2 ^ (e_a) */
   mpfr_mul_2si(mpfr_rand, mpfr_rand, e_a, rnd_mode);
-  mpfr_add(a, a, mpfr_rand, rnd_mode);
+  mpfr_add(a, a, mpfr_rand, rnd_mode);  
 }
 
 static void _set_mca_seed(int choose_seed, uint64_t seed) {
@@ -160,84 +168,72 @@ static void _set_mca_seed(int choose_seed, uint64_t seed) {
  *******************************************************************/
 
 static float _mca_sbin(float a, float b, mpfr_bin mpfr_op) {
-  mpfr_t mpfr_a, mpfr_b, mpfr_r;
-  mpfr_prec_t prec = FLOAT_PREC + MCALIB_T;
+  mpfr_prec_t prec = DOUBLE_PREC;
   mpfr_rnd_t rnd = MPFR_RNDN;
-  mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr)0);
+  MPFR_DECL_INIT(mpfr_a, prec);
+  MPFR_DECL_INIT(mpfr_b, prec);
   mpfr_set_flt(mpfr_a, a, rnd);
   mpfr_set_flt(mpfr_b, b, rnd);
   if (MCALIB_OP_TYPE != MCAMODE_RR) {
     _mca_inexact(mpfr_a, rnd);
     _mca_inexact(mpfr_b, rnd);
   }
-  mpfr_op(mpfr_r, mpfr_a, mpfr_b, rnd);
+  mpfr_op(mpfr_a, mpfr_a, mpfr_b, rnd);
   if (MCALIB_OP_TYPE != MCAMODE_PB) {
-    _mca_inexact(mpfr_r, rnd);
+    _mca_inexact(mpfr_a, rnd);
   }
-  float ret = mpfr_get_flt(mpfr_r, rnd);
-  mpfr_clear(mpfr_a);
-  mpfr_clear(mpfr_b);
-  mpfr_clear(mpfr_r);
+  float ret = mpfr_get_flt(mpfr_a, rnd);
   return NEAREST_FLOAT(ret);
 }
 
 static float _mca_sunr(float a, mpfr_unr mpfr_op) {
-  mpfr_t mpfr_a, mpfr_r;
-  mpfr_prec_t prec = FLOAT_PREC + MCALIB_T;
+  mpfr_prec_t prec = DOUBLE_PREC;
   mpfr_rnd_t rnd = MPFR_RNDN;
-  mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr)0);
+  MPFR_DECL_INIT(mpfr_a, prec);
   mpfr_set_flt(mpfr_a, a, rnd);
   if (MCALIB_OP_TYPE != MCAMODE_RR) {
     _mca_inexact(mpfr_a, rnd);
   }
-  mpfr_op(mpfr_r, mpfr_a, rnd);
+  mpfr_op(mpfr_a, mpfr_a, rnd);
   if (MCALIB_OP_TYPE != MCAMODE_PB) {
-    _mca_inexact(mpfr_r, rnd);
+    _mca_inexact(mpfr_a, rnd);
   }
-  float ret = mpfr_get_flt(mpfr_r, rnd);
-  mpfr_clear(mpfr_a);
-  mpfr_clear(mpfr_r);
+  float ret = mpfr_get_flt(mpfr_a, rnd);
   return NEAREST_FLOAT(ret);
 }
 
 static double _mca_dbin(double a, double b, mpfr_bin mpfr_op) {
-  mpfr_t mpfr_a, mpfr_b, mpfr_r;
-  mpfr_prec_t prec = DOUBLE_PREC + MCALIB_T;
+  mpfr_prec_t prec = QUAD_PREC;
   mpfr_rnd_t rnd = MPFR_RNDN;
-  mpfr_inits2(prec, mpfr_a, mpfr_b, mpfr_r, (mpfr_ptr)0);
+  MPFR_DECL_INIT(mpfr_a, prec);
+  MPFR_DECL_INIT(mpfr_b, prec);
   mpfr_set_d(mpfr_a, a, rnd);
   mpfr_set_d(mpfr_b, b, rnd);
   if (MCALIB_OP_TYPE != MCAMODE_RR) {
     _mca_inexact(mpfr_a, rnd);
     _mca_inexact(mpfr_b, rnd);
   }
-  mpfr_op(mpfr_r, mpfr_a, mpfr_b, rnd);
+  mpfr_op(mpfr_a, mpfr_a, mpfr_b, rnd);
   if (MCALIB_OP_TYPE != MCAMODE_PB) {
-    _mca_inexact(mpfr_r, rnd);
+    _mca_inexact(mpfr_a, rnd);
   }
-  double ret = mpfr_get_d(mpfr_r, rnd);
-  mpfr_clear(mpfr_a);
-  mpfr_clear(mpfr_b);
-  mpfr_clear(mpfr_r);
+  double ret = mpfr_get_d(mpfr_a, rnd);
   return NEAREST_DOUBLE(ret);
 }
 
 static double _mca_dunr(double a, mpfr_unr mpfr_op) {
-  mpfr_t mpfr_a, mpfr_r;
-  mpfr_prec_t prec = DOUBLE_PREC + MCALIB_T;
+  mpfr_prec_t prec = QUAD_PREC;
   mpfr_rnd_t rnd = MPFR_RNDN;
-  mpfr_inits2(prec, mpfr_a, mpfr_r, (mpfr_ptr)0);
+  MPFR_DECL_INIT(mpfr_a, prec);
   mpfr_set_d(mpfr_a, a, rnd);
   if (MCALIB_OP_TYPE != MCAMODE_RR) {
     _mca_inexact(mpfr_a, rnd);
   }
-  mpfr_op(mpfr_r, mpfr_a, rnd);
+  mpfr_op(mpfr_a, mpfr_a, rnd);
   if (MCALIB_OP_TYPE != MCAMODE_PB) {
-    _mca_inexact(mpfr_r, rnd);
+    _mca_inexact(mpfr_a, rnd);
   }
-  double ret = mpfr_get_d(mpfr_r, rnd);
-  mpfr_clear(mpfr_a);
-  mpfr_clear(mpfr_r);
+  double ret = mpfr_get_d(mpfr_a, rnd);
   return NEAREST_DOUBLE(ret);
 }
 
