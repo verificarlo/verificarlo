@@ -156,7 +156,7 @@ static inline uint32_t rexpq(__float128 x) {
   // remove sign bit, mantissa will be erased by the next shift
   ix = hx & QUAD_HX_ERASE_SIGN;
   // shift exponent to have LSB on position 0 and complement
-  exp += (ix >> QUAD_HX_PMAN_SIZE) - QUAD_EXP_COMP;
+  exp = (ix >> QUAD_HX_PMAN_SIZE) - QUAD_EXP_COMP;
   return exp;
 }
 
@@ -170,7 +170,7 @@ static inline uint32_t rexpd(double x) {
   // remove sign bit, mantissa will be erased by the next shift
   ix = hex & DOUBLE_ERASE_SIGN;
   // shift exponent to have LSB on position 0 and complement
-  exp += (ix >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
+  exp = (ix >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
   return exp;
 }
 
