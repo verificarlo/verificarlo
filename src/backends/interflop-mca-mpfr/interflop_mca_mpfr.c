@@ -119,42 +119,21 @@ static double _mca_rand(void) {
 }
 
 static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
-  if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
-    return 0;
-  }
-
-  /* In RR, if the result is exact in the current virtual precision, do not add
-   * any noise */
-  mpfr_prec_t min_prec = mpfr_min_prec(a);
-  if (MCALIB_OP_TYPE == MCAMODE_RR && min_prec <= MCALIB_T) {
-    return 0;
-  }
-
-  // get_exp reproduce frexp behavior, i.e. exp corresponding to a normalization
-  // in the interval [1/2 1[
-  // remove one to normalize in [1 2[ like ieee numbers
-  mpfr_exp_t e_a = mpfr_get_exp(a) - 1;
+  /* if we are in IEEE mode, we return a noise equal to 0 */
+  /* if a is NaN, Inf or 0, we don't disturb it */
+  if ((MCALIB_OP_TYPE == MCAMODE_IEEE) || (mpfr_regular_p(a) == 0)) return 0;
+  /* get_exp reproduce frexp behavior,  */
+  /* i.e. exp corresponding to a normalization in the interval [1/2 1[ */
+  /* remove one to normalize in [1 2[ like ieee numbers */
+  mpfr_exp_t e_a = mpfr_get_exp(a)-1;
   mpfr_prec_t p_a = mpfr_get_prec(a);
-  mpfr_t mpfr_rand, mpfr_offset, mpfr_zero;
+  MPFR_DECL_INIT(mpfr_rand, p_a);
   e_a = e_a - (MCALIB_T - 1);
-  mpfr_inits2(p_a, mpfr_rand, mpfr_offset, mpfr_zero, (mpfr_ptr)0);
-  mpfr_set_d(mpfr_zero, 0., rnd_mode);
-  int cmp = mpfr_cmp(a, mpfr_zero);
-  if (cmp == 0) {
-    mpfr_clear(mpfr_rand);
-    mpfr_clear(mpfr_offset);
-    mpfr_clear(mpfr_zero);
-    return 0;
-  }
   double d_rand = (_mca_rand() - 0.5);
-  double d_offset = pow(2, e_a);
   mpfr_set_d(mpfr_rand, d_rand, rnd_mode);
-  mpfr_set_d(mpfr_offset, d_offset, rnd_mode);
-  mpfr_mul(mpfr_rand, mpfr_rand, mpfr_offset, rnd_mode);
+  /* rand = rand * 2 ^ (e_a) */
+  mpfr_mul_2si(mpfr_rand, mpfr_rand, e_a, rnd_mode);
   mpfr_add(a, a, mpfr_rand, rnd_mode);
-  mpfr_clear(mpfr_rand);
-  mpfr_clear(mpfr_offset);
-  mpfr_clear(mpfr_zero);
 }
 
 static void _set_mca_seed(int choose_seed, uint64_t seed) {
@@ -303,6 +282,7 @@ static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
   *c = _mca_dbin(a, b, (mpfr_bin)MP_DIV);
 }
+
 
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
