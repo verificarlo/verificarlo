@@ -45,11 +45,11 @@
 #include <err.h>
 #include <errno.h>
 #include <math.h>
-#include <strings.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <strings.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -70,7 +70,7 @@ typedef struct {
 #define MCAMODE_PB 2
 #define MCAMODE_RR 3
 
-static const char * MCAMODE[] = {"ieee", "mca", "pb", "rr"};
+static const char *MCAMODE[] = {"ieee", "mca", "pb", "rr"};
 
 /* define default environment variables and default parameters */
 #define MCA_PRECISION_DEFAULT 53
@@ -311,23 +311,19 @@ static int _mca_inexactd(double *da) {
 }
 
 static void _set_mca_seed(int choose_seed, int seed) {
-  const int key_length = 3;
-  uint64_t init_key[key_length];
-  
   if (choose_seed) {
-    init_key[0] = seed;
-    init_key[1] = seed;
-    init_key[2] = seed;    
-  } else {    
+    tinymt64_init(&random_state, seed);
+  } else {
+    const int key_length = 3;
+    uint64_t init_key[key_length];
     struct timeval t1;
     gettimeofday(&t1, NULL);
     /* Hopefully the following seed is good enough for Montercarlo */
     init_key[0] = t1.tv_sec;
     init_key[1] = t1.tv_usec;
     init_key[2] = getpid();
+    tinymt64_init_by_array(&random_state, init_key, key_length);
   }
-  
-  tinymt64_init_by_array(&random_state, init_key, key_length);
 }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
@@ -439,56 +435,55 @@ static void _interflop_div_double(double a, double b, double *c,
   *c = _mca_dbin(a, b, MCA_DIV);
 }
 
-
 static struct argp_option options[] = {
-  /* --debug, sets the variable debug = true */
-  {"precision", 'p', "PRECISION", 0, "select precision (PRECISION >= 0)"},
-  {"mode", 'm', "MODE", 0, "select MCA mode among {ieee, mca, pb, rr}"},
-  {"seed", 's', "SEED", 0, "fix the random generator seed"},
-  {0}};
+    /* --debug, sets the variable debug = true */
+    {"precision", 'p', "PRECISION", 0, "select precision (PRECISION >= 0)"},
+    {"mode", 'm', "MODE", 0, "select MCA mode among {ieee, mca, pb, rr}"},
+    {"seed", 's', "SEED", 0, "fix the random generator seed"},
+    {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
-  t_context *ctx = (t_context*) state->input;
+  t_context *ctx = (t_context *)state->input;
   char *endptr;
-  switch (key)
-    {
-    case 'p':
-      /* precision */
-      errno = 0;
-      int val = strtol(arg, &endptr, 10);
-      if (errno != 0 || val <= 0) {
-        errx(1, "interflop_mca: --precision invalid value provided, must be a positive integer.");
-      } else {
-        _set_mca_precision(val);
-      }
-      break;
-    case 'm':
-      /* mode */
-      if (strcasecmp(MCAMODE[MCAMODE_IEEE], arg) == 0) {
-        _set_mca_mode(MCAMODE_IEEE);
-      } else if (strcasecmp(MCAMODE[MCAMODE_MCA], arg) == 0) {
-        _set_mca_mode(MCAMODE_MCA);
-      } else if (strcasecmp(MCAMODE[MCAMODE_PB], arg) == 0) {
-        _set_mca_mode(MCAMODE_PB);
-      } else if (strcasecmp(MCAMODE[MCAMODE_RR], arg) == 0) {
-        _set_mca_mode(MCAMODE_RR);
-      } else {
-        errx(1, "interflop_mca: --mode invalid value provided, must be one of: {ieee, mca, pb, rr}.");
-      }
-      break;
-    case 's':
-      errno = 0;
-      int seed = strtol(arg, &endptr, 10);
-      if (errno != 0) {
-        errx(1, "interflop_mca: --seed invalid value provided, must be an integer");
-      } else {
-	ctx->choose_seed = 1;
-	ctx->seed = seed;
-      }
-      break;
-    default:
-      return ARGP_ERR_UNKNOWN;
+  switch (key) {
+  case 'p':
+    /* precision */
+    errno = 0;
+    int val = strtol(arg, &endptr, 10);
+    if (errno != 0 || val <= 0) {
+      errx(1, "interflop_mca: --precision invalid value provided, must be a "
+              "positive integer.");
+    } else {
+      _set_mca_precision(val);
     }
+    break;
+  case 'm':
+    /* mode */
+    if (strcasecmp(MCAMODE[MCAMODE_IEEE], arg) == 0) {
+      _set_mca_mode(MCAMODE_IEEE);
+    } else if (strcasecmp(MCAMODE[MCAMODE_MCA], arg) == 0) {
+      _set_mca_mode(MCAMODE_MCA);
+    } else if (strcasecmp(MCAMODE[MCAMODE_PB], arg) == 0) {
+      _set_mca_mode(MCAMODE_PB);
+    } else if (strcasecmp(MCAMODE[MCAMODE_RR], arg) == 0) {
+      _set_mca_mode(MCAMODE_RR);
+    } else {
+      errx(1, "interflop_mca: --mode invalid value provided, must be one of: "
+              "{ieee, mca, pb, rr}.");
+    }
+    break;
+  case 's':
+    errno = 0;
+    ctx->choose_seed = 1;
+    ctx->seed = strtol(arg, &endptr, 10);
+    if (errno != 0) {
+      errx(1,
+           "interflop_mca: --seed invalid value provided, must be an integer");
+    }
+    break;
+  default:
+    return ARGP_ERR_UNKNOWN;
+  }
   return 0;
 }
 
@@ -499,20 +494,21 @@ static void init_context(t_context *ctx) {
   ctx->seed = 0;
 }
 
-struct interflop_backend_interface_t interflop_init(int argc, char ** argv,
-    void **context) {
+struct interflop_backend_interface_t interflop_init(int argc, char **argv,
+                                                    void **context) {
 
   _set_mca_precision(MCA_PRECISION_DEFAULT);
   _set_mca_mode(MCAMODE_DEFAULT);
 
-  t_context * ctx = malloc(sizeof(t_context));
+  t_context *ctx = malloc(sizeof(t_context));
   *context = ctx;
   init_context(ctx);
 
   /* parse backend arguments */
-  argp_parse (&argp, argc, argv, 0, 0, ctx);
+  argp_parse(&argp, argc, argv, 0, 0, ctx);
 
-  warnx("interflop_mca: loaded backend with precision = %d and mode = %s", MCALIB_T, MCAMODE[MCALIB_OP_TYPE]);
+  warnx("interflop_mca: loaded backend with precision = %d and mode = %s",
+        MCALIB_T, MCAMODE[MCALIB_OP_TYPE]);
 
   struct interflop_backend_interface_t interflop_backend_mca = {
       _interflop_add_float,
@@ -526,7 +522,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char ** argv,
       _interflop_div_double,
       NULL};
 
-  /* Initialize the randomly the seed */
+  /* Initialize randomly the seed */
   _set_mca_seed(ctx->choose_seed, ctx->seed);
 
   return interflop_backend_mca;
