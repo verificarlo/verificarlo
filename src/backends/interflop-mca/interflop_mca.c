@@ -176,9 +176,6 @@ static inline __float128 qnoise(int exp) {
   uint64_t u_rand = *((uint64_t *)&d_rand);
   __float128 noise;
   uint64_t hx, lx;
-  // specials
-  if (exp == 0)
-    return d_rand;
 
   if (exp > QUAD_EXP_MAX) { /*exceed max exponent*/
     SET_FLT128_WORDS64(noise, QINF_hx, QINF_lx);
