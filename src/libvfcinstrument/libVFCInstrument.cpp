@@ -302,7 +302,7 @@ struct VfclibInst : public ModulePass {
       Instruction *I = p.first;
       Fops opCode = p.second;
       if (VfclibInstVerbose)
-        errs() << "Instrumenting" << I << '\n';
+        errs() << "Instrumenting" << *I << '\n';
       Value *value = replaceWithMCACall(M, I, opCode);
       if (value != nullptr) {
         BasicBlock::iterator ii(I);
