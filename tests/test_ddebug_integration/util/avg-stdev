@@ -90,7 +90,7 @@ while True:
             # Compute standard deviation if necessary
             if j+1 in args.cols:
                 sigma = math.sqrt(float(sum(((x-mu)**2 for x in vals))/N))
-                maxval = max(maxval, sigma/mu)
+                maxval = max(maxval, sigma/abs(mu))
                 if j!=0: sys.stdout.write("   ")
                 sys.stdout.write("%.17e %.17e    " % (mu, sigma/abs(mu)))
             else:
