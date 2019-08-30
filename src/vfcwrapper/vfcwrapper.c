@@ -97,7 +97,7 @@ __attribute__((constructor)) static void vfc_init(void) {
     /* load the backend .so */
     void *handle = dlopen(backend_argv[0], RTLD_NOW);
     if (handle == NULL) {
-      errx(1, "Cannot load backend %s: dlopen error", token);
+      errx(1, "Cannot load backend %s: dlopen error\n%s", token, dlerror());
     }
 
     warnx("verificarlo loaded backend %s", token);
