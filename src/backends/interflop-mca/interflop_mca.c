@@ -241,6 +241,7 @@ static inline __float128 qnoise(int exp) {
 }
 
 static bool _is_representableq(__float128 *qa) {
+
   /* Check if *qa is exactly representable
    * in the current virtual precision */
   uint64_t hx, lx;
@@ -265,11 +266,12 @@ static bool _is_representableq(__float128 *qa) {
 }
 
 static bool _is_representabled(double *da) {
+
   /* Check if *da is exactly representable
    * in the current virtual precision */
   uint64_t p_mantissa = (*((uint64_t *)da)) & DOUBLE_GET_PMAN;
   /* here we know that (MCALIB_T-1) < 53 */
-  return ((p_mantissa << (MCALIB_T - 1)) == 0);
+  return ((p_mantissa << (MCALIB_T + DOUBLE_EXP_SIZE)) == 0);
 }
 
 static int _mca_inexactq(__float128 *qa) {
