@@ -133,7 +133,7 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
   /* get_exp reproduce frexp behavior,  */
   /* i.e. exp corresponding to a normalization in the interval [1/2 1[ */
   /* remove one to normalize in [1 2[ like ieee numbers */
-  mpfr_exp_t e_a = mpfr_get_exp(a)-1;
+  mpfr_exp_t e_a = mpfr_get_exp(a) - 1;
   mpfr_prec_t p_a = mpfr_get_prec(a);
   MPFR_DECL_INIT(mpfr_rand, p_a);
   e_a = e_a - (MCALIB_T - 1);
@@ -141,7 +141,7 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
   mpfr_set_d(mpfr_rand, d_rand, rnd_mode);
   /* rand = rand * 2 ^ (e_a) */
   mpfr_mul_2si(mpfr_rand, mpfr_rand, e_a, rnd_mode);
-  mpfr_add(a, a, mpfr_rand, rnd_mode);  
+  mpfr_add(a, a, mpfr_rand, rnd_mode);
 }
 
 static void _set_mca_seed(int choose_seed, uint64_t seed) {
@@ -278,7 +278,6 @@ static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
   *c = _mca_dbin(a, b, (mpfr_bin)MP_DIV);
 }
-
 
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */

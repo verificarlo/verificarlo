@@ -8,7 +8,7 @@ Check() {
     START_PREC=$2
     MAX_PREC=$1
     for MODE in "PB" "RR" "MCA" ; do
-	for PREC in $(seq $START_PREC 10 $MAX_PREC) ; do
+	for PREC in $(seq $START_PREC 5 $MAX_PREC) ; do
 	    echo "Checking at PRECISION $PREC MODE $MODE"
 	    rm -f out_mpfr out_quad
 	    export VFC_BACKENDS="libinterflop_mca_mpfr.so --precision $PREC --mode $MODE --seed=$SEED"
