@@ -288,6 +288,7 @@ static int _mca_inexactq(__float128 *qa) {
   int32_t e_n = e_a - (MCALIB_T - 1);
   __float128 noise = qnoise(e_n);
   *qa = noise + *qa;
+
   return 1;
 }
 
@@ -307,6 +308,7 @@ static int _mca_inexactd(double *da) {
   int32_t e_n = e_a - (MCALIB_T - 1);
   double d_rand = (_mca_rand() - 0.5);
   *da = *da + pow2d(e_n) * d_rand;
+
   return 1;
 }
 
