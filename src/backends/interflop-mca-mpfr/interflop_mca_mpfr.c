@@ -183,7 +183,7 @@ static float _mca_sbin(float a, float b, mpfr_bin mpfr_op) {
     _mca_inexact(mpfr_a, rnd);
   }
   float ret = mpfr_get_flt(mpfr_a, rnd);
-  return NEAREST_FLOAT(ret);
+  return ret;
 }
 
 static float _mca_sunr(float a, mpfr_unr mpfr_op) {
@@ -199,7 +199,7 @@ static float _mca_sunr(float a, mpfr_unr mpfr_op) {
     _mca_inexact(mpfr_a, rnd);
   }
   float ret = mpfr_get_flt(mpfr_a, rnd);
-  return NEAREST_FLOAT(ret);
+  return ret;
 }
 
 static double _mca_dbin(double a, double b, mpfr_bin mpfr_op) {
@@ -218,7 +218,7 @@ static double _mca_dbin(double a, double b, mpfr_bin mpfr_op) {
     _mca_inexact(mpfr_a, rnd);
   }
   double ret = mpfr_get_d(mpfr_a, rnd);
-  return NEAREST_DOUBLE(ret);
+  return ret;
 }
 
 static double _mca_dunr(double a, mpfr_unr mpfr_op) {
@@ -234,7 +234,7 @@ static double _mca_dunr(double a, mpfr_unr mpfr_op) {
     _mca_inexact(mpfr_a, rnd);
   }
   double ret = mpfr_get_d(mpfr_a, rnd);
-  return NEAREST_DOUBLE(ret);
+  return ret;
 }
 
 /************************* FPHOOKS FUNCTIONS *************************
