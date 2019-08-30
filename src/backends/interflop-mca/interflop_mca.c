@@ -227,7 +227,7 @@ static inline __float128 qnoise(int exp) {
   // complement the exponent, shift it at the right place in the MSW
   hx = (((uint64_t)exp + rexpd(d_rand)) + QUAD_EXP_COMP) << QUAD_HX_PMAN_SIZE;
   // set sign = sign of d_rand
-  hx += u_rand & DOUBLE_GET_SIGN;
+  hx |= u_rand & DOUBLE_GET_SIGN;
   // extract u_rand (pseudo) mantissa and put the first 48 bits in hx...
   uint64_t p_mantissa = u_rand & DOUBLE_GET_PMAN;
   hx += (p_mantissa) >>
