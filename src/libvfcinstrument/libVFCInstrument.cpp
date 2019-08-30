@@ -199,7 +199,6 @@ struct VfclibInst : public ModulePass {
   }
 
   Value *replaceWithMCACall(Module &M, Instruction *I, Fops opCode) {
-    LLVMContext &Context = M.getContext();
     IRBuilder<> Builder(I);
 
     Type *opType = I->getOperand(0)->getType();
