@@ -204,6 +204,7 @@ Usage: libinterflop_mca.so [OPTION...]
 
   -m, --mode=MODE            select MCA mode among {ieee, mca, pb, rr}
   -p, --precision=PRECISION  select precision (PRECISION >= 0)
+  -s, --seed=SEED            fix the random generator seed
   -?, --help                 Give this help list
       --usage                Give a short usage message
 ```
@@ -228,7 +229,10 @@ One should note when using the QUAD backend, that the round operations during
 MCA computation always use round-to-zero mode.
 
 In Random Round mode, the exact operations in given virtual precision are
-preserved. 
+preserved.
+
+The option `--seed` fixes the random generator seed. It should not generally be used
+except if one to reproduce a particular MCA trace.
 
 ### MCA-MPFR Backend (libinterflop_mca_mpfr.so)
 
