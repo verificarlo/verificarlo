@@ -279,6 +279,11 @@ static int _mca_inexactq(__float128 *qa) {
     return 0;
   }
 
+  /* Checks that we are not in a special cases */
+  if (fpclassifyq(*qa) != FP_NORMAL && fpclassifyq(*qa) != FP_SUBNORMAL) {
+    return 0;
+  }
+
   /* In RR if the number is representable in current virtual precision,
    * do not add any noise */
   if (MCALIB_OP_TYPE == MCAMODE_RR && _is_representableq(qa)) {
@@ -296,6 +301,11 @@ static int _mca_inexactq(__float128 *qa) {
 
 static int _mca_inexactd(double *da) {
   if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
+    return 0;
+  }
+
+  /* Checks that we are not in a special cases */
+  if (fpclassify(*da) != FP_NORMAL && fpclassify(*da) != FP_SUBNORMAL) {
     return 0;
   }
 
