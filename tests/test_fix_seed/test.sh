@@ -47,7 +47,7 @@ Check() {
     done
 }
 
-echo "Checking $op double"
+echo "Checking"
 verificarlo -O0  test.c -o test
 Check 53
 
