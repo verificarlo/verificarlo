@@ -54,7 +54,7 @@
 
 typedef struct {
   int choose_seed;
-  int seed;
+  uint64_t seed;
 } t_context;
 
 /* define the available MCA modes of operation */
@@ -157,7 +157,7 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
   mpfr_clear(mpfr_zero);
 }
 
-static void _set_mca_seed(int choose_seed, int seed) {
+static void _set_mca_seed(int choose_seed, uint64_t seed) {
   if (choose_seed) {
     tinymt64_init(&random_state, seed);
   } else {
@@ -344,7 +344,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case 's':
     errno = 0;
     ctx->choose_seed = 1;
-    ctx->seed = strtol(arg, &endptr, 10);
+    ctx->seed = strtoull(arg, &endptr, 10);
     if (errno != 0) {
       errx(1, "interflop_mca_mpfr: --seed invalid value provided, must be an "
               "integer");
@@ -360,7 +360,7 @@ static struct argp argp = {options, parse_opt, "", ""};
 
 static void init_context(t_context *ctx) {
   ctx->choose_seed = 0;
-  ctx->seed = 0;
+  ctx->seed = 0ULL;
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
@@ -391,7 +391,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_div_double,
       NULL};
 
-  /* Initialize randomly the seed */
+  /* Initialize the seed */
   _set_mca_seed(ctx->choose_seed, ctx->seed);
 
   return interflop_backend_mca;
