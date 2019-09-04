@@ -1,6 +1,8 @@
 #!/bin/sh
-''''exec python3 -u "$0" "$@" #'''
+''''exec setarch -R python3 -u "$0" "$@" #'''
 # This hack is an ugly but portable alternative to #!/usr/bin/env -S python3 -u
+# we call setarch -R to disable ASLR, so that addresses during reference run
+# always match addresses during sample runs (even for .so code).
 
 import sys
 import os
