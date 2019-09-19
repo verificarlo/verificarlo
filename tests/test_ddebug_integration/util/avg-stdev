@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import re
@@ -60,7 +60,7 @@ while True:
 
         if not header:
             J = 1
-            for j in xrange(len(data[0])):
+            for j in range(len(data[0])):
                 if j+1 in args.cols:
                     if j!=0: sys.stdout.write("   ")
                     sys.stdout.write("%-23s " % ("# (%d)" % J)); J+=1
@@ -69,7 +69,7 @@ while True:
                 else:
                     sys.stdout.write("%-23s " % ("# (%d)" % J)); J+=1
             sys.stdout.write("\n")
-            for j in xrange(len(data[0])):
+            for j in range(len(data[0])):
                 if j+1 in args.cols:
                     if j!= 0: sys.stdout.write("   ")
                     sys.stdout.write("%-23s " % ("# input col %d (avg)" % (j+1)))
@@ -80,7 +80,7 @@ while True:
             sys.stdout.write("\n")
             header = True
 
-        for j in xrange(len(data[0])):
+        for j in range(len(data[0])):
             vals = [d[j] for d in data]
 
             # Compute average deviation
