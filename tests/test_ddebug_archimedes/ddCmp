@@ -6,8 +6,9 @@
 # The first argument is the folder with the reference output, the second
 # argument is the folder with the current output.
 
+from fractions import Fraction
+import math
 import sys
-import numpy as np
 
 MAX_DEVIATION=1e-6
 REFDIR=sys.argv[1]
@@ -15,14 +16,16 @@ CURDIR=sys.argv[2]
 
 def read_output(DIR):
     with open("{}/res.dat".format(DIR)) as f:
-        return float(f.read())
+        return Fraction(f.read())
 
 # Read reference and current outputs
 ref = read_output(REFDIR)
 cur = read_output(CURDIR)
 
 # Compute the deviation
-deviation = np.std([ref, cur])/np.abs(np.mean([ref, cur])) # dev = sigma / | mu |
+mean = abs(float((ref + cur)/2))
+std = math.sqrt(float((ref - mean)**2 + (ref - cur)**2))
+deviation = std/mean # dev = sigma / | mu |
 
 # Write log to CURDIR/res.stat
 with open("{}/res.stat".format(CURDIR), 'w') as f:
