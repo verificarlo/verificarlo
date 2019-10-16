@@ -29,20 +29,20 @@ Check() {
 	out_seed_1="out_seed_${BACKEND}.1"
 	out_seed_2="out_seed_${BACKEND}.2"
 
-	out_seed_1="out_seed_${BACKEND}.1"
-	out_seed_2="out_seed_${BACKEND}.2"
+	out_no_seed_1="out_no_seed_${BACKEND}.1"
+	out_no_seed_2="out_no_seed_${BACKEND}.2"
 
 	rm -f out_seed_{1,2} out_no_seed_{1,2}
 
 	export VFC_BACKENDS="${BACKENDSO} --precision $PREC --mode $MODE"
-	./test 2> out_no_seed_1
-	./test 2> out_no_seed_2
-	Check_difference out_no_seed_1 out_no_seed_2
+	./test 2> $out_no_seed_1
+	./test 2> $out_no_seed_2
+	Check_difference $out_no_seed_1 $out_no_seed_2
 
 	export VFC_BACKENDS="${BACKENDSO} --precision $PREC --mode $MODE --seed=0"
-	./test 2> out_seed_1
-	./test 2> out_seed_2
-	Check_similarity out_seed_1 out_seed_2
+	./test 2> $out_seed_1
+	./test 2> $out_seed_2
+	Check_similarity $out_seed_1 $out_seed_2
 
     done
 }
@@ -51,4 +51,4 @@ echo "Checking"
 verificarlo -O0  test.c -o test
 Check 53
 
-echo "success"
+echo -e "\nsuccess"
