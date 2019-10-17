@@ -102,6 +102,18 @@ install procedure:
    $ make installcheck
 ```
 
+In order to take use the delta debug features, you need to export the path of the corresponding python packages. For example, for a global install, this would resemble (edit for your installed Python version):
+
+```bash
+export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/pythonXXX.XXX/site-packages
+```
+
+Alternatively, you can make these changes permanent by editing your ./bashrc file by adding the above line, and then reloading your environment using:
+
+```bash
+source ~/.bashrc
+```
+
 ## Usage
 
 To automatically instrument a program with Verificarlo you must compile it using
