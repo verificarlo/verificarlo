@@ -99,19 +99,24 @@ install procedure:
        CC=gcc-4.7
    $ make 
    $ sudo make install
-   $ make installcheck
 ```
 
-In order to take use the delta debug features, you need to export the path of the corresponding python packages. For example, for a global install, this would resemble (edit for your installed Python version):
+In order to use the delta debug features, you need to export the path of the corresponding python packages. For example, for a global install, this would resemble (edit for your installed Python version):
 
 ```bash
-export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/pythonXXX.XXX/site-packages
+	$ export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/pythonXXX.XXX/site-packages
 ```
 
-Alternatively, you can make these changes permanent by editing your ./bashrc file by adding the above line, and then reloading your environment using:
+You can then check if your install was successful using:
 
 ```bash
-source ~/.bashrc
+	$ make installcheck
+```
+
+Alternatively, you can make the changes required for `ddebug` permanent by editing your `~/.bashrc`, `~/.profile` or whichever configuration file is relevant for your system by adding the above line, and then reloading your environment using:
+
+```bash
+	$ source ~/.bashrc
 ```
 
 ## Usage
