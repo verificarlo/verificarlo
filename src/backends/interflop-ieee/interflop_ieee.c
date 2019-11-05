@@ -14,70 +14,6 @@ typedef struct {
 
 #define STRING_MAX 256
 
-void float_to_binary(float f, char* s_val){
- union ieee754_float ud;
- unsigned char sign_field;
- unsigned short exponent_field;
- short exponent;
- unsigned long long fraction_field, significand;
- int i, str_i, start = 0, end = 23;
- char s_exp[80];
-
- ud.f = f;
- sign_field = ud.ieee.negative;
- exponent_field = ud.ieee.exponent;
- fraction_field = ud.ieee.mantissa;
-
- str_i=0;
-
- //Print a minus sign, if necessary
- if (sign_field == 1)
-   s_val[str_i++]='-';
-
-
- if (exponent_field == 0 && fraction_field == 0){
-   s_val[str_i++]='0';  //Number is zero
-   s_val[str_i++]=0; // NULL Terminator
- }else{
-   if (exponent_field == 0 && fraction_field != 0){//Subnormal number
-      significand = fraction_field; //No implicit 1 bit
-      exponent = -(IEEE754_FLOAT_BIAS-1); //Exponents decrease from here
-      while (((significand >> (23-start)) & 1) == 0)
-        {
-         exponent--;
-         start++;
-        }
-   }else{//Normalized number (ignoring INFs, NANs)
-      significand = fraction_field | (1ULL << 23); //Implicit 1 bit
-      exponent = exponent_field - IEEE754_FLOAT_BIAS; //Subtract bias
-     }
-
-   //Suppress trailing 0s
-   while (((significand >> (23-end)) & 1) == 0)
-     end--;
-
-   //Print the significant bits
-   for (i=start; i<=end; i++){
-     if (((significand >> (23-i)) & 1) == 1)
-       s_val[str_i++]='1';
-     else
-       s_val[str_i++]='0';
-     if (i == start)
-       s_val[str_i++]='.';
-    }
-
-   if (start == end) // d is power of 2
-     s_val[str_i++]='0';
-
-   s_val[str_i++]=0; // NULL Terminator
-
-
-   //Exponent
-   sprintf(s_exp," x 2^%d",exponent);
-   strcat(s_val,s_exp);
-  }
-}
-
 void double_to_binary(double d, char* s_val){
  union ieee754_double ud;
  unsigned char sign_field;
@@ -143,35 +79,8 @@ void double_to_binary(double d, char* s_val){
   }
 }
 
-void inline debug_print_float(void *context, int typeop, char* op,
-                        float a, float b, float c){
-  if (((t_context *)context)->debug){
-    if (typeop == 0)
-      fprintf(stderr, "interflop_ieee %g %s %g -> %g\n", a, op, b, c);
-    else
-      fprintf(stderr, "interflop_ieee %g %s %g -> %s\n", a, op, b, c ? "true":"false");
-  }
-  if (((t_context *)context)->debug_binary){
-    char f_str[STRING_MAX];
-    if (typeop == 0){
-      fprintf(stderr, "interflop_ieee_bin\n");
-      float_to_binary(a, f_str);
-      fprintf(stderr, "%s %s \n", f_str, op);
-      float_to_binary(b, f_str);
-      fprintf(stderr, "%s -> \n", f_str);
-      float_to_binary(c, f_str);
-      fprintf(stderr, "%s \n\n", f_str);
-    }else{
-      fprintf(stderr, "interflop_ieee_bin\n");
-      float_to_binary(a, f_str);
-      fprintf(stderr, "%s [%s] \n", f_str, op);
-      float_to_binary(b, f_str);
-      fprintf(stderr, "%s -> %s \n\n", f_str, c ? "true":"false");
-    }
-  }
-}
 
-void inline debug_print_double(void *context, int typeop, char* op,
+void inline debug_print_flt(void *context, int typeop, char* op,
                         double a, double b, double c){
   if (((t_context *)context)->debug){
     if (typeop == 0)
@@ -201,22 +110,22 @@ void inline debug_print_double(void *context, int typeop, char* op,
 
 static void _interflop_add_float(float a, float b, float *c, void *context) {
   *c = a + b;
-  debug_print_float(context, 0, "+", a, b, *c);
+  debug_print_flt(context, 0, "+", (double)a, (double)b, (double)*c);
 }
 
 static void _interflop_sub_float(float a, float b, float *c, void *context) {
   *c = a - b;
-  debug_print_float(context, 0, "-", a, b, *c);
+  debug_print_flt(context, 0, "-", (double)a, (double)b, (double)*c);
 }
 
 static void _interflop_mul_float(float a, float b, float *c, void *context) {
   *c = a * b;
-  debug_print_float(context, 0, "*", a, b, *c);
+  debug_print_flt(context, 0, "*", (double)a, (double)b, (double)*c);
 }
 
 static void _interflop_div_float(float a, float b, float *c, void *context) {
   *c = a / b;
-  debug_print_float(context, 0, "/", a, b, *c);
+  debug_print_flt(context, 0, "/", (double)a, (double)b, (double)*c);
 }
 
 static void _interflop_cmp_float(enum FCMP_PREDICATE p, float a, float b,
@@ -289,31 +198,31 @@ static void _interflop_cmp_float(enum FCMP_PREDICATE p, float a, float b,
     str="FCMP_TRUE";
     break;
   }
-  debug_print_float(context, 1, str, a, b, *c);
+  debug_print_flt(context, 1, str, (double)a, (double)b, (double)*c);
 }
 
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
   *c = a + b;
-  debug_print_double(context, 0, "+", a, b, *c);
+  debug_print_flt(context, 0, "+", a, b, *c);
 }
 
 static void _interflop_sub_double(double a, double b, double *c,
                                   void *context) {
   *c = a - b;
-  debug_print_double(context, 0, "-", a, b, *c);
+  debug_print_flt(context, 0, "-", a, b, *c);
 }
 
 static void _interflop_mul_double(double a, double b, double *c,
                                   void *context) {
   *c = a * b;
-  debug_print_double(context, 0, "*", a, b, *c);
+  debug_print_flt(context, 0, "*", a, b, *c);
 }
 
 static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
   *c = a / b;
-  debug_print_double(context, 0, "/", a, b, *c);
+  debug_print_flt(context, 0, "/", a, b, *c);
 }
 
 static void _interflop_cmp_double(enum FCMP_PREDICATE p, double a, double b,
@@ -386,7 +295,7 @@ static void _interflop_cmp_double(enum FCMP_PREDICATE p, double a, double b,
     str="FCMP_TRUE";
     break;
   }
-  debug_print_double(context, 1, str, a, b, *c);
+  debug_print_flt(context, 1, str, a, b, *c);
 }
 
 static struct argp_option options[] = {
