@@ -29,11 +29,11 @@ HERE
 $ docker pull verificarlo/verificarlo
 $ docker run -v $PWD:/workdir verificarlo/verificarlo \
    verificarlo test.c -o test
-$ docker run -v $PWD:/workdir verificarlo/verificarlo \
-   VFC_BACKENDS="libinterflop_mca.so" ./test
+$ docker run -v $PWD:/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
+   verificarlo/verificarlo ./test
 999.99999999999795364
-$ docker run -v $PWD:/workdir verificarlo/verificarlo \
-   VFC_BACKENDS="libinterflop_mca.so" ./test
+$ docker run -v $PWD:/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
+   verificarlo/verificarlo ./test   
 999.99999999999761258
 ```
 
