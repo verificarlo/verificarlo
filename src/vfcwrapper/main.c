@@ -66,6 +66,7 @@ typedef struct interflop_backend_interface_t (*interflop_init_t)(
 struct interflop_backend_interface_t backends[MAX_BACKENDS];
 void *contexts[MAX_BACKENDS];
 unsigned char loaded_backends = 0;
+unsigned char already_initialized = 0;
 
 static char *dd_filter_path = NULL;
 static char *dd_generate_path = NULL;
@@ -147,6 +148,21 @@ __attribute__((destructor)) static void vfc_atexit(void) {
 
 /* vfc_init is run when loading vfcwrapper and initializes vfc backends */
 __attribute__((constructor)) static void vfc_init(void) {
+
+  /* The vfcwrapper library constructor may be loaded multiple times.  This
+   * happends for example, when a .so compiled with Verificarlo is loaded with
+   * dlopen into another program also compiled with Verificarlo.
+   *
+   * The following hook should ensure that vfc_init is loaded only once.
+   * Is this code robust? dlopen is thread safe, so this should work.
+   *
+   */
+  if (already_initialized == 0) {
+    already_initialized = 1;
+  } else {
+    return;
+  }
+
   /* Parse VFC_BACKENDS */
   char *vfc_backends = getenv("VFC_BACKENDS");
   if (vfc_backends == NULL) {
