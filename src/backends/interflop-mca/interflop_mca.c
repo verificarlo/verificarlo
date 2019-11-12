@@ -59,6 +59,13 @@
 
 #include "quadmath-imp.h"
 
+typedef enum {
+  KEY_PREC_B32,
+  KEY_PREC_B64,
+  KEY_MODE = 'm',
+  KEY_SEED = 's'
+} key_args;
+
 typedef struct {
   bool choose_seed;
   uint64_t seed;
@@ -73,11 +80,17 @@ typedef struct {
 static const char *MCAMODE[] = {"ieee", "mca", "pb", "rr"};
 
 /* define default environment variables and default parameters */
-#define MCA_PRECISION_DEFAULT 53
+#define MCA_PRECISION_BINARY32_MIN 1
+#define MCA_PRECISION_BINARY64_MIN 1
+#define MCA_PRECISION_BINARY32_MAX 53
+#define MCA_PRECISION_BINARY64_MAX 112
+#define MCA_PRECISION_BINARY32_DEFAULT 24
+#define MCA_PRECISION_BINARY64_DEFAULT 53
 #define MCAMODE_DEFAULT MCAMODE_MCA
 
 static int MCALIB_OP_TYPE = MCAMODE_DEFAULT;
-static int MCALIB_T = MCA_PRECISION_DEFAULT;
+static int MCALIB_BINARY32_T = MCA_PRECISION_BINARY32_DEFAULT;
+static int MCALIB_BINARY64_T = MCA_PRECISION_BINARY64_DEFAULT;
 
 // possible op values
 #define MCA_ADD 1
@@ -104,8 +117,29 @@ static int _set_mca_mode(int mode) {
   return 0;
 }
 
-static int _set_mca_precision(int precision) {
-  MCALIB_T = precision;
+static int _set_mca_precision_binary32(int precision) {
+  if (precision < MCA_PRECISION_BINARY32_MIN) {
+    errx(1, "interflop_mca: invalid precision for binary32 type. Must be "
+            "greater than 0");
+  } else if (precision > MCA_PRECISION_BINARY32_MAX) {
+    warnx("interflop_mca: precision for binary32 type is too high, no noise "
+          "will be added");
+  } else {
+    MCALIB_BINARY32_T = precision;
+  }
+  return 0;
+}
+
+static int _set_mca_precision_binary64(int precision) {
+  if (precision < MCA_PRECISION_BINARY64_MIN) {
+    errx(1, "interflop_mca: invalid precision for binary64 type. Must be "
+            "greater than 0");
+  } else if (precision > MCA_PRECISION_BINARY64_MAX) {
+    warnx("interflop_mca: precision for binary64 type is too high, no noise "
+          "will be added");
+  } else {
+    MCALIB_BINARY64_T = precision;
+  }
   return 0;
 }
 
@@ -248,8 +282,8 @@ static bool _is_representableq(__float128 *qa) {
   GET_FLT128_WORDS64(hx, lx, *qa);
 
   /* compute representable bits in hx and lx */
-  char bits_in_hx = min((MCALIB_T - 1), QUAD_HX_PMAN_SIZE);
-  char bits_in_lx = (MCALIB_T - 1) - bits_in_hx;
+  char bits_in_hx = min((MCALIB_BINARY64_T - 1), QUAD_HX_PMAN_SIZE);
+  char bits_in_lx = (MCALIB_BINARY64_T - 1) - bits_in_hx;
 
   /* check bits in lx */
   /* here we know that bits_in_lx < 64 */
@@ -271,7 +305,7 @@ static bool _is_representabled(double *da) {
    * in the current virtual precision */
   uint64_t p_mantissa = (*((uint64_t *)da)) & DOUBLE_GET_PMAN;
   /* here we know that (MCALIB_T-1) < 53 */
-  return ((p_mantissa << (MCALIB_T + DOUBLE_EXP_SIZE)) == 0);
+  return ((p_mantissa << (MCALIB_BINARY32_T + DOUBLE_EXP_SIZE)) == 0);
 }
 
 static int _mca_inexactq(__float128 *qa) {
@@ -292,7 +326,7 @@ static int _mca_inexactq(__float128 *qa) {
 
   int32_t e_a = 0;
   e_a = rexpq(*qa);
-  int32_t e_n = e_a - (MCALIB_T - 1);
+  int32_t e_n = e_a - (MCALIB_BINARY64_T - 1);
   __float128 noise = qnoise(e_n);
   *qa = noise + *qa;
 
@@ -317,7 +351,7 @@ static int _mca_inexactd(double *da) {
 
   int32_t e_a = 0;
   e_a = rexpd(*da);
-  int32_t e_n = e_a - (MCALIB_T - 1);
+  int32_t e_n = e_a - (MCALIB_BINARY32_T - 1);
   double d_rand = (_mca_rand() - 0.5);
   *da = *da + pow2d(e_n) * d_rand;
 
@@ -451,27 +485,44 @@ static void _interflop_div_double(double a, double b, double *c,
 
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
-    {"precision", 'p', "PRECISION", 0, "select precision (PRECISION >= 0)"},
-    {"mode", 'm', "MODE", 0, "select MCA mode among {ieee, mca, pb, rr}"},
-    {"seed", 's', "SEED", 0, "fix the random generator seed"},
+    {"precision-binary32", KEY_PREC_B32, "PRECISION", 0,
+     "select precision for binary32 (PRECISION >= 0)"},
+    {"precision-binary64", KEY_PREC_B64, "PRECISION", 0,
+     "select precision for binary64 (PRECISION >= 0)"},
+    {"mode", KEY_MODE, "MODE", 0, "select MCA mode among {ieee, mca, pb, rr}"},
+    {"seed", KEY_SEED, "SEED", 0, "fix the random generator seed"},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   t_context *ctx = (t_context *)state->input;
   char *endptr;
+  int val = -1;
   switch (key) {
-  case 'p':
-    /* precision */
+  case KEY_PREC_B32:
+    /* precision for binary32 */
     errno = 0;
-    int val = strtol(arg, &endptr, 10);
+    val = strtol(arg, &endptr, 10);
     if (errno != 0 || val <= 0) {
-      errx(1, "interflop_mca: --precision invalid value provided, must be a "
+      errx(1, "interflop_mca: --precision-binary32 invalid value provided, "
+              "must be a "
               "positive integer.");
     } else {
-      _set_mca_precision(val);
+      _set_mca_precision_binary32(val);
     }
     break;
-  case 'm':
+  case KEY_PREC_B64:
+    /* precision for binary64 */
+    errno = 0;
+    val = strtol(arg, &endptr, 10);
+    if (errno != 0 || val <= 0) {
+      errx(1, "interflop_mca: --precision-binary64 invalid value provided, "
+              "must be a "
+              "positive integer.");
+    } else {
+      _set_mca_precision_binary64(val);
+    }
+    break;
+  case KEY_MODE:
     /* mode */
     if (strcasecmp(MCAMODE[MCAMODE_IEEE], arg) == 0) {
       _set_mca_mode(MCAMODE_IEEE);
@@ -486,7 +537,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
               "{ieee, mca, pb, rr}.");
     }
     break;
-  case 's':
+  case KEY_SEED:
     errno = 0;
     ctx->choose_seed = true;
     ctx->seed = strtoull(arg, &endptr, 10);
@@ -511,7 +562,8 @@ static void init_context(t_context *ctx) {
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
-  _set_mca_precision(MCA_PRECISION_DEFAULT);
+  _set_mca_precision_binary32(MCA_PRECISION_BINARY32_DEFAULT);
+  _set_mca_precision_binary64(MCA_PRECISION_BINARY64_DEFAULT);
   _set_mca_mode(MCAMODE_DEFAULT);
 
   t_context *ctx = malloc(sizeof(t_context));
@@ -521,8 +573,9 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
 
-  warnx("interflop_mca: loaded backend with precision = %d and mode = %s",
-        MCALIB_T, MCAMODE[MCALIB_OP_TYPE]);
+  warnx("interflop_mca: loaded backend with precision-binary32 = %d, "
+        "precision-binary64 = %d and mode = %s",
+        MCALIB_BINARY32_T, MCALIB_BINARY64_T, MCAMODE[MCALIB_OP_TYPE]);
 
   struct interflop_backend_interface_t interflop_backend_mca = {
       _interflop_add_float,

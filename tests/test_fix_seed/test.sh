@@ -34,12 +34,12 @@ Check() {
 
 	rm -f out_seed_{1,2} out_no_seed_{1,2}
 
-	export VFC_BACKENDS="${BACKENDSO} --precision $PREC --mode $MODE"
+	export VFC_BACKENDS="${BACKENDSO} --precision-binary64=$PREC --mode $MODE"
 	./test 2> $out_no_seed_1
 	./test 2> $out_no_seed_2
 	Check_difference $out_no_seed_1 $out_no_seed_2
 
-	export VFC_BACKENDS="${BACKENDSO} --precision $PREC --mode $MODE --seed=0"
+	export VFC_BACKENDS="${BACKENDSO} --precision-binary64=$PREC --mode $MODE --seed=0"
 	./test 2> $out_seed_1
 	./test 2> $out_seed_2
 	Check_similarity $out_seed_1 $out_seed_2
