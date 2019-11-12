@@ -323,7 +323,7 @@ static struct argp argp = {options, parse_opt, "", ""};
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
-  t_context * ctx = malloc(sizeof(t_context));
+  t_context * ctx = calloc(1, sizeof(t_context));
   /* parse backend arguments */
   argp_parse (&argp, argc, argv, 0, 0, ctx);
   *context = ctx;
