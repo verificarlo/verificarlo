@@ -45,7 +45,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
   * LLVM, clang and opt from 3.3 up to 4.0.1 (the last version with Fortran
     support is 3.6), http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
-  * python, version >= 2.7
+  * python3 and NumPy
   * autotools (automake, autoconf)
 
 Then run the following command inside verificarlo directory:
@@ -90,8 +90,7 @@ install procedure:
 
 ```bash
    $ sudo apt-get install libmpfr-dev clang-3.3 llvm-3.3-dev dragonegg-4.7 \
-       gcc-4.7 gfortran-4.7 autoconf automake build-essential
-
+       gcc-4.7 gfortran-4.7 autoconf automake build-essential python3 python3-numpy
    $ cd verificarlo/
    $ ./autogen.sh
    $ ./configure \
