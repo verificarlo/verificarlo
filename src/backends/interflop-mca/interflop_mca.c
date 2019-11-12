@@ -60,7 +60,7 @@
 #include "quadmath-imp.h"
 
 typedef struct {
-  int choose_seed;
+  bool choose_seed;
   uint64_t seed;
 } t_context;
 
@@ -488,7 +488,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case 's':
     errno = 0;
-    ctx->choose_seed = 1;
+    ctx->choose_seed = true;
     ctx->seed = strtoull(arg, &endptr, 10);
     if (errno != 0) {
       errx(1,
@@ -504,7 +504,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 static struct argp argp = {options, parse_opt, "", ""};
 
 static void init_context(t_context *ctx) {
-  ctx->choose_seed = 0;
+  ctx->choose_seed = false;
   ctx->seed = 0ULL;
 }
 
