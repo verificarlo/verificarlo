@@ -106,6 +106,14 @@ else
                 AC_MSG_ERROR([could not find python 2.7 or higher])])
 fi
 
+
+AC_ARG_ENABLE(wall, AC_HELP_STRING([--enable-wall], [Enable -Wall compilation flag]), [WALL_CFLAGS="yes"])
+AM_CONDITIONAL([WALL_CFLAGS], [test "x$WALL_CFLAGS" = "xyes"])
+if test "x$WALL_CFLAGS" = "xyes"; then
+   AC_DEFINE([WALL_CFLAGS], [],  ["Enable -Wall compilation flag"])
+   AC_MSG_NOTICE([-Wall is set])
+fi
+
 # Generate config files
 
 AC_CONFIG_FILES([Makefile
