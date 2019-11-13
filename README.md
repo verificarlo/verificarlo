@@ -186,14 +186,15 @@ after each backend,
 The IEEE backend implements straighforward IEEE-754 arithmetic. 
 It should have no effect on the output and behavior of your program.
 
-The option `--debug` enables verbose output that prints every instrumented
-floating-point operation.
+The options `--debug` and `--debug_binary` enable verbose output that print
+every instrumented floating-point operation.
 
 ```bash
 VFC_BACKENDS="libinterflop_ieee.so --help" ./test
 test: verificarlo loaded backend libinterflop_ieee.so
 Usage: libinterflop_ieee.so [OPTION...]
 
+  -b, --debug_binary         enable binary debug output
   -d, --debug                enable debug output
   -?, --help                 Give this help list
       --usage                Give a short usage message
