@@ -17,7 +17,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 # Check for specific compilers
 AC_PROG_CC([gcc])
-AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg and replay linking)])
+AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg)])
 AC_SUBST(GCC_PATH, $CC)
 AX_LLVM([3.3],[4.0.1],[all])
 
@@ -78,6 +78,29 @@ AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
+
+# Checks if __uint128_t is supported
+AC_CHECK_TYPE(__uint128_t,[cc_have_uint128="yes"], [cc_have_uint128="no"])
+if test "x$cc_have_uint128" = "xno"; then
+   AC_MSG_ERROR([__uint128_t is not supported])
+fi
+
+# Checks if __float128 is supported
+AC_CHECK_TYPE(__float128,[cc_have_float128="yes"], [cc_have_float128="no"])
+if test "x$cc_have_float128" = "xno"; then
+   AC_MSG_ERROR([__float128 is not supported])
+fi
+
+# Checks if _Generic keyword is supported
+AC_MSG_CHECKING([if _Generic is supported by $CC])
+echo "#define TEST(X) _Generic((X), int:1, long:2)" > conftest.c
+doit='$CC -c conftest.c'
+if AC_TRY_EVAL(doit); then
+  AC_MSG_RESULT([yes])
+else
+  AC_MSG_RESULT([no])
+  AC_MSG_ERROR([_Generic is not supported])
+fi
 
 # Checks for library functions.
 AC_FUNC_ALLOCA
