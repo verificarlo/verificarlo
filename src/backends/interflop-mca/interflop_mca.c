@@ -71,11 +71,14 @@ typedef struct {
   uint64_t seed;
 } t_context;
 
+
 /* define the available MCA modes of operation */
-#define MCAMODE_IEEE 0
-#define MCAMODE_MCA 1
-#define MCAMODE_PB 2
-#define MCAMODE_RR 3
+typedef enum {
+  ieee,
+  mca,
+  pb,
+  rr
+} mcamode;
 
 static const char *MCAMODE[] = {"ieee", "mca", "pb", "rr"};
 
@@ -86,7 +89,7 @@ static const char *MCAMODE[] = {"ieee", "mca", "pb", "rr"};
 #define MCA_PRECISION_BINARY64_MAX 112
 #define MCA_PRECISION_BINARY32_DEFAULT 24
 #define MCA_PRECISION_BINARY64_DEFAULT 53
-#define MCAMODE_DEFAULT MCAMODE_MCA
+#define MCAMODE_DEFAULT mca
 
 static int MCALIB_OP_TYPE = MCAMODE_DEFAULT;
 static int MCALIB_BINARY32_T = MCA_PRECISION_BINARY32_DEFAULT;
@@ -110,7 +113,7 @@ static double _mca_dbin(double a, double b, int qop);
  ***************************************************************/
 
 static int _set_mca_mode(int mode) {
-  if (mode < 0 || mode > 3)
+  if (mode < ieee || mode > rr)
     return -1;
 
   MCALIB_OP_TYPE = mode;
@@ -309,7 +312,7 @@ static bool _is_representabled(double *da) {
 }
 
 static int _mca_inexactq(__float128 *qa) {
-  if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
+  if (MCALIB_OP_TYPE == ieee) {
     return 0;
   }
 
@@ -320,7 +323,7 @@ static int _mca_inexactq(__float128 *qa) {
 
   /* In RR if the number is representable in current virtual precision,
    * do not add any noise */
-  if (MCALIB_OP_TYPE == MCAMODE_RR && _is_representableq(qa)) {
+  if (MCALIB_OP_TYPE == rr && _is_representableq(qa)) {
     return 0;
   }
 
@@ -334,7 +337,7 @@ static int _mca_inexactq(__float128 *qa) {
 }
 
 static int _mca_inexactd(double *da) {
-  if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
+  if (MCALIB_OP_TYPE == ieee) {
     return 0;
   }
 
@@ -345,7 +348,7 @@ static int _mca_inexactd(double *da) {
 
   /* In RR if the number is representable in current virtual precision,
    * do not add any noise */
-  if (MCALIB_OP_TYPE == MCAMODE_RR && _is_representabled(da)) {
+  if (MCALIB_OP_TYPE == rr && _is_representabled(da)) {
     return 0;
   }
 
@@ -408,14 +411,14 @@ static inline float _mca_sbin(float a, float b, const int dop) {
 
   double res = 0;
 
-  if (MCALIB_OP_TYPE != MCAMODE_RR) {
+  if (MCALIB_OP_TYPE != rr) {
     _mca_inexactd(&da);
     _mca_inexactd(&db);
   }
 
   perform_bin_op(dop, res, da, db);
 
-  if (MCALIB_OP_TYPE != MCAMODE_PB) {
+  if (MCALIB_OP_TYPE != pb) {
     _mca_inexactd(&res);
   }
 
@@ -427,14 +430,14 @@ static inline double _mca_dbin(double a, double b, const int qop) {
   __float128 qb = (__float128)b;
   __float128 res = 0;
 
-  if (MCALIB_OP_TYPE != MCAMODE_RR) {
+  if (MCALIB_OP_TYPE != rr) {
     _mca_inexactq(&qa);
     _mca_inexactq(&qb);
   }
 
   perform_bin_op(qop, res, qa, qb);
 
-  if (MCALIB_OP_TYPE != MCAMODE_PB) {
+  if (MCALIB_OP_TYPE != pb) {
     _mca_inexactq(&res);
   }
 
@@ -524,14 +527,14 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case KEY_MODE:
     /* mode */
-    if (strcasecmp(MCAMODE[MCAMODE_IEEE], arg) == 0) {
-      _set_mca_mode(MCAMODE_IEEE);
-    } else if (strcasecmp(MCAMODE[MCAMODE_MCA], arg) == 0) {
-      _set_mca_mode(MCAMODE_MCA);
-    } else if (strcasecmp(MCAMODE[MCAMODE_PB], arg) == 0) {
-      _set_mca_mode(MCAMODE_PB);
-    } else if (strcasecmp(MCAMODE[MCAMODE_RR], arg) == 0) {
-      _set_mca_mode(MCAMODE_RR);
+    if (strcasecmp(MCAMODE[ieee], arg) == 0) {
+      _set_mca_mode(ieee);
+    } else if (strcasecmp(MCAMODE[mca], arg) == 0) {
+      _set_mca_mode(mca);
+    } else if (strcasecmp(MCAMODE[pb], arg) == 0) {
+      _set_mca_mode(pb);
+    } else if (strcasecmp(MCAMODE[rr], arg) == 0) {
+      _set_mca_mode(rr);
     } else {
       errx(1, "interflop_mca: --mode invalid value provided, must be one of: "
               "{ieee, mca, pb, rr}.");
