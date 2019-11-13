@@ -17,6 +17,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 # Check for specific compilers
 AC_PROG_CC([gcc])
+AC_PROG_CXX([g++])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg)])
 AC_SUBST(GCC_PATH, $CC)
 AX_LLVM([3.3],[4.0.1],[all])
