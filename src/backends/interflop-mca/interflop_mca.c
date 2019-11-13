@@ -54,10 +54,9 @@
 #include <unistd.h>
 
 #include "../../common/float_const.h"
+#include "../../common/float_struct.h"
 #include "../../common/interflop.h"
 #include "../../common/tinymt64.h"
-
-#include "quadmath-imp.h"
 
 typedef enum {
   KEY_PREC_B32,
@@ -71,14 +70,8 @@ typedef struct {
   uint64_t seed;
 } t_context;
 
-
 /* define the available MCA modes of operation */
-typedef enum {
-  ieee,
-  mca,
-  pb,
-  rr
-} mcamode;
+typedef enum { ieee, mca, pb, rr } mcamode;
 
 static const char *MCAMODE[] = {"ieee", "mca", "pb", "rr"};
 
@@ -159,130 +152,81 @@ static double _mca_rand(void) {
   return tinymt64_generate_doubleOO(&random_state);
 }
 
-static inline double pow2d(int exp) {
-  double res = 0;
-  uint64_t x[1];
-  // specials
-  if (exp == 0)
-    return 1;
+static inline double pow2d(int exp) { return ldexp(1.0, exp); }
 
-  if (exp > 1023) { /*exceed max exponent*/
-    *x = DOUBLE_PLUS_INF;
-    res = *((double *)x);
-    return res;
-  }
-  if (exp < -1022) { /*subnormal*/
-    *x = ((uint64_t)DOUBLE_PMAN_MSB) >> -(exp + DOUBLE_EXP_MAX);
-    res = *((double *)x);
-    return res;
-  }
-
-  // normal case
-  // complement the exponent, shift it at the right place in the MSW
-  *x = (((uint64_t)exp) + DOUBLE_EXP_COMP) << DOUBLE_PMAN_SIZE;
-  res = *((double *)x);
-  return res;
+static inline int32_t rexpq(__float128 q) {
+  binary128 x = {.f128 = q};
+  return x.ieee.exponent - QUAD_EXP_COMP;
 }
 
-static inline uint32_t rexpq(__float128 x) {
-  // no need to check special value in our cases since qnoise will deal with it
-  // do not reuse it outside this code!
-  uint64_t hx, ix;
-  uint32_t exp = 0;
-  GET_FLT128_MSW64(hx, x);
-  // remove sign bit, mantissa will be erased by the next shift
-  ix = hx & QUAD_HX_ERASE_SIGN;
-  // shift exponent to have LSB on position 0 and complement
-  exp = (ix >> QUAD_HX_PMAN_SIZE) - QUAD_EXP_COMP;
-  return exp;
+static inline int32_t rexpd(double d) {
+  binary64 x = {.f64 = d};
+  return x.ieee.exponent - DOUBLE_EXP_COMP;
 }
 
-static inline uint32_t rexpd(double x) {
-  // no need to check special value in our cases since pow2d will deal with it
-  // do not reuse it outside this code!
-  uint64_t hex, ix;
-  uint32_t exp = 0;
-  // change type to bit field
-  hex = *((uint64_t *)&x);
-  // remove sign bit, mantissa will be erased by the next shift
-  ix = hex & DOUBLE_ERASE_SIGN;
-  // shift exponent to have LSB on position 0 and complement
-  exp = (ix >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
-  return exp;
-}
+/* noise = rand * 2^(exp) */
+__float128 qnoise(int exp) {
+  /* random number in (-0.5, 0.5) */
+  const binary64 brand = {.f64 = _mca_rand() - 0.5};
+  const int32_t brand_exp = brand.ieee.exponent - DOUBLE_EXP_COMP;
+  const int32_t noise_exp = brand_exp + exp;
 
-/* Returns the MCA noise for the quad format
- * qnoise = 2^(exp)*d_rand */
-static inline __float128 qnoise(int exp) {
-  double d_rand = (_mca_rand() - 0.5);
-  uint64_t u_rand = *((uint64_t *)&d_rand);
-  __float128 noise;
-  uint64_t hx, lx;
+  binary128 noise;
 
-  if (exp > QUAD_EXP_MAX) { /*exceed max exponent*/
-    SET_FLT128_WORDS64(noise, QINF_hx, QINF_lx);
-    return noise;
+  /* specials */
+  if (exp == 0) {
+    noise.f128 = brand.f64;
   }
-  if (exp < -QUAD_EXP_MIN) { /*subnormal*/
-    // test for minus infinity
-    if (exp < -(QUAD_EXP_MIN + QUAD_PMAN_SIZE)) {
-      SET_FLT128_WORDS64(noise, QMINF_hx, QMINF_lx);
-      return noise;
+  /* We exceed the maximal exponent */
+  /* we return an sign(rand) * Infinity */
+  else if (noise_exp > QUAD_EXP_MAX) {
+    noise.ieee128.sign = brand.ieee.sign;
+    noise.ieee128.exponent = QUAD_EXP_MAX;
+    noise.ieee128.mantissa = 0;
+  }
+  /* We are in the subnormal case */
+  else if (noise_exp < -QUAD_EXP_MIN) {
+    /* test if result is below the minimal subnormal quad number */
+    if (noise_exp < -(QUAD_EXP_MIN + QUAD_PMAN_SIZE)) {
+      noise.f128 = 0.0;
+    } else {
+      /* noise will be a subnormal */
+      /* add the sign bit  */
+      noise.ieee128.sign = brand.ieee.sign;
+      /* set the exponent to 0 (subnormal unbiased exponent) */
+      noise.ieee128.exponent = 0;
+      /* set the noise mantissa to the rand mantissa */
+      noise.ieee128.mantissa = brand.ieee.mantissa;
+      /* we set a 52bits to a 112bits so we need to */
+      /* scale the mantissa at the MSD */
+      noise.ieee128.mantissa <<= QUAD_PMAN_SIZE - DOUBLE_PMAN_SIZE;
+      /* we are in the subnormal case, so we need to shift the mantissa to the
+       * right place */
+      noise.ieee128.mantissa >>= -noise_exp - QUAD_EXP_MIN;
     }
-    // noise will be a subnormal
-    // build HX with sign of d_rand, exp
-    uint64_t u_hx = ((uint64_t)(-QUAD_EXP_MIN + QUAD_EXP_COMP))
-                    << QUAD_HX_PMAN_SIZE;
-    // add the sign bit
-    uint64_t sign = u_rand & DOUBLE_GET_SIGN;
-    u_hx = u_hx + sign;
-    // erase the sign bit from u_rand
-    u_rand = u_rand - sign;
-
-    if (-exp - QUAD_EXP_MIN < -QUAD_HX_PMAN_SIZE) {
-      // the higher part of the noise start in HX of noise
-      // set the mantissa part: U_rand>> by -exp-QUAD_EXP_MIN
-      u_hx += u_rand >> (-exp - QUAD_EXP_MIN + QUAD_EXP_SIZE + 1 /*SIGN_SIZE*/);
-      // build LX with the remaining bits of the noise
-      // (-exp-QUAD_EXP_MIN-QUAD_HX_PMAN_SIZE) at the msb of LX
-      // remove the bit already used in hx and put the remaining at msb of LX
-      uint64_t u_lx = u_rand << (QUAD_HX_PMAN_SIZE + exp + QUAD_EXP_MIN);
-      SET_FLT128_WORDS64(noise, u_hx, u_lx);
-    } else { // the higher part of the noise start  in LX of noise
-      // the noise as been already implicitly shifeted by QUAD_HX_PMAN_SIZE when
-      // starting in LX
-      uint64_t u_lx = u_rand >> (-exp - QUAD_EXP_MIN - QUAD_HX_PMAN_SIZE);
-      SET_FLT128_WORDS64(noise, u_hx, u_lx);
-    }
-    // char buf[128];
-    // int len=quadmath_snprintf (buf, sizeof(buf), "%+-#*.20Qe", width, noise);
-    // if ((size_t) len < sizeof(buf))
-    // printf ("subnormal noise %s\n", buf);
-    return noise;
   }
-  // normal case
-  // complement the exponent, shift it at the right place in the MSW
-  hx = (((uint64_t)exp + rexpd(d_rand)) + QUAD_EXP_COMP) << QUAD_HX_PMAN_SIZE;
-  // set sign = sign of d_rand
-  hx |= u_rand & DOUBLE_GET_SIGN;
-  // extract u_rand (pseudo) mantissa and put the first 48 bits in hx...
-  uint64_t p_mantissa = u_rand & DOUBLE_GET_PMAN;
-  hx += (p_mantissa) >>
-        (DOUBLE_PMAN_SIZE - QUAD_HX_PMAN_SIZE); // 4=52 (double pmantissa) - 48
-  //...and the last 4 in lx at msb
-  // uint64_t
-  lx = (p_mantissa) << (SIGN_SIZE + DOUBLE_EXP_SIZE +
-                        QUAD_HX_PMAN_SIZE); // 60=1(s)+11(exp double)+48(hx)
-  SET_FLT128_WORDS64(noise, hx, lx);
-  return noise;
+  /* normal case */
+  else {
+    /* set sign = sign of rand */
+    noise.ieee128.sign = brand.ieee.sign;
+    /* set the exponent = exp + exp_rand + BIAS */
+    noise.ieee128.exponent = noise_exp + QUAD_EXP_COMP;
+    /* set the noise mantissa to the rand mantissa */
+    noise.ieee128.mantissa = brand.ieee.mantissa;
+    /* we set a 52bits to a 112bits so we need to */
+    /* scale the mantissa at the MSD */
+    noise.ieee128.mantissa <<= (QUAD_PMAN_SIZE - DOUBLE_PMAN_SIZE);
+  }
+
+  return noise.f128;
 }
 
 static bool _is_representableq(__float128 *qa) {
 
   /* Check if *qa is exactly representable
    * in the current virtual precision */
-  uint64_t hx, lx;
-  GET_FLT128_WORDS64(hx, lx, *qa);
+  binary128 b128 = {.f128 = *qa};
+  uint64_t hx = b128.ieee.mant_high, lx = b128.ieee.mant_low;
 
   /* compute representable bits in hx and lx */
   char bits_in_hx = min((MCALIB_BINARY64_T - 1), QUAD_HX_PMAN_SIZE);
@@ -312,6 +256,7 @@ static bool _is_representabled(double *da) {
 }
 
 static int _mca_inexactq(__float128 *qa) {
+
   if (MCALIB_OP_TYPE == ieee) {
     return 0;
   }
@@ -331,12 +276,11 @@ static int _mca_inexactq(__float128 *qa) {
   e_a = rexpq(*qa);
   int32_t e_n = e_a - (MCALIB_BINARY64_T - 1);
   __float128 noise = qnoise(e_n);
-  *qa = noise + *qa;
-
-  return 1;
+  *qa = *qa + noise;
 }
 
 static int _mca_inexactd(double *da) {
+
   if (MCALIB_OP_TYPE == ieee) {
     return 0;
   }
@@ -353,12 +297,11 @@ static int _mca_inexactd(double *da) {
   }
 
   int32_t e_a = 0;
+  binary64 ba = {.f64 = *da};
   e_a = rexpd(*da);
   int32_t e_n = e_a - (MCALIB_BINARY32_T - 1);
   double d_rand = (_mca_rand() - 0.5);
   *da = *da + pow2d(e_n) * d_rand;
-
-  return 1;
 }
 
 static void _set_mca_seed(int choose_seed, uint64_t seed) {
@@ -405,7 +348,7 @@ static void _set_mca_seed(int choose_seed, uint64_t seed) {
     abort();                                                                   \
   };
 
-static inline float _mca_sbin(float a, float b, const int dop) {
+static inline float _mca_binary32_binary_op(float a, float b, const int dop) {
   double da = (double)a;
   double db = (double)b;
 
@@ -425,7 +368,8 @@ static inline float _mca_sbin(float a, float b, const int dop) {
   return ((float)res);
 }
 
-static inline double _mca_dbin(double a, double b, const int qop) {
+static inline double _mca_binary64_binary_op(double a, double b,
+                                             const int qop) {
   __float128 qa = (__float128)a;
   __float128 qb = (__float128)b;
   __float128 res = 0;
@@ -451,39 +395,39 @@ static inline double _mca_dbin(double a, double b, const int qop) {
  **********************************************************************/
 
 static void _interflop_add_float(float a, float b, float *c, void *context) {
-  *c = _mca_sbin(a, b, MCA_ADD);
+  *c = _mca_binary32_binary_op(a, b, MCA_ADD);
 }
 
 static void _interflop_sub_float(float a, float b, float *c, void *context) {
-  *c = _mca_sbin(a, b, MCA_SUB);
+  *c = _mca_binary32_binary_op(a, b, MCA_SUB);
 }
 
 static void _interflop_mul_float(float a, float b, float *c, void *context) {
-  *c = _mca_sbin(a, b, MCA_MUL);
+  *c = _mca_binary32_binary_op(a, b, MCA_MUL);
 }
 
 static void _interflop_div_float(float a, float b, float *c, void *context) {
-  *c = _mca_sbin(a, b, MCA_DIV);
+  *c = _mca_binary32_binary_op(a, b, MCA_DIV);
 }
 
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
-  *c = _mca_dbin(a, b, MCA_ADD);
+  *c = _mca_binary64_binary_op(a, b, MCA_ADD);
 }
 
 static void _interflop_sub_double(double a, double b, double *c,
                                   void *context) {
-  *c = _mca_dbin(a, b, MCA_SUB);
+  *c = _mca_binary64_binary_op(a, b, MCA_SUB);
 }
 
 static void _interflop_mul_double(double a, double b, double *c,
                                   void *context) {
-  *c = _mca_dbin(a, b, MCA_MUL);
+  *c = _mca_binary64_binary_op(a, b, MCA_MUL);
 }
 
 static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
-  *c = _mca_dbin(a, b, MCA_DIV);
+  *c = _mca_binary64_binary_op(a, b, MCA_DIV);
 }
 
 static struct argp_option options[] = {
