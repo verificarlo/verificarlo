@@ -562,7 +562,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     } else if (strcasecmp(MCAMODE[MCAMODE_RR], arg) == 0) {
       _set_mca_mode(MCAMODE_RR);
     } else {
-      errx(1, "interflop_mca: --mode invalid value provided, must be one of: "
+      errx(1, "interflop_cancellation: --mode invalid value provided, must be one of: "
               "{ieee, mca, pb, rr, canc}.");
     }
     break;
@@ -572,7 +572,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     ctx->seed = strtoull(arg, &endptr, 10);
     if (errno != 0) {
       errx(1,
-           "interflop_mca: --seed invalid value provided, must be an integer");
+           "interflop_cancelletion: --seed invalid value provided, must be an integer");
     }
     break;
   default:
@@ -591,7 +591,7 @@ static void init_context(t_context *ctx) {
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
-  _set_mca_precision(MCA_PRECISION_DEFAULT);
+  _set_mca_precision(MCA_PRECISION_DEFAULT); // K: Do we need to switch the MCAMODE to cancellation and change the name of MCA to CANCELLATION ?
   _set_cancellation_limit(MCA_CANCELLATION_DEFAULT);
   _set_mca_mode(MCAMODE_DEFAULT);
 
@@ -605,7 +605,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   warnx("interflop_cancellation: loaded backend with precision = %d and mode = %s and cancellation = %d",
         MCALIB_T, MCAMODE[MCALIB_OP_TYPE], MCALIB_C);
 
-  struct interflop_backend_interface_t interflop_backend_mca = {
+  struct interflop_backend_interface_t interflop_backend_cancellation = {
       _interflop_add_float,
       _interflop_sub_float,
       _interflop_mul_float,
@@ -620,5 +620,5 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* Initialize the seed */
   _set_mca_seed(ctx->choose_seed, ctx->seed);
 
-  return interflop_backend_mca;
+  return interflop_backend_cancellation;
 }
