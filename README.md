@@ -83,7 +83,7 @@ verificarlo works as expected on your system:
    $ make installcheck
 ```
 
-If you disable dragonegg support during configure, fortran_test will be disable and be consider as passing the test.
+If you disable dragonegg support during configure, fortran_test will be disabled and considered as passing the test.
 
 For example on an x86_64 Ubuntu 14.04 release, you should use the following
 install procedure:
