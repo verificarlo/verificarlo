@@ -76,7 +76,7 @@ static const char *MCAMODE[] = {"ieee", "mca", "pb", "rr", "canc"};
 /* define default environment variables and default parameters */
 #define MCA_PRECISION_DEFAULT 53
 #define MCAMODE_DEFAULT MCAMODE_MCA
-#define MCA_CANCELLATION_DEFAULT 7
+#define MCA_CANCELLATION_DEFAULT 1
 
 static int MCALIB_OP_TYPE = MCAMODE_DEFAULT;
 static int MCALIB_T = MCA_PRECISION_DEFAULT;
@@ -353,7 +353,7 @@ static void _set_mca_seed(int choose_seed, uint64_t seed) {
 }
 
 /****************** CANCELLATION DETECTION FUNCTIONS *************************
- * 
+ *
  * CANCELLATION DETECTION DOCUMENTAION
  *
  ****************************************************************************/
@@ -378,10 +378,10 @@ int cancell_double(double d1, double d2)
 	int i;
 	for(i = 51; i >= 0 && bit(a,i) == 0; i--){}
 
-	return (i == -1) ? 0: 52-(i+1);	
+	return (i == -1) ? 0: 52-(i+1);
 }
 
-// return the number of common bit between two float 
+// return the number of common bit between two float
 int cancell_float(float f1, float f2)
 {
 	unsigned int a = *((unsigned int*) &f1);
@@ -438,16 +438,25 @@ static inline float _mca_sbin(float a, float b, const int dop) {
   double db = (double)b;
 
   double res = 0;
+  if (MCALIB_OP_TYPE == MCAMODE_CANC) {
 
-  if (MCALIB_OP_TYPE != MCAMODE_RR) {
-    _mca_inexactd(&da);
-    _mca_inexactd(&db);
+    perform_bin_op(dop, res, da, db);
+
+    if (cancell_double(a, b) >= MCALIB_C) {
+      _mca_inexactd(&res);
+    }
   }
+  else {
+    if (MCALIB_OP_TYPE != MCAMODE_RR) {
+      _mca_inexactd(&da);
+      _mca_inexactd(&db);
+    }
 
-  perform_bin_op(dop, res, da, db);
+    perform_bin_op(dop, res, da, db);
 
-  if (MCALIB_OP_TYPE != MCAMODE_PB) {
-    _mca_inexactd(&res);
+    if (MCALIB_OP_TYPE != MCAMODE_PB) {
+      _mca_inexactd(&res);
+    }
   }
 
   return ((float)res);
@@ -458,15 +467,25 @@ static inline double _mca_dbin(double a, double b, const int qop) {
   __float128 qb = (__float128)b;
   __float128 res = 0;
 
-  if (MCALIB_OP_TYPE != MCAMODE_RR) {
-    _mca_inexactq(&qa);
-    _mca_inexactq(&qb);
+  if (MCALIB_OP_TYPE != MCAMODE_CANC) {
+
+    perform_bin_op(qop, res, qa, qb);
+
+    if (cancell_double(a, b) >= MCALIB_C) {
+      _mca_inexactq(&res);
+    }
   }
+  else {
+    if (MCALIB_OP_TYPE != MCAMODE_RR) {
+      _mca_inexactq(&qa);
+      _mca_inexactq(&qb);
+    }
 
-  perform_bin_op(qop, res, qa, qb);
+    perform_bin_op(qop, res, qa, qb);
 
-  if (MCALIB_OP_TYPE != MCAMODE_PB) {
-    _mca_inexactq(&res);
+    if (MCALIB_OP_TYPE != MCAMODE_PB) {
+      _mca_inexactq(&res);
+    }
   }
 
   return NEAREST_DOUBLE(res);
