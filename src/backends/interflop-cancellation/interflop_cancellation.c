@@ -442,7 +442,7 @@ static inline float _mca_sbin(float a, float b, const int dop) {
 
     perform_bin_op(dop, res, da, db);
 
-    if (cancell_double(a, b) >= MCALIB_C) {
+    if (cancell_float(a, b) >= MCALIB_C) {
       _mca_inexactd(&res);
     }
   }
