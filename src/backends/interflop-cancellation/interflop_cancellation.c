@@ -24,22 +24,6 @@
  *****************************************************************************/
 
 // Changelog:
-//
-// 2015-05-20 replace random number generator with TinyMT64. This
-// provides a reentrant, independent generator of better quality than
-// the one provided in libc.
-//
-// 2015-10-11 New version based on quad floating point type to replace MPFR
-// until
-// required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits
-//
-// 2015-11-16 New version using double precision for single precision operation
-//
-// 2016-07-14 Support denormalized numbers
-//
-// 2017-04-25 Rewrite debug and validate the noise addition operation
-//
-// 2019-08-07 Fix memory leak and convert to interflop
 
 #include <argp.h>
 #include <err.h>
@@ -52,6 +36,7 @@
 #include <strings.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "../../common/float_const.h"
 #include "../../common/interflop.h"
@@ -64,23 +49,10 @@ typedef struct {
   uint64_t seed;
 } t_context;
 
-/* define the available MCA modes of operation */
-#define MCAMODE_IEEE 0
-#define MCAMODE_MCA 1
-#define MCAMODE_PB 2
-#define MCAMODE_RR 3
-#define MCAMODE_CANC 4
-
-static const char *MCAMODE[] = {"ieee", "mca", "pb", "rr", "canc"};
-
 /* define default environment variables and default parameters */
-#define MCA_PRECISION_DEFAULT 53
-#define MCAMODE_DEFAULT MCAMODE_MCA
-#define MCA_CANCELLATION_DEFAULT 1
+#define MCA_PRECISION_DEFAULT 1
 
-static int MCALIB_OP_TYPE = MCAMODE_DEFAULT;
 static int MCALIB_T = MCA_PRECISION_DEFAULT;
-static int MCALIB_C = MCA_CANCELLATION_DEFAULT;
 
 // possible op values
 #define MCA_ADD 1
@@ -93,6 +65,7 @@ static int MCALIB_C = MCA_CANCELLATION_DEFAULT;
 #define bit(A,i) ((A >> i) & 1)
 #define bit_a_b(X,a,b) (((X << (sizeof(X)*8 - max(a,b) - 1)) >> (sizeof(X)*8 - max(a,b) - 1)) & ((X >> min(a,b) ) << min(a,b)))
 
+
 static float _mca_sbin(float a, float b, int qop);
 
 static double _mca_dbin(double a, double b, int qop);
@@ -102,22 +75,8 @@ static double _mca_dbin(double a, double b, int qop);
  * MCA mode of operation.
  ***************************************************************/
 
-static int _set_mca_mode(int mode) {
-  if (mode < 0 || mode > 4)
-    return -1;
-
-  MCALIB_OP_TYPE = mode;
-  return 0;
-}
-
 static int _set_mca_precision(int precision) {
   MCALIB_T = precision;
-  return 0;
-}
-
-static int _set_cancellation_limit(int limit){
-  MCALIB_C = limit;
-  printf("Limite de detection des cancellations est %d\n", MCALIB_C);
   return 0;
 }
 
@@ -134,208 +93,19 @@ static double _mca_rand(void) {
   return tinymt64_generate_doubleOO(&random_state);
 }
 
-static inline double pow2d(int exp) {
-  double res = 0;
-  uint64_t x[1];
-  // specials
-  if (exp == 0)
-    return 1;
-
-  if (exp > 1023) { /*exceed max exponent*/
-    *x = DOUBLE_PLUS_INF;
-    res = *((double *)x);
-    return res;
-  }
-  if (exp < -1022) { /*subnormal*/
-    *x = ((uint64_t)DOUBLE_PMAN_MSB) >> -(exp + DOUBLE_EXP_MAX);
-    res = *((double *)x);
-    return res;
-  }
-
-  // normal case
-  // complement the exponent, shift it at the right place in the MSW
-  *x = (((uint64_t)exp) + DOUBLE_EXP_COMP) << DOUBLE_PMAN_SIZE;
-  res = *((double *)x);
-  return res;
-}
-
-static inline uint32_t rexpq(__float128 x) {
-  // no need to check special value in our cases since qnoise will deal with it
-  // do not reuse it outside this code!
-  uint64_t hx, ix;
-  uint32_t exp = 0;
-  GET_FLT128_MSW64(hx, x);
-  // remove sign bit, mantissa will be erased by the next shift
-  ix = hx & QUAD_HX_ERASE_SIGN;
-  // shift exponent to have LSB on position 0 and complement
-  exp = (ix >> QUAD_HX_PMAN_SIZE) - QUAD_EXP_COMP;
-  return exp;
-}
-
-static inline uint32_t rexpd(double x) {
-  // no need to check special value in our cases since pow2d will deal with it
-  // do not reuse it outside this code!
-  uint64_t hex, ix;
-  uint32_t exp = 0;
-  // change type to bit field
-  hex = *((uint64_t *)&x);
-  // remove sign bit, mantissa will be erased by the next shift
-  ix = hex & DOUBLE_ERASE_SIGN;
-  // shift exponent to have LSB on position 0 and complement
-  exp = (ix >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
-  return exp;
-}
-
-/* Returns the MCA noise for the quad format
- * qnoise = 2^(exp)*d_rand */
-static inline __float128 qnoise(int exp) {
-  double d_rand = (_mca_rand() - 0.5);
-  uint64_t u_rand = *((uint64_t *)&d_rand);
-  __float128 noise;
-  uint64_t hx, lx;
-
-  if (exp > QUAD_EXP_MAX) { /*exceed max exponent*/
-    SET_FLT128_WORDS64(noise, QINF_hx, QINF_lx);
-    return noise;
-  }
-  if (exp < -QUAD_EXP_MIN) { /*subnormal*/
-    // test for minus infinity
-    if (exp < -(QUAD_EXP_MIN + QUAD_PMAN_SIZE)) {
-      SET_FLT128_WORDS64(noise, QMINF_hx, QMINF_lx);
-      return noise;
-    }
-    // noise will be a subnormal
-    // build HX with sign of d_rand, exp
-    uint64_t u_hx = ((uint64_t)(-QUAD_EXP_MIN + QUAD_EXP_COMP))
-                    << QUAD_HX_PMAN_SIZE;
-    // add the sign bit
-    uint64_t sign = u_rand & DOUBLE_GET_SIGN;
-    u_hx = u_hx + sign;
-    // erase the sign bit from u_rand
-    u_rand = u_rand - sign;
-
-    if (-exp - QUAD_EXP_MIN < -QUAD_HX_PMAN_SIZE) {
-      // the higher part of the noise start in HX of noise
-      // set the mantissa part: U_rand>> by -exp-QUAD_EXP_MIN
-      u_hx += u_rand >> (-exp - QUAD_EXP_MIN + QUAD_EXP_SIZE + 1 /*SIGN_SIZE*/);
-      // build LX with the remaining bits of the noise
-      // (-exp-QUAD_EXP_MIN-QUAD_HX_PMAN_SIZE) at the msb of LX
-      // remove the bit already used in hx and put the remaining at msb of LX
-      uint64_t u_lx = u_rand << (QUAD_HX_PMAN_SIZE + exp + QUAD_EXP_MIN);
-      SET_FLT128_WORDS64(noise, u_hx, u_lx);
-    } else { // the higher part of the noise start  in LX of noise
-      // the noise as been already implicitly shifeted by QUAD_HX_PMAN_SIZE when
-      // starting in LX
-      uint64_t u_lx = u_rand >> (-exp - QUAD_EXP_MIN - QUAD_HX_PMAN_SIZE);
-      SET_FLT128_WORDS64(noise, u_hx, u_lx);
-    }
-    // char buf[128];
-    // int len=quadmath_snprintf (buf, sizeof(buf), "%+-#*.20Qe", width, noise);
-    // if ((size_t) len < sizeof(buf))
-    // printf ("subnormal noise %s\n", buf);
-    return noise;
-  }
-  // normal case
-  // complement the exponent, shift it at the right place in the MSW
-  hx = (((uint64_t)exp + rexpd(d_rand)) + QUAD_EXP_COMP) << QUAD_HX_PMAN_SIZE;
-  // set sign = sign of d_rand
-  hx |= u_rand & DOUBLE_GET_SIGN;
-  // extract u_rand (pseudo) mantissa and put the first 48 bits in hx...
-  uint64_t p_mantissa = u_rand & DOUBLE_GET_PMAN;
-  hx += (p_mantissa) >>
-        (DOUBLE_PMAN_SIZE - QUAD_HX_PMAN_SIZE); // 4=52 (double pmantissa) - 48
-  //...and the last 4 in lx at msb
-  // uint64_t
-  lx = (p_mantissa) << (SIGN_SIZE + DOUBLE_EXP_SIZE +
-                        QUAD_HX_PMAN_SIZE); // 60=1(s)+11(exp double)+48(hx)
-  SET_FLT128_WORDS64(noise, hx, lx);
-  return noise;
-}
-
-static bool _is_representableq(__float128 *qa) {
-
-  /* Check if *qa is exactly representable
-   * in the current virtual precision */
-  uint64_t hx, lx;
-  GET_FLT128_WORDS64(hx, lx, *qa);
-
-  /* compute representable bits in hx and lx */
-  char bits_in_hx = min((MCALIB_T - 1), QUAD_HX_PMAN_SIZE);
-  char bits_in_lx = (MCALIB_T - 1) - bits_in_hx;
-
-  /* check bits in lx */
-  /* here we know that bits_in_lx < 64 */
-  bool representable = ((lx << bits_in_lx) == 0);
-
-  /* check bits in hx,
-   * the test always succeeds when bits_in_hx == QUAD_HX_PMAN_SIZE,
-   * cannot remove the test since << 64 is undefined in C. */
-  if (bits_in_hx < QUAD_HX_PMAN_SIZE) {
-    representable &= ((hx << (1 + QUAD_EXP_SIZE + bits_in_hx)) == 0);
-  }
-
-  return representable;
-}
-
-static bool _is_representabled(double *da) {
-
-  /* Check if *da is exactly representable
-   * in the current virtual precision */
-  uint64_t p_mantissa = (*((uint64_t *)da)) & DOUBLE_GET_PMAN;
-  /* here we know that (MCALIB_T-1) < 53 */
-  return ((p_mantissa << (MCALIB_T + DOUBLE_EXP_SIZE)) == 0);
-}
-
-static int _mca_inexactq(__float128 *qa) {
-  if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
-    return 0;
-  }
-
-  /* Checks that we are not in a special cases */
-  if (fpclassifyq(*qa) != FP_NORMAL && fpclassifyq(*qa) != FP_SUBNORMAL) {
-    return 0;
-  }
-
-  /* In RR if the number is representable in current virtual precision,
-   * do not add any noise */
-  if (MCALIB_OP_TYPE == MCAMODE_RR && _is_representableq(qa)) {
-    return 0;
-  }
-
-  int32_t e_a = 0;
-  e_a = rexpq(*qa);
-  int32_t e_n = e_a - (MCALIB_T - 1);
-  __float128 noise = qnoise(e_n);
-  *qa = noise + *qa;
-
+static int _mca_inexactq(double* qa, int size) {
+  int ex = 0;
+  frexp((*qa), &ex);
+  (*qa) = (*qa) + pow(2,ex-(54-size)) * (_mca_rand()-0.5);
   return 1;
 }
 
-static int _mca_inexactd(double *da) {
-  if (MCALIB_OP_TYPE == MCAMODE_IEEE) {
-    return 0;
-  }
-
-  /* Checks that we are not in a special cases */
-  if (fpclassify(*da) != FP_NORMAL && fpclassify(*da) != FP_SUBNORMAL) {
-    return 0;
-  }
-
-  /* In RR if the number is representable in current virtual precision,
-   * do not add any noise */
-  if (MCALIB_OP_TYPE == MCAMODE_RR && _is_representabled(da)) {
-    return 0;
-  }
-
-  int32_t e_a = 0;
-  e_a = rexpd(*da);
-  int32_t e_n = e_a - (MCALIB_T - 1);
-  double d_rand = (_mca_rand() - 0.5);
-  *da = *da + pow2d(e_n) * d_rand;
-
+static int _mca_inexactd(float* da, int size) {
+  int ex = 0;
+  frexp((*da), &ex);
+  (*da) = (*da) + pow(2,ex-(25-size)) * (_mca_rand()-0.5);
   return 1;
 }
-
 static void _set_mca_seed(int choose_seed, uint64_t seed) {
   if (choose_seed) {
     tinymt64_init(&random_state, seed);
@@ -361,49 +131,24 @@ static void _set_mca_seed(int choose_seed, uint64_t seed) {
 // return the number of common bit between two double
 int cancell_double(double d1, double d2)
 {
-	unsigned long long int a = *((unsigned long long int*) &d1);
-	unsigned long long int b = *((unsigned long long int*) &d2);
+  int ea, eb, er;
+  frexp(d1, &ea);
+  frexp(d2, &eb);
+  frexp(d1-d2, &er);
 
-	if(bit_a_b(a,62,52) > bit_a_b(b,62,52))
-	{
-		b = bit_a_b(b,63,63) + bit_a_b(a,62,52) + ((bit_a_b(b,51,0) + (unsigned long long int)pow(2,52)) >> (bit_a_b(a,62,52) - bit_a_b(b,62,52)));
-	}
-	else if(bit_a_b(a,62,52) < bit_a_b(b,62,52))
-	{
-		a = bit_a_b(a,63,63) + bit_a_b(b,62,52) + ((bit_a_b(a,51,0) + (unsigned long long int)pow(2,52)) >> (bit_a_b(b,62,52) - bit_a_b(a,62,52)));
-	}
-
-	a = a ^ b;
-
-	int i;
-	for(i = 51; i >= 0 && bit(a,i) == 0; i--){}
-
-	return (i == -1) ? 0: 52-(i+1);
+  return max(ea,eb) - er;
 }
 
 // return the number of common bit between two float
 int cancell_float(float f1, float f2)
 {
-	unsigned int a = *((unsigned int*) &f1);
-	unsigned int b = *((unsigned int*) &f2);
+  int ea, eb, er;
+  frexp(f1, &ea);
+  frexp(f2, &eb);
+  frexp(f1-f2, &er);
 
-	if(bit_a_b(a,30,23) > bit_a_b(b,30,23))
-	{
-		b = bit_a_b(b,31,31) + bit_a_b(a,30,23) + ((bit_a_b(b,22,0) + (unsigned int)pow(2,23)) >> (bit_a_b(a,30,23) - bit_a_b(b,30,23)));
-	}
-	else if(bit_a_b(a,30,23) < bit_a_b(b,30,23))
-	{
-		a = bit_a_b(a,31,31) + bit_a_b(b,30,23) + ((bit_a_b(a,22,0) + (unsigned int)pow(2,23)) >> (bit_a_b(b,30,23) - bit_a_b(a,30,23)));
-	}
-
-	a = a ^ b;
-
-	int i;
-	for(i = 22; i >= 0 && bit(a,i) == 0; i--){}
-
-	return (i == -1) ? 0 : 23-(i+1);
+  return max(ea,eb) - er; 
 }
-
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the MCA operation. Operands
@@ -434,61 +179,31 @@ int cancell_float(float f1, float f2)
   };
 
 static inline float _mca_sbin(float a, float b, const int dop) {
-  double da = (double)a;
-  double db = (double)b;
+  float res = 0;
 
-  double res = 0;
-  if (MCALIB_OP_TYPE == MCAMODE_CANC) {
+  perform_bin_op(dop, res, a, b);
 
-    perform_bin_op(dop, res, da, db);
+  int cancellation = cancell_float(a, b);
 
-    if (cancell_float(a, b) >= MCALIB_C) {
-      _mca_inexactd(&res);
-    }
-  }
-  else {
-    if (MCALIB_OP_TYPE != MCAMODE_RR) {
-      _mca_inexactd(&da);
-      _mca_inexactd(&db);
-    }
-
-    perform_bin_op(dop, res, da, db);
-
-    if (MCALIB_OP_TYPE != MCAMODE_PB) {
-      _mca_inexactd(&res);
-    }
+  if (cancellation >= MCALIB_T) {
+    _mca_inexactd(&res, cancellation);
   }
 
-  return ((float)res);
+  return res;
 }
 
 static inline double _mca_dbin(double a, double b, const int qop) {
-  __float128 qa = (__float128)a;
-  __float128 qb = (__float128)b;
-  __float128 res = 0;
+  double res = 0;
 
-  if (MCALIB_OP_TYPE != MCAMODE_CANC) {
+  perform_bin_op(qop, res, a, b);
 
-    perform_bin_op(qop, res, qa, qb);
+  int cancellation = cancell_double(a, b);
 
-    if (cancell_double(a, b) >= MCALIB_C) {
-      _mca_inexactq(&res);
-    }
-  }
-  else {
-    if (MCALIB_OP_TYPE != MCAMODE_RR) {
-      _mca_inexactq(&qa);
-      _mca_inexactq(&qb);
-    }
-
-    perform_bin_op(qop, res, qa, qb);
-
-    if (MCALIB_OP_TYPE != MCAMODE_PB) {
-      _mca_inexactq(&res);
-    }
+  if (cancellation >= MCALIB_T) {
+    _mca_inexactq(&res, cancellation);
   }
 
-  return NEAREST_DOUBLE(res);
+  return res;
 }
 
 /************************* FPHOOKS FUNCTIONS *************************
@@ -536,9 +251,7 @@ static void _interflop_div_double(double a, double b, double *c,
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
     {"precision", 'p', "PRECISION", 0, "select precision (PRECISION >= 0)"},
-    {"mode", 'm', "MODE", 0, "select MCA mode among {ieee, mca, pb, rr, canc}"},
     {"seed", 's', "SEED", 0, "fix the random generator seed"},
-    {"cancellation", 'c', "CANCELLATION", 0, "fix the cancellation detection limit"},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -554,35 +267,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
               "positive integer.");
     } else {
       _set_mca_precision(val);
-    }
-    break;
-  case 'c':
-    /* cancellation */
-    errno = 0;
-    int val2 = strtol(arg, &endptr, 10);
-    if (errno != 0 || val2 <= 0) {
-      errx(1, "interflop_cancellation: --cancellation invalid value provided, must be a"
-              "positive integer.");
-    } else {
-      _set_cancellation_limit(val2);
-    }
-    break;
-  case 'm':
-    /* mode */
-    if (strcasecmp(MCAMODE[MCAMODE_IEEE], arg) == 0) {
-      _set_mca_mode(MCAMODE_IEEE);
-    } else if (strcasecmp(MCAMODE[MCAMODE_MCA], arg) == 0) {
-      _set_mca_mode(MCAMODE_MCA);
-    } else if (strcasecmp(MCAMODE[MCAMODE_PB], arg) == 0) {
-      _set_mca_mode(MCAMODE_PB);
-    } else if (strcasecmp(MCAMODE[MCAMODE_CANC], arg) == 0){
-      printf("Mode CANC accepte !!!\n");
-      _set_mca_mode(MCAMODE_CANC);
-    } else if (strcasecmp(MCAMODE[MCAMODE_RR], arg) == 0) {
-      _set_mca_mode(MCAMODE_RR);
-    } else {
-      errx(1, "interflop_cancellation: --mode invalid value provided, must be one of: "
-              "{ieee, mca, pb, rr, canc}.");
     }
     break;
   case 's':
@@ -610,9 +294,7 @@ static void init_context(t_context *ctx) {
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
-  _set_mca_precision(MCA_PRECISION_DEFAULT); // K: Do we need to switch the MCAMODE to cancellation and change the name of MCA to CANCELLATION ?
-  _set_cancellation_limit(MCA_CANCELLATION_DEFAULT);
-  _set_mca_mode(MCAMODE_DEFAULT);
+  _set_mca_precision(MCA_PRECISION_DEFAULT);
 
   t_context *ctx = malloc(sizeof(t_context));
   *context = ctx;
@@ -621,8 +303,8 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
 
-  warnx("interflop_cancellation: loaded backend with precision = %d and mode = %s and cancellation = %d",
-        MCALIB_T, MCAMODE[MCALIB_OP_TYPE], MCALIB_C);
+  warnx("interflop_cancellation: loaded backend with precision = %d ",
+        MCALIB_T);
 
   struct interflop_backend_interface_t interflop_backend_cancellation = {
       _interflop_add_float,
