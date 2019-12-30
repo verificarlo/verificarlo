@@ -3,6 +3,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <assert.h>
+#include <ctype.h>
 
 int is_wrong(const char* s1, const char* s2)
 {
@@ -14,7 +15,7 @@ int is_wrong(const char* s1, const char* s2)
 		double dout = atof(s1);
 		double dres = atof(s2);
 
-		if(abs(dres - dout) <= 0.1){
+		if(fabs(dres - dout) <= 0.1){
 			return 0;
 		}
 	}
