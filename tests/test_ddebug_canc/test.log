@@ -1,0 +1,12 @@
+make[4] : on entre dans le répertoire « /home/alan/Bureau/Lib/verificarlo/tests/test_ddebug_canc »
+rm -rf dd.line/
+VFC_BACKENDS="libinterflop_cancellation.so -p 1" vfc_ddebug ddRun ddCmp
+Traceback (most recent call last):
+  File "/usr/local/bin/vfc_ddebug", line 9, in <module>
+    from verificarlo import dd_config
+ModuleNotFoundError: No module named 'verificarlo'
+Makefile:5: recipe for target 'dd' failed
+make[4]: *** [dd] Error 1
+make[4] : on quitte le répertoire « /home/alan/Bureau/Lib/verificarlo/tests/test_ddebug_canc »
+grep: dd.line/rddmin-cmp/dd.line.exclude: Aucun fichier ou dossier de ce type
+missing line 16 (round-off)

@@ -1,0 +1,7 @@
+#!/bin/bash
+#
+# ddRun: runs the program and stores the result in the output directory passed
+# as argument
+
+OUTDIR=$1
+./archimedes >${OUTDIR}/res.dat
