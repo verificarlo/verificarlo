@@ -96,14 +96,14 @@ static double _mca_rand(void) {
 static int _mca_inexactq(double* qa, int size) {
   int ex = 0;
   frexp((*qa), &ex);
-  (*qa) = (*qa) + pow(2,ex-(54-size)) * (_mca_rand()-0.5);
+  (*qa) = (*qa) + pow(2,ex-size) * (_mca_rand()-0.5);
   return 1;
 }
 
 static int _mca_inexactd(float* da, int size) {
   int ex = 0;
   frexp((*da), &ex);
-  (*da) = (*da) + pow(2,ex-(25-size)) * (_mca_rand()-0.5);
+  (*da) = (*da) + pow(2,ex-size) * (_mca_rand()-0.5);
   return 1;
 }
 static void _set_mca_seed(int choose_seed, uint64_t seed) {
