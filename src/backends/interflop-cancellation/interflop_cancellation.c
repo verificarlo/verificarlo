@@ -186,7 +186,7 @@ static inline float _mca_sbin(float a, float b, const int dop) {
   int cancellation = cancell_float(a, b);
 
   if (cancellation >= MCALIB_T) {
-    _mca_inexactd(&res, cancellation);
+    _mca_inexactd(&res, 23 - cancellation);
   }
 
   return res;
@@ -200,7 +200,7 @@ static inline double _mca_dbin(double a, double b, const int qop) {
   int cancellation = cancell_double(a, b);
 
   if (cancellation >= MCALIB_T) {
-    _mca_inexactq(&res, cancellation);
+    _mca_inexactq(&res, 52 - cancellation);
   }
 
   return res;
@@ -262,7 +262,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     /* precision */
     errno = 0;
     int val = strtol(arg, &endptr, 10);
-    if (errno != 0 || val <= 0) {
+    if (errno != 0 || val < 0) {
       errx(1, "interflop_cancellation: --precision invalid value provided, must be a "
               "positive integer.");
     } else {
