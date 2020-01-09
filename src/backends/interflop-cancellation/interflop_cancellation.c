@@ -186,7 +186,7 @@ static inline float _mca_sbin(float a, float b, const int dop) {
   int cancellation = cancell_float(a, b);
 
   if (cancellation >= MCALIB_T) {
-    _mca_inexactd(&res, 23 - cancellation);
+    _mca_inexactd(&res, 24 - cancellation);
   }
 
   return res;
@@ -200,7 +200,7 @@ static inline double _mca_dbin(double a, double b, const int qop) {
   int cancellation = cancell_double(a, b);
 
   if (cancellation >= MCALIB_T) {
-    _mca_inexactq(&res, 52 - cancellation);
+    _mca_inexactq(&res, 53 - cancellation);
   }
 
   return res;
