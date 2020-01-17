@@ -313,6 +313,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   default:
     return ARGP_ERR_UNKNOWN;
   }
+  return 0;
 }
 
 static struct argp argp = {options, parse_opt, "", ""};
