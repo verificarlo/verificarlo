@@ -64,7 +64,8 @@ static int MCALIB_T = MCA_PRECISION_DEFAULT;
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define bit(A,i) ((A >> i) & 1)
 #define bit_a_b(X,a,b) (((X << (sizeof(X)*8 - max(a,b) - 1)) >> (sizeof(X)*8 - max(a,b) - 1)) & ((X >> min(a,b) ) << min(a,b)))
-
+#define expd(X) ((X << 1) >> 24)
+#define expq(X) ((X << 1) >> 53)
 
 static float _mca_sbin(float a, float b, int qop);
 
@@ -131,6 +132,8 @@ static void _set_mca_seed(int choose_seed, uint64_t seed) {
 // return the number of common bit between two double
 int cancell_double(double d1, double d2)
 {
+  if(d1 == d2)  return 0;
+
   int ea, eb, er;
   frexp(d1, &ea);
   frexp(d2, &eb);
@@ -141,11 +144,13 @@ int cancell_double(double d1, double d2)
 
 // return the number of common bit between two float
 int cancell_float(float f1, float f2)
-{
+{  
+  if(f1 == f2)  return 0;
+
   int ea, eb, er;
-  frexp(f1, &ea);
-  frexp(f2, &eb);
-  frexp(f1-f2, &er);
+  frexpf(f1, &ea);
+  frexpf(f2, &eb);
+  frexpf(f1-f2, &er);
 
   return max(ea,eb) - er; 
 }
@@ -185,6 +190,8 @@ static inline float _mca_sbin(float a, float b, const int dop) {
 
   int cancellation = cancell_float(a, b);
 
+  //printf("%a - %a cancellation =  %d\n", a, b, cancellation);
+
   if (cancellation >= MCALIB_T) {
     _mca_inexactd(&res, 24 - cancellation);
   }
@@ -198,6 +205,8 @@ static inline double _mca_dbin(double a, double b, const int qop) {
   perform_bin_op(qop, res, a, b);
 
   int cancellation = cancell_double(a, b);
+
+  //printf("%la - %la cancellation =  %d\n", a, b, cancellation);
 
   if (cancellation >= MCALIB_T) {
     _mca_inexactq(&res, 53 - cancellation);
