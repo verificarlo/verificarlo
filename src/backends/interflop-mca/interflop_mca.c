@@ -188,7 +188,7 @@ static inline __float128 qnoise(int exp) {
   }
   if (exp < -QUAD_EXP_MIN) { /*subnormal*/
     // test for minus infinity
-    if (exp < -(QUAD_EXP_MIN + QUAD_PMAN_SIZE)) {
+    if (exp <= -(QUAD_EXP_MIN + QUAD_PMAN_SIZE)) {
       SET_FLT128_WORDS64(noise, QMINF_hx, QMINF_lx);
       return noise;
     } else{// noise will be a subnormal
@@ -202,24 +202,20 @@ static inline __float128 qnoise(int exp) {
     u_rand = u_rand << 1;
 
     uint64_t u_lx=0;
-    
-    if (-exp - QUAD_EXP_MIN < QUAD_HX_PMAN_SIZE) {
+    int relative_exp=-exp - QUAD_EXP_MIN;
+    if (relative_exp< QUAD_HX_PMAN_SIZE) {
       // the higher part of the noise start in HX of noise
       // set the mantissa part: U_rand>> by -exp-QUAD_EXP_MIN
-      u_hx += u_rand >> (-exp - QUAD_EXP_MIN + QUAD_EXP_SIZE + 1 /*SIGN_SIZE*/);
+      u_hx += u_rand >> (relative_exp + QUAD_EXP_SIZE + 1 /*SIGN_SIZE*/);
       // build LX with the remaining bits of the noise
       // (-exp-QUAD_EXP_MIN-QUAD_HX_PMAN_SIZE) at the msb of LX
       // remove the bit already used in hx and put the remaining at msb of LX
-      u_lx = u_rand << (QUAD_HX_PMAN_SIZE + exp + QUAD_EXP_MIN);
+      u_lx = u_rand << (QUAD_HX_PMAN_SIZE - relative_exp);
       SET_FLT128_WORDS64(noise, u_hx, u_lx);
     } else{
-      int32_t shift=-exp - QUAD_EXP_MIN - QUAD_HX_PMAN_SIZE;
+      int32_t shift=relative_exp - QUAD_HX_PMAN_SIZE;
       //shift by 64 and more is undifinied in the C norm
-      if (shift<64)
-        u_lx = u_rand >> shift;
-      else
-         u_lx = 0;
-      
+      u_lx = u_rand >> shift;
       SET_FLT128_WORDS64(noise, u_hx, u_lx);
     }}
     // char buf[128];
