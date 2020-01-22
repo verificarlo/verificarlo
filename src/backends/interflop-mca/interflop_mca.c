@@ -191,8 +191,7 @@ static inline __float128 qnoise(int exp) {
     if (exp < -(QUAD_EXP_MIN + QUAD_PMAN_SIZE)) {
       SET_FLT128_WORDS64(noise, QMINF_hx, QMINF_lx);
       return noise;
-    }
-    // noise will be a subnormal
+    } else{// noise will be a subnormal
     // build HX with sign of d_rand, exp
     uint64_t u_hx = ((uint64_t)(-QUAD_EXP_MIN + QUAD_EXP_COMP))
                     << QUAD_HX_PMAN_SIZE;
@@ -200,7 +199,7 @@ static inline __float128 qnoise(int exp) {
     uint64_t sign = u_rand & DOUBLE_GET_SIGN;
     u_hx = u_hx + sign;
     // erase the sign bit from u_rand
-    u_rand = u_rand - sign;
+    u_rand = u_rand << 1;
 
     uint64_t u_lx=0;
     
@@ -222,7 +221,7 @@ static inline __float128 qnoise(int exp) {
          u_lx = 0;
       
       SET_FLT128_WORDS64(noise, u_hx, u_lx);
-    }
+    }}
     // char buf[128];
     // int len=quadmath_snprintf (buf, sizeof(buf), "%+-#*.20Qe", width, noise);
     // if ((size_t) len < sizeof(buf))
