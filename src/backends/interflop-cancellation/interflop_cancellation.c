@@ -130,27 +130,27 @@ static void _set_mca_seed(int choose_seed, uint64_t seed) {
  ****************************************************************************/
 
 // return the number of common bit between two double
-int cancell_double(double d1, double d2)
+int cancell_double(double d1, double d2, double res)
 {
   if(d1 == d2)  return 0;
 
   int ea, eb, er;
   frexp(d1, &ea);
   frexp(d2, &eb);
-  frexp(d1-d2, &er);
+  frexp(res, &er);
 
   return max(ea,eb) - er;
 }
 
 // return the number of common bit between two float
-int cancell_float(float f1, float f2)
+int cancell_float(float f1, float f2, float res)
 {  
   if(f1 == f2)  return 0;
 
   int ea, eb, er;
   frexpf(f1, &ea);
   frexpf(f2, &eb);
-  frexpf(f1-f2, &er);
+  frexpf(res, &er);
 
   return max(ea,eb) - er; 
 }
@@ -188,9 +188,10 @@ static inline float _mca_sbin(float a, float b, const int dop) {
 
   perform_bin_op(dop, res, a, b);
 
-  int cancellation = cancell_float(a, b);
+  if(dop != MCA_SUB)  
+    return res;
 
-  //printf("%a - %a cancellation =  %d\n", a, b, cancellation);
+  int cancellation = cancell_float(a, b, res);
 
   if (cancellation >= MCALIB_T) {
     _mca_inexactd(&res, 24 - cancellation);
@@ -204,9 +205,10 @@ static inline double _mca_dbin(double a, double b, const int qop) {
 
   perform_bin_op(qop, res, a, b);
 
-  int cancellation = cancell_double(a, b);
+  if(qop != MCA_SUB)  
+    return res;
 
-  //printf("%la - %la cancellation =  %d\n", a, b, cancellation);
+  int cancellation = cancell_double(a, b, res);
 
   if (cancellation >= MCALIB_T) {
     _mca_inexactq(&res, 53 - cancellation);
@@ -259,7 +261,7 @@ static void _interflop_div_double(double a, double b, double *c,
 
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
-    {"precision", 'p', "PRECISION", 0, "select precision (PRECISION >= 0)"},
+    {"tolerance", 't', "TOLERANCE", 0, "select tolerance (tolerance >= 0)"},
     {"seed", 's', "SEED", 0, "fix the random generator seed"},
     {0}};
 
@@ -267,12 +269,12 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   t_context *ctx = (t_context *)state->input;
   char *endptr;
   switch (key) {
-  case 'p':
-    /* precision */
+  case 't':
+    /* tolerance */
     errno = 0;
     int val = strtol(arg, &endptr, 10);
     if (errno != 0 || val < 0) {
-      errx(1, "interflop_cancellation: --precision invalid value provided, must be a "
+      errx(1, "interflop_cancellation: --tolerance invalid value provided, must be a "
               "positive integer.");
     } else {
       _set_mca_precision(val);
@@ -312,7 +314,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
 
-  warnx("interflop_cancellation: loaded backend with precision = %d ",
+  warnx("interflop_cancellation: loaded backend with tolerance = %d ",
         MCALIB_T);
 
   struct interflop_backend_interface_t interflop_backend_cancellation = {
