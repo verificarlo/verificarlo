@@ -50,9 +50,9 @@ typedef struct {
 } t_context;
 
 /* define default environment variables and default parameters */
-#define MCA_PRECISION_DEFAULT 1
+#define MCA_TOLERANCE_DEFAULT 1
 
-static int MCALIB_T = MCA_PRECISION_DEFAULT;
+static int MCALIB_T = MCA_TOLERANCE_DEFAULT;
 
 // possible op values
 #define MCA_ADD 1
@@ -224,7 +224,7 @@ static inline double _mca_dbin(double a, double b, const int qop) {
  **********************************************************************/
 
 static void _interflop_add_float(float a, float b, float *c, void *context) {
-  *c = _mca_sbin(a, b, MCA_ADD);
+  *c = bin_op(MCA_ADD, a, b);
 }
 
 static void _interflop_sub_float(float a, float b, float *c, void *context) {
@@ -305,7 +305,7 @@ static void init_context(t_context *ctx) {
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
-  _set_mca_precision(MCA_PRECISION_DEFAULT);
+  _set_mca_precision(MCA_TOLERANCE_DEFAULT);
 
   t_context *ctx = malloc(sizeof(t_context));
   *context = ctx;
