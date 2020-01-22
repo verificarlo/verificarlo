@@ -68,7 +68,6 @@ static int MCALIB_T = MCA_TOLERANCE_DEFAULT;
 #define expq(X) ((X << 1) >> 53)
 
 static float _mca_sbin(float a, float b, int qop);
-
 static double _mca_dbin(double a, double b, int qop);
 
 /******************** MCA CONTROL FUNCTIONS *******************
@@ -124,9 +123,8 @@ static void _set_mca_seed(int choose_seed, uint64_t seed) {
 }
 
 /****************** CANCELLATION DETECTION FUNCTIONS *************************
- *
- * CANCELLATION DETECTION DOCUMENTAION
- *
+ *  Compute the difference between the max of both operands and the exposant 
+ * of the result to find the size of the cancellation
  ****************************************************************************/
 
 // return the number of common bit between two double
@@ -188,9 +186,6 @@ static inline float _mca_sbin(float a, float b, const int dop) {
 
   perform_bin_op(dop, res, a, b);
 
-  if(dop != MCA_SUB)  
-    return res;
-
   int cancellation = cancell_float(a, b, res);
 
   if (cancellation >= MCALIB_T) {
@@ -204,9 +199,6 @@ static inline double _mca_dbin(double a, double b, const int qop) {
   double res = 0;
 
   perform_bin_op(qop, res, a, b);
-
-  if(qop != MCA_SUB)  
-    return res;
 
   int cancellation = cancell_double(a, b, res);
 
@@ -224,7 +216,7 @@ static inline double _mca_dbin(double a, double b, const int qop) {
  **********************************************************************/
 
 static void _interflop_add_float(float a, float b, float *c, void *context) {
-  *c = bin_op(MCA_ADD, a, b);
+  perform_bin_op(MCA_ADD, *c, a, b);
 }
 
 static void _interflop_sub_float(float a, float b, float *c, void *context) {
@@ -232,16 +224,16 @@ static void _interflop_sub_float(float a, float b, float *c, void *context) {
 }
 
 static void _interflop_mul_float(float a, float b, float *c, void *context) {
-  *c = _mca_sbin(a, b, MCA_MUL);
+  perform_bin_op(MCA_MUL, *c, a, b);
 }
 
 static void _interflop_div_float(float a, float b, float *c, void *context) {
-  *c = _mca_sbin(a, b, MCA_DIV);
+  perform_bin_op(MCA_DIV, *c, a, b);
 }
 
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
-  *c = _mca_dbin(a, b, MCA_ADD);
+  perform_bin_op(MCA_ADD, *c, a, b);
 }
 
 static void _interflop_sub_double(double a, double b, double *c,
@@ -251,12 +243,12 @@ static void _interflop_sub_double(double a, double b, double *c,
 
 static void _interflop_mul_double(double a, double b, double *c,
                                   void *context) {
-  *c = _mca_dbin(a, b, MCA_MUL);
+  perform_bin_op(MCA_MUL, *c, a, b);
 }
 
 static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
-  *c = _mca_dbin(a, b, MCA_DIV);
+  perform_bin_op(MCA_DIV, *c, a, b);
 }
 
 static struct argp_option options[] = {
