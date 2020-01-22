@@ -202,7 +202,7 @@ static inline __float128 qnoise(int exp) {
     // erase the sign bit from u_rand
     u_rand = u_rand - sign;
 
-    if (-exp - QUAD_EXP_MIN < -QUAD_HX_PMAN_SIZE) {
+    if (exp + QUAD_EXP_MIN > QUAD_LX_PMAN_SIZE) {
       // the higher part of the noise start in HX of noise
       // set the mantissa part: U_rand>> by -exp-QUAD_EXP_MIN
       u_hx += u_rand >> (-exp - QUAD_EXP_MIN + QUAD_EXP_SIZE + 1 /*SIGN_SIZE*/);
@@ -211,12 +211,20 @@ static inline __float128 qnoise(int exp) {
       // remove the bit already used in hx and put the remaining at msb of LX
       uint64_t u_lx = u_rand << (QUAD_HX_PMAN_SIZE + exp + QUAD_EXP_MIN);
       SET_FLT128_WORDS64(noise, u_hx, u_lx);
-    } else { // the higher part of the noise start  in LX of noise
+    } 
+    
       // the noise as been already implicitly shifeted by QUAD_HX_PMAN_SIZE when
       // starting in LX
-      uint64_t u_lx = u_rand >> (-exp - QUAD_EXP_MIN - QUAD_HX_PMAN_SIZE);
+      int32_t shift=-exp - QUAD_EXP_MIN - QUAD_HX_PMAN_SIZE;
+      uint64_t u_lx=0;
+      //shift by 64 and mor is undifinied in the C norm
+      if (shift<64)
+        u_lx = u_rand >> shift;
+      else
+         u_lx = 0;
+      
       SET_FLT128_WORDS64(noise, u_hx, u_lx);
-    }
+    
     // char buf[128];
     // int len=quadmath_snprintf (buf, sizeof(buf), "%+-#*.20Qe", width, noise);
     // if ((size_t) len < sizeof(buf))

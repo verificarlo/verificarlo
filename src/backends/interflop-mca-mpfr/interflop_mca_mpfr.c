@@ -142,6 +142,8 @@ static int _mca_inexact(mpfr_ptr a, mpfr_rnd_t rnd_mode) {
   /* rand = rand * 2 ^ (e_a) */
   mpfr_mul_2si(mpfr_rand, mpfr_rand, e_a, rnd_mode);
   mpfr_add(a, a, mpfr_rand, rnd_mode);
+  //this function requires a return value
+  return 0;
 }
 
 static void _set_mca_seed(int choose_seed, uint64_t seed) {
