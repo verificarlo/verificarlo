@@ -8,6 +8,15 @@ env:
    #   via the "travis encrypt" command using the project repo's public key
    - secure: "Nlx4poy2Su7YoYZQAcQSWLEf818+7qYhMPnetIwrrNUX6GmTGbMcHN+z/Uro1ZTnRHu0h7uiNqIPGtdynh1Menp1SqsmdEvbKx4mXyzOIsT9mGMtuh7cDWCrUzfagapN+UzCrfJh/rqePDDoFblODbAJZywzI2dK5ocwgOZIt9A="
 
+before_install:
+  - sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main'
+  - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
+  - sudo add-apt-repository ppa:dns/gnu -y
+  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
+  - sudo apt-get update
+  - sudo apt-get install libmpfr-dev clang-3.5 llvm-3.5 llvm-3.5-dev dragonegg-4.7 gcc-4.7 g++-4.7 gfortran-4.7 libgfortran-4.7-dev autoconf automake build-essential libedit-dev python3-dev cython3 binutils
+  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-certificates.crt
+
 addons:
   coverity_scan:
     project:
@@ -18,15 +27,6 @@ addons:
     build_command: "make"
     branch_pattern: coverity-travis-CI
 
-before_install:
-  - sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main'
-  - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
-  - sudo add-apt-repository ppa:dns/gnu -y
-  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
-  - sudo apt-get update
-  - sudo apt-get install libmpfr-dev clang-3.5 llvm-3.5 llvm-3.5-dev dragonegg-4.7 gcc-4.7 g++-4.7 gfortran-4.7 libgfortran-4.7-dev autoconf automake build-essential libedit-dev python3-dev cython3 binutils
-  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
-  
 install:
   - ./autogen.sh
   - export LIBRARY_PATH=/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7:/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu:/lib/x86_64-linux-gnu:/lib/../lib64:/usr/lib/x86_64-linux-gnu:/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7/../../..:/usr/lib/llvm-3.5/bin/../lib:/lib:/usr/lib:$LIBRARY_PATH
