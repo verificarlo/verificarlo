@@ -23,8 +23,8 @@ addons:
       name: verificarlo/verificarlo
       description: A tool for automatic Montecarlo Arithmetic analysis.
     notification_email: yohan.chatelain@gmail.com
-    build_command_prepend: ./configure --with-llvm=/usr/lib/llvm-3.5/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so CC=gcc-4.7 CXX=g++-4.7
-    build_command: make clean && make
+    build_command_prepend: make clean
+    build_command: make
     branch_pattern: coverity-travis-CI
 
 install:
