@@ -23,7 +23,7 @@ addons:
       name: verificarlo/verificarlo
       description: A tool for automatic Montecarlo Arithmetic analysis.
     notification_email: yohan.chatelain@gmail.com
-    build_command_prepend: make clean
+    build_command_prepend: cov-configure --template --compiler=gcc-4.7 --comptype=gcc
     build_command: make
     branch_pattern: coverity-travis-CI
 
@@ -35,6 +35,7 @@ install:
   - sudo make install
   - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
   - export PYTHONPATH=/usr/local/lib/python3.4/site-packages/:$PYTHONPATH
+  - if [ ${COVERITY_TRAVIS_CI_BRANCH} == 1 ]; then make clean ; fi
 
 script:
   - make installcheck
