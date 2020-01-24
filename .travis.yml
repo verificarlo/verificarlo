@@ -6,7 +6,7 @@ env:
   global:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
    #   via the "travis encrypt" command using the project repo's public key
-   - secure: "nlzhYyCXFFisxGhpkVJZCE9N2lL/Vrb6ScmIE1nFdbpp+T8rMbRpwOYiKFgI3RREaY1WCrdR15g827/Mxf8xXhBWeqZ2CmxW7Q3o1zlGXilcmJCATlx9Lok6E/iv6L0Pds3pofP73C5tyfsQAVtLt5rkxmyy5P9ZHugpTYn2eAeEdGk5ikVgJz6Un+yoJfOJ5CS9rM+WTb2NrZ87PTe8nPg3KWOM1kgDE0rFHeTHwxxT7VQIP0MJ4JIWSLSeD+K+9loJLiD6Ow8DrG3kBPEAKRxeDNYF090Dcdut82sg5bSkfv5UXHbe4hef1eq69ptF8OcZNfTXCh8gvpLv5hqCsa/CkUzjaZW1HNrdxO417/MrriV49tl1gmt+wkA8KvHm/HTXnJbqF6GihPlrTgkZZwooi7ABVOGW5Y75jCLx9KYWsBgxt7jjcAKrChAdZXpbmmwrsbU4SiWQAb5uOgKcH1WDoHAPeYQYRrG77wVYBybKLMRwx1qAPwk7RcNmq6/6BUAE5LCiu4nXV7mLyKf7FVk9YFqMQNHRRCXHavcdsw5sgJ8IFSzxRW0e9eYLoAd+hnc86jfD0W5yFNw5LgDAQpiH/hBhE18rHwSgNlyKiLSw7NZS6sXdUzmdKJdnMgNdb8JhM+FeN3m3YwxIBMMkXfU61skU3+t/jHdatMzGUYk="
+   - secure: "Nlx4poy2Su7YoYZQAcQSWLEf818+7qYhMPnetIwrrNUX6GmTGbMcHN+z/Uro1ZTnRHu0h7uiNqIPGtdynh1Menp1SqsmdEvbKx4mXyzOIsT9mGMtuh7cDWCrUzfagapN+UzCrfJh/rqePDDoFblODbAJZywzI2dK5ocwgOZIt9A="
 
 before_install:
   - sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main'
