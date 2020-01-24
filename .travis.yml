@@ -38,6 +38,7 @@ install:
   - test $TRAVIS_BRANCH == coverity-travis-CI && make clean || exit 0
 
 script:
+  - cat /home/travis/build/yohanchatelain/verificarlo/cov-int/scm_log.txt
   - make installcheck
   - for i in $(find tests/ -maxdepth 1 -type d -name 'test_*' | sort ); do echo "************** TEST $i"; cat $i/test.log; done;
 
