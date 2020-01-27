@@ -40,6 +40,7 @@ install:
 
 script:
   - cat /home/travis/build/verificarlo/verificarlo/cov-int/scm_log.txt
+  - cat /home/travis/build/verificarlo/verificarlo/cov-int/build-log.txt
   - make installcheck
   - for i in $(find tests/ -maxdepth 1 -type d -name 'test_*' | sort ); do echo "************** TEST $i"; cat $i/test.log; done;
 
