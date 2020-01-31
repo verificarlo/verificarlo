@@ -29,7 +29,7 @@ gcov_report
 cp unst_branch.c.gcov unst_branch.c.gcov.IEEE
 
 # First we run the program 50 times in RR 53 mode
-export VFC_BACKENDS="libinterflop_mca.so --mode rr --precision 53"
+export VFC_BACKENDS="libinterflop_mca.so --mode rr --precision-binary64 53"
 gcov_report
 cp unst_branch.c.gcov unst_branch.c.gcov.RR53
 

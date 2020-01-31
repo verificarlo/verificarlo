@@ -63,7 +63,7 @@ fi
 LIBS=""
 
 # Check for header files.
-AC_CHECK_HEADERS([fcntl.h inttypes.h limits.h malloc.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h mpfr.h], , AC_MSG_ERROR([Missing required headers]))
+AC_CHECK_HEADERS([fcntl.h float.h inttypes.h limits.h malloc.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h mpfr.h], , AC_MSG_ERROR([Missing required headers]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
@@ -79,16 +79,41 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 
+# Checks if __uint128_t is supported
+AC_CHECK_TYPE(__uint128_t,[cc_have_uint128="yes"], [cc_have_uint128="no"])
+if test "x$cc_have_uint128" = "xno"; then
+   AC_MSG_ERROR([__uint128_t is not supported])
+fi
+
+# Checks if __float128 is supported
+AC_CHECK_TYPE(__float128,[cc_have_float128="yes"], [cc_have_float128="no"])
+if test "x$cc_have_float128" = "xno"; then
+   AC_MSG_ERROR([__float128 is not supported])
+fi
+
+# Checks if _Generic keyword is supported
+AC_MSG_CHECKING([if _Generic is supported by $CC])
+echo "#define TEST(X) _Generic((X), int:1, long:2)" > conftest.c
+doit='$CC -c conftest.c'
+if AC_TRY_EVAL(doit); then
+  AC_MSG_RESULT([yes])
+else
+  AC_MSG_RESULT([no])
+  AC_MSG_ERROR([_Generic is not supported])
+fi
+
 # Checks for library functions.
 AC_FUNC_ALLOCA
 AC_FUNC_CHOWN
 AC_FUNC_ERROR_AT_LINE
+AC_FUNC_FORK
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 AC_FUNC_MKTIME
+AC_FUNC_MMAP
 AC_FUNC_REALLOC
 
-AC_CHECK_FUNCS([atexit floor getenv gettimeofday getpid memset mkdir pow sqrt strchr strdup strerror strrchr strstr strtol tzset utime])
+AC_CHECK_FUNCS([atexit dup2 floor getenv gettimeofday getpagesize getpid memset mkdir pow sqrt strcasecmp strchr strdup strerror strrchr strstr strtol strtoull tzset utime])
 
 # Check for Python 3
 AM_PATH_PYTHON([3])

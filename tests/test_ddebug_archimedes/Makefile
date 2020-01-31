@@ -1,5 +1,5 @@
 # Default noise MCA mode: mca at 53 precision
-MCA_MODE=-m mca -p 53
+MCA_MODE=-m mca --precision-binary64=53
 
 archimedes: archimedes.c
 	verificarlo --ddebug -O0 -g archimedes.c -o archimedes -lm
