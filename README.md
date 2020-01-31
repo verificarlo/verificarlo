@@ -12,7 +12,7 @@ A tool for automatic Montecarlo Arithmetic analysis.
 
 A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/. 
 This image uses the latest git master version of Verificarlo and includes
-support for Fortran. It uses llvm-3.5 and gcc-4.7.
+support for Fortran. It uses llvm-3.5 and gcc-4.9.
 
 Example of usage:
 
@@ -90,18 +90,20 @@ For example on an x86_64 Ubuntu 14.04 release, you should use the following
 install procedure:
 
 ```bash
-   $ sudo apt-get install libmpfr-dev clang-3.3 llvm-3.3-dev dragonegg-4.7 \
-       gcc-4.7 gfortran-4.7 autoconf automake build-essential python3 python3-numpy
+   $ sudo apt-get install libmpfr-dev clang-3.3 llvm-3.3-dev dragonegg-4.9 \
+       gcc-4.9 gfortran-4.9 autoconf automake build-essential python3 python3-numpy
    $ cd verificarlo/
    $ ./autogen.sh
    $ ./configure \
-       --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so \
-       CC=gcc-4.7
+       --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.9/plugin/dragonegg.so \
+       CC=gcc-4.9
    $ make 
    $ sudo make install
 ```
 
-In order to use the delta debug features, you need to export the path of the corresponding python packages. For example, for a global install, this would resemble (edit for your installed Python version):
+In order to use the delta debug features, you need to export the path
+of the corresponding python packages. For example, for a global
+install, this would resemble (edit for your installed Python version):
 
 ```bash
 	$ export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/pythonXXX.XXX/site-packages
@@ -113,7 +115,10 @@ You can then check if your install was successful using:
 	$ make installcheck
 ```
 
-Alternatively, you can make the changes required for `ddebug` permanent by editing your `~/.bashrc`, `~/.profile` or whichever configuration file is relevant for your system by adding the above line, and then reloading your environment using:
+Alternatively, you can make the changes required for `ddebug`
+permanent by editing your `~/.bashrc`, `~/.profile` or whichever
+configuration file is relevant for your system by adding the above
+line, and then reloading your environment using:
 
 ```bash
 	$ source ~/.bashrc
@@ -127,7 +132,7 @@ directory is in your PATH.
 
 Then you can use the `verificarlo` command to compile your programs. Either modify 
 your makefile to use `verificarlo` as the compiler (`CC=verificarlo` and
-`FC=verificarlo` ) and linker (`LD=verificarlo`) or use the verificarlo command
+`FC=verificarlo`) and linker (`LD=verificarlo`) or use the verificarlo command
 directly:
 
 ```bash
@@ -178,7 +183,7 @@ after each backend,
 
 ```bash
    $ VFC_BACKENDS="libinterflop_ieee.so --debug; \
-                   libinterflop_mca.so --precision 10 --mode rr" \ 
+                   libinterflop_mca.so --precision-binary64 10 --mode rr" \ 
                    ./program"
 ```
 
@@ -221,7 +226,10 @@ test: verificarlo loaded backend libinterflop_mca.so
 Usage: libinterflop_mca.so [OPTION...] 
 
   -m, --mode=MODE            select MCA mode among {ieee, mca, pb, rr}
-  -p, --precision=PRECISION  select precision (PRECISION >= 0)
+      --precision-binary32=PRECISION
+                             select precision for binary32 (PRECISION >= 0)
+      --precision-binary64=PRECISION
+                             select precision for binary64 (PRECISION >= 0)
   -s, --seed=SEED            fix the random generator seed
   -?, --help                 Give this help list
       --usage                Give a short usage message
@@ -237,10 +245,13 @@ following case insensitive values:
  * `pb`: Precision Bounding inbound errors only
  * `rr`: Random Rounding outbound errors only
 
-The option `--precision=PRECISION` controls the virtual precision used for the
-floating point operations. It accepts an integer value that represents the
-virtual precision at which MCA operations are performed. Its default value is
-53. For a more precise definition of the virtual precision, you can refer to
+The option `--precision-binary64=PRECISION` controls the virtual
+precision used for the floating point operations in double precision
+(respectively for single precision with --precision-binary32) It
+accepts an integer value that represents the virtual precision at
+which MCA operations are performed. Its default value is 53 for
+binary64 and 24 for binary32. For a more precise definition of the
+virtual precision, you can refer to
 https://hal.archives-ouvertes.fr/hal-01192668.
 
 One should note when using the QUAD backend, that the round operations during

@@ -8,11 +8,11 @@ cvPlot.pdf: unitTest cvPlot.gp
 
 dd: unitTest ddRun ddCmp
 	rm -rf dd.*
-	VFC_BACKENDS="libinterflop_mca.so --mode rr --precision 24" vfc_ddebug ddRun ddCmp
+	VFC_BACKENDS="libinterflop_mca.so --mode rr --precision-binary32 24" vfc_ddebug ddRun ddCmp
 
 dd2: unitTest ddRun2 ddCmp2
 	rm -rf dd.*
-	INTERFLOP_DD_NRUNS=1 VFC_BACKENDS="libinterflop_mca.so --mode rr --precision 24" vfc_ddebug ddRun2 ddCmp2
+	INTERFLOP_DD_NRUNS=1 VFC_BACKENDS="libinterflop_mca.so --mode rr --precision-binary32 24" vfc_ddebug ddRun2 ddCmp2
 
 clean:
 	rm -rf unitTest *.o *.dat dd.line

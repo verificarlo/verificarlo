@@ -1,21 +1,38 @@
-dist: trusty
+dist: xenial
 language: c
-sudo: required
+
+env:
+  global:
+    - LLVM_VERSION=3.9
+    - GCC_VERSION=5
+    - GCC=gcc-${GCC_VERSION}
+    - GXX=g++-${GCC_VERSION}
 
 before_install:
-  - sudo add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main'
-  - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
-  - sudo add-apt-repository ppa:dns/gnu -y
-  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
-  - sudo apt-get update
-  - sudo apt-get install libmpfr-dev clang-3.5 llvm-3.5 llvm-3.5-dev dragonegg-4.7 gcc-4.7 g++-4.7 gfortran-4.7 libgfortran-4.7-dev autoconf automake build-essential libedit-dev python3-dev cython3 binutils
+    - add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main'
+    - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
+    - add-apt-repository ppa:dns/gnu -y
+    - apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
+    - apt-get update
+    - apt-get install libmpfr-dev clang-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev \
+      	      gcc-${GCC_VERSION} gcc-${GCC_VERSION}-plugin-dev g++-${GCC_VERSION} gfortran-${GCC_VERSION} libgfortran-${GCC_VERSION}-dev \
+	      autoconf automake build-essential libedit-dev python3-dev cython3 binutils
+    - git clone -b gcc5 https://github.com/yohanchatelain/DragonEgg.git
+    - cd DragonEgg
+    - LLVM_CONFIG=llvm-config-${LLVM_VERSION} GCC=gcc-${GCC_VERSION} GXX=g++-${GCC_VERSION} make
+    - mkdir -p ${GCC_INSTALL_PATH}/plugin/
+    - cp dragonegg.so ${GCC_INSTALL_PATH}/plugin/dragonegg.so
 
 install:
+  - export LLVM_INSTALL_PATH=$(llvm-config-${LLVM_VERSION} --prefix)
+  - export GCC_INSTALL_PATH=$($GCC --print-search-dirs | grep install | cut -d' ' -f2)
+  - export GCC_LIB_PATH==$($GCC --print-search-dirs | grep libraries | cut -d'=' -f2)
   - ./autogen.sh
-  - export LIBRARY_PATH=/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7:/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu:/lib/x86_64-linux-gnu:/lib/../lib64:/usr/lib/x86_64-linux-gnu:/usr/bin/../lib/gcc/x86_64-linux-gnu/4.7/../../..:/usr/lib/llvm-3.5/bin/../lib:/lib:/usr/lib:$LIBRARY_PATH
-  - ./configure --with-llvm=/usr/lib/llvm-3.5/bin/ --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so CC=gcc-4.7 CXX=g++-4.7 || cat config.log
+  - export LIBRARY_PATH
+  - export LIBRARY_PATH=${GCC_LIB_PATH}:${LLVM_INSTALL_PATH}:/lib:/usr/lib:$LIBRARY_PATH
+  - ./configure --with-llvm=$LLVM_INSTALL_PATH --with-dragonegg=${GCC_INSTALL_PATH}/plugin/dragonegg.so CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} || cat config.log
   - make
-  - sudo make install
+  - make install
   - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
   - export PYTHONPATH=/usr/local/lib/python3.4/site-packages/:$PYTHONPATH
 

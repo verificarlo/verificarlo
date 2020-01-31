@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-export VFC_BACKENDS="libinterflop_mca.so --precision 53"
+export VFC_BACKENDS="libinterflop_mca.so --precision-binary64=53"
 
 verificarlo --function solve -O0 linear.c -o test
 
