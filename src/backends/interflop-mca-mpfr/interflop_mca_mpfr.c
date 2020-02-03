@@ -166,6 +166,7 @@ static double _mca_rand(void) {
   return tinymt64_generate_doubleOO(&random_state);
 }
 
+
 #define _MCA_INEXACT(X, rnd_mode)                                              \
   do {                                                                         \
     /* if we are in IEEE mode, we return a noise equal to 0 */                 \
@@ -196,6 +197,7 @@ static double _mca_rand(void) {
   } while (0)
 
 static void _set_mca_seed(bool choose_seed, uint64_t seed) {
+
   if (choose_seed) {
     tinymt64_init(&random_state, seed);
   } else {

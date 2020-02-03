@@ -4,6 +4,7 @@
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
+[![Coverity](https://scan.coverity.com/projects/19956/badge.svg)](https://scan.coverity.com/projects/verificarlo-verificarlo)
 
 A tool for automatic Montecarlo Arithmetic analysis.
 
@@ -45,7 +46,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
   * LLVM, clang and opt from 3.3 up to 4.0.1 (the last version with Fortran
     support is 3.6), http://clang.llvm.org/
   * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
-  * python, version >= 2.7
+  * python3 and NumPy
   * autotools (automake, autoconf)
 
 Then run the following command inside verificarlo directory:
@@ -83,15 +84,14 @@ verificarlo works as expected on your system:
    $ make installcheck
 ```
 
-If you disable dragonegg support during configure, fortran_test will fail.
+If you disable dragonegg support during configure, fortran_test will be disabled and considered as passing the test.
 
 For example on an x86_64 Ubuntu 14.04 release, you should use the following
 install procedure:
 
 ```bash
    $ sudo apt-get install libmpfr-dev clang-3.3 llvm-3.3-dev dragonegg-4.7 \
-       gcc-4.7 gfortran-4.7 autoconf automake build-essential
-
+       gcc-4.7 gfortran-4.7 autoconf automake build-essential python3 python3-numpy
    $ cd verificarlo/
    $ ./autogen.sh
    $ ./configure \
@@ -187,14 +187,15 @@ after each backend,
 The IEEE backend implements straighforward IEEE-754 arithmetic. 
 It should have no effect on the output and behavior of your program.
 
-The option `--debug` enables verbose output that prints every instrumented
-floating-point operation.
+The options `--debug` and `--debug_binary` enable verbose output that print
+every instrumented floating-point operation.
 
 ```bash
 VFC_BACKENDS="libinterflop_ieee.so --help" ./test
 test: verificarlo loaded backend libinterflop_ieee.so
 Usage: libinterflop_ieee.so [OPTION...]
 
+  -b, --debug_binary         enable binary debug output
   -d, --debug                enable debug output
   -?, --help                 Give this help list
       --usage                Give a short usage message
