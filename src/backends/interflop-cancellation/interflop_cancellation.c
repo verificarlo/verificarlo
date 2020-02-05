@@ -51,6 +51,9 @@ typedef struct {
 
 /* define default environment variables and default parameters */
 #define MCA_TOLERANCE_DEFAULT 1
+#define WARNING_DEFAULT 0
+
+static int WARN = WARNING_DEFAULT;
 
 static int MCALIB_T = MCA_TOLERANCE_DEFAULT;
 
@@ -64,8 +67,6 @@ static int MCALIB_T = MCA_TOLERANCE_DEFAULT;
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define bit(A,i) ((A >> i) & 1)
 #define bit_a_b(X,a,b) (((X << (sizeof(X)*8 - max(a,b) - 1)) >> (sizeof(X)*8 - max(a,b) - 1)) & ((X >> min(a,b) ) << min(a,b)))
-#define expd(X) ((X << 1) >> 24)
-#define expq(X) ((X << 1) >> 53)
 
 static float _mca_sbin(float a, float b, int qop);
 static double _mca_dbin(double a, double b, int qop);
@@ -78,6 +79,10 @@ static double _mca_dbin(double a, double b, int qop);
 static int _set_mca_precision(int precision) {
   MCALIB_T = precision;
   return 0;
+}
+
+static int _set_warning() {
+  WARN = 1;
 }
 
 /******************** MCA RANDOM FUNCTIONS ********************
@@ -93,19 +98,18 @@ static double _mca_rand(void) {
   return tinymt64_generate_doubleOO(&random_state);
 }
 
-static int _mca_inexactq(double* qa, int size) {
-  int ex = 0;
-  frexp((*qa), &ex);
-  (*qa) = (*qa) + pow(2,ex-size) * (_mca_rand()-0.5);
-  return 1;
-}
+#define exp(X) ({                                     \
+  /* Conversion du reel en entier */                  \
+  u_int64_t _V_ = *(u_int64_t*)&X;                    \
+  /* Taille de l'exposant */                          \
+  int _E_ = (6+3*(sizeof(X) >> 2)-1);                 \ 
+  /* Taille de la mantisse */                         \
+  int _M_ = (sizeof(X)*8-_E_-1);                      \
+  /* Calcul de l'exposant */                          \     
+  (int)bit_a_b(_V_>>_M_,0,_E_-1) - ((1<<_E_-1)-2);})
 
-static int _mca_inexactd(float* da, int size) {
-  int ex = 0;
-  frexp((*da), &ex);
-  (*da) = (*da) + pow(2,ex-size) * (_mca_rand()-0.5);
-  return 1;
-}
+#define inexact(X,S) (X + pow(2,exp(X)-S) * _mca_rand())
+
 static void _set_mca_seed(int choose_seed, uint64_t seed) {
   if (choose_seed) {
     tinymt64_init(&random_state, seed);
@@ -127,31 +131,7 @@ static void _set_mca_seed(int choose_seed, uint64_t seed) {
  * of the result to find the size of the cancellation
  ****************************************************************************/
 
-// return the number of common bit between two double
-int cancell_double(double d1, double d2, double res)
-{
-  if(d1 == d2)  return 0;
-
-  int ea, eb, er;
-  frexp(d1, &ea);
-  frexp(d2, &eb);
-  frexp(res, &er);
-
-  return max(ea,eb) - er;
-}
-
-// return the number of common bit between two float
-int cancell_float(float f1, float f2, float res)
-{  
-  if(f1 == f2)  return 0;
-
-  int ea, eb, er;
-  frexpf(f1, &ea);
-  frexpf(f2, &eb);
-  frexpf(res, &er);
-
-  return max(ea,eb) - er; 
-}
+#define detect(X,Y,Z) ((int)max(exp(X),exp(Y))-exp(Z))
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the MCA operation. Operands
@@ -162,52 +142,18 @@ int cancell_float(float f1, float f2, float res)
 
 // perform_bin_op: applies the binary operator (op) to (a) and (b)
 // and stores the result in (res)
-#define perform_bin_op(op, res, a, b)                                          \
-  switch (op) {                                                                \
-  case MCA_ADD:                                                                \
-    res = (a) + (b);                                                           \
-    break;                                                                     \
-  case MCA_MUL:                                                                \
-    res = (a) * (b);                                                           \
-    break;                                                                     \
-  case MCA_SUB:                                                                \
-    res = (a) - (b);                                                           \
-    break;                                                                     \
-  case MCA_DIV:                                                                \
-    res = (a) / (b);                                                           \
-    break;                                                                     \
-  default:                                                                     \
-    perror("invalid operator in mcaquad.\n");                                  \
-    abort();                                                                   \
-  };
 
-static inline float _mca_sbin(float a, float b, const int dop) {
-  float res = 0;
+#define mant(X) ((int)(sizeof(X)*8-(6+3*(sizeof(X) >> 2)-1)-1))
 
-  perform_bin_op(dop, res, a, b);
-
-  int cancellation = cancell_float(a, b, res);
-
-  if (cancellation >= MCALIB_T) {
-    _mca_inexactd(&res, 24 - cancellation);
-  }
-
-  return res;
-}
-
-static inline double _mca_dbin(double a, double b, const int qop) {
-  double res = 0;
-
-  perform_bin_op(qop, res, a, b);
-
-  int cancellation = cancell_double(a, b, res);
-
-  if (cancellation >= MCALIB_T) {
-    _mca_inexactq(&res, 53 - cancellation);
-  }
-
-  return res;
-}
+#define cancell(X,Y,Z) ({                                         \
+  int cancellation = detect(X,Y,Z);                               \
+  if(cancellation >= MCALIB_T){                                   \
+    if(WARN){                                                     \
+      printf("cancellation of size %d detected\n", cancellation);}\
+      int exp = (mant(Z)+1) - cancellation;                       \
+      Z = inexact(Z,exp);                                         \
+  }                                                               \
+  Z;})
 
 /************************* FPHOOKS FUNCTIONS *************************
  * These functions correspond to those inserted into the source code
@@ -216,44 +162,47 @@ static inline double _mca_dbin(double a, double b, const int qop) {
  **********************************************************************/
 
 static void _interflop_add_float(float a, float b, float *c, void *context) {
-  perform_bin_op(MCA_ADD, *c, a, b);
+  *c = a + b;
 }
 
 static void _interflop_sub_float(float a, float b, float *c, void *context) {
-  *c = _mca_sbin(a, b, MCA_SUB);
+  *c = a - b;
+  *c = cancell(a, b, *c);
 }
 
 static void _interflop_mul_float(float a, float b, float *c, void *context) {
-  perform_bin_op(MCA_MUL, *c, a, b);
+  *c = a * b;
 }
 
 static void _interflop_div_float(float a, float b, float *c, void *context) {
-  perform_bin_op(MCA_DIV, *c, a, b);
+  *c = a / b;
 }
 
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
-  perform_bin_op(MCA_ADD, *c, a, b);
+  *c = a + b;
 }
 
 static void _interflop_sub_double(double a, double b, double *c,
                                   void *context) {
-  *c = _mca_dbin(a, b, MCA_SUB);
+  *c = a - b;
+  *c = cancell(a, b, *c);
 }
 
 static void _interflop_mul_double(double a, double b, double *c,
                                   void *context) {
-  perform_bin_op(MCA_MUL, *c, a, b);
+  *c = a * b;
 }
 
 static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
-  perform_bin_op(MCA_DIV, *c, a, b);
+  *c = a / b;
 }
 
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
     {"tolerance", 't', "TOLERANCE", 0, "select tolerance (tolerance >= 0)"},
+    {"warning", 'w', "WARNING", 0, "active warning for cancellations"},
     {"seed", 's', "SEED", 0, "fix the random generator seed"},
     {0}};
 
@@ -271,6 +220,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     } else {
       _set_mca_precision(val);
     }
+    break;
+  case 'w':
+      _set_warning();
     break;
   case 's':
     errno = 0;
