@@ -8,13 +8,13 @@ env:
     - GCC=gcc-${GCC_VERSION}
     - GXX=g++-${GCC_VERSION}
 
-
 addons:
   apt:
+    update: true
     packages:
       - libmpfr-dev
-      - clang-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev
-      - gcc-${GCC_VERSION} gcc-${GCC_VERSION}-plugin-dev g++-${GCC_VERSION} gfortran-${GCC_VERSION} libgfortran-${GCC_VERSION}-dev
+      - clang-3.9 llvm-3.9 llvm-3.9-dev
+      - gcc-5 gcc-5-plugin-dev g++-5 gfortran-5 libgfortran-5-dev
       - autoconf automake build-essential libedit-dev binutils
       - python3-dev cython3
       
