@@ -17,27 +17,42 @@ addons:
       - gcc-5 gcc-5-plugin-dev g++-5 gfortran-5 libgfortran-5-dev
       - autoconf automake build-essential libedit-dev binutils
       - python3-dev cython3
+
+matrix:
+  include:
+    env:
+      - LLVM_INSTALL_PATH (llvm-config-${LLVM_VERSION} --prefix)
+      - GCC_INSTALL_PATH $($GCC --print-search-dirs | grep install | cut -d' ' -f2)
+      - GCC_LIB_PATH $($GCC --print-search-dirs | grep libraries | cut -d'=' -f2)
+      - LIBRARY_PATH ${GCC_LIB_PATH}:${LLVM_INSTALL_PATH}:/lib:/usr/lib
+    stages:
+      - before_install
+      - install
+      - before_script:
+      	env:
+	  - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+	  - PYTHONPATH=/usr/local/lib/python3.4/site-packages/:$PYTHONPATH
+      - script
       
 before_install:
-    - git clone -b gcc5 https://github.com/yohanchatelain/DragonEgg.git
-    - cd DragonEgg
-    - LLVM_CONFIG=llvm-config-${LLVM_VERSION} GCC=gcc-${GCC_VERSION} GXX=g++-${GCC_VERSION} make
-    - mkdir -p ${GCC_INSTALL_PATH}/plugin/
-    - cp dragonegg.so ${GCC_INSTALL_PATH}/plugin/dragonegg.so
+  - git clone -b gcc5 https://github.com/yohanchatelain/DragonEgg.git
+  - cd DragonEgg
+  - LLVM_CONFIG=llvm-config-${LLVM_VERSION} GCC=gcc-${GCC_VERSION} GXX=g++-${GCC_VERSION} make
+  - mkdir -p ${GCC_INSTALL_PATH}/plugin/
+  - cp dragonegg.so ${GCC_INSTALL_PATH}/plugin/dragonegg.so
 
 install:
-  - export LLVM_INSTALL_PATH=$(llvm-config-${LLVM_VERSION} --prefix)
-  - export GCC_INSTALL_PATH=$($GCC --print-search-dirs | grep install | cut -d' ' -f2)
-  - export GCC_LIB_PATH==$($GCC --print-search-dirs | grep libraries | cut -d'=' -f2)
   - ./autogen.sh
-  - export LIBRARY_PATH
-  - export LIBRARY_PATH=${GCC_LIB_PATH}:${LLVM_INSTALL_PATH}:/lib:/usr/lib:$LIBRARY_PATH
   - ./configure --with-llvm=$LLVM_INSTALL_PATH --with-dragonegg=${GCC_INSTALL_PATH}/plugin/dragonegg.so CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} || cat config.log
   - make
   - make install
-  - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-  - export PYTHONPATH=/usr/local/lib/python3.4/site-packages/:$PYTHONPATH
 
 script:
   - make installcheck
+
+after_success:
   - for i in $(find tests/ -maxdepth 1 -type d -name 'test_*' | sort ); do echo "************** TEST $i"; cat $i/test.log; done;
+
+after_failure:
+  - grep FAIL tests/testplan.log > failed_tests
+  - while IFS= read -r $line ; do TEST=$(cut -d' ' -f4); echo "************** TEST ${TEST}"; cat ${TEST}/test.log; done < failed_tests
