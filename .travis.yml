@@ -8,15 +8,17 @@ env:
     - GCC=gcc-${GCC_VERSION}
     - GXX=g++-${GCC_VERSION}
 
+
+addons:
+  apt:
+    packages:
+      - libmpfr-dev
+      - clang-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev
+      - gcc-${GCC_VERSION} gcc-${GCC_VERSION}-plugin-dev g++-${GCC_VERSION} gfortran-${GCC_VERSION} libgfortran-${GCC_VERSION}-dev
+      - autoconf automake build-essential libedit-dev binutils
+      - python3-dev cython3
+      
 before_install:
-    - add-apt-repository 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main'
-    - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
-    - add-apt-repository ppa:dns/gnu -y
-    - apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
-    - apt-get update
-    - apt-get install libmpfr-dev clang-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev \
-      	      gcc-${GCC_VERSION} gcc-${GCC_VERSION}-plugin-dev g++-${GCC_VERSION} gfortran-${GCC_VERSION} libgfortran-${GCC_VERSION}-dev \
-	      autoconf automake build-essential libedit-dev python3-dev cython3 binutils
     - git clone -b gcc5 https://github.com/yohanchatelain/DragonEgg.git
     - cd DragonEgg
     - LLVM_CONFIG=llvm-config-${LLVM_VERSION} GCC=gcc-${GCC_VERSION} GXX=g++-${GCC_VERSION} make
