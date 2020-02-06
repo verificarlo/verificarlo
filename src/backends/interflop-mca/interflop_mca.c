@@ -152,15 +152,20 @@ static double _mca_rand(void) {
   return tinymt64_generate_doubleOO(&random_state);
 }
 
+/* Returns 1^exp */
 static inline double pow2d(int exp) { return ldexp(1.0, exp); }
 
+/* Returns the exponent of q */
 static inline int32_t rexpq(__float128 q) {
   binary128 x = {.f128 = q};
+  /* Substracts the bias */
   return x.ieee.exponent - QUAD_EXP_COMP;
 }
 
+/* Returns the exponent of d */
 static inline int32_t rexpd(double d) {
   binary64 x = {.f64 = d};
+  /* Substracts the bias */
   return x.ieee.exponent - DOUBLE_EXP_COMP;
 }
 
