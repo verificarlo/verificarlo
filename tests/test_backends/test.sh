@@ -18,6 +18,9 @@ Check() {
 	    rm -f out_mpfr out_quad
 	    export VFC_BACKENDS="libinterflop_mca_mpfr.so ${options[$3]}=$PREC --mode $MODE --seed=$SEED"
 	    ./test > out_mpfr
+	    # MPFR returns specific nan (FFC00000) when the result is a NaN
+	    # we must remove the negative sign to not break the diff comparison
+	    sed -i "s\-nan\nan\g" out_mpfr
 
 	    export VFC_BACKENDS="libinterflop_mca.so ${options[$3]}=$PREC --mode $MODE --seed=$SEED"
 	    ./test > out_quad
