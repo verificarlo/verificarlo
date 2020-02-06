@@ -1,45 +1,56 @@
 #
 # Dockerfile for Verificarlo (github.com/verificarlo/verificarlo)
-# This image includes support for Fortran and uses llvm-3.9 and gcc-5.
+# This image includes support for Fortran and uses llvm-3.6.1 and gcc-4.9.
 #
 
 FROM ubuntu:16.04
 MAINTAINER Pablo Oliveira <pablo.oliveira@uvsq.fr>
 
-ENV LLVM_VERSION 3.9
-ENV GCC_VERSION 5
-ENV GCC_PATH /usr/lib/gcc/x86_64-linux-gnu/${GCC_VERSION}
+ARG PYTHON_VERSION=3.5
+ARG LLVM_VERSION=3.6.1
+ARG GCC_VERSION=4.9
+ARG GCC_PATH=/usr/lib/gcc/x86_64-linux-gnu/${GCC_VERSION}
+ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
+ENV PATH /usr/local/bin:$PATH
+ARG PYTHONPATH=/usr/local/lib/python$PYTHON_VERSION/site-packages/:$PYTHONPATH
 
 # Retrieve dependencies
 RUN apt-get -y update && apt-get -y install --no-install-recommends \
-    bash ca-certificates make git libmpfr-dev clang-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev \
+    bash ca-certificates make git libmpfr-dev \
     gcc-${GCC_VERSION} gcc-${GCC_VERSION}-plugin-dev g++-${GCC_VERSION} gfortran-${GCC_VERSION} libgfortran-${GCC_VERSION}-dev \
     autoconf automake libedit-dev libtool libz-dev \
-    python3 python3-numpy python3-matplotlib binutils vim && \
+    python3 python3-numpy python3-matplotlib binutils vim sudo wget xz-utils && \
     rm -rf /var/lib/apt/lists/
 
-ENV LIBRARY_PATH ${GCC_PATH}:$(llvm-config-${LLVM_VERSION} --prefix):$LIBRARY_PATH
+WORKDIR /build/
+
+# Download llvm-3.6.1 since it does not work with the version llvm-3.6.2 provided by apt
+RUN wget http://releases.llvm.org/3.6.1/clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz && \
+    tar xvf clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz && \
+    ln -s clang+llvm-3.6.1-x86_64-linux-gnu llvm-3.6.1
+
+ENV LLVM_INSTALL_PATH /build/llvm-3.6.1
+ENV LIBRARY_PATH ${GCC_PATH}:${LLVM_INSTALL_PATH}:$LIBRARY_PATH
 
 # Download dragonegg from a non official repo since the official version does not
-# work with llvm-3.9 and gcc-5
-RUN git clone -b gcc-5 https://github.com/yohanchatelain/DragonEgg.git
+# work with llvm-3.6.1 and gcc-4.9
+RUN git clone -b gcc-llvm-3.6 --depth=1 https://github.com/yohanchatelain/DragonEgg.git
 WORKDIR DragonEgg
-RUN LLVM_CONFIG=llvm-config-${LLVM_VERSION} GCC=gcc-${GCC_VERSION} GCC=g++-${GCC_VERSION} make
-ENV DRAGONEGG_PATH=$PWD/dragonegg.so
+RUN LLVM_CONFIG=${LLVM_INSTALL_PATH}/bin/llvm-config GCC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} make
+ARG DRAGONEGG_PATH=/build/DragonEgg/dragonegg.so
 
 # Download and configure verificarlo from git master
-RUN \
-  git clone https://github.com/verificarlo/verificarlo.git && \
-  cd verificarlo && \
-  ./autogen.sh && \
-  ./configure --with-llvm=$(llvm-config-${LLVM_VERSION} --prefix) --with-dragonegg=${DRAGONEGG_PATH} CC=${GCC_VERSION} CXX=g++-{GCC_VERSION}
+WORKDIR /build/verificarlo
+RUN git clone --depth=1 https://github.com/verificarlo/verificarlo.git &&  \
+    cd verificarlo && \
+    ./autogen.sh && \
+    ./configure --with-llvm=${LLVM_INSTALL_PATH} --with-dragonegg=${DRAGONEGG_PATH} CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} || cat config.log 
 
 # Build and test verificarlo
-
-ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
-ENV PATH /usr/local/bin:$PATH
-ENV PYTHONPATH /usr/local/lib/python3.4/site-packages/:$PYTHONPATH
-RUN cd verificarlo && make && make install && make installcheck
+RUN cat $HOME/.bashrc && \
+    cd verificarlo && \
+    make && sudo make install && \
+    sudo -E env PYTHONPATH=$PYTHONPATH LD_LIBRARY_PATH=$LD_LIBRARY_PATH make installcheck
 
 # Setup working directory
 VOLUME /workdir

@@ -1,10 +1,11 @@
 dist: xenial
 language: c
+os: linux
 
 env:
   global:
     - LLVM_VERSION=3.9
-    - GCC_VERSION=5
+    - GCC_VERSION=4.9
     - GCC=gcc-${GCC_VERSION}
     - GXX=g++-${GCC_VERSION}
 
@@ -13,46 +14,46 @@ addons:
     update: true
     packages:
       - libmpfr-dev
-      - clang-3.9 llvm-3.9 llvm-3.9-dev
-      - gcc-5 gcc-5-plugin-dev g++-5 gfortran-5 libgfortran-5-dev
+      - gcc-4.9 gcc-4.9-plugin-dev g++-4.9 gfortran-4.9 libgfortran-4.9-dev
       - autoconf automake build-essential libedit-dev binutils
-      - python3-dev cython3
+      - python3-dev cython3 wget xz-utils
 
-matrix:
-  include:
-    env:
-      - LLVM_INSTALL_PATH (llvm-config-${LLVM_VERSION} --prefix)
-      - GCC_INSTALL_PATH $($GCC --print-search-dirs | grep install | cut -d' ' -f2)
-      - GCC_LIB_PATH $($GCC --print-search-dirs | grep libraries | cut -d'=' -f2)
-      - LIBRARY_PATH ${GCC_LIB_PATH}:${LLVM_INSTALL_PATH}:/lib:/usr/lib
-    stages:
-      - before_install
-      - install
-      - before_script:
-      	env:
-	  - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-	  - PYTHONPATH=/usr/local/lib/python3.4/site-packages/:$PYTHONPATH
-      - script
+stages:
+  - before_install
+  - install
+  - before_script
+  - script
       
 before_install:
-  - git clone -b gcc5 https://github.com/yohanchatelain/DragonEgg.git
+  - export GCC_INSTALL_PATH=$($GCC --print-search-dirs | grep install | cut -d' ' -f2)
+  - export GCC_LIB_PATH=$($GCC --print-search-dirs | grep libraries | cut -d'=' -f2)
+  - export LIBRARY_PATH=${GCC_LIB_PATH}:${LLVM_INSTALL_PATH}:/lib:/usr/lib
+  - wget http://releases.llvm.org/3.6.1/clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
+  - tar xvf clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
+  - ln -s clang+llvm-3.6.1-x86_64-linux-gnu llvm-3.6.1
+  - export LLVM_INSTALL_PATH=$PWD/llvm-3.6.1
+  - git clone -b gcc-llvm-3.6 --depth=1 https://github.com/yohanchatelain/DragonEgg.git
   - cd DragonEgg
-  - LLVM_CONFIG=llvm-config-${LLVM_VERSION} GCC=gcc-${GCC_VERSION} GXX=g++-${GCC_VERSION} make
+  - LLVM_CONFIG=${LLVM_INSTALL_PATH}/bin/llvm-config GCC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} make
   - mkdir -p ${GCC_INSTALL_PATH}/plugin/
-  - cp dragonegg.so ${GCC_INSTALL_PATH}/plugin/dragonegg.so
+  - sudo cp dragonegg.so ${GCC_INSTALL_PATH}/plugin/dragonegg.so
 
 install:
+  - cd $TRAVIS_BUILD_DIR
   - ./autogen.sh
-  - ./configure --with-llvm=$LLVM_INSTALL_PATH --with-dragonegg=${GCC_INSTALL_PATH}/plugin/dragonegg.so CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} || cat config.log
+  - ./configure --with-llvm=${LLVM_INSTALL_PATH} --with-dragonegg=${GCC_INSTALL_PATH}/plugin/dragonegg.so CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} || cat config.log
   - make
-  - make install
+  - sudo make install
+  - export PYTHON_VERSION=$(python3 -c "import sys ; print('{major}.{minor}'.format(major=sys.version_info.major,minor=sys.version_info.minor))")
+  - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+  - export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages/:$PYTHONPATH
 
 script:
-  - make installcheck
+  - sudo -E env PYTHONPATH=$PYTHONPATH LD_LIBRARY_PATH=$LD_LIBRARY_PATH make installcheck
 
 after_success:
   - for i in $(find tests/ -maxdepth 1 -type d -name 'test_*' | sort ); do echo "************** TEST $i"; cat $i/test.log; done;
 
 after_failure:
   - grep FAIL tests/testplan.log > failed_tests
-  - while IFS= read -r $line ; do TEST=$(cut -d' ' -f4); echo "************** TEST ${TEST}"; cat ${TEST}/test.log; done < failed_tests
+  - while IFS= read -r line ; do TEST=$(echo $line | cut -d' ' -f4); echo "************** TEST ${TEST}"; cat tests/${TEST}/test.log; done < failed_tests
