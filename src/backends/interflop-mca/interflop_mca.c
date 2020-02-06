@@ -152,8 +152,17 @@ static double _mca_rand(void) {
   return tinymt64_generate_doubleOO(&random_state);
 }
 
-/* Returns 1^exp */
-static inline double pow2d(int exp) { return ldexp(1.0, exp); }
+/* Returns 2^exp */
+/* We can skip special cases since we never met them */
+/* Since we have exponent of float values, the result */
+/* is comprised between: */
+/* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
+/* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
+static inline double pow2d(int exp) {
+  binary64 b64 = { .f64 = 0.0 };
+  b64.ieee.exponent = exp + DOUBLE_EXP_COMP;
+  return b64.f64;
+}
 
 /* Returns the exponent of q */
 static inline int32_t rexpq(__float128 q) {
@@ -178,37 +187,9 @@ __float128 qnoise(int exp) {
 
   binary128 noise;
 
-  /* specials */
+  /* special */
   if (exp == 0) {
     noise.f128 = brand.f64;
-  }
-  /* We exceed the maximal exponent */
-  /* we return an sign(rand) * Infinity */
-  else if (noise_exp > QUAD_EXP_MAX) {
-    noise.ieee128.sign = brand.ieee.sign;
-    noise.ieee128.exponent = QUAD_EXP_MAX;
-    noise.ieee128.mantissa = 0;
-  }
-  /* We are in the subnormal case */
-  else if (noise_exp < -QUAD_EXP_MIN) {
-    /* test if result is below the minimal subnormal quad number */
-    if (noise_exp < -(QUAD_EXP_MIN + QUAD_PMAN_SIZE)) {
-      noise.f128 = 0.0;
-    } else {
-      /* noise will be a subnormal */
-      /* add the sign bit  */
-      noise.ieee128.sign = brand.ieee.sign;
-      /* set the exponent to 0 (subnormal unbiased exponent) */
-      noise.ieee128.exponent = 0;
-      /* set the noise mantissa to the rand mantissa */
-      noise.ieee128.mantissa = brand.ieee.mantissa;
-      /* we set a 52bits to a 112bits so we need to */
-      /* scale the mantissa at the MSD */
-      noise.ieee128.mantissa <<= QUAD_PMAN_SIZE - DOUBLE_PMAN_SIZE;
-      /* we are in the subnormal case, so we need to shift the mantissa to the
-       * right place */
-      noise.ieee128.mantissa >>= -noise_exp - QUAD_EXP_MIN;
-    }
   }
   /* normal case */
   else {
@@ -372,7 +353,7 @@ static inline float _mca_binary32_binary_op(float a, float b, const int dop) {
     _mca_inexactd(&res);
   }
 
-  return ((float)res);
+  return NEAREST_FLOAT(res);
 }
 
 static inline double _mca_binary64_binary_op(double a, double b,
