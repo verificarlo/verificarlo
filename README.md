@@ -92,6 +92,7 @@ For getting dragonegg.so, run the following commands:
 Then run the configuration with the appropriate paths:
 
 ```bash
+   $ cd verificarlo/
    $ ./autogen.sh
    $ ./configure --with-llvm=${LLVM_INSTALL_PATH} \
                  --with-dragonegg=${DRAGONEGG_PATH} \
