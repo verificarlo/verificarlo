@@ -76,7 +76,7 @@ void double_to_binary(double d, char *s_val) {
   }
 }
 
-void inline debug_print_flt(void *context, int typeop, char *op, double a,
+inline void debug_print_flt(void *context, int typeop, char *op, double a,
                             double b, double c) {
   if (((t_context *)context)->debug) {
     if (typeop == 0)

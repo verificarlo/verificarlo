@@ -8,11 +8,18 @@
 //     Universite de Versailles St-Quentin-en-Yvelines
 //     CMLA, Ecole Normale Superieure de Cachan
 //
-// Copyright (C) 2018-2019
+// Copyright (C) 2018-2020
 //     Verificarlo contributors
 //     Universite de Versailles St-Quentin-en-Yvelines
 //
 // Changelog:
+//
+// 2020-02-07 create separated virtual precisions for binary32
+// and binary64. Uses a macro function for MCA_INEXACT for
+// factorization purposes. Uses _Generic feature of c++11 standard
+// for this purpose that implies a compiler that supports c++11 standard.
+// Change return type from int to void for some functions and uses instead
+// errx and warnx for handling errors.
 //
 // 2015-05-20 replace random number generator with TinyMT64. This
 // provides a reentrant, independent generator of better quality than
@@ -65,7 +72,7 @@ typedef struct {
 } t_context;
 
 /* define the available MCA modes of operation */
-typedef enum { ieee, mca, pb, rr } mcamode;
+typedef enum { mcamode_ieee, mcamode_mca, mcamode_pb, mcamode_rr } mcamode;
 
 static const char *MCAMODE[] = {"ieee", "mca", "pb", "rr"};
 
@@ -76,7 +83,7 @@ static const char *MCAMODE[] = {"ieee", "mca", "pb", "rr"};
 #define MCA_PRECISION_BINARY64_MAX MPFR_PREC_MAX
 #define MCA_PRECISION_BINARY32_DEFAULT 24
 #define MCA_PRECISION_BINARY64_DEFAULT 53
-#define MCAMODE_DEFAULT mca
+#define MCAMODE_DEFAULT mcamode_mca
 
 static mcamode MCALIB_OP_TYPE = MCAMODE_DEFAULT;
 static int MCALIB_BINARY32_T = MCA_PRECISION_BINARY32_DEFAULT;
@@ -113,15 +120,14 @@ static double _mca_binary64_unary_op(double a, mpfr_unr mpfr_op);
  * MCA mode of operation.
  ***************************************************************/
 
-static int _set_mca_mode(mcamode mode) {
-  if (mode < ieee || mode > rr)
-    return -1;
-
+static void _set_mca_mode(mcamode mode) {
+  if (mode < mcamode_ieee || mode > mcamode_rr)
+    errx(1, "interflop_mca_mpfr: --mode invalid value provided, must be one "
+            "of: {ieee, mca, pb, rr}.");
   MCALIB_OP_TYPE = mode;
-  return 0;
 }
 
-static int _set_mca_precision_binary32(int precision) {
+static void _set_mca_precision_binary32(int precision) {
   if (precision < MCA_PRECISION_BINARY32_MIN) {
     errx(1, "interflop_mca_mpfr: invalid precision for binary32 type. Must be "
             "greater than 0");
@@ -131,10 +137,9 @@ static int _set_mca_precision_binary32(int precision) {
   } else {
     MCALIB_BINARY32_T = precision;
   }
-  return 0;
 }
 
-static int _set_mca_precision_binary64(int precision) {
+static void _set_mca_precision_binary64(int precision) {
   if (precision < MCA_PRECISION_BINARY64_MIN) {
     errx(1, "interflop_mca: invalid precision for binary64 type. Must be "
             "greater than 0");
@@ -144,7 +149,6 @@ static int _set_mca_precision_binary64(int precision) {
   } else {
     MCALIB_BINARY64_T = precision;
   }
-  return 0;
 }
 
 /******************** MCA RANDOM FUNCTIONS ********************
@@ -165,14 +169,14 @@ static double _mca_rand(void) {
   do {                                                                         \
     /* if we are in IEEE mode, we return a noise equal to 0 */                 \
     /* if a is NaN, Inf or 0, we don't disturb it */                           \
-    if ((MCALIB_OP_TYPE == ieee) || (mpfr_regular_p(mpfr_##X) == 0)) {         \
+    if ((MCALIB_OP_TYPE == mcamode_ieee) || (mpfr_regular_p(mpfr_##X) == 0)) { \
       break;                                                                   \
     }                                                                          \
     /* In RR, if the result is exact */                                        \
     /* in the current virtual precision,*/                                     \
     /* do not add  any noise  */                                               \
     mpfr_prec_t min_prec = mpfr_min_prec(mpfr_##X);                            \
-    if (MCALIB_OP_TYPE == rr && min_prec <= GET_MCALIB_T(X)) {                 \
+    if (MCALIB_OP_TYPE == mcamode_rr && min_prec <= GET_MCALIB_T(X)) {         \
       break;                                                                   \
     }                                                                          \
     /* get_exp reproduce frexp behavior,  */                                   \
@@ -221,12 +225,12 @@ static void _set_mca_seed(bool choose_seed, uint64_t seed) {
     MPFR_DECL_INIT(mpfr_##Y, prec);                                            \
     MPFR_SET_FLT(X, rnd);                                                      \
     MPFR_SET_FLT(Y, rnd);                                                      \
-    if (MCALIB_OP_TYPE != rr) {                                                \
+    if (MCALIB_OP_TYPE != mcamode_rr) {                                        \
       _MCA_INEXACT(X, rnd);                                                    \
       _MCA_INEXACT(Y, rnd);                                                    \
     }                                                                          \
     mpfr_op(mpfr_##X, mpfr_##X, mpfr_##Y, rnd);                                \
-    if (MCALIB_OP_TYPE != pb) {                                                \
+    if (MCALIB_OP_TYPE != mcamode_pb) {                                        \
       _MCA_INEXACT(X, rnd);                                                    \
     }                                                                          \
     typeof(X) ret = MPFR_GET_FLT(X, rnd);                                      \
@@ -239,11 +243,11 @@ static void _set_mca_seed(bool choose_seed, uint64_t seed) {
     mpfr_rnd_t rnd = MPFR_RNDN;                                                \
     MPFR_DECL_INIT(mpfr_##X, prec);                                            \
     MPFR_SET_FLT(X, rnd);                                                      \
-    if (MCALIB_OP_TYPE != rr) {                                                \
+    if (MCALIB_OP_TYPE != mcamode_rr) {                                        \
       _MCA_INEXACT(X, rnd);                                                    \
     }                                                                          \
     mpfr_op(mpfr_a, mpfr_a, rnd);                                              \
-    if (MCALIB_OP_TYPE != pb) {                                                \
+    if (MCALIB_OP_TYPE != mcamode_pb) {                                        \
       _MCA_INEXACT(X, rnd);                                                    \
     }                                                                          \
     typeof(X) ret = MPFR_GET_FLT(X, rnd);                                      \
@@ -349,14 +353,14 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case KEY_MODE:
     /* mode */
-    if (strcasecmp(MCAMODE[ieee], arg) == 0) {
-      _set_mca_mode(ieee);
-    } else if (strcasecmp(MCAMODE[mca], arg) == 0) {
-      _set_mca_mode(mca);
-    } else if (strcasecmp(MCAMODE[pb], arg) == 0) {
-      _set_mca_mode(pb);
-    } else if (strcasecmp(MCAMODE[rr], arg) == 0) {
-      _set_mca_mode(rr);
+    if (strcasecmp(MCAMODE[mcamode_ieee], arg) == 0) {
+      _set_mca_mode(mcamode_ieee);
+    } else if (strcasecmp(MCAMODE[mcamode_mca], arg) == 0) {
+      _set_mca_mode(mcamode_mca);
+    } else if (strcasecmp(MCAMODE[mcamode_pb], arg) == 0) {
+      _set_mca_mode(mcamode_pb);
+    } else if (strcasecmp(MCAMODE[mcamode_rr], arg) == 0) {
+      _set_mca_mode(mcamode_rr);
     } else {
       errx(1, "interflop_mca_mpfr: --mode invalid value provided, must be one "
               "of: {ieee, mca, pb, rr}.");
