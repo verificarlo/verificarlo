@@ -53,7 +53,7 @@ RUN git clone --depth=1 https://github.com/verificarlo/verificarlo.git &&  \
 RUN cat $HOME/.bashrc && \
     cd verificarlo && \
     make && sudo make install && \
-    sudo -E env PYTHONPATH=$PYTHONPATH LD_LIBRARY_PATH=$LD_LIBRARY_PATH make installcheck
+    make installcheck
 
 
 ARG PYTHON_VERSION=3.5
@@ -103,7 +103,7 @@ RUN git clone --depth=1 https://github.com/verificarlo/verificarlo.git &&  \
 RUN cat $HOME/.bashrc && \
     cd verificarlo && \
     make && sudo make install && \
-    sudo -E env PYTHONPATH=$PYTHONPATH LD_LIBRARY_PATH=$LD_LIBRARY_PATH make installcheck
+    make installcheck
 
 # Setup working directory
 VOLUME /workdir

@@ -49,7 +49,7 @@ install:
   - export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages/:$PYTHONPATH
 
 script:
-  - sudo -E env PYTHONPATH=$PYTHONPATH LD_LIBRARY_PATH=$LD_LIBRARY_PATH make installcheck
+  - make installcheck
 
 after_success:
   - for i in $(find tests/ -maxdepth 1 -type d -name 'test_*' | sort ); do echo "************** TEST $i"; cat $i/test.log; done;
