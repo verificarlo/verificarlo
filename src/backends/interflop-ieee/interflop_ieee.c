@@ -1,133 +1,140 @@
 #include <argp.h>
 #include <ieee754.h>
 #include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "../../common/float_const.h"
 #include "../../common/interflop.h"
+#include "printf_specifier.h"
 
 typedef struct {
-  int debug;
-  int debug_binary;
+  bool debug;
+  bool debug_binary;
+  bool no_print_debug_mode;
+  bool print_new_line;
 } t_context;
+
+typedef enum {
+  ARITHMETIC = 0,
+  COMPARISON = 1,
+} operation_type;
 
 #define STRING_MAX 256
 
-void double_to_binary(double d, char *s_val) {
-  union ieee754_double ud;
-  unsigned char sign_field;
-  unsigned short exponent_field;
-  short exponent;
-  unsigned long long fraction_field, significand;
-  int i, str_i, start = 0, end = 52;
-  char s_exp[80];
+#define FMT(X) _Generic(X, float : "b", double : "lb")
 
-  ud.d = d;
-  sign_field = ud.ieee.negative;
-  exponent_field = ud.ieee.exponent;
-  fraction_field = ud.ieee.mantissa0;
-  fraction_field = fraction_field << 32;
-  fraction_field |= ud.ieee.mantissa1;
-  str_i = 0;
+/* inserts the string <str_to_add> at position i */
+/* increments i by the size of str_to_add */
+void insert_string(char *dst, char *str_to_add, int *i) {
+  int j = 0;
+  do {
+    dst[*i] = str_to_add[j];
+  } while ((*i)++, j++, str_to_add[j] != '\0');
+}
 
-  // Print a minus sign, if necessary
-  if (sign_field == 1)
-    s_val[str_i++] = '-';
-
-  if (exponent_field == 0 && fraction_field == 0) {
-    s_val[str_i++] = '0'; // Number is zero
-    s_val[str_i++] = 0;   // NULL Terminator
-  } else {
-    if (exponent_field == 0 && fraction_field != 0) { // Subnormal number
-      significand = fraction_field;                   // No implicit 1 bit
-      exponent = -(IEEE754_DOUBLE_BIAS - 1); // Exponents decrease from here
-      while (((significand >> (52 - start)) & 1) == 0) {
-        exponent--;
-        start++;
-      }
-    } else { // Normalized number (ignoring INFs, NANs)
-      significand = fraction_field | (1ULL << 52);     // Implicit 1 bit
-      exponent = exponent_field - IEEE754_DOUBLE_BIAS; // Subtract bias
-    }
-
-    // Suppress trailing 0s
-    while (((significand >> (52 - end)) & 1) == 0)
-      end--;
-
-    // Print the significant bits
-    for (i = start; i <= end; i++) {
-      if (((significand >> (52 - i)) & 1) == 1)
-        s_val[str_i++] = '1';
-      else
-        s_val[str_i++] = '0';
-      if (i == start)
-        s_val[str_i++] = '.';
-    }
-
-    if (start == end) // d is power of 2
-      s_val[str_i++] = '0';
-
-    s_val[str_i++] = 0; // NULL Terminator
-
-    // Exponent
-    sprintf(s_exp, " x 2^%d", exponent);
-    strcat(s_val, s_exp);
+/* Auxiliary function to debug print that prints  */
+/* a new line if requested by option --print-new-line  */
+void debug_print_aux(void *context, char *fmt, va_list argp) {
+  vfprintf(stderr, fmt, argp);
+  if (((t_context *)context)->print_new_line) {
+    fprintf(stderr, "\n");
   }
 }
 
-inline void debug_print_flt(void *context, int typeop, char *op, double a,
-                            double b, double c) {
+/* Debug print which replace %g by specific binary format %b */
+/* if option --debug-binary is set */
+void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
   if (((t_context *)context)->debug) {
-    if (typeop == 0)
-      fprintf(stderr, "interflop_ieee %g %s %g -> %g\n", a, op, b, c);
-    else
-      fprintf(stderr, "interflop_ieee %g %s %g -> %s\n", a, op, b,
-              c ? "true" : "false");
+    debug_print_aux(context, fmt, ap);
+  } else {
+    char new_fmt[STRING_MAX] = "";
+    int i = 0, j = 0;
+    do {
+      switch (fmt[i]) {
+      case 'g':
+        insert_string(new_fmt, fmt_flt, &j);
+        break;
+      default:
+        new_fmt[j] = fmt[i];
+        j++;
+        break;
+      }
+    } while (fmt[i++] != '\0');
+    new_fmt[j] = '\0';
+    debug_print_aux(context, new_fmt, ap);
   }
-  if (((t_context *)context)->debug_binary) {
-    char f_str[STRING_MAX];
-    if (typeop == 0) {
-      fprintf(stderr, "interflop_ieee_bin\n");
-      double_to_binary(a, f_str);
-      fprintf(stderr, "%s %s \n", f_str, op);
-      double_to_binary(b, f_str);
-      fprintf(stderr, "%s -> \n", f_str);
-      double_to_binary(c, f_str);
-      fprintf(stderr, "%s \n\n", f_str);
-    } else {
-      fprintf(stderr, "interflop_ieee_bin\n");
-      double_to_binary(a, f_str);
-      fprintf(stderr, "%s [%s] \n", f_str, op);
-      double_to_binary(b, f_str);
-      fprintf(stderr, "%s -> %s \n\n", f_str, c ? "true" : "false");
-    }
+  va_end(ap);
+}
+
+#define DEBUG_HEADER "interflop_ieee "
+#define DEBUG_BINARY_HEADER "interflop_ieee_bin "
+
+/* This macro print the debug information for a, b and c */
+/* the debug_print function handles automatically the format (decimal or binary) */
+/* depending on the context */
+#define DEBUG_PRINT(context, typeop, op, a, b, c)                              \
+  {                                                                            \
+    bool debug = ((t_context *)context)->debug ? true : false;                 \
+    bool debug_binary = ((t_context *)context)->debug_binary ? true : false;   \
+    if (debug || debug_binary) {                                               \
+      bool print_header =                                                      \
+          (((t_context *)context)->no_print_debug_mode) ? false : true;        \
+      char *header = (debug) ? DEBUG_HEADER : DEBUG_BINARY_HEADER;             \
+      char *float_fmt = FMT(a);                                                \
+      if (print_header)                                                        \
+        debug_print(context, float_fmt, header);                               \
+      if (typeop == ARITHMETIC) {                                              \
+        debug_print(context, float_fmt, "%g %s ", a, a, op);                   \
+        debug_print(context, float_fmt, "%g -> ", b);                          \
+        debug_print(context, float_fmt, "%g\n", c);                            \
+      } else {                                                                 \
+        debug_print(context, float_fmt, "%g [%s] ", a, op);                    \
+        debug_print(context, float_fmt, "%g -> %s\n", b,                       \
+                    c ? "true" : "false");                                     \
+      }                                                                        \
+    }                                                                          \
   }
+
+void inline debug_print_float(void *context, operation_type typeop,
+                              const char *op, float a, float b, float c) {
+  DEBUG_PRINT(context, typeop, op, a, b, c);
+}
+
+void inline debug_print_double(void *context, operation_type typeop,
+                               const char *op, double a, double b, double c) {
+  DEBUG_PRINT(context, typeop, op, a, b, c);
 }
 
 static void _interflop_add_float(float a, float b, float *c, void *context) {
   *c = a + b;
-  debug_print_flt(context, 0, "+", (double)a, (double)b, (double)*c);
+  debug_print_float(context, ARITHMETIC, "+", a, b, *c);
 }
 
 static void _interflop_sub_float(float a, float b, float *c, void *context) {
   *c = a - b;
-  debug_print_flt(context, 0, "-", (double)a, (double)b, (double)*c);
+  debug_print_float(context, ARITHMETIC, "-", a, b, *c);
 }
 
 static void _interflop_mul_float(float a, float b, float *c, void *context) {
   *c = a * b;
-  debug_print_flt(context, 0, "*", (double)a, (double)b, (double)*c);
+  debug_print_float(context, ARITHMETIC, "*", a, b, *c);
 }
 
 static void _interflop_div_float(float a, float b, float *c, void *context) {
   *c = a / b;
-  debug_print_flt(context, 0, "/", (double)a, (double)b, (double)*c);
+  debug_print_float(context, ARITHMETIC, "/", a, b, *c);
 }
 
 static void _interflop_cmp_float(enum FCMP_PREDICATE p, float a, float b,
                                  int *c, void *context) {
-  char *str;
+  char *str = "";
 
   switch (p) {
   case FCMP_FALSE:
@@ -195,36 +202,36 @@ static void _interflop_cmp_float(enum FCMP_PREDICATE p, float a, float b,
     str = "FCMP_TRUE";
     break;
   }
-  debug_print_flt(context, 1, str, (double)a, (double)b, (double)*c);
+  debug_print_float(context, COMPARISON, str, a, b, *c);
 }
 
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
   *c = a + b;
-  debug_print_flt(context, 0, "+", a, b, *c);
+  debug_print_double(context, ARITHMETIC, "+", a, b, *c);
 }
 
 static void _interflop_sub_double(double a, double b, double *c,
                                   void *context) {
   *c = a - b;
-  debug_print_flt(context, 0, "-", a, b, *c);
+  debug_print_double(context, ARITHMETIC, "-", a, b, *c);
 }
 
 static void _interflop_mul_double(double a, double b, double *c,
                                   void *context) {
   *c = a * b;
-  debug_print_flt(context, 0, "*", a, b, *c);
+  debug_print_double(context, ARITHMETIC, "*", a, b, *c);
 }
 
 static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
   *c = a / b;
-  debug_print_flt(context, 0, "/", a, b, *c);
+  debug_print_double(context, ARITHMETIC, "/", a, b, *c);
 }
 
 static void _interflop_cmp_double(enum FCMP_PREDICATE p, double a, double b,
                                   int *c, void *context) {
-  char *str;
+  char *str = "";
 
   switch (p) {
   case FCMP_FALSE:
@@ -292,28 +299,45 @@ static void _interflop_cmp_double(enum FCMP_PREDICATE p, double a, double b,
     str = "FCMP_TRUE";
     break;
   }
-  debug_print_flt(context, 1, str, a, b, *c);
+  debug_print_double(context, COMPARISON, str, a, b, *c);
 }
 
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
     {"debug", 'd', 0, 0, "enable debug output"},
-    {"debug_binary", 'b', 0, 0, "enable binary debug output"},
+    {"debug-binary", 'b', 0, 0, "enable binary debug output"},
+    {"no-print-debug-mode", 's', 0, 0,
+     "do not print debug mode before debug outputting"},
+    {"print-new-line", 'n', 0, 0, "print new lines after debug output"},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   t_context *ctx = (t_context *)state->input;
   switch (key) {
   case 'd':
-    ctx->debug = 1;
+    ctx->debug = true;
     break;
   case 'b':
-    ctx->debug_binary = 1;
+    ctx->debug_binary = true;
+    break;
+  case 's':
+    ctx->no_print_debug_mode = true;
+    break;
+  case 'n':
+    ctx->print_new_line = true;
     break;
   default:
     return ARGP_ERR_UNKNOWN;
   }
+
   return 0;
+}
+
+void init_context(t_context *context) {
+  context->debug = false;
+  context->debug_binary = false;
+  context->no_print_debug_mode = false;
+  context->print_new_line = false;
 }
 
 static struct argp argp = {options, parse_opt, "", ""};
@@ -321,9 +345,13 @@ static struct argp argp = {options, parse_opt, "", ""};
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
   t_context *ctx = calloc(1, sizeof(t_context));
+  init_context(ctx);
   /* parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
   *context = ctx;
+
+  /* register %b format */
+  register_printf_bit();
 
   struct interflop_backend_interface_t interflop_backend_ieee = {
       _interflop_add_float,  _interflop_sub_float,  _interflop_mul_float,

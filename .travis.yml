@@ -16,7 +16,7 @@ addons:
       - libmpfr-dev
       - gcc-4.9 gcc-4.9-plugin-dev g++-4.9 gfortran-4.9 libgfortran-4.9-dev
       - autoconf automake build-essential libedit-dev binutils
-      - python3-dev cython3 wget xz-utils
+      - python3-dev python3-numpy cython3 wget xz-utils
 
 stages:
   - before_install
