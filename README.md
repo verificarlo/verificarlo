@@ -62,11 +62,7 @@ Then run the following command inside verificarlo directory:
 
 The use of c++11 standard specific features force us to use gcc from 4.9.
 Unfornately, official dragonegg repository does not provide `dragonegg.so`
-for this version (4.9) and above. Since we plan to move to `flang` in the next release,
-we set up a custom installation to temporarily pass the Travis CI tests.
-If you really want to support Fortran, run the following commands:
-
-For gcc-4.9 dependencies, run the follwing commands:
+for this version (4.9) and above. We plan to move to `flang` in the next release. In the meantime, if you need Fortran support you can either use the provided [docker image](https://hub.docker.com/r/verificarlo/verificarlo/) or follow the instructions below,
 
 ```bash
    $ sudo apt install gcc-4.9 gcc-4.9-plugin-dev g++-4.9 gfortran-4.9 libgfortran-4.9-dev
