@@ -12,7 +12,7 @@ A tool for automatic Montecarlo Arithmetic analysis.
 
 A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/. 
 This image uses the latest git master version of Verificarlo and includes
-support for Fortran. It uses llvm-3.5 and gcc-4.9.
+support for Fortran. It uses llvm-3.6.1 and gcc-4.9.
 
 Example of usage:
 
@@ -43,23 +43,13 @@ $ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt from 3.3 up to 4.0.1 (the last version with Fortran
-    support is 3.6), http://clang.llvm.org/
-  * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
+  * LLVM, clang and opt from 3.3 up to 4.0.1, http://clang.llvm.org/
+  * gcc from 4.9
+  * For Fortran support see section Fortran support
   * python3 and NumPy
   * autotools (automake, autoconf)
 
 Then run the following command inside verificarlo directory:
-
-```bash
-   $ ./autogen.sh
-   $ ./configure
-   $ make
-   $ sudo make install
-```
-
-If you do not care about Fortran support, you can avoid installing gfortran and
-dragonegg, by passing the option `--without-dragonegg` to `configure`:
 
 ```bash
    $ ./autogen.sh
@@ -68,14 +58,54 @@ dragonegg, by passing the option `--without-dragonegg` to `configure`:
    $ sudo make install
 ```
 
-If needed LLVM path, dragonegg path, and gcc path can be configured with the
-following options:
+### Fortran support
+
+The use of c++11 standard specific features force us to use gcc from 4.9.
+Unfornately, official dragonegg repository does not provide `dragonegg.so`
+for this version (4.9) and above. Since we plan to move to `flang` in the next release,
+we set up a custom installation to temporarily pass the Travis CI tests.
+If you really want to support Fortran, run the following commands:
+
+For gcc-4.9 dependencies, run the follwing commands:
 
 ```bash
-   $ ./configure --with-llvm=<path to llvm install directory> \
-                 --with-dragonegg=<path to dragonegg.so> \
-                 CC=<gcc binary compatible with installed dragonegg>
+   $ sudo apt install gcc-4.9 gcc-4.9-plugin-dev g++-4.9 gfortran-4.9 libgfortran-4.9-dev
 ```
+
+For getting llvm-3.6.1, run the following commands:
+
+```bash
+   $ wget http://releases.llvm.org/3.6.1/clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
+   $ tar xvf clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz llvm-3.6.1
+   $ export LLVM_INSTALL_PATH=$PWD/llvm-3.6.1
+```
+
+For getting dragonegg.so, run the following commands:
+
+```bash
+   $ git clone -b gcc-llvm-3.6 --depth=1 https://github.com/yohanchatelain/DragonEgg.git
+   $ cd DragonEgg
+   $ LLVM_CONFIG=${LLVM_INSTALL_PATH}/bin/llvm-config GCC=gcc-4.9 CXX=g++-4.9 make
+   $ export DRAGONEGG_PATH=$PWD/dragonegg.so
+```   
+
+Then run the configuration with the appropriate paths:
+
+```bash
+   $ ./autogen.sh
+   $ ./configure --with-llvm=${LLVM_INSTALL_PATH} \
+                 --with-dragonegg=${DRAGONEGG_PATH} \
+                 CC=gcc-4.9 CXX=g++4.9
+```
+
+Then you can follow the normal installation process
+
+```bash
+   $ make
+   $ sudo make install
+```   
+
+### Checking installation
 
 Once installation is over, we recommend that you run the test suite to ensure
 verificarlo works as expected on your system:
@@ -83,6 +113,8 @@ verificarlo works as expected on your system:
 ```bash
    $ make installcheck
 ```
+
+### Example on x86_64 Ubuntu 14.04 release
 
 If you disable dragonegg support during configure, fortran_test will be disabled and considered as passing the test.
 
@@ -100,6 +132,8 @@ install procedure:
    $ make 
    $ sudo make install
 ```
+
+### Delta debug
 
 In order to use the delta debug features, you need to export the path
 of the corresponding python packages. For example, for a global
