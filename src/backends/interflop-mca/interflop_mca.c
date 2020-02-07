@@ -5,7 +5,7 @@
  *  Copyright (c) 2015                                                       *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *     CMLA, Ecole Normale Superieure de Cachan                              *
- *  Copyright (c) 2018                                                       *
+ *  Copyright (c) 2018-2020                                                  *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *                                                                           *
  *  Verificarlo is free software: you can redistribute it and/or modify      *
@@ -40,6 +40,12 @@
 // 2017-04-25 Rewrite debug and validate the noise addition operation
 //
 // 2019-08-07 Fix memory leak and convert to interflop
+//
+// 2020-02-07 create separated virtual precisions for binary32
+// and binary64. Uses the binary128 structur for easily manipulating bits
+// through bitfields. Removes useless specials cases in qnoise and pow2d.
+// Change return type from int to void for some functions and uses instead
+// errx and warnx for handling errors.
 
 #include <argp.h>
 #include <err.h>
@@ -105,15 +111,15 @@ static double _mca_dbin(double a, double b, int qop);
  * MCA mode of operation.
  ***************************************************************/
 
-static int _set_mca_mode(int mode) {
+static void _set_mca_mode(int mode) {
   if (mode < mcamode_ieee || mode > mcamode_rr)
-    return -1;
+    errx(1, "interflop_mca: --mode invalid value provided, must be one of: "
+            "{ieee, mca, pb, rr}.");
 
   MCALIB_OP_TYPE = mode;
-  return 0;
 }
 
-static int _set_mca_precision_binary32(int precision) {
+static void _set_mca_precision_binary32(int precision) {
   if (precision < MCA_PRECISION_BINARY32_MIN) {
     errx(1, "interflop_mca: invalid precision for binary32 type. Must be "
             "greater than 0");
@@ -123,10 +129,9 @@ static int _set_mca_precision_binary32(int precision) {
   } else {
     MCALIB_BINARY32_T = precision;
   }
-  return 0;
 }
 
-static int _set_mca_precision_binary64(int precision) {
+static void _set_mca_precision_binary64(int precision) {
   if (precision < MCA_PRECISION_BINARY64_MIN) {
     errx(1, "interflop_mca: invalid precision for binary64 type. Must be "
             "greater than 0");
@@ -136,7 +141,6 @@ static int _set_mca_precision_binary64(int precision) {
   } else {
     MCALIB_BINARY64_T = precision;
   }
-  return 0;
 }
 
 /******************** MCA RANDOM FUNCTIONS ********************
@@ -159,7 +163,7 @@ static double _mca_rand(void) {
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline double pow2d(int exp) {
-  binary64 b64 = { .f64 = 0.0 };
+  binary64 b64 = {.f64 = 0.0};
   b64.ieee.exponent = exp + DOUBLE_EXP_COMP;
   return b64.f64;
 }
@@ -179,6 +183,11 @@ static inline int32_t rexpd(double d) {
 }
 
 /* noise = rand * 2^(exp) */
+/* We can skip special cases since we never met them */
+/* Since we have exponent of double values, the result */
+/* is comprised between: */
+/* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
+/* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
 __float128 qnoise(int exp) {
   /* random number in (-0.5, 0.5) */
   const binary64 brand = {.f64 = _mca_rand() - 0.5};
@@ -241,21 +250,21 @@ static bool _is_representabled(double *da) {
   return ((p_mantissa << (MCALIB_BINARY32_T + DOUBLE_EXP_SIZE)) == 0);
 }
 
-static int _mca_inexactq(__float128 *qa) {
+static void _mca_inexactq(__float128 *qa) {
 
   if (MCALIB_OP_TYPE == mcamode_ieee) {
-    return 0;
+    return;
   }
 
   /* Checks that we are not in a special cases */
   if (fpclassifyq(*qa) != FP_NORMAL && fpclassifyq(*qa) != FP_SUBNORMAL) {
-    return 0;
+    return;
   }
 
   /* In RR if the number is representable in current virtual precision,
    * do not add any noise */
   if (MCALIB_OP_TYPE == mcamode_rr && _is_representableq(qa)) {
-    return 0;
+    return;
   }
 
   int32_t e_a = 0;
@@ -263,33 +272,30 @@ static int _mca_inexactq(__float128 *qa) {
   int32_t e_n = e_a - (MCALIB_BINARY64_T - 1);
   __float128 noise = qnoise(e_n);
   *qa = *qa + noise;
-  return 0;
 }
 
-static int _mca_inexactd(double *da) {
+static void _mca_inexactd(double *da) {
 
   if (MCALIB_OP_TYPE == mcamode_ieee) {
-    return 0;
+    return;
   }
 
   /* Checks that we are not in a special cases */
   if (fpclassify(*da) != FP_NORMAL && fpclassify(*da) != FP_SUBNORMAL) {
-    return 0;
+    return;
   }
 
   /* In RR if the number is representable in current virtual precision,
    * do not add any noise */
   if (MCALIB_OP_TYPE == mcamode_rr && _is_representabled(da)) {
-    return 0;
+    return;
   }
 
   int32_t e_a = 0;
-  binary64 ba = {.f64 = *da};
   e_a = rexpd(*da);
   int32_t e_n = e_a - (MCALIB_BINARY32_T - 1);
   double d_rand = (_mca_rand() - 0.5);
   *da = *da + pow2d(e_n) * d_rand;
-  return 0;
 }
 
 static void _set_mca_seed(int choose_seed, uint64_t seed) {
