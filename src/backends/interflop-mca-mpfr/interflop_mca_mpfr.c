@@ -315,11 +315,11 @@ static void _interflop_div_double(double a, double b, double *c,
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
     {"precision-binary32", KEY_PREC_B32, "PRECISION", 0,
-     "select precision for binary32 (PRECISION >= 0)"},
+     "select precision for binary32 (PRECISION > 0)"},
     {"precision-binary64", KEY_PREC_B64, "PRECISION", 0,
-     "select precision for binary64 (PRECISION >= 0)"},
-    {"mode", 'm', "MODE", 0, "select MCA mode among {ieee, mca, pb, rr}"},
-    {"seed", 's', "SEED", 0, "fix the random generator seed"},
+     "select precision for binary64 (PRECISION > 0)"},
+    {"mode", KEY_MODE, "MODE", 0, "select MCA mode among {ieee, mca, pb, rr}"},
+    {"seed", KEY_SEED, "SEED", 0, "fix the random generator seed"},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {

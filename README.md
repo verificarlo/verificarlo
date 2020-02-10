@@ -343,6 +343,64 @@ operations. It is heavily based on mcalib MPFR backend.
 
 MCA-MPFR backend accepts the same options than the MCA backend.
 
+### Bitmask Backend (libinterflop_bitmask.so)
+
+The Bitmask backend implements a fast first order model of noise. It
+relies on bitmask operations to achieve very low overhead
+(~$\times$4). Contrary to MCA backends, introduced noise is biased,
+which means that the expected value of the noise is not equal to
+0. For more details, you can refer to the section 2.3.2 of
+https://tel.archives-ouvertes.fr/tel-02473301/document.
+
+```
+VFC_BACKENDS="libinterflop_bitmask.so --help" ./test
+test: verificarlo loaded backend libinterflop_bitmask.so
+Usage: libinterflop_bitmask.so [OPTION...] 
+
+  -m, --mode=MODE            select BITMASK mode among {ieee, full, ib, ob}
+  -o, --operator=OPERATOR    select BITMASK operator among {zero, one, rand}
+      --precision-binary32=PRECISION
+                             select precision for binary32 (PRECISION > 0)
+      --precision-binary64=PRECISION
+                             select precision for binary64 (PRECISION > 0)
+  -s, --seed=SEED            fix the random generator seed
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+```
+
+Three options control the behavior of the Bitmask backend.
+
+The option `--mode=MODE` controls the arithmetic error mode. It
+accepts the following case insensitive values:
+
+* `ieee`: the program uses the standard IEEE arithmetic, no errors are introduced
+* `ib`: InBound precision errors only
+* `ob`: OutBound precision errors only (default mode)
+* `full`: InBound and OutBound modes combine
+
+The option `--operator=OPERATOR` controls the bitmask operator to
+apply. It accepts the following case insensitive values:
+
+* `zero`: sets the last `t` bits of the mantissa to 0
+* `one`: sets the last `t` bits of the mantissa to 1
+* `rand`: applies a XOR of random bits to the last `t` bits of the mantissa (default mode)
+
+Modes `zero` and `one` are deterministic and require only one
+execution.  The `rand` mode is random and must be used like `mca`
+backends.
+
+The option `--precision-binary64=PRECISION` controls the virtual
+precision used for the floating point operations in double precision
+(respectively for single precision with --precision-binary32) It
+accepts an integer value that represents the virtual precision at
+which MCA operations are performed. Its default value is 53 for
+binary64 and 24 for binary32. For the Bitmask backend, the virtual
+precision corresponds to the number of preserved bits in the mantissa.
+
+The option `--seed` fixes the random generator seed. It should not
+generally be used except if one to reproduce a particular Bitmask
+trace.
+
 ## Verificarlo inclusion / exclusion options
 
 If you only wish to instrument a specific function in your program, use the

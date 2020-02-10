@@ -1,8 +1,8 @@
 #ifndef __FLOAT_STRUCT_H_
 #define __FLOAT_STRUCT_H_
 
+#include <stdlib.h>
 #include <stdint.h>
-
 #include "float_const.h"
 
 /* import from <quadmath-imp.h> */
@@ -13,6 +13,7 @@
 #endif
 
 /* Main union type we use to manipulate the floating-point type.  */
+
 typedef union {
   __float128 f128;
   __uint128_t u128;
@@ -23,9 +24,9 @@ typedef union {
 
   struct
 #ifdef __MINGW32__
-      /* On mingw targets the ms-bitfields option is active by default.
-         Therefore enforce gnu-bitfield style.  */
-      __attribute__((gcc_struct))
+  /* On mingw targets the ms-bitfields option is active by default.
+     Therefore enforce gnu-bitfield style.  */
+  __attribute__((gcc_struct))
 #endif
   {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
@@ -43,9 +44,9 @@ typedef union {
 
   struct
 #ifdef __MINGW32__
-      /* On mingw targets the ms-bitfields option is active by default.
-         Therefore enforce gnu-bitfield style.  */
-      __attribute__((gcc_struct))
+  /* On mingw targets the ms-bitfields option is active by default.
+     Therefore enforce gnu-bitfield style.  */
+  __attribute__((gcc_struct))
 #endif
   {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
@@ -58,7 +59,7 @@ typedef union {
     __uint128_t sign : QUAD_SIGN_SIZE;
 #endif
   } ieee128;
-
+  
   struct {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     uint64_t high;
