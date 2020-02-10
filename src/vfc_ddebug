@@ -28,8 +28,7 @@ class DDline(DD_stoch.DDStoch):
     def coerce(self, delta_config):
         return "\n".join([l[:-1] for l in delta_config])
 
-# This hack is an ugly but portable alternative to #!/usr/bin/env -S python3 -u
-# we call personality(ADDR_NO_RANDOMIZE) to disable ASLR, so that addresses during reference run
+# We call personality(ADDR_NO_RANDOMIZE) to disable ASLR, so that addresses during reference run
 # always match addresses during sample runs (even for .so code).
 def disable_ASLR():
     ADDR_NO_RANDOMIZE = 0x0040000
