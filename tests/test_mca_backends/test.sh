@@ -8,6 +8,13 @@ declare -A options
 options[float]='--precision-binary32'
 options[double]='--precision-binary64'
 
+check_status() {
+    if [[ $? != 0 ]]; then
+	echo "Fail"
+	exit 1
+    fi
+}
+
 Check() {
     TYPE=$3
     START_PREC=$2
@@ -24,6 +31,7 @@ Check() {
 
 	    export VFC_BACKENDS="libinterflop_mca.so ${options[$3]}=$PREC --mode $MODE --seed=$SEED"
 	    ./test > out_quad
+	    sed -i "s\-nan\nan\g" out_quad
 
 	    diff out_mpfr out_quad > log
 	    if [ $? -ne 0 ] ; then
@@ -42,9 +50,11 @@ Check() {
 for op in "+" "-" "*" "/" ; do
     echo "Checking $op float"
     verificarlo -D REAL=float -D SAMPLES=100 -D OPERATION="$op" -O0 test.c -o test
+    check_status
     Check 24 4 float
 
     echo "Checking $op double"
     verificarlo -D REAL=double -D SAMPLES=100 -D OPERATION="$op" -O0 test.c -o test
+    check_status
     Check 53 3 double
 done

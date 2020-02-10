@@ -71,12 +71,16 @@
 #define DOUBLE_ERASE_SIGN 0x7fffffffffffffffULL
 // Double precision mask to extract sign bit
 #define DOUBLE_GET_SIGN 0x8000000000000000ULL
+// Double precision mask to extract the exponent
+#define DOUBLE_GET_EXP 0x7ff0000000000000ULL
 // Double precision mask to extract the pseudo mantissa
 #define DOUBLE_GET_PMAN 0x000fffffffffffffULL
 // Double precision high part mantissa
 #define DOUBLE_PMAN_HIGH_SIZE 20
 // Double precision low part mantissa
 #define DOUBLE_PMAN_LOW_SIZE 32
+// Double precision mask of 1
+#define DOUBLE_MASK_ONE 0xffffffffffffffffULL
 
 // single precision encoding size
 #define FLOAT_SIGN_SIZE 1
@@ -102,8 +106,12 @@
 #define FLOAT_ERASE_SIGN 0x7fffffff
 // Single precision mask to extract sign bit
 #define FLOAT_GET_SIGN 0x80000000
+// Single precision mask to extract the exponent
+#define FLOAT_GET_EXP 0x7F800000
 // Single precision mask to extract the pseudo mantissa
 #define FLOAT_GET_PMAN 0x007fffff
+// Single precision mask of 1
+#define FLOAT_MASK_ONE 0xffffffffULL
 
 // Sign encoding size
 #define SIGN_SIZE 1

@@ -111,7 +111,7 @@ static double _mca_dbin(double a, double b, int qop);
  * MCA mode of operation.
  ***************************************************************/
 
-static void _set_mca_mode(int mode) {
+static void _set_mca_mode(mcamode mode) {
   if (mode < mcamode_ieee || mode > mcamode_rr)
     errx(1, "interflop_mca: --mode invalid value provided, must be one of: "
             "{ieee, mca, pb, rr}.");
@@ -298,7 +298,7 @@ static void _mca_inexactd(double *da) {
   *da = *da + pow2d(e_n) * d_rand;
 }
 
-static void _set_mca_seed(int choose_seed, uint64_t seed) {
+static void _set_mca_seed(bool choose_seed, uint64_t seed) {
   if (choose_seed) {
     tinymt64_init(&random_state, seed);
   } else {
@@ -427,9 +427,9 @@ static void _interflop_div_double(double a, double b, double *c,
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
     {"precision-binary32", KEY_PREC_B32, "PRECISION", 0,
-     "select precision for binary32 (PRECISION >= 0)"},
+     "select precision for binary32 (PRECISION > 0)"},
     {"precision-binary64", KEY_PREC_B64, "PRECISION", 0,
-     "select precision for binary64 (PRECISION >= 0)"},
+     "select precision for binary64 (PRECISION > 0)"},
     {"mode", KEY_MODE, "MODE", 0, "select MCA mode among {ieee, mca, pb, rr}"},
     {"seed", KEY_SEED, "SEED", 0, "fix the random generator seed"},
     {0}};
