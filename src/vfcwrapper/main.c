@@ -172,7 +172,10 @@ __attribute__((constructor)) static void vfc_init(void) {
 
   /* Environnement variable to disable loading message */
   char *silent_load_env = getenv("VFC_BACKENDS_SILENT_LOAD");
-  bool silent_load = (silent_load_env == NULL) ? false : true;
+  bool silent_load =
+      ((silent_load_env == NULL) || (strcasecmp(silent_load_env, "True") != 0))
+          ? false
+          : true;
 
   /* For each backend, load and register the backend vtable interface
      Backends .so are separated by semi-colons in the VFC_BACKENDS

@@ -77,8 +77,8 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
 #define DEBUG_BINARY_HEADER "interflop_ieee_bin "
 
 /* This macro print the debug information for a, b and c */
-/* the debug_print function handles automatically the format (decimal or binary) */
-/* depending on the context */
+/* the debug_print function handles automatically the format */
+/* (decimal or binary) depending on the context */
 #define DEBUG_PRINT(context, typeop, op, a, b, c)                              \
   {                                                                            \
     bool debug = ((t_context *)context)->debug ? true : false;                 \
@@ -102,12 +102,12 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
     }                                                                          \
   }
 
-void inline debug_print_float(void *context, operation_type typeop,
+inline void debug_print_float(void *context, operation_type typeop,
                               const char *op, float a, float b, float c) {
   DEBUG_PRINT(context, typeop, op, a, b, c);
 }
 
-void inline debug_print_double(void *context, operation_type typeop,
+inline void debug_print_double(void *context, operation_type typeop,
                                const char *op, double a, double b, double c) {
   DEBUG_PRINT(context, typeop, op, a, b, c);
 }
