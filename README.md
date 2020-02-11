@@ -231,8 +231,10 @@ VFC_BACKENDS="libinterflop_ieee.so --help" ./test
 test: verificarlo loaded backend libinterflop_ieee.so
 Usage: libinterflop_ieee.so [OPTION...]
 
-  -b, --debug_binary         enable binary debug output
+  -b, --debug-binary         enable binary debug output
   -d, --debug                enable debug output
+  -n, --print-new-line       print new lines after debug output
+  -s, --no-print-debug-mode  do not print debug mode before debug outputting
   -?, --help                 Give this help list
       --usage                Give a short usage message
 
@@ -241,6 +243,31 @@ test: verificarlo loaded backend libinterflop_ieee.so
 interflop_ieee 1.23457e-05 - 9.87654e+12 -> -9.87654e+12
 interflop_ieee 1.23457e-05 * 9.87654e+12 -> 1.21933e+08
 interflop_ieee 1.23457e-05 / 9.87654e+12 -> 1.25e-18
+...
+
+VFC_BACKENDS="libinterflop_ieee.so --debug --no-print-debug-mode" ./test
+test: verificarlo loaded backend libinterflop_ieee.so
+1.23457e-05 - 9.87654e+12 -> -9.87654e+12
+1.23457e-05 * 9.87654e+12 -> 1.21933e+08
+1.23457e-05 / 9.87654e+12 -> 1.25e-18
+...
+
+VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line" ./test
+test: verificarlo loaded backend libinterflop_ieee.so
+interflop_ieee_bin 
++1.10011110010000001001000100000111000011011111010011 x 2^-17 - 
++1.00011111011100011111101100101011011 x 2^43 -> 
+-1.00011111011100011111101100101011011 x 2^43
+
+interflop_ieee_bin 
++1.10011110010000001001000100000111000011011111010011 x 2^-17 * 
++1.00011111011100011111101100101011011 x 2^43 -> 
++1.1101000100100010110100111000011001101011001001010001 x 2^26
+
+interflop_ieee_bin 
+-1.00011111011100011111101100101011011 x 2^43 + 
++1.1101000100100010110100111000011001101011001001010001 x 2^26 -> 
+-1.0001111101110001000100101001100111110110001111001101 x 2^43
 ...
 ```
 
