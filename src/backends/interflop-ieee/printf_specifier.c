@@ -176,7 +176,7 @@ int bit_handler(FILE *stream, const struct printf_info *info,
 }
 
 /* This function defines the conversion specifier character 'b' */
-/* Once registered, %b can be used %f for floating point values in printf functions */
+/* Once registered, %b can be used as %f for floating point values in printf functions */
 void register_printf_bit(void) {
   register_printf_specifier('b', bit_handler, bit_handler_arginfo);
 }
