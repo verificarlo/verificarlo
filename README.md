@@ -218,6 +218,33 @@ after each backend,
                    ./program"
 ```
 
+A message is displayed when a backend is loaded,
+
+```bash
+   $ VFC_BACKENDS="libinterflop_ieee.so; libinterflop_mca.so" ./program"
+   $ program: verificarlo loaded backend libinterflop_ieee.so
+   $ program: verificarlo loaded backend  libinterflop_mca.so
+   $ program: interflop_mca: loaded backend with precision-binary32 = 24, precision-binary64 = 53 and mode = mca
+```
+
+To suppress the loading message when loading backends, export the
+environment variable `VFC_BACKENDS_SILENT_LOAD`.
+
+```bash
+   $ export VFC_BACKENDS_SILENT_LOAD=""
+   $ VFC_BACKENDS="libinterflop_ieee.so; libinterflop_mca.so" ./program"
+```
+
+To turn loading backends messages back on, unset the environment variable.
+
+```bash
+   $ unset VFC_BACKENDS_SILENT_LOAD
+   $ VFC_BACKENDS="libinterflop_ieee.so; libinterflop_mca.so" ./program"
+   $ program: verificarlo loaded backend libinterflop_ieee.so
+   $ program: verificarlo loaded backend  libinterflop_mca.so
+   $ program: interflop_mca: loaded backend with precision-binary32 = 24, precision-binary64 = 53 and mode = mca
+```
+
 ### IEEE Backend (libinterflop_ieee.so)
 
 The IEEE backend implements straighforward IEEE-754 arithmetic. 
