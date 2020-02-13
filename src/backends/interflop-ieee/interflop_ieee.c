@@ -36,11 +36,20 @@
 #include "../../common/interflop.h"
 #include "printf_specifier.h"
 
+typedef enum {
+  KEY_DEBUG = 'd',
+  KEY_DEBUG_BINARY = 'b',
+  KEY_NO_PRINT_DEBUG_MODE = 's',
+  KEY_PRINT_NEW_LINE = 'n',
+  KEY_PRINT_SUBNORMAL_NORMALIZED
+} key_args;
+
 typedef struct {
   bool debug;
   bool debug_binary;
   bool no_print_debug_mode;
   bool print_new_line;
+  bool print_subnormal_normalized;
 } t_context;
 
 typedef enum {
@@ -51,6 +60,7 @@ typedef enum {
 #define STRING_MAX 256
 
 #define FMT(X) _Generic(X, float : "b", double : "lb")
+#define FMT_SUBNORMAL_NORMALIZED(X) _Generic(X, float : "#b", double : "#lb")
 
 /* inserts the string <str_to_add> at position i */
 /* increments i by the size of str_to_add */
@@ -107,11 +117,12 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
   {                                                                            \
     bool debug = ((t_context *)context)->debug ? true : false;                 \
     bool debug_binary = ((t_context *)context)->debug_binary ? true : false;   \
+    bool subnormal_normalized = ((t_context *)context)->print_subnormal_normalized ? true : false; \
     if (debug || debug_binary) {                                               \
       bool print_header =                                                      \
           (((t_context *)context)->no_print_debug_mode) ? false : true;        \
       char *header = (debug) ? DEBUG_HEADER : DEBUG_BINARY_HEADER;             \
-      char *float_fmt = FMT(a);                                                \
+      char *float_fmt = (subnormal_normalized) ? FMT_SUBNORMAL_NORMALIZED(a) : FMT(a);	\
       if (print_header)                                                        \
         debug_print(context, float_fmt, header);                               \
       if (typeop == ARITHMETIC) {                                              \
@@ -327,28 +338,32 @@ static void _interflop_cmp_double(enum FCMP_PREDICATE p, double a, double b,
 }
 
 static struct argp_option options[] = {
-    /* --debug, sets the variable debug = true */
-    {"debug", 'd', 0, 0, "enable debug output"},
-    {"debug-binary", 'b', 0, 0, "enable binary debug output"},
-    {"no-print-debug-mode", 's', 0, 0,
-     "do not print debug mode before debug outputting"},
-    {"print-new-line", 'n', 0, 0, "print new lines after debug output"},
-    {0}};
+  /* --debug, sets the variable debug = true */
+  {"debug", KEY_DEBUG, 0, 0, "enable debug output"},
+  {"debug-binary", KEY_DEBUG_BINARY, 0, 0, "enable binary debug output"},
+  {"no-print-debug-mode", KEY_NO_PRINT_DEBUG_MODE, 0, 0,
+   "do not print debug mode before debug outputting"},
+  {"print-new-line", KEY_PRINT_NEW_LINE, 0, 0, "print new lines after debug output"},
+  {"print-subnormal-normalized", KEY_PRINT_SUBNORMAL_NORMALIZED, 0, 0, "print subnormal numbers as normalized"},
+  {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   t_context *ctx = (t_context *)state->input;
   switch (key) {
-  case 'd':
+  case KEY_DEBUG:
     ctx->debug = true;
     break;
-  case 'b':
+  case KEY_DEBUG_BINARY:
     ctx->debug_binary = true;
     break;
-  case 's':
+  case KEY_NO_PRINT_DEBUG_MODE:
     ctx->no_print_debug_mode = true;
     break;
-  case 'n':
+  case KEY_PRINT_NEW_LINE:
     ctx->print_new_line = true;
+    break;
+  case KEY_PRINT_SUBNORMAL_NORMALIZED:
+    ctx->print_subnormal_normalized = true;
     break;
   default:
     return ARGP_ERR_UNKNOWN;
@@ -362,6 +377,7 @@ void init_context(t_context *context) {
   context->debug_binary = false;
   context->no_print_debug_mode = false;
   context->print_new_line = false;
+  context->print_subnormal_normalized = false;
 }
 
 static struct argp argp = {options, parse_opt, "", ""};

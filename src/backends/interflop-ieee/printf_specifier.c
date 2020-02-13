@@ -83,11 +83,45 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
   }
 
 /* Formats a binaryN to its binary representation */
+/* Special case for subnormal numbers */
+/* Print a subnormal in the denormalized form */
+/* 0.<mantissa> x 2^<exponent> */
+/* where <mantissa> is not formatted (with leading 0 kept)  */
+/* where <exponent> = {FLOAT,DOUBLE}_MIN_EXP */
+#define PRINT_SUBNORMAL_DENORMALIZED(real, s_val)			\
+  {									\
+    implicit_bit = '0';							\
+    exponent = real.ieee.exponent - real_exp_comp + 1;						\
+    mantissa = real.ieee.mantissa;			\
+    UINTN_TO_BIT(mantissa << (real_exp_size + real_sign_size),		\
+		 mantissa_str);						\
+    sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str, exponent); \
+  }
+
+/* Formats a binaryN to its binary representation */
+/* Special case for subnormal numbers */
+/* Print a subnormal in the normalized form */
+/* 1.<mantissa> x 2^<exponent> */
+/* where <mantissa> is formatted (with leading 0 removed)  */
+/* where <exponent> = {FLOAT,DOUBLE}_MIN_EXP - (# leadind 0) */
+#define PRINT_SUBNORMAL_NORMALIZED(real, s_val)				\
+  {									\
+    implicit_bit = '1';							\
+    mantissa = real.ieee.mantissa;					\
+    mantissa <<= (real_sign_size + real_exp_size);			\
+    offset = CLZ(mantissa) + 1;						\
+    exponent = -real_exp_min - offset;					\
+    UINTN_TO_BIT(mantissa << offset, mantissa_str);			\
+    sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str,	\
+	    exponent);							\
+  }
+
+/* Formats a binaryN to its binary representation */
 /* 1.<mantissa> x 2^<exponent>                   */
 /* Special cases:                                */
 /*  NaN -> +/-nan                                */
 /*  Inf -> +/-inf                                */
-#define REAL_TO_BINARY(real, s_val)                                            \
+#define REAL_TO_BINARY(real, s_val, info)					\
   {                                                                            \
     const typeof(real.u) real_exp_max = GET_EXP_MAX(real.type);                \
     const typeof(real.u) real_sign_size = GET_SIGN_SIZE(real.type);            \
@@ -121,15 +155,12 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
       sprintf(s_val, "%cnan", sign_char);                                      \
       return;                                                                  \
     case FP_SUBNORMAL:                                                         \
-      implicit_bit = '1';                                                      \
-      mantissa = real.ieee.mantissa;                                           \
-      mantissa <<= (real_sign_size + real_exp_size);                           \
-      offset = CLZ(mantissa) + 1;                                              \
-      exponent = -real_exp_min - offset;                                       \
-      UINTN_TO_BIT(mantissa << offset, mantissa_str);                          \
-      sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str,        \
-              exponent);                                                       \
-      return;                                                                  \
+      if (info->alt) {							\
+	PRINT_SUBNORMAL_NORMALIZED(real, s_val);			\
+      } else {								\
+	PRINT_SUBNORMAL_DENORMALIZED(real, s_val);			\
+      }									\
+      return;								\
     case FP_NORMAL:                                                            \
       implicit_bit = '1';                                                      \
       mantissa = real.ieee.mantissa;                                           \
@@ -143,16 +174,16 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
   }
 
 /* Wrappers for calling REAL_TO_BINARY on double */
-void double_to_binary(double d, char *s_val) {
+void double_to_binary(double d, char *s_val, const struct printf_info *info) {
   binary64 b64 = {.f64 = d};
-  REAL_TO_BINARY(b64, s_val);
+  REAL_TO_BINARY(b64, s_val, info);
   return;
 }
 
 /* Wrappers for calling REAL_TO_BINARY on float */
-void float_to_binary(float f, char *s_val) {
+void float_to_binary(float f, char *s_val, const struct printf_info *info) {
   binary32 b32 = {.f32 = f};
-  REAL_TO_BINARY(b32, s_val);
+  REAL_TO_BINARY(b32, s_val, info);
   return;
 }
 
@@ -162,7 +193,7 @@ int bit_float_handler(FILE *stream, const struct printf_info *info,
   char output[STRING_MAX] = "0";
   const double *d = (const double *)args[0];
   const float f = (float)*d;
-  float_to_binary(f, output);
+  float_to_binary(f, output, info);
   return fprintf(stream, "%s", output);
 }
 
@@ -171,7 +202,7 @@ int bit_double_handler(FILE *stream, const struct printf_info *info,
                        const void *const *args) {
   char output[STRING_MAX] = "0";
   const double d = *(const double *)args[0];
-  double_to_binary(d, output);
+  double_to_binary(d, output, info);
   return fprintf(stream, "%s", output);
 }
 

@@ -3,14 +3,14 @@
 """Python implementation of the --debug-binary output
    Allows a double checking
 """
-
-import sys
-import numpy as np
-import struct
+from __future__ import absolute_import
+from __future__ import division
 import math
 import warnings
+import argparse
+import numpy as np
 
-float_types = ["float", "double"]
+FLOAT_TYPES = ["float", "double"]
 
 def is_substring(string, token):
     return string.find(token) != -1
@@ -18,55 +18,45 @@ def is_substring(string, token):
 def is_negative(hex_float):
     return hex_float.startswith('-')
 
-# Returns the position of the first 1-bit
-# of a number
-def get_first_1bit(x):
-    if type(x) == str:
-        x = int('1'+x,16)
-    elif type(x) == int:
-        x = int('1'+str(x),16)
-    binx = bin(x).replace('0b','')
-    return binx.find('1',1)-1
+def get_first_1bit(value_str):
+    first1 = value_str.find('1')
+    return first1
 
-# Remove the first 1-bit of a number
-def remove_first_1bit(x):
-    if type(x) == str:
-        x = int(x)
-    sign_mask = 0x80000000
-    sign = sign_mask & x
-    xint = sign_mask | x
-    binx = bin(xint)
-    nb_of_replacement = 1 if sign else 2
-    binx = binx.replace('1','0', nb_of_replacement)
-    return int(binx,2)
+def remove_trailing_0(value_str):
+    last1 = value_str.rfind('1')
+    if last1 == -1:
+        return '0'
+    
+    return value_str[:last1+1]
 
-def remove_trailing_0(x_int):
-    if (x_int % 2 == 1) or (x_int == 0):
-        return x_int
-    else:
-        binx = bin(x_int).replace('0b','')
-        first1 = binx.find('1')
-        last1 = binx.rfind('1')
-        if first1 == last1:
-            return 1
-        else:
-            binx = binx[:last1+1]
-            return int(binx,2)
+def remove_leading_0(value_str):
+    first1 = value_str.find('1')
+    return value_str[first1:]
 
 # Extract fields from c99 hex float representation
 # [s]0xH.hhhhp[+-]e -> s,H,hhhh,e
 def extract_fields(hex_float):
     # [-]0xh.hhhhp[+-]e -> [-],h.hhhhp[+-]e
-    sign,value = hex_float.split('0x')
+    sign, value = hex_float.split('0x')
     # h.hhhhp[+-]e -> h,hhhhp[+-]e
-    implicit_bit,mantissa_exponent = value.split(".")
-    mantissa,exponent = mantissa_exponent.split('p')
-    return sign,implicit_bit,exponent,mantissa
+    implicit_bit, mantissa_exponent = value.split(".")
+    mantissa, exponent = mantissa_exponent.split('p')
+    return sign, implicit_bit, exponent, mantissa
+
+def hex_to_bin(hex_value, mantissa_size):
+    length_hex = len(hex_value)
+    length_mantissa = int(math.ceil(mantissa_size/4.0))
+    bin_value = ""
+    for x in hex_value:
+        bin_value += "{0:04b}".format(int(x, 16))
+    for i in range(length_mantissa, length_hex):
+        bin_value += "{0:04b}".format(0)
+    return bin_value
+
 
 class Binary(object):
 
     def __init__(self, hex_float):
-
         self.implicit_bit = '1'
         self.sign = '-' if is_negative(hex_float) else '+'
         if is_substring(hex_float, 'nan'):
@@ -87,24 +77,51 @@ class Binary(object):
             self.exponent = 0
             self.mantissa = 0x0
             self.string = "{sign}0.0 x 2^0".format(sign=self.sign)
-        else:
-            sign,implicit_bit,exponent,mantissa = extract_fields(hex_float)
-            self.implicit_bit = int(implicit_bit)
-            self.mantissa = remove_trailing_0(int(mantissa, 16))
-            self.exponent = int(exponent)
+        elif self.is_denormal():
+            _, implicit_bit, exponent, mantissa = extract_fields(hex_float)
+            self.mantissa = hex_to_bin(mantissa, self.mantissa_size)
+            # self.mantissa = remove_trailing_0(self.mantissa)
+            if implicit_bit == '0':
+                if args.normalize_denormal:
+                    first1 = get_first_1bit(self.mantissa)
+                    self.exponent = int(exponent) - first1 - 1
+                    self.mantissa = '{0:0<{size}b}'.format(int(self.mantissa, 2),
+                                                           size=self.mantissa_size)
+                    self.mantissa = self.mantissa[1:]
+                    self.implicit_bit = '1'
+                else:
+                    self.exponent = self.exponent_min
+                    self.implicit_bit = '0'
+            else: # implicit_bit == '1'
+                if args.normalize_denormal:
+                    self.exponent = int(exponent)
+                    self.implicit_bit = '1'
+                else:
+                    # Add implicit bit
+                    offset = self.exponent_min - int(exponent) - 1
+                    self.mantissa = remove_trailing_0(self.mantissa)
+                    self.mantissa = '1{m}'.format(m=self.mantissa)
+                    self.mantissa = self.mantissa.rjust(len(self.mantissa)+offset, '0')
+                    self.exponent = self.exponent_min
+                    self.implicit_bit = '0'
 
-            # Denormal case, we normalize the value
-            if self.implicit_bit == 0:
-                self.mantissa_offset = get_first_1bit(mantissa)
-                self.mantissa = remove_first_1bit(mantissa)
-                self.mantissa = remove_trailing_0(self.mantissa)
-                self.exponent = self.exponent_min - self.mantissa_offset - 1
-                self.implicit_bit = "1"
-
-            mantissa_bin = bin(self.mantissa).replace('0b','')
+            self.mantissa = remove_trailing_0(self.mantissa)
             self.string = "{sign}{i}.{mant} x 2^{exp}".format(sign=self.sign,
                                                               i=self.implicit_bit,
-                                                              mant=mantissa_bin,
+                                                              mant=self.mantissa,
+                                                              exp=self.exponent)
+
+
+        else:
+            sign, implicit_bit, exponent, mantissa = extract_fields(hex_float)
+            # print(sign,implicit_bit,exponent,mantissa)
+            self.implicit_bit = int(implicit_bit)
+            self.mantissa = hex_to_bin(mantissa, self.mantissa_size)
+            self.mantissa = remove_trailing_0(self.mantissa)
+            self.exponent = int(exponent)
+            self.string = "{sign}{i}.{mant} x 2^{exp}".format(sign=self.sign,
+                                                              i=self.implicit_bit,
+                                                              mant=self.mantissa,
                                                               exp=self.exponent)
 
 class Binary32(Binary):
@@ -116,20 +133,26 @@ class Binary32(Binary):
     exponent_max = 0xff
     exponent_min = -0x7e
     mantissa_offset = sign_size + exponent_size
+    smallest_normal = float.fromhex("0x1.0p-126")
 
     def __init__(self, float_str):
-        if type(float_str) == np.float32:
+        if isinstance(float_str, np.float32):
+            self.value = float(float_str)
             super(Binary32, self).__init__(float(float_str).hex())
         else:
+            self.value = float.fromhex(float_str)
             super(Binary32, self).__init__(float_str)
 
     def __str__(self):
-        fmt="Binary32 [sign : {sign}; \
+        fmt = "Binary32 [sign : {sign}; \
         exponent: {exponent}; \
         mantissa: {mantissa}]".format(sign=self.sign,
                                       exponent=self.exponent,
                                       mantissa=self.mantissa)
         return fmt
+
+    def is_denormal(self):
+        return abs(self.value) < self.smallest_normal
 
 class Binary64(Binary):
 
@@ -140,25 +163,31 @@ class Binary64(Binary):
     exponent_max = 0x7ff
     exponent_min = -0x3fe
     mantissa_offset = sign_size + exponent_size
+    smallest_normal = float.fromhex("0x1.0p-1022")
 
     def __init__(self, flt):
         if type(flt) == float:
-            hex_float = flt.hex()
-            super(Binary64, self).__init__(hex_float)
+            self.value = float(flt)
+            super(Binary64, self).__init__(flt.hex())
         else:
+            self.value = float.fromhex(flt)
             super(Binary64, self).__init__(flt)
 
     def __str__(self):
-        fmt="Binary64 [sign : {sign}; \
+        fmt = "Binary64 [sign : {sign}; \
         exponent: {exponent}; \
         mantissa: {mantissa}]".format(sign=self.sign,
                                       exponent=self.exponent,
                                       mantissa=self.mantissa)
         return fmt
 
+    def is_denormal(self):
+        return abs(self.value) < self.smallest_normal
+
+
 def parse_line(line):
-    x,y,op = line.strip().split()
-    return x,y,op
+    x, y, op = line.strip().split()
+    return x, y, op
 
 # takes a float in c99 hex format [-]0xh.hhhhp[+-]e
 def get_binary(float_type, hex_float):
@@ -167,16 +196,9 @@ def get_binary(float_type, hex_float):
     elif float_type == "float":
         b = Binary32(hex_float)
     else:
-        exception('Unknow format {type}'.format(type=float_type))
+        raise Exception('Unknow format {type}'.format(type=float_type))
 
     return b.string
-
-
-def check_float_type(float_type):
-    if not float_type.lower() in float_types:
-        print("Unknown float type : {float_type}".format(float_type=float_type))
-        print("Available float types : {flt}".format(flt=float_types))
-        exit(1)
 
 def get_float_operation(float_type, op_str):
     if float_type == 'double':
@@ -184,41 +206,43 @@ def get_float_operation(float_type, op_str):
     elif float_type == 'float':
         flt = np.float32
     else:
-        raise(Exception("Unknown operation {op}".format(op=op_str)))
+        raise Exception("Unknown type {ty}".format(ty=float_type))
 
     if op_str == "+":
-        return lambda args:flt(args[0])+flt(args[1])
+        return lambda args: flt(args[0])+flt(args[1])
     elif op_str == "-":
-        return lambda args:flt(args[0])-flt(args[1])
+        return lambda args: flt(args[0])-flt(args[1])
     elif op_str == "*":
-        return lambda args:flt(args[0])*flt(args[1])
+        return lambda args: flt(args[0])*flt(args[1])
     elif op_str == "/":
-        return lambda args:flt(args[0])/flt(args[1])
+        return lambda args: flt(args[0])/flt(args[1])
+    else:
+        raise Exception("Unknown operation {op}".format(op=op_str))
 
 if "__main__" == __name__:
 
-    if (len(sys.argv) != 3):
-        print("usage <float_type> <filename>")
-        print('<float_type>: {flt}'.format(flt=float_types))
-        exit(1)
+    parser = argparse.ArgumentParser(description="Generate output as --debug-binary mode of libinterflop_ieee.so")
+    parser.add_argument('-t', '--float-type', choices=FLOAT_TYPES, required=True, help='float type')
+    parser.add_argument('-f', '--filename', required=True, help='filename with values to print')
+    parser.add_argument('--normalize-denormal', action='store_true', help='print denormals in a normalized way')
 
-    float_type = sys.argv[1]
-    filename = sys.argv[2]
+    args, other = parser.parse_known_args()
 
-    check_float_type(float_type)
+    float_type = args.float_type
+    filename = args.filename
 
     fi = open(filename)
 
     for line in fi:
         if len(line.split()) == 3:
-            x_str,y_str,op_str = parse_line(line)
+            x_str, y_str, op_str = parse_line(line)
             op = get_float_operation(float_type, op_str)
             x_flt = float.fromhex(x_str)
             y_flt = float.fromhex(y_str)
 
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', r'overflow encountered in float_scalars')
-                res = op((x_flt,y_flt))
+                res = op((x_flt, y_flt))
 
             x_bin = get_binary(float_type, x_str)
             y_bin = get_binary(float_type, y_str)
