@@ -43,7 +43,7 @@ $ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt from 3.3 up to 4.0.1, http://clang.llvm.org/
+  * LLVM, clang and opt from 3.3 up to 9.0.1, http://clang.llvm.org/
   * gcc from 4.9
   * For Fortran support see section Fortran support
   * python3 and NumPy
