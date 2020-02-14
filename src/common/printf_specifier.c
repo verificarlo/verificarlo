@@ -65,7 +65,7 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
       output[1] = '\0';                                                        \
     } else {                                                                   \
       const typeof(X) size_in_bit = sizeof(X) * 8;                             \
-      const typeof(X) first_trailing_0 = size_in_bit - FFS(X) + 1;	\
+      const typeof(X) first_trailing_0 = size_in_bit - FFS(X) + 1;             \
       const typeof(X) ith_byte = GET_BYTE_MASK(X);                             \
       typeof(X) i;                                                             \
       for (i = 0; i < first_trailing_0; i += 4) {                              \
@@ -88,14 +88,14 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
 /* 0.<mantissa> x 2^<exponent> */
 /* where <mantissa> is not formatted (with leading 0 kept)  */
 /* where <exponent> = {FLOAT,DOUBLE}_MIN_EXP */
-#define PRINT_SUBNORMAL_DENORMALIZED(real, s_val)			\
-  {									\
-    implicit_bit = '0';							\
-    exponent = real.ieee.exponent - real_exp_comp + 1;						\
-    mantissa = real.ieee.mantissa;			\
-    UINTN_TO_BIT(mantissa << (real_exp_size + real_sign_size),		\
-		 mantissa_str);						\
-    sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str, exponent); \
+#define PRINT_SUBNORMAL_DENORMALIZED(real, s_val)                              \
+  {                                                                            \
+    implicit_bit = '0';                                                        \
+    exponent = real.ieee.exponent - real_exp_comp + 1;                         \
+    mantissa = real.ieee.mantissa;                                             \
+    UINTN_TO_BIT(mantissa << (real_exp_size + real_sign_size), mantissa_str);  \
+    sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str,          \
+            exponent);                                                         \
   }
 
 /* Formats a binaryN to its binary representation */
@@ -104,16 +104,16 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
 /* 1.<mantissa> x 2^<exponent> */
 /* where <mantissa> is formatted (with leading 0 removed)  */
 /* where <exponent> = {FLOAT,DOUBLE}_MIN_EXP - (# leadind 0) */
-#define PRINT_SUBNORMAL_NORMALIZED(real, s_val)				\
-  {									\
-    implicit_bit = '1';							\
-    mantissa = real.ieee.mantissa;					\
-    mantissa <<= (real_sign_size + real_exp_size);			\
-    offset = CLZ(mantissa) + 1;						\
-    exponent = -real_exp_min - offset;					\
-    UINTN_TO_BIT(mantissa << offset, mantissa_str);			\
-    sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str,	\
-	    exponent);							\
+#define PRINT_SUBNORMAL_NORMALIZED(real, s_val)                                \
+  {                                                                            \
+    implicit_bit = '1';                                                        \
+    mantissa = real.ieee.mantissa;                                             \
+    mantissa <<= (real_sign_size + real_exp_size);                             \
+    offset = CLZ(mantissa) + 1;                                                \
+    exponent = -real_exp_min - offset;                                         \
+    UINTN_TO_BIT(mantissa << offset, mantissa_str);                            \
+    sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str,          \
+            exponent);                                                         \
   }
 
 /* Formats a binaryN to its binary representation */
@@ -121,7 +121,7 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
 /* Special cases:                                */
 /*  NaN -> +/-nan                                */
 /*  Inf -> +/-inf                                */
-#define REAL_TO_BINARY(real, s_val, info)					\
+#define REAL_TO_BINARY(real, s_val, info)                                      \
   {                                                                            \
     const typeof(real.u) real_exp_max = GET_EXP_MAX(real.type);                \
     const typeof(real.u) real_sign_size = GET_SIGN_SIZE(real.type);            \
@@ -155,12 +155,12 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
       sprintf(s_val, "%cnan", sign_char);                                      \
       return;                                                                  \
     case FP_SUBNORMAL:                                                         \
-      if (info->alt) {							\
-	PRINT_SUBNORMAL_NORMALIZED(real, s_val);			\
-      } else {								\
-	PRINT_SUBNORMAL_DENORMALIZED(real, s_val);			\
-      }									\
-      return;								\
+      if (info->alt) {                                                         \
+        PRINT_SUBNORMAL_NORMALIZED(real, s_val);                               \
+      } else {                                                                 \
+        PRINT_SUBNORMAL_DENORMALIZED(real, s_val);                             \
+      }                                                                        \
+      return;                                                                  \
     case FP_NORMAL:                                                            \
       implicit_bit = '1';                                                      \
       mantissa = real.ieee.mantissa;                                           \
@@ -231,7 +231,8 @@ int bit_handler(FILE *stream, const struct printf_info *info,
 }
 
 /* This function defines the conversion specifier character 'b' */
-/* Once registered, %b can be used as %f for floating point values in printf functions */
+/* Once registered, %b can be used as %f for floating point values in printf
+ * functions */
 void register_printf_bit(void) {
   register_printf_specifier('b', bit_handler, bit_handler_arginfo);
 }

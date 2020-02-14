@@ -1,5 +1,5 @@
 lib_LTLIBRARIES = libinterflop_ieee.la
-libinterflop_ieee_la_SOURCES = interflop_ieee.c printf_specifier.c
+libinterflop_ieee_la_SOURCES = interflop_ieee.c ../../common/printf_specifier.c
 if WALL_CFLAGS
 libinterflop_ieee_la_CFLAGS = -Wall -Wextra
 endif
