@@ -346,7 +346,7 @@ MCA-MPFR backend accepts the same options than the MCA backend.
 ### Bitmask Backend (libinterflop_bitmask.so)
 
 The Bitmask backend implements a fast first order model of noise. It
-relies on bitmask operations to achieve very low overhead
+relies on bitmask operations to achieve low overhead
 (~$\times$4). Contrary to MCA backends, introduced noise is biased,
 which means that the expected value of the noise is not equal to
 0. For more details, you can refer to the section 2.3.2 of
@@ -398,7 +398,7 @@ binary64 and 24 for binary32. For the Bitmask backend, the virtual
 precision corresponds to the number of preserved bits in the mantissa.
 
 The option `--seed` fixes the random generator seed. It should not
-generally be used except if one to reproduce a particular Bitmask
+generally be used except to reproduce a particular Bitmask
 trace.
 
 ## Verificarlo inclusion / exclusion options
