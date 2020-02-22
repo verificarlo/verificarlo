@@ -8,6 +8,27 @@
 
 A tool for debugging floating point precision and reproducibility.
 
+   * [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
+   * [Installation](#installation)
+      * [Example on x86_64 Ubuntu 14.04 release without Fortran support](#example-on-x86_64-ubuntu-1404-release-without-fortran-support)
+      * [Fortran support](#fortran-support)
+      * [Checking installation](#checking-installation)
+   * [Usage](#usage)
+   * [Examples and Tutorial](#examples-and-tutorial)
+   * [Backends](#backends)
+      * [IEEE Backend (libinterflop_ieee.so)](#ieee-backend-libinterflop_ieeeso)
+      * [MCA Backend (libinterflop_mca.so)](#mca-backend-libinterflop_mcaso)
+      * [MCA-MPFR Backend (libinterflop_mca_mpfr.so)](#mca-mpfr-backend-libinterflop_mca_mpfrso)
+      * [Bitmask Backend (libinterflop_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
+   * [Verificarlo inclusion / exclusion options](#verificarlo-inclusion--exclusion-options)
+   * [Postprocessing](#postprocessing)
+   * [Unstable branch detection](#unstable-branch-detection)
+   * [Branch instrumentation](#branch-instrumentation)
+   * [How to cite Verificarlo](#how-to-cite-verificarlo)
+   * [Discussion Group](#discussion-group)
+   * [License](#license)
+
+
 ## Using Verificarlo through its Docker image
 
 A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/. 
