@@ -76,8 +76,8 @@ static double _mca_dbin(double a, double b, int qop);
  * MCA mode of operation.
  ***************************************************************/
 
-static int _set_mca_precision(int precision) {
-  MCALIB_T = precision;
+static int _set_mca_tolerance(int tolerance) {
+  MCALIB_T = tolerance;
   return 0;
 }
 
@@ -99,13 +99,13 @@ static double _mca_rand(void) {
 }
 
 #define exp(X) ({                                     \
-  /* Conversion du reel en entier */                  \
+  /* Convert X to an int */                           \
   u_int64_t _V_ = *(u_int64_t*)&X;                    \
-  /* Taille de l'exposant */                          \
+  /* Get size of the exponent */                      \
   int _E_ = (6+3*(sizeof(X) >> 2)-1);                 \ 
-  /* Taille de la mantisse */                         \
+  /* Get the size of the mantiss */                   \
   int _M_ = (sizeof(X)*8-_E_-1);                      \
-  /* Calcul de l'exposant */                          \     
+  /* Compute the exponent */                          \     
   (int)bit_a_b(_V_>>_M_,0,_E_-1) - ((1<<_E_-1)-2);})
 
 #define inexact(X,S) (X + pow(2,exp(X)-S) * _mca_rand())
@@ -218,7 +218,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
       errx(1, "interflop_cancellation: --tolerance invalid value provided, must be a "
               "positive integer.");
     } else {
-      _set_mca_precision(val);
+      _set_mca_tolerance(val);
     }
     break;
   case 'w':
@@ -249,7 +249,7 @@ static void init_context(t_context *ctx) {
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
-  _set_mca_precision(MCA_TOLERANCE_DEFAULT);
+  _set_mca_tolerance(MCA_TOLERANCE_DEFAULT);
 
   t_context *ctx = malloc(sizeof(t_context));
   *context = ctx;
