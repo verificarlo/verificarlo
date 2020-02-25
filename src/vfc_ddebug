@@ -1,9 +1,7 @@
-#!/bin/sh
-''''exec setarch $(uname -m) -R python3 -u "$0" "$@" #'''
-# This hack is an ugly but portable alternative to #!/usr/bin/env -S python3 -u
-# we call setarch -R to disable ASLR, so that addresses during reference run
-# always match addresses during sample runs (even for .so code).
+#!/usr/bin/env python3
 
+import ctypes
+import ctypes.util
 import sys
 import os
 from verificarlo import dd_config
@@ -30,7 +28,17 @@ class DDline(DD_stoch.DDStoch):
     def coerce(self, delta_config):
         return "\n".join([l[:-1] for l in delta_config])
 
+# We call personality(ADDR_NO_RANDOMIZE) to disable ASLR, so that addresses during reference run
+# always match addresses during sample runs (even for .so code).
+def disable_ASLR():
+    ADDR_NO_RANDOMIZE = 0x0040000
+    libc_name = ctypes.util.find_library('c')
+    libc = ctypes.CDLL(libc_name)
+    personality = libc.personality
+    personality(ADDR_NO_RANDOMIZE)
+
 if __name__ == "__main__":
+    disable_ASLR()
     et=DD_exec_stat.exec_stat("dd.line")
     config=dd_config.ddConfig(sys.argv,os.environ)
     dd = DDline(config)
