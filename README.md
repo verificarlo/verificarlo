@@ -492,7 +492,7 @@ For questions, feedbacks or discussions about Verificarlo you can join our group
 https://groups.google.com/forum/#!forum/verificarlo
 
 ## License
-Copyright (c) 2019
+Copyright (c) 2019-2020
    Verificarlo Contributors
 
 Copyright (c) 2018
