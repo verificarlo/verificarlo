@@ -6,7 +6,7 @@
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
 [![Coverity](https://scan.coverity.com/projects/19956/badge.svg)](https://scan.coverity.com/projects/verificarlo-verificarlo)
 
-A tool for debugging floating point precision and reproducibility.
+A tool for debugging and assessing floating point precision and reproducibility.
 
    * [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
    * [Installation](#installation)
