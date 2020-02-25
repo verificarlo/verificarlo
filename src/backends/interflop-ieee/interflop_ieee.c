@@ -39,7 +39,7 @@
 typedef enum {
   KEY_DEBUG = 'd',
   KEY_DEBUG_BINARY = 'b',
-  KEY_NO_PRINT_DEBUG_MODE = 's',
+  KEY_NO_BACKEND_NAME = 's',
   KEY_PRINT_NEW_LINE = 'n',
   KEY_PRINT_SUBNORMAL_NORMALIZED
 } key_args;
@@ -47,7 +47,7 @@ typedef enum {
 typedef struct {
   bool debug;
   bool debug_binary;
-  bool no_print_debug_mode;
+  bool no_backend_name;
   bool print_new_line;
   bool print_subnormal_normalized;
 } t_context;
@@ -121,7 +121,7 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
         ((t_context *)context)->print_subnormal_normalized ? true : false;     \
     if (debug || debug_binary) {                                               \
       bool print_header =                                                      \
-          (((t_context *)context)->no_print_debug_mode) ? false : true;        \
+          (((t_context *)context)->no_backend_name) ? false : true;            \
       char *header = (debug) ? DEBUG_HEADER : DEBUG_BINARY_HEADER;             \
       char *float_fmt =                                                        \
           (subnormal_normalized) ? FMT_SUBNORMAL_NORMALIZED(a) : FMT(a);       \
@@ -343,12 +343,12 @@ static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
     {"debug", KEY_DEBUG, 0, 0, "enable debug output"},
     {"debug-binary", KEY_DEBUG_BINARY, 0, 0, "enable binary debug output"},
-    {"no-print-debug-mode", KEY_NO_PRINT_DEBUG_MODE, 0, 0,
-     "do not print debug mode before debug outputting"},
+    {"no-backend-name", KEY_NO_BACKEND_NAME, 0, 0,
+     "do not print backend name in debug output"},
     {"print-new-line", KEY_PRINT_NEW_LINE, 0, 0,
-     "print new lines after debug output"},
+     "add a new line after debug ouput"},
     {"print-subnormal-normalized", KEY_PRINT_SUBNORMAL_NORMALIZED, 0, 0,
-     "print subnormal numbers as normalized"},
+     "normalize subnormal numbers"},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -360,8 +360,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_DEBUG_BINARY:
     ctx->debug_binary = true;
     break;
-  case KEY_NO_PRINT_DEBUG_MODE:
-    ctx->no_print_debug_mode = true;
+  case KEY_NO_BACKEND_NAME:
+    ctx->no_backend_name = true;
     break;
   case KEY_PRINT_NEW_LINE:
     ctx->print_new_line = true;
@@ -379,7 +379,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 void init_context(t_context *context) {
   context->debug = false;
   context->debug_binary = false;
-  context->no_print_debug_mode = false;
+  context->no_backend_name = false;
   context->print_new_line = false;
   context->print_subnormal_normalized = false;
 }

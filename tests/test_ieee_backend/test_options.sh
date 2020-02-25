@@ -46,12 +46,12 @@ for TYPE in float double; do
     check "$(grep -q "interflop_ieee_bin" log; echo $?)" "Error debug mode (interflop_ieee_bin) not printed"
 
     DEBUG_MODE="--debug"
-    OPTIONS="--no-print-debug-mode"
+    OPTIONS="--no-backend-name"
     run
     check "$(grep -vq "interflop_ieee" log; echo $?)" "Error debug mode (interflop_ieee) printed"
 
     DEBUG_MODE="--debug-binary"
-    OPTIONS="--no-print-debug-mode"
+    OPTIONS="--no-backend-name"
     run
     check "$(grep -vq "interflop_ieee_bin" log; echo $?)" "Error debug mode (interflop_ieee_bin) printed"
 
