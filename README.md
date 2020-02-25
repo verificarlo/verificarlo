@@ -12,7 +12,7 @@ A tool for automatic Montecarlo Arithmetic analysis.
 
 A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/. 
 This image uses the latest git master version of Verificarlo and includes
-support for Fortran. It uses llvm-3.5 and gcc-4.7.
+support for Fortran. It uses llvm-3.6.1 and gcc-4.9.
 
 Example of usage:
 
@@ -43,23 +43,13 @@ $ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt from 3.3 up to 4.0.1 (the last version with Fortran
-    support is 3.6), http://clang.llvm.org/
-  * gcc, gfortran and dragonegg (for Fortran support), http://dragonegg.llvm.org/
+  * LLVM, clang and opt from 3.3 up to 9.0.1, http://clang.llvm.org/
+  * gcc from 4.9
+  * For Fortran support see section Fortran support
   * python3 and NumPy
   * autotools (automake, autoconf)
 
 Then run the following command inside verificarlo directory:
-
-```bash
-   $ ./autogen.sh
-   $ ./configure
-   $ make
-   $ sudo make install
-```
-
-If you do not care about Fortran support, you can avoid installing gfortran and
-dragonegg, by passing the option `--without-dragonegg` to `configure`:
 
 ```bash
    $ ./autogen.sh
@@ -68,14 +58,51 @@ dragonegg, by passing the option `--without-dragonegg` to `configure`:
    $ sudo make install
 ```
 
-If needed LLVM path, dragonegg path, and gcc path can be configured with the
-following options:
+### Fortran support
+
+The use of c++11 standard specific features force us to use gcc from 4.9.
+Unfornately, official dragonegg repository does not provide `dragonegg.so`
+for this version (4.9) and above. We plan to move to `flang` in the next release. In the meantime, if you need Fortran support you can either use the provided [docker image](https://hub.docker.com/r/verificarlo/verificarlo/) or follow the instructions below,
 
 ```bash
-   $ ./configure --with-llvm=<path to llvm install directory> \
-                 --with-dragonegg=<path to dragonegg.so> \
-                 CC=<gcc binary compatible with installed dragonegg>
+   $ sudo apt install gcc-4.9 gcc-4.9-plugin-dev g++-4.9 gfortran-4.9 libgfortran-4.9-dev
 ```
+
+For getting llvm-3.6.1, run the following commands:
+
+```bash
+   $ wget http://releases.llvm.org/3.6.1/clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
+   $ tar xvf clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz llvm-3.6.1
+   $ export LLVM_INSTALL_PATH=$PWD/llvm-3.6.1
+```
+
+For getting dragonegg.so, run the following commands:
+
+```bash
+   $ git clone -b gcc-llvm-3.6 --depth=1 https://github.com/yohanchatelain/DragonEgg.git
+   $ cd DragonEgg
+   $ LLVM_CONFIG=${LLVM_INSTALL_PATH}/bin/llvm-config GCC=gcc-4.9 CXX=g++-4.9 make
+   $ export DRAGONEGG_PATH=$PWD/dragonegg.so
+```   
+
+Then run the configuration with the appropriate paths:
+
+```bash
+   $ cd verificarlo/
+   $ ./autogen.sh
+   $ ./configure --with-llvm=${LLVM_INSTALL_PATH} \
+                 --with-dragonegg=${DRAGONEGG_PATH} \
+                 CC=gcc-4.9 CXX=g++4.9
+```
+
+Then you can follow the normal installation process
+
+```bash
+   $ make
+   $ sudo make install
+```   
+
+### Checking installation
 
 Once installation is over, we recommend that you run the test suite to ensure
 verificarlo works as expected on your system:
@@ -84,24 +111,30 @@ verificarlo works as expected on your system:
    $ make installcheck
 ```
 
+### Example on x86_64 Ubuntu 14.04 release
+
 If you disable dragonegg support during configure, fortran_test will be disabled and considered as passing the test.
 
 For example on an x86_64 Ubuntu 14.04 release, you should use the following
 install procedure:
 
 ```bash
-   $ sudo apt-get install libmpfr-dev clang-3.3 llvm-3.3-dev dragonegg-4.7 \
-       gcc-4.7 gfortran-4.7 autoconf automake build-essential python3 python3-numpy
+   $ sudo apt-get install libmpfr-dev clang-3.3 llvm-3.3-dev dragonegg-4.9 \
+       gcc-4.9 gfortran-4.9 autoconf automake build-essential python3 python3-numpy
    $ cd verificarlo/
    $ ./autogen.sh
    $ ./configure \
-       --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/dragonegg.so \
-       CC=gcc-4.7
+       --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.9/plugin/dragonegg.so \
+       CC=gcc-4.9
    $ make 
    $ sudo make install
 ```
 
-In order to use the delta debug features, you need to export the path of the corresponding python packages. For example, for a global install, this would resemble (edit for your installed Python version):
+### Delta debug
+
+In order to use the delta debug features, you need to export the path
+of the corresponding python packages. For example, for a global
+install, this would resemble (edit for your installed Python version):
 
 ```bash
 	$ export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/pythonXXX.XXX/site-packages
@@ -113,7 +146,10 @@ You can then check if your install was successful using:
 	$ make installcheck
 ```
 
-Alternatively, you can make the changes required for `ddebug` permanent by editing your `~/.bashrc`, `~/.profile` or whichever configuration file is relevant for your system by adding the above line, and then reloading your environment using:
+Alternatively, you can make the changes required for `ddebug`
+permanent by editing your `~/.bashrc`, `~/.profile` or whichever
+configuration file is relevant for your system by adding the above
+line, and then reloading your environment using:
 
 ```bash
 	$ source ~/.bashrc
@@ -127,7 +163,7 @@ directory is in your PATH.
 
 Then you can use the `verificarlo` command to compile your programs. Either modify 
 your makefile to use `verificarlo` as the compiler (`CC=verificarlo` and
-`FC=verificarlo` ) and linker (`LD=verificarlo`) or use the verificarlo command
+`FC=verificarlo`) and linker (`LD=verificarlo`) or use the verificarlo command
 directly:
 
 ```bash
@@ -178,8 +214,22 @@ after each backend,
 
 ```bash
    $ VFC_BACKENDS="libinterflop_ieee.so --debug; \
-                   libinterflop_mca.so --precision 10 --mode rr" \ 
+                   libinterflop_mca.so --precision-binary64 10 --mode rr" \ 
                    ./program"
+```
+
+To suppress the messages when loading backends, export the
+environment variable `VFC_BACKENDS_SILENT_LOAD`.
+
+```bash
+   $ export VFC_BACKENDS_SILENT_LOAD="True"
+   $ VFC_BACKENDS="libinterflop_ieee.so; libinterflop_mca.so" ./program"
+```
+
+To turn loading backends messages back on, unset the environment variable.
+
+```bash
+   $ unset VFC_BACKENDS_SILENT_LOAD
 ```
 
 ### IEEE Backend (libinterflop_ieee.so)
@@ -195,8 +245,10 @@ VFC_BACKENDS="libinterflop_ieee.so --help" ./test
 test: verificarlo loaded backend libinterflop_ieee.so
 Usage: libinterflop_ieee.so [OPTION...]
 
-  -b, --debug_binary         enable binary debug output
+  -b, --debug-binary         enable binary debug output
   -d, --debug                enable debug output
+  -n, --print-new-line       print new lines after debug output
+  -s, --no-print-debug-mode  do not print debug mode before debug outputting
   -?, --help                 Give this help list
       --usage                Give a short usage message
 
@@ -205,6 +257,31 @@ test: verificarlo loaded backend libinterflop_ieee.so
 interflop_ieee 1.23457e-05 - 9.87654e+12 -> -9.87654e+12
 interflop_ieee 1.23457e-05 * 9.87654e+12 -> 1.21933e+08
 interflop_ieee 1.23457e-05 / 9.87654e+12 -> 1.25e-18
+...
+
+VFC_BACKENDS="libinterflop_ieee.so --debug --no-print-debug-mode" ./test
+test: verificarlo loaded backend libinterflop_ieee.so
+1.23457e-05 - 9.87654e+12 -> -9.87654e+12
+1.23457e-05 * 9.87654e+12 -> 1.21933e+08
+1.23457e-05 / 9.87654e+12 -> 1.25e-18
+...
+
+VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line" ./test
+test: verificarlo loaded backend libinterflop_ieee.so
+interflop_ieee_bin 
++1.10011110010000001001000100000111000011011111010011 x 2^-17 - 
++1.00011111011100011111101100101011011 x 2^43 -> 
+-1.00011111011100011111101100101011011 x 2^43
+
+interflop_ieee_bin 
++1.10011110010000001001000100000111000011011111010011 x 2^-17 * 
++1.00011111011100011111101100101011011 x 2^43 -> 
++1.1101000100100010110100111000011001101011001001010001 x 2^26
+
+interflop_ieee_bin 
+-1.00011111011100011111101100101011011 x 2^43 + 
++1.1101000100100010110100111000011001101011001001010001 x 2^26 -> 
+-1.0001111101110001000100101001100111110110001111001101 x 2^43
 ...
 ```
 
@@ -221,7 +298,10 @@ test: verificarlo loaded backend libinterflop_mca.so
 Usage: libinterflop_mca.so [OPTION...] 
 
   -m, --mode=MODE            select MCA mode among {ieee, mca, pb, rr}
-  -p, --precision=PRECISION  select precision (PRECISION >= 0)
+      --precision-binary32=PRECISION
+                             select precision for binary32 (PRECISION >= 0)
+      --precision-binary64=PRECISION
+                             select precision for binary64 (PRECISION >= 0)
   -s, --seed=SEED            fix the random generator seed
   -?, --help                 Give this help list
       --usage                Give a short usage message
@@ -237,10 +317,13 @@ following case insensitive values:
  * `pb`: Precision Bounding inbound errors only
  * `rr`: Random Rounding outbound errors only
 
-The option `--precision=PRECISION` controls the virtual precision used for the
-floating point operations. It accepts an integer value that represents the
-virtual precision at which MCA operations are performed. Its default value is
-53. For a more precise definition of the virtual precision, you can refer to
+The option `--precision-binary64=PRECISION` controls the virtual
+precision used for the floating point operations in double precision
+(respectively for single precision with --precision-binary32) It
+accepts an integer value that represents the virtual precision at
+which MCA operations are performed. Its default value is 53 for
+binary64 and 24 for binary32. For a more precise definition of the
+virtual precision, you can refer to
 https://hal.archives-ouvertes.fr/hal-01192668.
 
 One should note when using the QUAD backend, that the round operations during
@@ -259,6 +342,64 @@ Arithmetic. It uses the GNU multiple precision library to compute MCA
 operations. It is heavily based on mcalib MPFR backend.
 
 MCA-MPFR backend accepts the same options than the MCA backend.
+
+### Bitmask Backend (libinterflop_bitmask.so)
+
+The Bitmask backend implements a fast first order model of noise. It
+relies on bitmask operations to achieve low overhead
+(~$\times$4). Contrary to MCA backends, introduced noise is biased,
+which means that the expected value of the noise is not equal to
+0. For more details, you can refer to the section 2.3.2 of
+https://tel.archives-ouvertes.fr/tel-02473301/document.
+
+```
+VFC_BACKENDS="libinterflop_bitmask.so --help" ./test
+test: verificarlo loaded backend libinterflop_bitmask.so
+Usage: libinterflop_bitmask.so [OPTION...] 
+
+  -m, --mode=MODE            select BITMASK mode among {ieee, full, ib, ob}
+  -o, --operator=OPERATOR    select BITMASK operator among {zero, one, rand}
+      --precision-binary32=PRECISION
+                             select precision for binary32 (PRECISION > 0)
+      --precision-binary64=PRECISION
+                             select precision for binary64 (PRECISION > 0)
+  -s, --seed=SEED            fix the random generator seed
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+```
+
+Three options control the behavior of the Bitmask backend.
+
+The option `--mode=MODE` controls the arithmetic error mode. It
+accepts the following case insensitive values:
+
+* `ieee`: the program uses the standard IEEE arithmetic, no errors are introduced
+* `ib`: InBound precision errors only
+* `ob`: OutBound precision errors only (default mode)
+* `full`: InBound and OutBound modes combine
+
+The option `--operator=OPERATOR` controls the bitmask operator to
+apply. It accepts the following case insensitive values:
+
+* `zero`: sets the last `t` bits of the mantissa to 0
+* `one`: sets the last `t` bits of the mantissa to 1
+* `rand`: applies a XOR of random bits to the last `t` bits of the mantissa (default mode)
+
+Modes `zero` and `one` are deterministic and require only one
+execution.  The `rand` mode is random and must be used like `mca`
+backends.
+
+The option `--precision-binary64=PRECISION` controls the virtual
+precision used for the floating point operations in double precision
+(respectively for single precision with --precision-binary32) It
+accepts an integer value that represents the virtual precision at
+which MCA operations are performed. Its default value is 53 for
+binary64 and 24 for binary32. For the Bitmask backend, the virtual
+precision corresponds to the number of preserved bits in the mantissa.
+
+The option `--seed` fixes the random generator seed. It should not
+generally be used except to reproduce a particular Bitmask
+trace.
 
 ## Verificarlo inclusion / exclusion options
 

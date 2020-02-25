@@ -5,7 +5,7 @@ set -e
 
 # Tchebychev polynom becomes unstable around 1, when computed with
 # single precision
-export VFC_BACKENDS="libinterflop_mca.so --precision 23"
+export VFC_BACKENDS="libinterflop_mca.so --precision-binary32 23"
 
 verificarlo tchebychev.c -o tchebychev
 

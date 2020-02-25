@@ -11,5 +11,9 @@ for op in fadd fsub fmul fdiv; do
 done
 
 VFC_BACKENDS="libinterflop_ieee.so" ./test
-VFC_BACKENDS="libinterflop_ieee.so --debug" ./test
 
+#Test options
+echo "Test interflop_ieee.so options"
+VFC_BACKENDS="libinterflop_ieee.so --help" ./test
+
+./test_options.sh

@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -169,6 +170,13 @@ __attribute__((constructor)) static void vfc_init(void) {
     errx(1, "VFC_BACKENDS is empty, at least one backend should be provided");
   }
 
+  /* Environnement variable to disable loading message */
+  char *silent_load_env = getenv("VFC_BACKENDS_SILENT_LOAD");
+  bool silent_load =
+      ((silent_load_env == NULL) || (strcasecmp(silent_load_env, "True") != 0))
+          ? false
+          : true;
+
   /* For each backend, load and register the backend vtable interface
      Backends .so are separated by semi-colons in the VFC_BACKENDS
      env variable */
@@ -196,7 +204,8 @@ __attribute__((constructor)) static void vfc_init(void) {
       errx(1, "Cannot load backend %s: dlopen error\n%s", token, dlerror());
     }
 
-    warnx("verificarlo loaded backend %s", token);
+    if (!silent_load)
+      warnx("verificarlo loaded backend %s", token);
 
     /* reset dl errors */
     dlerror();

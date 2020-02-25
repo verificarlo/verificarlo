@@ -5,7 +5,7 @@ set -e
 for EXP in FLOAT FLOAT_POW2; do
   verificarlo -D${EXP} -O0 rr_mode.c -o rr_mode
   for BACKEND in libinterflop_mca.so libinterflop_mca_mpfr.so; do
-    export VFC_BACKENDS="$BACKEND --precision 24 --mode rr"
+    export VFC_BACKENDS="$BACKEND --precision-binary32 24 --mode rr"
     rm -f output_${BACKEND}_${EXP}
     for i in `seq 100`; do
       ./rr_mode >> output_${BACKEND}_${EXP}
@@ -19,7 +19,7 @@ done
 for EXP in DOUBLE DOUBLE_POW2; do
   verificarlo -D${EXP} -O0 rr_mode.c -o rr_mode
   for BACKEND in libinterflop_mca.so libinterflop_mca_mpfr.so; do
-    export VFC_BACKENDS="$BACKEND --precision 53 --mode rr"
+    export VFC_BACKENDS="$BACKEND --precision-binary64 53 --mode rr"
     rm -f output_${BACKEND}_${EXP}
     for i in `seq 100`; do
       ./rr_mode >> output_${BACKEND}_${EXP}
