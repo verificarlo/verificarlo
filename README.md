@@ -242,8 +242,10 @@ Usage: libinterflop_ieee.so [OPTION...]
 
   -b, --debug-binary         enable binary debug output
   -d, --debug                enable debug output
-  -n, --print-new-line       print new lines after debug output
-  -s, --no-print-debug-mode  do not print debug mode before debug outputting
+  -n, --print-new-line       add a new line after debug ouput
+  -o, --print-subnormal-normalized
+                             normalize subnormal numbers
+  -s, --no-backend-name      do not print backend name in debug output
   -?, --help                 Give this help list
       --usage                Give a short usage message
 
