@@ -21,10 +21,11 @@
 #define QUAD_HX_PMAN_SIZE 48
 // Quad precison pseudo mantissa encoding size in the word containing the 64 lsb
 #define QUAD_LX_PMAN_SIZE 64
-// Quad precision pseudo mantissa encoding size for quiet nan in the word containing the 64
-// msb
+// Quad precision pseudo mantissa encoding size for quiet nan in the word
+// containing the 64 msb
 #define QUAD_HX_PMAN_QNAN_SIZE 47
-// Quad precison pseudo mantissa encoding size for quiet nan in the word containing the 64 lsb
+// Quad precison pseudo mantissa encoding size for quiet nan in the word
+// containing the 64 lsb
 #define QUAD_LX_PMAN_QNAN_SIZE 64
 // Quad precison mantissa size
 #define QUAD_PREC 113

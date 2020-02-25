@@ -1,9 +1,9 @@
 #ifndef __FLOAT_STRUCT_H_
 #define __FLOAT_STRUCT_H_
 
-#include <stdlib.h>
-#include <stdint.h>
 #include "float_const.h"
+#include <stdint.h>
+#include <stdlib.h>
 
 /* import from <quadmath-imp.h> */
 
@@ -24,9 +24,9 @@ typedef union {
 
   struct
 #ifdef __MINGW32__
-  /* On mingw targets the ms-bitfields option is active by default.
-     Therefore enforce gnu-bitfield style.  */
-  __attribute__((gcc_struct))
+      /* On mingw targets the ms-bitfields option is active by default.
+         Therefore enforce gnu-bitfield style.  */
+      __attribute__((gcc_struct))
 #endif
   {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
@@ -44,9 +44,9 @@ typedef union {
 
   struct
 #ifdef __MINGW32__
-  /* On mingw targets the ms-bitfields option is active by default.
-     Therefore enforce gnu-bitfield style.  */
-  __attribute__((gcc_struct))
+      /* On mingw targets the ms-bitfields option is active by default.
+         Therefore enforce gnu-bitfield style.  */
+      __attribute__((gcc_struct))
 #endif
   {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
@@ -59,7 +59,7 @@ typedef union {
     __uint128_t sign : QUAD_SIGN_SIZE;
 #endif
   } ieee128;
-  
+
   struct {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     uint64_t high;
@@ -179,19 +179,6 @@ typedef union {
   } ieee;
 
 } binary32;
-
-#define GET_EXP_MAX(X)                                                         \
-  _Generic((X), float : FLOAT_EXP_MAX, double : DOUBLE_EXP_MAX);
-#define GET_SIGN_SIZE(X)                                                       \
-  _Generic((X), float : FLOAT_SIGN_SIZE, double : DOUBLE_SIGN_SIZE);
-#define GET_EXP_SIZE(X)                                                        \
-  _Generic((X), float : FLOAT_EXP_SIZE, double : DOUBLE_EXP_SIZE);
-#define GET_PMAN_SIZE(X)                                                       \
-  _Generic((X), float : FLOAT_PMAN_SIZE, double : DOUBLE_PMAN_SIZE);
-#define GET_EXP_MIN(X)                                                         \
-  _Generic((X), float : FLOAT_EXP_MIN, double : DOUBLE_EXP_MIN);
-#define GET_EXP_COMP(X)                                                        \
-  _Generic((X), float : FLOAT_EXP_COMP, double : DOUBLE_EXP_COMP);
 
 #define QUADFP_NAN 0
 #define QUADFP_INFINITE 1

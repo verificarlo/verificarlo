@@ -34,6 +34,7 @@
 
 #include "../../common/float_const.h"
 #include "../../common/interflop.h"
+#include "../../common/logger.h"
 #include "../../common/printf_specifier.h"
 
 typedef enum {
@@ -43,6 +44,13 @@ typedef enum {
   KEY_PRINT_NEW_LINE = 'n',
   KEY_PRINT_SUBNORMAL_NORMALIZED
 } key_args;
+
+static const char key_debug_str[] = "debug";
+static const char key_debug_binary_str[] = "debug-binary";
+static const char key_no_backend_name_str[] = "no-backend-name";
+static const char key_print_new_line_str[] = "print-new-line";
+static const char key_print_subnormal_normalized_str[] =
+    "print-subnormal-normalized";
 
 typedef struct {
   bool debug;
@@ -107,8 +115,8 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
   va_end(ap);
 }
 
-#define DEBUG_HEADER "interflop_ieee "
-#define DEBUG_BINARY_HEADER "interflop_ieee_bin "
+#define DEBUG_HEADER "Decimal "
+#define DEBUG_BINARY_HEADER "Binary "
 
 /* This macro print the debug information for a, b and c */
 /* the debug_print function handles automatically the format */
@@ -126,7 +134,10 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
       char *float_fmt =                                                        \
           (subnormal_normalized) ? FMT_SUBNORMAL_NORMALIZED(a) : FMT(a);       \
       if (print_header)                                                        \
-        debug_print(context, float_fmt, header);                               \
+	if (((t_context*)context)->print_new_line)			\
+	  logger_info("%s\n",header);					\
+	else								\
+	  logger_info("%s",header);					\
       if (typeop == ARITHMETIC) {                                              \
         debug_print(context, float_fmt, "%g %s ", a, a, op);                   \
         debug_print(context, float_fmt, "%g -> ", b);                          \
@@ -139,215 +150,159 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
     }                                                                          \
   }
 
-inline void debug_print_float(void *context, operation_type typeop,
-                              const char *op, float a, float b, float c) {
+inline void debug_print_float(void *context, const operation_type typeop,
+                              const char *op, const float a, const float b,
+                              const float c) {
   DEBUG_PRINT(context, typeop, op, a, b, c);
 }
 
-inline void debug_print_double(void *context, operation_type typeop,
-                               const char *op, double a, double b, double c) {
+inline void debug_print_double(void *context, const operation_type typeop,
+                               const char *op, const double a, const double b,
+                               const double c) {
   DEBUG_PRINT(context, typeop, op, a, b, c);
 }
 
-static void _interflop_add_float(float a, float b, float *c, void *context) {
+/* Set C to the result of the comparison P between A and B */
+/* Set STR to name of the comparison  */
+#define SELECT_FLOAT_CMP(A, B, C, P, STR)                                      \
+  switch (P) {                                                                 \
+  case FCMP_FALSE:                                                             \
+    *C = false;                                                                \
+    STR = "FCMP_FALSE";                                                        \
+    break;                                                                     \
+  case FCMP_OEQ:                                                               \
+    *C = ((!isnan(A)) && (!isnan(B)) && (A == B));                             \
+    STR = "FCMP_OEQ";                                                          \
+    break;                                                                     \
+  case FCMP_OGT:                                                               \
+    *C = ((!isnan(A)) && (!isnan(B)) && (A > B));                              \
+    STR = "FCMP_OGT";                                                          \
+    break;                                                                     \
+  case FCMP_OGE:                                                               \
+    *C = ((!isnan(A)) && (!isnan(B)) && (A >= B));                             \
+    STR = "FCMP_OGE";                                                          \
+    break;                                                                     \
+  case FCMP_OLT:                                                               \
+    *C = ((!isnan(A)) && (!isnan(B)) && (A < B));                              \
+    STR = "FCMP_OLT";                                                          \
+    break;                                                                     \
+  case FCMP_OLE:                                                               \
+    *C = ((!isnan(A)) && (!isnan(B)) && (A <= B));                             \
+    STR = "FCMP_OLE";                                                          \
+    break;                                                                     \
+  case FCMP_ONE:                                                               \
+    *C = ((!isnan(A)) && (!isnan(B)) && (A != B));                             \
+    STR = "FCMP_ONE";                                                          \
+    break;                                                                     \
+  case FCMP_ORD:                                                               \
+    *C = ((!isnan(A)) && (!isnan(B)));                                         \
+    STR = "FCMP_ORD";                                                          \
+    break;                                                                     \
+  case FCMP_UEQ:                                                               \
+    *C = ((!isnan(A)) || (!isnan(B)) || (A == B));                             \
+    STR = "FCMP_UEQ";                                                          \
+    break;                                                                     \
+  case FCMP_UGT:                                                               \
+    *C = ((!isnan(A)) || (!isnan(B)) || (A > B));                              \
+    STR = "FCMP_UGT";                                                          \
+    break;                                                                     \
+  case FCMP_UGE:                                                               \
+    *C = ((!isnan(A)) || (!isnan(B)) || (A >= B));                             \
+    STR = "FCMP_UGE";                                                          \
+    break;                                                                     \
+  case FCMP_ULT:                                                               \
+    *C = ((!isnan(A)) || (!isnan(B)) || (A < B));                              \
+    str = "FCMP_ULT";                                                          \
+    break;                                                                     \
+  case FCMP_ULE:                                                               \
+    *C = ((!isnan(A)) || (!isnan(B)) || (A <= B));                             \
+    STR = "FCMP_ULE";                                                          \
+    break;                                                                     \
+  case FCMP_UNE:                                                               \
+    *C = ((!isnan(A)) || (!isnan(B)) || (A != B));                             \
+    STR = "FCMP_UNE";                                                          \
+    break;                                                                     \
+  case FCMP_UNO:                                                               \
+    *C = ((!isnan(A)) || (!isnan(B)));                                         \
+    str = "FCMP_UNO";                                                          \
+    break;                                                                     \
+  case FCMP_TRUE:                                                              \
+    *c = true;                                                                 \
+    str = "FCMP_TRUE";                                                         \
+    break;                                                                     \
+  }
+
+static void _interflop_add_float(const float a, const float b, float *c,
+                                 void *context) {
   *c = a + b;
   debug_print_float(context, ARITHMETIC, "+", a, b, *c);
 }
 
-static void _interflop_sub_float(float a, float b, float *c, void *context) {
+static void _interflop_sub_float(const float a, const float b, float *c,
+                                 void *context) {
   *c = a - b;
   debug_print_float(context, ARITHMETIC, "-", a, b, *c);
 }
 
-static void _interflop_mul_float(float a, float b, float *c, void *context) {
+static void _interflop_mul_float(const float a, const float b, float *c,
+                                 void *context) {
   *c = a * b;
   debug_print_float(context, ARITHMETIC, "*", a, b, *c);
 }
 
-static void _interflop_div_float(float a, float b, float *c, void *context) {
+static void _interflop_div_float(const float a, const float b, float *c,
+                                 void *context) {
   *c = a / b;
   debug_print_float(context, ARITHMETIC, "/", a, b, *c);
 }
 
-static void _interflop_cmp_float(enum FCMP_PREDICATE p, float a, float b,
-                                 int *c, void *context) {
+static void _interflop_cmp_float(const enum FCMP_PREDICATE p, const float a,
+                                 const float b, int *c, void *context) {
   char *str = "";
-
-  switch (p) {
-  case FCMP_FALSE:
-    *c = 0;
-    str = "FCMP_FALSE";
-    break;
-  case FCMP_OEQ:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a == b));
-    str = "FCMP_OEQ";
-    break;
-  case FCMP_OGT:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a > b));
-    str = "FCMP_OGT";
-    break;
-  case FCMP_OGE:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a >= b));
-    str = "FCMP_OGE";
-    break;
-  case FCMP_OLT:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a < b));
-    str = "FCMP_OLT";
-    break;
-  case FCMP_OLE:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a <= b));
-    str = "FCMP_OLE";
-    break;
-  case FCMP_ONE:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a != b));
-    str = "FCMP_ONE";
-    break;
-  case FCMP_ORD:
-    *c = ((!isnan(a)) && (!isnan(b)));
-    str = "FCMP_ORD";
-    break;
-  case FCMP_UEQ:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a == b));
-    str = "FCMP_UEQ";
-    break;
-  case FCMP_UGT:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a > b));
-    str = "";
-    break;
-  case FCMP_UGE:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a >= b));
-    str = "FCMP_UGT";
-    break;
-  case FCMP_ULT:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a < b));
-    str = "FCMP_ULT";
-    break;
-  case FCMP_ULE:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a <= b));
-    str = "FCMP_ULE";
-    break;
-  case FCMP_UNE:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a != b));
-    str = "FCMP_UNE";
-    break;
-  case FCMP_UNO:
-    *c = ((!isnan(a)) || (!isnan(b)));
-    str = "FCMP_UNO";
-    break;
-  case FCMP_TRUE:
-    *c = 1;
-    str = "FCMP_TRUE";
-    break;
-  }
+  SELECT_FLOAT_CMP(a, b, c, p, str);
   debug_print_float(context, COMPARISON, str, a, b, *c);
 }
 
-static void _interflop_add_double(double a, double b, double *c,
+static void _interflop_add_double(const double a, const double b, double *c,
                                   void *context) {
   *c = a + b;
   debug_print_double(context, ARITHMETIC, "+", a, b, *c);
 }
 
-static void _interflop_sub_double(double a, double b, double *c,
+static void _interflop_sub_double(const double a, const double b, double *c,
                                   void *context) {
   *c = a - b;
   debug_print_double(context, ARITHMETIC, "-", a, b, *c);
 }
 
-static void _interflop_mul_double(double a, double b, double *c,
+static void _interflop_mul_double(const double a, const double b, double *c,
                                   void *context) {
   *c = a * b;
   debug_print_double(context, ARITHMETIC, "*", a, b, *c);
 }
 
-static void _interflop_div_double(double a, double b, double *c,
+static void _interflop_div_double(const double a, const double b, double *c,
                                   void *context) {
   *c = a / b;
   debug_print_double(context, ARITHMETIC, "/", a, b, *c);
 }
 
-static void _interflop_cmp_double(enum FCMP_PREDICATE p, double a, double b,
-                                  int *c, void *context) {
+static void _interflop_cmp_double(const enum FCMP_PREDICATE p, const double a,
+                                  const double b, int *c, void *context) {
   char *str = "";
-
-  switch (p) {
-  case FCMP_FALSE:
-    *c = 0;
-    str = "FCMP_FALSE";
-    break;
-  case FCMP_OEQ:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a == b));
-    str = "FCMP_OEQ";
-    break;
-  case FCMP_OGT:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a > b));
-    str = "FCMP_OGT";
-    break;
-  case FCMP_OGE:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a >= b));
-    str = "FCMP_OGE";
-    break;
-  case FCMP_OLT:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a < b));
-    str = "FCMP_OLT";
-    break;
-  case FCMP_OLE:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a <= b));
-    str = "FCMP_OLE";
-    break;
-  case FCMP_ONE:
-    *c = ((!isnan(a)) && (!isnan(b)) && (a != b));
-    str = "FCMP_ONE";
-    break;
-  case FCMP_ORD:
-    *c = ((!isnan(a)) && (!isnan(b)));
-    str = "FCMP_ORD";
-    break;
-  case FCMP_UEQ:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a == b));
-    str = "FCMP_UEQ";
-    break;
-  case FCMP_UGT:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a > b));
-    str = "";
-    break;
-  case FCMP_UGE:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a >= b));
-    str = "FCMP_UGT";
-    break;
-  case FCMP_ULT:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a < b));
-    str = "FCMP_ULT";
-    break;
-  case FCMP_ULE:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a <= b));
-    str = "FCMP_ULE";
-    break;
-  case FCMP_UNE:
-    *c = ((!isnan(a)) || (!isnan(b)) || (a != b));
-    str = "FCMP_UNE";
-    break;
-  case FCMP_UNO:
-    *c = ((!isnan(a)) || (!isnan(b)));
-    str = "FCMP_UNO";
-    break;
-  case FCMP_TRUE:
-    *c = 1;
-    str = "FCMP_TRUE";
-    break;
-  }
+  SELECT_FLOAT_CMP(a, b, c, p, str);
   debug_print_double(context, COMPARISON, str, a, b, *c);
 }
 
 static struct argp_option options[] = {
-    /* --debug, sets the variable debug = true */
-    {"debug", KEY_DEBUG, 0, 0, "enable debug output"},
-    {"debug-binary", KEY_DEBUG_BINARY, 0, 0, "enable binary debug output"},
-    {"no-backend-name", KEY_NO_BACKEND_NAME, 0, 0,
+    {key_debug_str, KEY_DEBUG, 0, 0, "enable debug output"},
+    {key_debug_binary_str, KEY_DEBUG_BINARY, 0, 0,
+     "enable binary debug output"},
+    {key_no_backend_name_str, KEY_NO_BACKEND_NAME, 0, 0,
      "do not print backend name in debug output"},
-    {"print-new-line", KEY_PRINT_NEW_LINE, 0, 0,
+    {key_print_new_line_str, KEY_PRINT_NEW_LINE, 0, 0,
      "add a new line after debug ouput"},
-    {"print-subnormal-normalized", KEY_PRINT_SUBNORMAL_NORMALIZED, 0, 0,
+    {key_print_subnormal_normalized_str, KEY_PRINT_SUBNORMAL_NORMALIZED, 0, 0,
      "normalize subnormal numbers"},
     {0}};
 
