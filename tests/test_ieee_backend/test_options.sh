@@ -2,6 +2,7 @@
 set -e
 
 export VFC_BACKENDS_SILENT_LOAD="true"
+export VFC_BACKENDS_LOGGER="false"
 
 run() {
     export VFC_BACKENDS="libinterflop_ieee.so ${DEBUG_MODE} ${OPTIONS}"
@@ -38,27 +39,27 @@ for TYPE in float double; do
     DEBUG_MODE="--debug"
     OPTIONS=""
     run
-    check "$(grep -q "interflop_ieee" log; echo $?)" "Error debug mode (interflop_ieee) not printed"
+    check "$(grep -q "Decimal" log; echo $?)" "Error debug mode (Decimal) not printed"
 
     DEBUG_MODE="--debug-binary"
     OPTIONS=""
     run   
-    check "$(grep -q "interflop_ieee_bin" log; echo $?)" "Error debug mode (interflop_ieee_bin) not printed"
+    check "$(grep -q "Binary" log; echo $?)" "Error debug mode (Decimal_bin) not printed"
 
     DEBUG_MODE="--debug"
     OPTIONS="--no-backend-name"
     run
-    check "$(grep -vq "interflop_ieee" log; echo $?)" "Error debug mode (interflop_ieee) printed"
+    check "$(grep -vq "Decimal" log; echo $?)" "Error debug mode (Decimal) printed"
 
     DEBUG_MODE="--debug-binary"
     OPTIONS="--no-backend-name"
     run
-    check "$(grep -vq "interflop_ieee_bin" log; echo $?)" "Error debug mode (interflop_ieee_bin) printed"
+    check "$(grep -vq "Binary" log; echo $?)" "Error debug mode (Binary) printed"
 
     DEBUG_MODE="--debug"
     OPTIONS="--print-new-line"
     run
-    check "$(grep -vq "interflop_ieee" log; echo $?)" "Error no new lines printed"
+    check "$(grep -vq "Decimal" log; echo $?)" "Error no new lines printed"
 
     DEBUG_MODE="--debug-binary"
     OPTIONS="--print-new-line"

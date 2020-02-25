@@ -227,6 +227,21 @@ To turn loading backends messages back on, unset the environment variable.
    $ unset VFC_BACKENDS_SILENT_LOAD
 ```
 
+To suppress the messages displayed by the logger, export the 
+environment variable `VFC_BACKENDS_LOGGER`.
+
+```bash
+   $ export VFC_BACKENDS_LOGGER="False"
+```
+
+To remove the color displayed by the logger, export the
+environment variable `VFC_BACKENDS_COLORED_LOGGER`.
+
+```bash
+   $ export VFC_BACKENDS_COLORED_LOGGER="False"
+```
+
+
 ### IEEE Backend (libinterflop_ieee.so)
 
 The IEEE backend implements straighforward IEEE-754 arithmetic. 
@@ -250,28 +265,28 @@ Usage: libinterflop_ieee.so [OPTION...]
       --usage                Give a short usage message
 
 VFC_BACKENDS="libinterflop_ieee.so --debug" ./test
-test: verificarlo loaded backend libinterflop_ieee.so
-interflop_ieee 1.23457e-05 - 9.87654e+12 -> -9.87654e+12
-interflop_ieee 1.23457e-05 * 9.87654e+12 -> 1.21933e+08
-interflop_ieee 1.23457e-05 / 9.87654e+12 -> 1.25e-18
+Info [verificarlo]: loaded backend libinterflop_ieee.so
+Info [interflop_ieee]: Decimal 1.23457e-05 - 9.87654e+12 -> -9.87654e+12
+Info [interflop_ieee]: Decimal 1.23457e-05 * 9.87654e+12 -> 1.21933e+08
+Info [interflop_ieee]: Decimal 1.23457e-05 / 9.87654e+12 -> 1.25e-18
 ...
 
 VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line" ./test
-test: verificarlo loaded backend libinterflop_ieee.so
-interflop_ieee_bin 
-+1.10011110010000001001000100000111000011011111010011 x 2^-17 - 
-+1.00011111011100011111101100101011011 x 2^43 -> 
--1.00011111011100011111101100101011011 x 2^43
+Info [verificarlo]: loaded backend libinterflop_ieee.so
+Info [interflop_ieee]: Binary 
++1.100111100100000011000001011001111111010000011 x 2^-17 - 
++1.00011111011100011111010100010000111 x 2^43 -> 
+-1.00011111011100011111010100010000111 x 2^43
 
-interflop_ieee_bin 
-+1.10011110010000001001000100000111000011011111010011 x 2^-17 * 
-+1.00011111011100011111101100101011011 x 2^43 -> 
-+1.1101000100100010110100111000011001101011001001010001 x 2^26
+Info [interflop_ieee]: Binary 
++1.100111100100000011000001011001111111010000011 x 2^-17 * 
++1.00011111011100011111010100010000111 x 2^43 -> 
++1.110100010010001011111111111110000011000100100110111 x 2^26
 
-interflop_ieee_bin 
--1.00011111011100011111101100101011011 x 2^43 + 
-+1.1101000100100010110100111000011001101011001001010001 x 2^26 -> 
--1.0001111101110001000100101001100111110110001111001101 x 2^43
+Info [interflop_ieee]: Binary 
++1.100111100100000011000001011001111111010000011 x 2^-17 / 
++1.00011111011100011111010100010000111 x 2^43 -> 
++1.0111000011101111100001010101101010010010111010010101 x 2^-60
 ...
 ```
 
@@ -291,6 +306,8 @@ Usage: libinterflop_mca.so [OPTION...]
                              select precision for binary32 (PRECISION >= 0)
       --precision-binary64=PRECISION
                              select precision for binary64 (PRECISION >= 0)
+  -d, --daz                  denormals-are-zero: sets denormals inputs to zero
+  -f, --ftz                  flush-to-zero: sets denormal output to zero
   -s, --seed=SEED            fix the random generator seed
   -?, --help                 Give this help list
       --usage                Give a short usage message
@@ -319,6 +336,19 @@ MCA computation always use round-to-zero mode.
 
 In Random Round mode, the exact operations in given virtual precision are
 preserved.
+
+The options `--daz` and `--ftz` flush subnormal numbers to 0.
+The `--daz` (**Denormals-Are-Zero**) flush subnormal inputs to 0.
+The `--ftz` (**Flush-To-Zero**) flush subnormal output to 0.
+
+```bash
+   $ VFC_BACKENDS="libinterflop_mca.so --mode=ieee" ./test
+   $ 0x0.fffffep-126 +0x1.000000p-149 = 0x1.000000p-126
+   $ VFC_BACKENDS="libinterflop_mca.so --mode=ieee --daz" ./test
+   $ 0x0.fffffep-126 +0x1.000000p-149 = 0x0
+   $ VFC_BACKENDS="libinterflop_mca.so --mode=ieee --ftz" ./test
+   $ 0x0.fffffep-126 +0x1.000000p-149 = 0x1.000000p-126
+```
 
 The option `--seed` fixes the random generator seed. It should not generally be used
 except if one to reproduce a particular MCA trace.
@@ -349,6 +379,8 @@ Usage: libinterflop_bitmask.so [OPTION...]
                              select precision for binary32 (PRECISION > 0)
       --precision-binary64=PRECISION
                              select precision for binary64 (PRECISION > 0)
+  -d, --daz                  denormals-are-zero: sets denormals inputs to zero
+  -f, --ftz                  flush-to-zero: sets denormal output to zero
   -s, --seed=SEED            fix the random generator seed
   -?, --help                 Give this help list
       --usage                Give a short usage message
