@@ -355,15 +355,16 @@ static void _interflop_div_double(double a, double b, double *c,
 
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
-     "select precision for binary32 (PRECISION > 0)"},
+     "select precision for binary32 (PRECISION > 0)", 0},
     {key_prec_b64_str, KEY_PREC_B64, "PRECISION", 0,
-     "select precision for binary64 (PRECISION > 0)"},
+     "select precision for binary64 (PRECISION > 0)", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
-     "select MCA mode among {ieee, mca, pb, rr}"},
-    {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed"},
+     "select MCA mode among {ieee, mca, pb, rr}", 0},
+    {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed", 0},
     {key_daz_str, KEY_DAZ, 0, 0,
-     "denormals-are-zero: sets denormals inputs to zero"},
-    {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero"},
+     "denormals-are-zero: sets denormals inputs to zero", 0},
+    {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero",
+     0},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -433,7 +434,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
-static struct argp argp = {options, parse_opt, "", ""};
+static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
 
 static void init_context(t_context *ctx) {
   ctx->choose_seed = false;

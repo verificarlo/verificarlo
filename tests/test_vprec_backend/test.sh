@@ -6,6 +6,12 @@ if [[ $# == 1 ]]; then
 fi
 
 case $usecase in
+    fast)
+	RANGE_MIN=2
+	RANGE_STEP=4
+	PRECISION_MIN=3
+	PRECISION_STEP=20
+	;;
     small)	
 	RANGE_MIN=2
 	RANGE_STEP=4
@@ -26,6 +32,7 @@ case $usecase in
 	;;
     cmp) ./comparison.sh $1 $2 $3; exit 0 ;;
     *)
+	usecase=fast
 	RANGE_MIN=2
 	RANGE_STEP=4
 	PRECISION_MIN=3
@@ -38,5 +45,5 @@ esac
     echo "PRECISION_STEP=${PRECISION_STEP}"
 
 
-./generic_test.sh ${RANGE_MIN} ${RANGE_STEP} ${PRECISION_MIN} ${PRECISION_STEP}
+./generic_test.sh ${usecase} ${RANGE_MIN} ${RANGE_STEP} ${PRECISION_MIN} ${PRECISION_STEP}
   

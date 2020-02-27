@@ -91,15 +91,15 @@ static inline double _noise_binary64(const int exp) {
 #define cancell(X, Y, Z)                                                       \
   ({                                                                           \
     const int32_t e_z = GET_EXP_FLT(*Z);                                       \
-   /* computes the difference between the max of both operands and the
-    * exponent of the result to find the size of the cancellation */           \
+    /* computes the difference between the max of both operands and the        \
+     * exponent of the result to find the size of the cancellation */          \
     int cancellation = max(GET_EXP_FLT(X), GET_EXP_FLT(Y)) - e_z;              \
     if (cancellation >= TOLERANCE) {                                           \
       if (WARN) {                                                              \
         logger_info("cancellation of size %d detected\n", cancellation);       \
       }                                                                        \
-      /* Add an MCA noise of the magnitude of cancelled bits.
-       * This particular version in the case of cancellations does not use
+      /* Add an MCA noise of the magnitude of cancelled bits.                  \
+       * This particular version in the case of cancellations does not use     \
        * extended quad types */                                                \
       const int32_t e_n = e_z - (cancellation - 1);                            \
       *Z = *Z + _noise_binary64(e_n);                                          \
@@ -148,9 +148,9 @@ static void _interflop_div_double(double a, double b, double *c,
 }
 
 static struct argp_option options[] = {
-    {"tolerance", 't', "TOLERANCE", 0, "Select tolerance (TOLERANCE >= 0)"},
-    {"warning", 'w', "WARNING", 0, "Enable warning for cancellations"},
-    {"seed", 's', "SEED", 0, "Fix the random generator seed"},
+    {"tolerance", 't', "TOLERANCE", 0, "Select tolerance (TOLERANCE >= 0)", 0},
+    {"warning", 'w', "WARNING", 0, "Enable warning for cancellations", 0},
+    {"seed", 's', "SEED", 0, "Fix the random generator seed", 0},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -185,7 +185,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
-static struct argp argp = {options, parse_opt, "", ""};
+static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
 
 static void init_context(t_context *ctx) {
   ctx->choose_seed = 0;

@@ -1,2 +1,2 @@
 #!/bin/sh
-verificarlo -DPLATFORM='"linux"' test.c
+verificarlo-c -DPLATFORM='"linux"' test.c

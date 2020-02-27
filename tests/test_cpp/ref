@@ -1,0 +1,3 @@
+Info [verificarlo]: loaded backend libinterflop_ieee.so
+Info [interflop_ieee]: Decimal 1 + 2 -> 3
+Info [interflop_ieee]: Decimal 2 + 3 -> 5

@@ -72,12 +72,12 @@ $GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_doubl
 # It compares that results are equivalents up to the bit.
 for op in "+" "-" "*" "/" ; do
     echo "Checking $op float"
-    verificarlo --function=operate --verbose -D REAL=float -D SAMPLES=$SAMPLES -D OPERATION="$op" -O0 test.c -o test
+    verificarlo-c --function=operate --verbose -D REAL=float -D SAMPLES=$SAMPLES -D OPERATION="$op" -O0 test.c -o test
     check_status
     check 23 4 FLOAT RAND
 
     echo "Checking $op double"
-    verificarlo --function=operate --verbose -D REAL=double -D SAMPLES=$SAMPLES -D OPERATION="$op" -O0 test.c -o test
+    verificarlo-c --function=operate --verbose -D REAL=double -D SAMPLES=$SAMPLES -D OPERATION="$op" -O0 test.c -o test
     check_status
     check 52 3 DOUBLE RAND
 done

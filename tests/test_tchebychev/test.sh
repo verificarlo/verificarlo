@@ -7,7 +7,7 @@ set -e
 # single precision
 export VFC_BACKENDS="libinterflop_mca.so --precision-binary32 23"
 
-verificarlo tchebychev.c -o tchebychev
+verificarlo-c tchebychev.c -o tchebychev
 
 # Run 15 iterations of tchebychev for all values in [.0:1.0:.01]
 echo "z y" > output

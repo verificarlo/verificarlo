@@ -49,12 +49,12 @@ Check() {
 
 for op in "+" "-" "*" "/" ; do
     echo "Checking $op float"
-    verificarlo -D REAL=float -D SAMPLES=100 -D OPERATION="$op" -O0 test.c -o test
+    verificarlo-c -D REAL=float -D SAMPLES=100 -D OPERATION="$op" -O0 test.c -o test
     check_status
     Check 24 4 float
 
     echo "Checking $op double"
-    verificarlo -D REAL=double -D SAMPLES=100 -D OPERATION="$op" -O0 test.c -o test
+    verificarlo-c -D REAL=double -D SAMPLES=100 -D OPERATION="$op" -O0 test.c -o test
     check_status
     Check 53 3 double
 done

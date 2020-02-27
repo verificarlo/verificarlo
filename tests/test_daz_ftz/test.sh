@@ -12,7 +12,7 @@ check_success() {
 
 compile() {
     TYPE=$1
-    verificarlo -D REAL=${TYPE,,} -O0 test.c -o test -lm
+    verificarlo-c -D REAL=${TYPE,,} -O0 test.c -o test -lm
     check_success
 }
 

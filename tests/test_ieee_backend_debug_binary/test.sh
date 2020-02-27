@@ -13,7 +13,7 @@ check_success() {
 
 compile() {
     TYPE=$1
-    verificarlo -D${TYPE^^} -O0 test.c --verbose -o test -lm
+    verificarlo-c -D${TYPE^^} -O0 test.c --verbose -o test -lm
     check_success
 }
 

@@ -10,8 +10,7 @@ A tool for debugging and assessing floating point precision and reproducibility.
 
    * [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
    * [Installation](#installation)
-      * [Example on x86_64 Ubuntu 14.04 release without Fortran support](#example-on-x86_64-ubuntu-1404-release-without-fortran-support)
-      * [Fortran support](#fortran-support)
+      * [Example on x86_64 Ubuntu 20.04 release with Fortran support](#example-on-x86_64-ubuntu-2004-release-with-fortran-support)
       * [Checking installation](#checking-installation)
    * [Usage](#usage)
    * [Examples and Tutorial](#examples-and-tutorial)
@@ -34,9 +33,9 @@ A tool for debugging and assessing floating point precision and reproducibility.
 
 ## Using Verificarlo through its Docker image
 
-A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/. 
+A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/.
 This image uses the latest git master version of Verificarlo and includes
-support for Fortran. It uses llvm-3.6.1 and gcc-4.9.
+support for Fortran. It uses llvm-7 and gcc-7.
 
 Example of usage with Monte Carlo arithmetic:
 
@@ -53,12 +52,12 @@ HERE
 
 $ docker pull verificarlo/verificarlo
 $ docker run -v "$PWD":/workdir verificarlo/verificarlo \
-   verificarlo test.c -o test
+   verificarlo-c test.c -o test
 $ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
    verificarlo/verificarlo ./test
 999.99999999999795364
 $ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
-   verificarlo/verificarlo ./test   
+   verificarlo/verificarlo ./test
 999.99999999999761258
 ```
 
@@ -67,9 +66,9 @@ $ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt from 3.3 up to 9.0.1, http://clang.llvm.org/
+  * LLVM, clang and opt from 4.0 up to 9.0.1, http://clang.llvm.org/
   * gcc from 4.9
-  * For Fortran support see section Fortran support
+  * flang for Fortran support
   * python3 with numpy and bigfloat packages
   * autotools (automake, autoconf)
 
@@ -77,53 +76,25 @@ Then run the following command inside verificarlo directory:
 
 ```bash
    $ ./autogen.sh
-   $ ./configure --without-dragonegg
+   $ ./configure --without-flang
    $ make
    $ sudo make install
 ```
 
-### Example on x86_64 Ubuntu 14.04 release without Fortran support
+### Example on x86_64 Ubuntu 20.04 release with Fortran support
 
-For example on an x86_64 Ubuntu 14.04 release, you should use the following
+For example on an x86_64 Ubuntu 20.04 release, you should use the following
 install procedure:
 
 ```bash
-   $ sudo apt-get install libmpfr-dev clang-3.3 llvm-3.3-dev dragonegg-4.9 \
-       gcc-4.9 gfortran-4.9 autoconf automake build-essential python3 python3-numpy
+   $ sudo apt-get install libmpfr-dev clang-7 flang-7 llvm-7-dev \
+       gcc-7 autoconf automake build-essential python3 python3-numpy python3-pip
+   $ sudo pip3 install bigfloat
    $ cd verificarlo/
    $ ./autogen.sh
-   $ ./configure \
-       --with-dragonegg=/usr/lib/gcc/x86_64-linux-gnu/4.9/plugin/dragonegg.so \
-       CC=gcc-4.9
-   $ make 
+   $ ./configure --with-flang CC=gcc-7 CXX=g++-7
+   $ make
    $ sudo make install
-```
-
-### Fortran support
-
-In the upcoming release Fortran support will be provided by `flang`. In the
-meantime, if you need Fortran support you can either use the provided [docker
-image](https://hub.docker.com/r/verificarlo/verificarlo/) or follow the
-instructions below to install `dragongegg.so` with a recent gcc.
-
-```bash
-   # Install gcc-4.9, gfortran-4.9 and llvm-3.6.1 with the following commands:
-   $ sudo apt install gcc-4.9 gcc-4.9-plugin-dev g++-4.9 gfortran-4.9 libgfortran-4.9-dev
-   $ wget http://releases.llvm.org/3.6.1/clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
-   $ tar xvf clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz llvm-3.6.1
-   $ export LLVM_INSTALL_PATH=$PWD/llvm-3.6.1
-
-   # Install dragonegg
-   $ git clone -b gcc-llvm-3.6 --depth=1 https://github.com/yohanchatelain/DragonEgg.git
-   $ cd DragonEgg
-   $ LLVM_CONFIG=${LLVM_INSTALL_PATH}/bin/llvm-config GCC=gcc-4.9 CXX=g++-4.9 make
-   $ export DRAGONEGG_PATH=$PWD/dragonegg.so
-   
-   # Install Verificarlo
-   $ cd verificarlo/
-   $ ./autogen.sh
-   $ ./configure --with-llvm=${LLVM_INSTALL_PATH} --with-dragonegg=${DRAGONEGG_PATH} CC=gcc-4.9 CXX=g++4.9
-   $ make && sudo make install
 ```
 
 ### Checking installation
@@ -148,36 +119,48 @@ Then you can run the test suite with,
    $ make installcheck
 ```
 
-If you disable dragonegg support during configure, Fortran tests will be
+If you disable flang support during configure, Fortran tests will be
 disabled and considered as passing the test.
-
-
 
 ## Usage
 
 To automatically instrument a program with Verificarlo you must compile it using
-the `verificarlo` command. First make sure that the verificarlo installation
+the `verificarlo --linker=<linker>` command, where `<linker>` depends on the targeted language:
+
+
+* `verificarlo --linker=clang`   for C
+* `verificarlo --linker=clang++` for C++
+* `verificarlo --linker=flang`   for Fortran
+
+Verificarlo uses the linker `clang` by default.
+
+You can also use the provided wrappers to call `verificarlo` with the right linker:
+
+* `verificarlo-c` for C
+* `verificarlo-c++` for C++
+* `verificarlo-f` for Fortran
+
+First make sure that the verificarlo installation
 directory is in your PATH.
 
-Then you can use the `verificarlo` command to compile your programs. Either modify 
-your makefile to use `verificarlo` as the compiler (`CC=verificarlo` and
-`FC=verificarlo`) and linker (`LD=verificarlo`) or use the verificarlo command
+Then you can use the `verificarlo-c`, `verificarlo-f` and `verificarlo-c++` commands to compile your programs.
+Either modify your makefile to use `verificarlo` as the compiler (`CC=verificarlo-c`,
+`FC=verificarlo-f` and `CXX=verificarlo-c++`) and linker (`LD=verificarlo --linker=<linker>`) or use the verificarlo command
 directly:
 
 ```bash
-   $ verificarlo *.c *.f90 -o ./program
+   $ verificarlo-c *.c *.f90 -o ./program
 ```
 
 If you are trying to compile a shared library, such as those built by the Cython
 extension to Python, you can then also set the shared linker environment variable
-(`LDSHARED='verificarlo -shared'`) to enable position-independent linking.
+(`LDSHARED='verificarlo --linker=<linker> -shared'`) to enable position-independent linking.
 
 When invoked with the `--verbose` flag, verificarlo provides detailed output of
 the instrumentation process.
 
 It is important to include the necessary link flags if you use extra libraries.
 For example, you should include `-lm` if you are linking against the math
-library and include `-lstdc++` if you use functions in the standard C++
 library.
 
 ## Examples and Tutorial
@@ -190,16 +173,16 @@ A [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) is avail
 
 Once your program is compiled with Verificarlo, it can be instrumented with
 different floating-point backends.
-At least one backend must be selected when running your application, 
+At least one backend must be selected when running your application,
 
 ```bash
-   $ verificarlo *.c -o program
+   $ verificarlo-c *.c -o program
    $ ./program
    program: VFC_BACKENDS is empty, at least one backend should be provided
 ```
 
 Backends are distributed as dynamic libraries. They are loaded with the
-environment variable `VFC_BACKENDS`. 
+environment variable `VFC_BACKENDS`.
 
 ```bash
    $ VFC_BACKENDS="libinterflop_mca.so" ./program
@@ -218,7 +201,7 @@ after each backend,
 
 ```bash
    $ VFC_BACKENDS="libinterflop_ieee.so --debug; \
-                   libinterflop_mca.so --precision-binary64 10 --mode rr" \ 
+                   libinterflop_mca.so --precision-binary64 10 --mode rr" \
                    ./program"
 ```
 
@@ -236,7 +219,7 @@ To turn loading backends messages back on, unset the environment variable.
    $ unset VFC_BACKENDS_SILENT_LOAD
 ```
 
-To suppress the messages displayed by the logger, export the 
+To suppress the messages displayed by the logger, export the
 environment variable `VFC_BACKENDS_LOGGER`.
 
 ```bash
@@ -253,7 +236,7 @@ environment variable `VFC_BACKENDS_COLORED_LOGGER`.
 
 ### IEEE Backend (libinterflop_ieee.so)
 
-The IEEE backend implements straighforward IEEE-754 arithmetic. 
+The IEEE backend implements straighforward IEEE-754 arithmetic.
 It should have no effect on the output and behavior of your program.
 
 The options `--debug` and `--debug_binary` enable verbose output that print
@@ -282,19 +265,19 @@ Info [interflop_ieee]: Decimal 1.23457e-05 / 9.87654e+12 -> 1.25e-18
 
 VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line" ./test
 Info [verificarlo]: loaded backend libinterflop_ieee.so
-Info [interflop_ieee]: Binary 
-+1.100111100100000011000001011001111111010000011 x 2^-17 - 
-+1.00011111011100011111010100010000111 x 2^43 -> 
+Info [interflop_ieee]: Binary
++1.100111100100000011000001011001111111010000011 x 2^-17 -
++1.00011111011100011111010100010000111 x 2^43 ->
 -1.00011111011100011111010100010000111 x 2^43
 
-Info [interflop_ieee]: Binary 
-+1.100111100100000011000001011001111111010000011 x 2^-17 * 
-+1.00011111011100011111010100010000111 x 2^43 -> 
+Info [interflop_ieee]: Binary
++1.100111100100000011000001011001111111010000011 x 2^-17 *
++1.00011111011100011111010100010000111 x 2^43 ->
 +1.110100010010001011111111111110000011000100100110111 x 2^26
 
-Info [interflop_ieee]: Binary 
-+1.100111100100000011000001011001111111010000011 x 2^-17 / 
-+1.00011111011100011111010100010000111 x 2^43 -> 
+Info [interflop_ieee]: Binary
++1.100111100100000011000001011001111111010000011 x 2^-17 /
++1.00011111011100011111010100010000111 x 2^43 ->
 +1.0111000011101111100001010101101010010010111010010101 x 2^-60
 ...
 ```
@@ -308,7 +291,7 @@ on floats. It is much faster than the legacy MCA-MPFR backend.
 ```
 VFC_BACKENDS="libinterflop_mca.so --help" ./test
 test: verificarlo loaded backend libinterflop_mca.so
-Usage: libinterflop_mca.so [OPTION...] 
+Usage: libinterflop_mca.so [OPTION...]
 
   -m, --mode=MODE            select MCA mode among {ieee, mca, pb, rr}
       --precision-binary32=PRECISION
@@ -346,8 +329,8 @@ MCA computation always use round-to-zero mode.
 In Random Round mode, the exact operations in given virtual precision are
 preserved.
 
-The options `--daz` and `--ftz` flush subnormal numbers to 0.  
-The `--daz` (**Denormals-Are-Zero**) flushes subnormal inputs to 0.  
+The options `--daz` and `--ftz` flush subnormal numbers to 0.
+The `--daz` (**Denormals-Are-Zero**) flushes subnormal inputs to 0.
 The `--ftz` (**Flush-To-Zero**) flushes subnormal output to 0.
 
 ```bash
@@ -373,14 +356,14 @@ MCA-MPFR backend accepts the same options than the MCA backend.
 ### Bitmask Backend (libinterflop_bitmask.so)
 
 The Bitmask backend implements a fast first order model of noise. It
-relies on bitmask operations to achieve low overhead. Unlike MCA backends, 
-the introduced noise is biased, which means that the expected value of the noise 
+relies on bitmask operations to achieve low overhead. Unlike MCA backends,
+the introduced noise is biased, which means that the expected value of the noise
 is not equal to 0 as explained in [Chatelain's thesis, section 2.3.2](https://tel.archives-ouvertes.fr/tel-02473301/document).
 
 ```
 VFC_BACKENDS="libinterflop_bitmask.so --help" ./test
 test: verificarlo loaded backend libinterflop_bitmask.so
-Usage: libinterflop_bitmask.so [OPTION...] 
+Usage: libinterflop_bitmask.so [OPTION...]
 
   -m, --mode=MODE            select BITMASK mode among {ieee, full, ib, ob}
   -o, --operator=OPERATOR    select BITMASK operator among {zero, one, rand}
@@ -439,7 +422,7 @@ operation performed.
 
 ```
 Info [verificarlo]: loaded backend libinterflop_cancellation.so
-Usage: libinterflop_cancellation.so [OPTION...] 
+Usage: libinterflop_cancellation.so [OPTION...]
 
   -s, --seed=SEED            Fix the random generator seed
   -t, --tolerance=TOLERANCE  Select tolerance (TOLERANCE >= 0)
@@ -525,7 +508,7 @@ If you only wish to instrument a specific function in your program, use the
 `--function` option:
 
 ```bash
-   $ verificarlo *.c -o ./program --function=specificfunction
+   $ verificarlo-c *.c -o ./program --function=specificfunction
 ```
 
 For more complex scenarios, a white-list / black-list mechanism is also

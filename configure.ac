@@ -17,10 +17,14 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 # Check for specific compilers
 AC_PROG_CC([gcc])
-AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for dragonegg and replay linking)])
+GCC_VERSION=`$CC --version | head -n1 | cut -d' ' -f4`
+AC_MSG_CHECKING([for gcc version])
+AC_DEFINE_UNQUOTED([GCC_VERSION],[$GCC_VERSION],[The gcc version])
+AC_MSG_RESULT([$GCC_VERSION])
+AX_COMPARE_VERSION([$GCC_VERSION],[ge],['6.0.0'],[],[AC_MSG_ERROR([At least GCC version 6 is required])])
+AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for compiling)])
 AC_SUBST(GCC_PATH, $CC)
-AX_LLVM([3.3],[9.0.1],[all])
-
+AX_LLVM([4.0],[10.0.1],[all])
 AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
 AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
 
@@ -34,28 +38,52 @@ fi
 AC_DEFINE_UNQUOTED([CLANG_PATH], ["$CLANG"], [CLANG path])
 AC_SUBST(CLANG_PATH, $CLANG)
 
+AC_PATH_PROG([CLANGXX], [clang++], "", $LLVM_BINDIR/ $PATH)
+if test -z "$CLANGXX"; then
+   AC_PATH_PROGS([CLANGXX], [clang++-"$LLVM_VERSION_MAJOR"."$LLVM_VERSION_MINOR" clang++], "")
+fi
+if test -z "$CLANGXX"; then
+  AC_MSG_ERROR([Could not find clang++])
+fi
+AC_DEFINE_UNQUOTED([CLANGXX_PATH], ["$CLANGXX"], [CLANGXX path])
+AC_SUBST(CLANGXX_PATH, $CLANGXX)
+
+AC_ARG_WITH([flang],
+  AS_HELP_STRING([--with-flang@<:@=DIR@:>@],
+    [use flang located in DIR]),
+  [with_flang="$withval"],
+  [with_flang=yes])
+
+if test "x$with_flang" = "xno"; then
+   AC_MSG_NOTICE([--with-flang=no was given. Disabling Fortran support.])
+else
+   if test "x$with_flang" = "xyes"; then
+      with_flang_path="$PATH"
+   else
+      with_flang_path="$with_flang"
+   fi
+   AC_PATH_PROG([FLANG], [flang flang-"$LLVM_VERSION_MAJOR"], [], [$with_flang_path])
+   if test -z "$FLANG"; then
+      AC_MSG_ERROR([`flang` cannot be found in $with_flang_path])
+   fi
+   dnl Check that flang version matches the llvm one
+   FLANG_VERSION=`$FLANG --version | head -n1 | cut -d' ' -f3`
+   AC_DEFINE_UNQUOTED([FLANG_VERSION], [$FLANG_VERSION], [The flang version])
+   FLANG_VERSION_MAJOR=`echo $FLANG_VERSION | cut -d'.' -f1`
+   AC_DEFINE_UNQUOTED([FLANG_VERSION_MAJOR], [$FLANG_VERSION_MAJOR], [The flang major version])
+
+   AC_MSG_CHECKING([for flang version])
+   AC_MSG_RESULT([$FLANG_VERSION])
+   AX_COMPARE_VERSION([$LLVM_VERSION_MAJOR],[eq],[$FLANG_VERSION_MAJOR],
+      [], [AC_MSG_ERROR([flang and llvm version must match])])
+
+   AC_DEFINE_UNQUOTED([FLANG_PATH], ["$FLANG"], [The flang path])
+   AC_SUBST(FLANG_PATH, $FLANG)
+fi
+
 AC_CHECK_LIB([c], [exit], , AC_MSG_ERROR([Could not find c library]))
 AC_CHECK_LIB([m], [sin], , AC_MSG_ERROR([Could not find mpfr library]))
 AC_CHECK_LIB([mpfr], [mpfr_clear], , AC_MSG_ERROR([Could not find mpfr library]))
-
-# Check that the selected GCC is compatible with the selected dragonegg
-if test -z "$DRAGONEGG_PATH"; then
-    AC_MSG_NOTICE([Fortran support disabled.])
-else
-    AC_CHECK_LIB([gfortran], [exit], , AC_MSG_ERROR([Could not find gfortran library]))
-    AC_MSG_CHECKING([if gcc can compile fortran with dragonegg])
-    cat <<EOF >conftest.f90
-    module conftest_module
-    end module conftest_module
-EOF
-    doit='$CC -S -fplugin=$DRAGONEGG_PATH -fplugin-arg-dragonegg-emit-ir conftest.f90'
-    if AC_TRY_EVAL(doit); then
-        AC_MSG_RESULT([yes])
-    else
-        AC_MSG_RESULT([no])
-        AC_MSG_ERROR([Your gcc version ($CC) cannot compile Fortran programs with your dragonegg plugin ($DRAGONEGG_PATH)])
-    fi
-fi
 
 # Reset libs after ac_check_lib We do not want each and every backend or the
 # libvfcinstrument frontend to be linked against libmpfr or libgfortran for
@@ -156,6 +184,11 @@ AC_CONFIG_FILES([Makefile
                  tests/paths.sh
                 ])
 
-AC_CONFIG_FILES([verificarlo.in tests/test_bitmask_backend/test.sh], [chmod +x tests/test_bitmask_backend/test.sh])
-
+AC_CONFIG_FILES([verificarlo.in \
+		tests/test_bitmask_backend/test.sh \
+		tests/test_fortran/test.sh \
+		tests/test_fortran_NAS/test.sh],
+		[chmod +x tests/test_bitmask_backend/test.sh \
+		tests/test_fortran/test.sh \
+		tests/test_fortran_NAS/test.sh])
 AC_OUTPUT

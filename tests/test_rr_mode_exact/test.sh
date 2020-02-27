@@ -3,7 +3,7 @@ set -e
 
 # Test 24 RR for float
 for EXP in FLOAT FLOAT_POW2; do
-  verificarlo -D${EXP} -O0 rr_mode.c -o rr_mode
+  verificarlo-c -D${EXP} -O0 rr_mode.c -o rr_mode
   for BACKEND in libinterflop_mca.so libinterflop_mca_mpfr.so; do
     export VFC_BACKENDS="$BACKEND --precision-binary32 24 --mode rr"
     rm -f output_${BACKEND}_${EXP}
@@ -17,7 +17,7 @@ done
 
 # Test 53 RR for double
 for EXP in DOUBLE DOUBLE_POW2; do
-  verificarlo -D${EXP} -O0 rr_mode.c -o rr_mode
+  verificarlo-c -D${EXP} -O0 rr_mode.c -o rr_mode
   for BACKEND in libinterflop_mca.so libinterflop_mca_mpfr.so; do
     export VFC_BACKENDS="$BACKEND --precision-binary64 53 --mode rr"
     rm -f output_${BACKEND}_${EXP}

@@ -223,22 +223,22 @@ static void _set_bitmask_seed(const bool choose_seed, const uint64_t seed) {
 
 /* perform_bin_op: applies the binary operator (op) to (a) and (b) */
 /* and stores the result in (res) */
-#define PERFORM_BIN_OP(OP, RES, A, B)		\
-  switch (OP) {					\
-  case bitmask_add:				\
-    RES = (A) + (B);				\
-    break;					\
-  case bitmask_mul:				\
-    RES = (A) * (B);				\
-    break;					\
-  case bitmask_sub:				\
-    RES = (A) - (B);				\
-    break;					\
-  case bitmask_div:				\
-    RES = (A) / (B);				\
-    break;					\
-  default:					\
-    logger_error("invalid operator %c", OP);	\
+#define PERFORM_BIN_OP(OP, RES, A, B)                                          \
+  switch (OP) {                                                                \
+  case bitmask_add:                                                            \
+    RES = (A) + (B);                                                           \
+    break;                                                                     \
+  case bitmask_mul:                                                            \
+    RES = (A) * (B);                                                           \
+    break;                                                                     \
+  case bitmask_sub:                                                            \
+    RES = (A) - (B);                                                           \
+    break;                                                                     \
+  case bitmask_div:                                                            \
+    RES = (A) / (B);                                                           \
+    break;                                                                     \
+  default:                                                                     \
+    logger_error("invalid operator %c", OP);                                   \
   };
 
 #define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
@@ -315,7 +315,7 @@ static void _inexact_binary64(double *x) {
       _INEXACT_BINARYN(&A);                                                    \
       _INEXACT_BINARYN(&B);                                                    \
     }                                                                          \
-    PERFORM_BIN_OP(OP, RES, A, B);					\
+    PERFORM_BIN_OP(OP, RES, A, B);                                             \
     if (BITMASKLIB_MODE == bitmask_mode_ob ||                                  \
         BITMASKLIB_MODE == bitmask_mode_full) {                                \
       _INEXACT_BINARYN(&RES);                                                  \
@@ -386,17 +386,18 @@ static void _interflop_div_double(double a, double b, double *c,
 
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
-     "select precision for binary32 (PRECISION > 0)"},
+     "select precision for binary32 (PRECISION > 0)", 0},
     {key_prec_b64_str, KEY_PREC_B64, "PRECISION", 0,
-     "select precision for binary64 (PRECISION > 0)"},
+     "select precision for binary64 (PRECISION > 0)", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
-     "select MCA mode among {ieee, mca, pb, rr}"},
+     "select MCA mode among {ieee, mca, pb, rr}", 0},
     {key_operator_str, KEY_OPERATOR, "OPERATOR", 0,
-     "select BITMASK operator among {zero, one, rand}"},
-    {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed"},
+     "select BITMASK operator among {zero, one, rand}", 0},
+    {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed", 0},
     {key_daz_str, KEY_DAZ, 0, 0,
-     "denormals-are-zero: sets denormals inputs to zero"},
-    {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero"},
+     "denormals-are-zero: sets denormals inputs to zero", 0},
+    {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero",
+     0},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -487,7 +488,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
-static struct argp argp = {options, parse_opt, "", ""};
+static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
 
 static void init_context(t_context *ctx) {
   ctx->choose_seed = false;

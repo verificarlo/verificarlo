@@ -133,11 +133,12 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
       char *header = (debug) ? DEBUG_HEADER : DEBUG_BINARY_HEADER;             \
       char *float_fmt =                                                        \
           (subnormal_normalized) ? FMT_SUBNORMAL_NORMALIZED(a) : FMT(a);       \
-      if (print_header)                                                        \
+      if (print_header) {                                                      \
         if (((t_context *)context)->print_new_line)                            \
           logger_info("%s\n", header);                                         \
         else                                                                   \
           logger_info("%s", header);                                           \
+      }                                                                        \
       if (typeop == ARITHMETIC) {                                              \
         debug_print(context, float_fmt, "%g %s ", a, a, op);                   \
         debug_print(context, float_fmt, "%g -> ", b);                          \
@@ -150,15 +151,16 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
     }                                                                          \
   }
 
-inline void debug_print_float(void *context, const operation_type typeop,
-                              const char *op, const float a, const float b,
-                              const float c) {
+static inline void debug_print_float(void *context, const operation_type typeop,
+                                     const char *op, const float a,
+                                     const float b, const float c) {
   DEBUG_PRINT(context, typeop, op, a, b, c);
 }
 
-inline void debug_print_double(void *context, const operation_type typeop,
-                               const char *op, const double a, const double b,
-                               const double c) {
+static inline void debug_print_double(void *context,
+                                      const operation_type typeop,
+                                      const char *op, const double a,
+                                      const double b, const double c) {
   DEBUG_PRINT(context, typeop, op, a, b, c);
 }
 
@@ -295,15 +297,15 @@ static void _interflop_cmp_double(const enum FCMP_PREDICATE p, const double a,
 }
 
 static struct argp_option options[] = {
-    {key_debug_str, KEY_DEBUG, 0, 0, "enable debug output"},
-    {key_debug_binary_str, KEY_DEBUG_BINARY, 0, 0,
-     "enable binary debug output"},
+    {key_debug_str, KEY_DEBUG, 0, 0, "enable debug output", 0},
+    {key_debug_binary_str, KEY_DEBUG_BINARY, 0, 0, "enable binary debug output",
+     0},
     {key_no_backend_name_str, KEY_NO_BACKEND_NAME, 0, 0,
-     "do not print backend name in debug output"},
+     "do not print backend name in debug output", 0},
     {key_print_new_line_str, KEY_PRINT_NEW_LINE, 0, 0,
-     "add a new line after debug ouput"},
+     "add a new line after debug ouput", 0},
     {key_print_subnormal_normalized_str, KEY_PRINT_SUBNORMAL_NORMALIZED, 0, 0,
-     "normalize subnormal numbers"},
+     "normalize subnormal numbers", 0},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -339,7 +341,7 @@ void init_context(t_context *context) {
   context->print_subnormal_normalized = false;
 }
 
-static struct argp argp = {options, parse_opt, "", ""};
+static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {

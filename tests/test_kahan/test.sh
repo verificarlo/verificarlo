@@ -23,13 +23,13 @@ run() {
 
 export VFC_BACKENDS="libinterflop_mca.so --precision-binary32 24"
 
-for OPTION in "${OPTIONS_LIST[@]}"; do
-    verificarlo --function sum_kahan ${OPTION} kahan.c -o test
-    echo "z y" > output1
+for opt in `seq ${#OPTIONS_LIST[@]}`; do
+    verificarlo-c --function sum_kahan ${OPTIONS_LIST[$opt]} kahan.c -o test
+    echo "z y" > output${opt}
     for z in 100; do
 	for i in $(seq 1 300); do
 	    y=$(run test $z)
-            echo $z $y >> output1
+            echo $z $y >> output${opt}
 	done
     done
 done

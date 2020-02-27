@@ -1,7 +1,6 @@
 ACLOCAL_AMFLAGS=-I m4
 SUBDIRS=src/
-dist_bin_SCRIPTS=verificarlo
-
+dist_bin_SCRIPTS=verificarlo verificarlo-c verificarlo-f verificarlo-c++
 
 edit_script = $(SED) -e 's,%LIBDIR%,$(libdir),'g $(NULL)
 
@@ -10,6 +9,15 @@ verificarlo: verificarlo.in Makefile
 	$(edit_script) $< >$@.tmp && \
 	chmod a-w $@.tmp && \
 	mv $@.tmp $@
+
+verificarlo-c:
+	chmod a-w $@
+
+verificarlo-c++:
+	chmod a-w $@
+
+verificarlo-f:
+	chmod a-w $@
 
 CLEANFILES = verificarlo
 

@@ -34,7 +34,7 @@
 
 /* Generic set_seed function which is common for most of the backends */
 void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
-		       const uint64_t seed) {
+                       const uint64_t seed) {
   if (choose_seed) {
     tinymt64_init(random_state, seed);
   } else {

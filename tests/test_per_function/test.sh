@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export VFC_BACKENDS="libinterflop_mca.so --precision-binary64 40"
-verificarlo test.c -o test --function=f
+verificarlo-c test.c -o test --function=f
 
 ./test > outputf1 2> outputg1
 ./test > outputf2 2> outputg2

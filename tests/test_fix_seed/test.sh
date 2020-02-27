@@ -48,7 +48,7 @@ Check() {
 }
 
 echo "Checking"
-verificarlo -O0  test.c -o test
+verificarlo-c -O0  test.c -o test
 Check 53
 
 echo -e "\nsuccess"

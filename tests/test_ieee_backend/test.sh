@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-verificarlo -O0 test.c -o test
+verificarlo-c -O0 test.c -o test
 
 # Check that all the operations have been instrumented
 for op in fadd fsub fmul fdiv; do
