@@ -1,14 +1,16 @@
 #!/bin/bash
 
-if [[ $# != 4 ]]; then
-    echo "expected 4 arguments, $# given"
-    echo "range_min range_step precision_min precision_step"
+if [[ $# != 5 ]]; then
+    echo "expected 5 arguments, $# given"
+    echo "usecase range_min range_step precision_min precision_step"
     exit 1
 else
-    RANGE_MIN=$1
-    RANGE_STEP=$2
-    PRECISION_MIN=$3
-    PRECISION_STEP=$4
+    USECASE=$1
+    RANGE_MIN=$2
+    RANGE_STEP=$3
+    PRECISION_MIN=$4
+    PRECISION_STEP=$5
+    echo "USECASE=${USECASE}"
     echo "RANGE_MIN=${RANGE_MIN}"
     echo "RANGE_STEP=${RANGE_STEP}"
     echo "PRECISION_MIN=${PRECISION_MIN}"
@@ -18,13 +20,21 @@ fi
 export VERIFICARLO_BACKEND=VPREC
 
 # Operation parameters
-operation_list=("+" "-" "/" "x")
+if [ $USECASE = fast ]; then
+    operation_list=("+" "x")
+else
+    operation_list=("+" "-" "/" "x")
+fi
 
 # Floating type list
 float_type_list=("float" "double")
 
 # Modes list
-modes_list=("IB" "OB" "FULL")
+if [ $USECASE = "fast" ]; then
+    modes_list=("OB")
+else
+    modes_list=("IB" "OB" "FULL")
+fi
 
 # Range parameters
 declare -A range_max
@@ -78,7 +88,7 @@ for TYPE in "${float_type_list[@]}"; do
     echo "TYPE: ${TYPE}"
     export VERIFICARLO_VPREC_TYPE=$TYPE
     
-    verificarlo compute_vprec_rounding.c -DREAL=$TYPE -o compute_vprec_rounding --verbose
+    verificarlo-c compute_vprec_rounding.c -DREAL=$TYPE -o compute_vprec_rounding --verbose
 
     for MODE in "${modes_list[@]}"; do
 	echo "MODE: ${MODE}"

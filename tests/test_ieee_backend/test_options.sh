@@ -34,7 +34,7 @@ check() {
 
 for TYPE in float double; do
 
-    verificarlo -O0 test_options.c -DREAL=float -o test_options
+    verificarlo-c -O0 test_options.c -DREAL=float -o test_options
 
     DEBUG_MODE="--debug"
     OPTIONS=""

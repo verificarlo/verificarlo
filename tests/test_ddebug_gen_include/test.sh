@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-verificarlo --ddebug -g -O0 test.c -o test
+verificarlo-c --ddebug -g -O0 test.c -o test
 
 VFC_BACKENDS="libinterflop_ieee.so --debug" VFC_DDEBUG_GEN="inclusion.txt" ./test
 

@@ -1,13 +1,13 @@
 SEED=5929
 
-verificarlo -D FLOAT test_canc_detect.c -o test_canc_detect -Wall
+verificarlo-c -D FLOAT test_canc_detect.c -o test_canc_detect -Wall
 rm -f OUTPUT/output_canc_detect_FLOAT
 for i in `seq 0 22`; do
 	export VFC_BACKENDS="libinterflop_cancellation.so --tolerance $i --seed=$SEED"
   ./test_canc_detect >> OUTPUT/output_canc_detect_FLOAT
 done
 
-verificarlo -D DOUBLE test_canc_detect.c -o test_canc_detect -Wall
+verificarlo-c -D DOUBLE test_canc_detect.c -o test_canc_detect -Wall
 rm -f OUTPUT/output_canc_detect_DOUBLE
 for i in `seq 0 51`; do
 	export VFC_BACKENDS="libinterflop_cancellation.so --tolerance $i --seed=$SEED"

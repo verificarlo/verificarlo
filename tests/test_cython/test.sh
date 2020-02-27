@@ -11,7 +11,7 @@ else
     exit 0
 fi
 
-str="verificarlo"
+str="verificarlo-c"
 
 export CC=$str
 export FC=$str

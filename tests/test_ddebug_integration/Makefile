@@ -1,7 +1,7 @@
 all: cvPlot.pdf dd
 
 unitTest: unitTest.cxx integrate.hxx
-	verificarlo --ddebug -Wall -g -O3 -o $@ $< -lstdc++ -lm
+	verificarlo-c++ --ddebug -Wall -g -O3 -o $@ $< -lm
 
 cvPlot.pdf: unitTest cvPlot.gp
 	./cvPlot

@@ -1,20 +1,23 @@
-dist: xenial
+dist: focal
 language: c
-os: linux
 
 env:
   global:
-    - LLVM_VERSION=3.9
-    - GCC_VERSION=4.9
+    - LLVM_VERSION=7
+    - GCC_VERSION=7
     - GCC=gcc-${GCC_VERSION}
     - GXX=g++-${GCC_VERSION}
+    - GFORTRAN=gfortran-${GCC_VERSION}
+    - CLANG=clang-${LLVM_VERSION}
+    - FLANG=flang-${LLVM_VERSION}
 
 addons:
   apt:
     update: true
     packages:
       - libmpfr-dev
-      - gcc-4.9 gcc-4.9-plugin-dev g++-4.9 gfortran-4.9 libgfortran-4.9-dev
+      - gcc-7 g++-7
+      - llvm-7 llvm-7-dev clang-7 flang-7
       - autoconf automake build-essential libedit-dev binutils
       - python3-dev python3-numpy cython3 wget xz-utils python3-pip python3-setuptools
 
@@ -27,23 +30,14 @@ stages:
 before_install:
   - export GCC_INSTALL_PATH=$($GCC --print-search-dirs | grep install | cut -d' ' -f2)
   - export GCC_LIB_PATH=$($GCC --print-search-dirs | grep libraries | cut -d'=' -f2)
-  - export LIBRARY_PATH=${GCC_LIB_PATH}:${LLVM_INSTALL_PATH}:/lib:/usr/lib
-  - wget http://releases.llvm.org/3.6.1/clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
-  - tar xvf clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
-  - ln -s clang+llvm-3.6.1-x86_64-linux-gnu llvm-3.6.1
-  - export LLVM_INSTALL_PATH=$PWD/llvm-3.6.1
-  - git clone -b gcc-llvm-3.6 --depth=1 https://github.com/yohanchatelain/DragonEgg.git
-  - cd DragonEgg
-  - LLVM_CONFIG=${LLVM_INSTALL_PATH}/bin/llvm-config GCC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} make
-  - mkdir -p ${GCC_INSTALL_PATH}/plugin/
-  - sudo cp dragonegg.so ${GCC_INSTALL_PATH}/plugin/dragonegg.so
+  - export LIBRARY_PATH=${GCC_LIB_PATH}:/lib:/usr/lib
   - sudo pip3 install --upgrade pip
   - sudo pip3 install bigfloat
 
 install:
   - cd $TRAVIS_BUILD_DIR
   - ./autogen.sh
-  - ./configure --with-llvm=${LLVM_INSTALL_PATH} --with-dragonegg=${GCC_INSTALL_PATH}/plugin/dragonegg.so CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} || cat config.log
+  - ./configure --with-llvm=$(llvm-config-${LLVM_VERSION} --prefix) CC=${GCC} CXX=${GXX} || cat config.log
   - make
   - sudo make install
   - export PYTHON_VERSION=$(python3 -c "import sys ; print('{major}.{minor}'.format(major=sys.version_info.major,minor=sys.version_info.minor))")

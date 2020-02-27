@@ -7,8 +7,8 @@ source ../paths.sh
 # Clean up previous coverage files
 rm -f *.gcno *.gcda *.gcov
 
-# To use verificarlo with branch coverage we add the --coverage cli option
-verificarlo --coverage unst_branch.c -o unst_branch
+# To use verificarlo-c with branch coverage we add the --coverage cli option
+verificarlo-c --coverage unst_branch.c -o unst_branch
 
 gcov_report() {
   # Clean up previous coverage files
@@ -26,14 +26,14 @@ gcov_report() {
 # First we run the program 50 times in IEEE mode
 export VFC_BACKENDS="libinterflop_mca.so --mode ieee"
 gcov_report
-cp unst_branch.c.gcov unst_branch.c.gcov.IEEE
+cp unst_branch.c.gcov unst_branch.gcov.IEEE
 
 # First we run the program 50 times in RR 53 mode
 export VFC_BACKENDS="libinterflop_mca.so --mode rr --precision-binary64 53"
 gcov_report
-cp unst_branch.c.gcov unst_branch.c.gcov.RR53
+cp unst_branch.c.gcov unst_branch.gcov.RR53
 
-if diff -u unst_branch.c.gcov.IEEE unst_branch.c.gcov.RR53; then
+if diff -u unst_branch.gcov.IEEE unst_branch.gcov.RR53; then
   echo
   echo "No unstable branch detected. Test failed."
   exit 1

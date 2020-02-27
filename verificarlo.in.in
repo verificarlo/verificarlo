@@ -3,7 +3,7 @@
 #                                                                              *
 #  This file is part of Verificarlo.                                           *
 #                                                                              *
-#  Copyright (c) 2015-2019                                                     *
+#  Copyright (c) 2015-2020                                                     *
 #     Verificarlo contributors                                                 *
 #     Universite de Versailles St-Quentin-en-Yvelines                          *
 #     CMLA, Ecole Normale Superieure de Cachan                                 *
@@ -40,18 +40,19 @@ mcalib_includes = PROJECT_ROOT + "/../include/"
 vfcwrapper = mcalib_includes + 'vfcwrapper.c'
 llvm_bindir = "@LLVM_BINDIR@"
 clang = '@CLANG_PATH@'
+clangxx = '@CLANGXX_PATH@'
+flang = '@FLANG_PATH@'
 opt = llvm_bindir + '/opt'
-dragonegg = "@DRAGONEGG_PATH@"
-gcc = "@GCC_PATH@"
 FORTRAN_EXTENSIONS = [".f", ".f90", ".f77"]
-C_EXTENSIONS = [".c", ".cpp", ".cc", ".cxx"]
-
+C_EXTENSIONS = [".c"]
+CXX_EXTENSIONS = ['.cc', '.cp', '.cpp', '.cxx', 'c++']
+linkers = {'clang':clang, 'flang':flang, 'clang++':clangxx}
+default_linker = 'clang'
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
     def _get_option_tuples(self, option_string):
         return []
-
 
 def fail(msg):
     print(sys.argv[0] + ': ' + msg, file=sys.stderr)
@@ -65,9 +66,15 @@ def is_fortran(name):
 def is_c(name):
     return os.path.splitext(name)[1].lower() in C_EXTENSIONS
 
+
+def is_cpp(name):
+    return os.path.splitext(name)[1].lower() in CXX_EXTENSIONS
+
+
 def shell_escape(argument):
     # prevents argument expansion in shell call
     return "'" + argument + "'"
+
 
 def parse_extra_args(args):
     sources = []
@@ -75,11 +82,13 @@ def parse_extra_args(args):
 
     for a in args:
         if is_fortran(a):
-            if not dragonegg:
+            if not flang:
                 fail("fortran not supported. "
-                     + "--without-fortran was used during configuration.")
+                     + "--without-flang was used during configuration.")
             sources.append(a)
         elif is_c(a):
+            sources.append(a)
+        elif is_cpp(a):
             sources.append(a)
         else:
             options.append(shell_escape(a))
@@ -89,6 +98,8 @@ def parse_extra_args(args):
 
 def shell(cmd):
     try:
+        if args.show_cmd:
+            print(cmd)
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError:
         fail('command failed:\n' + cmd)
@@ -104,26 +115,25 @@ def linker_mode(sources, options, output, args):
         vfcwrapper=vfcwrapper,
         mcalib_includes=mcalib_includes))
 
-    # Only include lgfortran if fortran support is enabled
-    gfortran = "-lgfortran" if dragonegg else ""
-
     f = tempfile.NamedTemporaryFile(mode='w+')
     if args.static:
-        f.write('{output} {sources} {options} -static .vfcwrapper.o -lmpfr -lgmp {gfortran} -lm -ldl'.format(
+        cmd = '{output} {sources} {options} -static .vfcwrapper.o -lmpfr -lgmp -lm -ldl'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
-            options=options,
-            gfortran=gfortran))
+            options=options)
     else:
-        f.write('{output} {sources} {options} .vfcwrapper.o {mcalib_options} {gfortran} -ldl'.format(
+        cmd = '{output} {sources} {options} .vfcwrapper.o {mcalib_options} -ldl'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
-            mcalib_options=mcalib_options,
-            gfortran=gfortran))
+            mcalib_options=mcalib_options)
 
+    f.write(cmd)
     f.flush()
-    shell('{clang} @{temp}'.format(clang=clang, temp=f.name))
+    linker = linkers[args.linker]
+    if args.show_cmd:
+        print('{linker} {cmd}'.format(linker=linker, cmd=cmd))
+    shell('{linker} @{temp}'.format(linker=linker, temp=f.name))
     f.close()
 
 
@@ -133,21 +143,14 @@ def compiler_mode(sources, options, output, args):
         ir = basename + '.1.ll'
         ins = basename + '.2.ll'
 
-        # Compile to ir (fortran uses gcc+dragonegg, c uses clang)
-        if is_fortran(source):
-            shell('{gcc} -c -S {source} {options} -fplugin={dragonegg} -fplugin-arg-dragonegg-emit-ir -o {ir}'.format(
-                gcc=gcc,
-                source=source,
-                options=options,
-                dragonegg=dragonegg,
-                ir=ir))
-        else:
-            shell('{clang} -c -S {source} -emit-llvm {options} -o {ir}'.format(
-                clang=clang,
-                source=source,
-                options=options,
-                ir=ir
-            ))
+        compiler = linkers[args.linker]
+
+        # Compile to ir (fortran uses flang, c uses clang)
+        shell('{compiler} -c -S {source} -emit-llvm {options} -o {ir}'.format(
+            compiler=compiler,
+            source=source,
+            options=options,
+            ir=ir))
 
         selectfunction = ""
         if args.function:
@@ -181,12 +184,11 @@ def compiler_mode(sources, options, output, args):
         if not output:
             output = '-o ' + basename + '.o'
         # Produce object file
-        shell('{clang} -c {output} {ins} {options}'.format(
-            clang=clang,
+        shell('{compiler} -c {output} {ins} {options}'.format(
+            compiler=compiler,
             output=output,
             ins=ins,
             options=options))
-
 
 if __name__ == "__main__":
     parser = NoPrefixParser(description='Compiles a program replacing floating point operation with calls to the mcalib (Montecarlo Arithmetic).')
@@ -199,7 +201,10 @@ if __name__ == "__main__":
     parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
     parser.add_argument('--verbose', action='store_true', help='verbose output')
     parser.add_argument('--inst-fcmp', action='store_true', help='instrument floating point comparisons')
+    parser.add_argument('--show-cmd', action='store_true', help='show internal commands')
     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
+    parser.add_argument('--linker', choices=linkers.keys(), default=default_linker, help="linker to use, {dl} by default".format(dl=default_linker))
+
     args, other = parser.parse_known_args()
 
     sources, llvm_options = parse_extra_args(other)

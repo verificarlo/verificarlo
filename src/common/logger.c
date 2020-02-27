@@ -122,7 +122,7 @@ bool is_logger_colored(void) {
     return true;
   } else {
     return false;
-  }	  
+  }
 }
 
 /* Display the info message */
@@ -219,6 +219,4 @@ void logger_init(void) {
 
   logger_enabled = is_logger_enabled();
   logger_colored = is_logger_colored();
-  
 }
-

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-verificarlo -c test.c
+verificarlo-c -c test.c -emit-llvm
 
 if grep "fcmp ogt" test.2.ll || grep "fcmp ole" test.2.ll ; then
   echo "comparison operations not instrumented"
@@ -11,7 +11,7 @@ else
 fi
 
 
-verificarlo --inst-fcmp -c test.c
+verificarlo-c --inst-fcmp -c test.c -emit-llvm
 
 if grep "fcmp ogt" test.2.ll || grep "fcmp ole" test.2.ll ; then
   echo "comparison operations NOT instrumented with --inst-fcmp"
@@ -28,9 +28,9 @@ else
 fi
 
 # Test correct interposition for scalar and vector cases
-verificarlo --inst-fcmp run.c -o run
+verificarlo-c --inst-fcmp run.c -o run
 VFC_BACKENDS="libinterflop_ieee.so --debug" ./run
-verificarlo --inst-fcmp -O2 run.c -o run
+verificarlo-c --inst-fcmp -O2 run.c -o run
 VFC_BACKENDS="libinterflop_ieee.so --debug" ./run
 
 exit 0
