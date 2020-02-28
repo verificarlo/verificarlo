@@ -42,7 +42,7 @@ compare() {
 export VFC_BACKENDS_SILENT_LOAD="TRUE"
 
 echo "denormal denormalized"
-export VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line --no-print-debug-mode"
+export VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line --no-backend-name"
 for REALTYPE in "float" "double"; do
     compile $REALTYPE
     run $REALTYPE 
@@ -50,7 +50,7 @@ for REALTYPE in "float" "double"; do
 done
 
 echo "denormal normalized"
-export VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line --no-print-debug-mode --print-subnormal-normalized"
+export VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line --no-backend-name --print-subnormal-normalized"
 for REALTYPE in "float" "double"; do
     compile $REALTYPE
     run $REALTYPE "denormal"

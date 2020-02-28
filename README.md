@@ -6,7 +6,28 @@
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
 [![Coverity](https://scan.coverity.com/projects/19956/badge.svg)](https://scan.coverity.com/projects/verificarlo-verificarlo)
 
-A tool for automatic Montecarlo Arithmetic analysis.
+A tool for debugging and assessing floating point precision and reproducibility.
+
+   * [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
+   * [Installation](#installation)
+      * [Example on x86_64 Ubuntu 14.04 release without Fortran support](#example-on-x86_64-ubuntu-1404-release-without-fortran-support)
+      * [Fortran support](#fortran-support)
+      * [Checking installation](#checking-installation)
+   * [Usage](#usage)
+   * [Examples and Tutorial](#examples-and-tutorial)
+   * [Backends](#backends)
+      * [IEEE Backend (libinterflop_ieee.so)](#ieee-backend-libinterflop_ieeeso)
+      * [MCA Backend (libinterflop_mca.so)](#mca-backend-libinterflop_mcaso)
+      * [MCA-MPFR Backend (libinterflop_mca_mpfr.so)](#mca-mpfr-backend-libinterflop_mca_mpfrso)
+      * [Bitmask Backend (libinterflop_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
+   * [Verificarlo inclusion / exclusion options](#verificarlo-inclusion--exclusion-options)
+   * [Postprocessing](#postprocessing)
+   * [Unstable branch detection](#unstable-branch-detection)
+   * [Branch instrumentation](#branch-instrumentation)
+   * [How to cite Verificarlo](#how-to-cite-verificarlo)
+   * [Discussion Group](#discussion-group)
+   * [License](#license)
+
 
 ## Using Verificarlo through its Docker image
 
@@ -14,7 +35,7 @@ A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/
 This image uses the latest git master version of Verificarlo and includes
 support for Fortran. It uses llvm-3.6.1 and gcc-4.9.
 
-Example of usage:
+Example of usage with Monte Carlo arithmetic:
 
 ```bash
 $ cat > test.c <<HERE
@@ -58,62 +79,7 @@ Then run the following command inside verificarlo directory:
    $ sudo make install
 ```
 
-### Fortran support
-
-The use of c++11 standard specific features force us to use gcc from 4.9.
-Unfornately, official dragonegg repository does not provide `dragonegg.so`
-for this version (4.9) and above. We plan to move to `flang` in the next release. In the meantime, if you need Fortran support you can either use the provided [docker image](https://hub.docker.com/r/verificarlo/verificarlo/) or follow the instructions below,
-
-```bash
-   $ sudo apt install gcc-4.9 gcc-4.9-plugin-dev g++-4.9 gfortran-4.9 libgfortran-4.9-dev
-```
-
-For getting llvm-3.6.1, run the following commands:
-
-```bash
-   $ wget http://releases.llvm.org/3.6.1/clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
-   $ tar xvf clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz llvm-3.6.1
-   $ export LLVM_INSTALL_PATH=$PWD/llvm-3.6.1
-```
-
-For getting dragonegg.so, run the following commands:
-
-```bash
-   $ git clone -b gcc-llvm-3.6 --depth=1 https://github.com/yohanchatelain/DragonEgg.git
-   $ cd DragonEgg
-   $ LLVM_CONFIG=${LLVM_INSTALL_PATH}/bin/llvm-config GCC=gcc-4.9 CXX=g++-4.9 make
-   $ export DRAGONEGG_PATH=$PWD/dragonegg.so
-```   
-
-Then run the configuration with the appropriate paths:
-
-```bash
-   $ cd verificarlo/
-   $ ./autogen.sh
-   $ ./configure --with-llvm=${LLVM_INSTALL_PATH} \
-                 --with-dragonegg=${DRAGONEGG_PATH} \
-                 CC=gcc-4.9 CXX=g++4.9
-```
-
-Then you can follow the normal installation process
-
-```bash
-   $ make
-   $ sudo make install
-```   
-
-### Checking installation
-
-Once installation is over, we recommend that you run the test suite to ensure
-verificarlo works as expected on your system:
-
-```bash
-   $ make installcheck
-```
-
-### Example on x86_64 Ubuntu 14.04 release
-
-If you disable dragonegg support during configure, fortran_test will be disabled and considered as passing the test.
+### Example on x86_64 Ubuntu 14.04 release without Fortran support
 
 For example on an x86_64 Ubuntu 14.04 release, you should use the following
 install procedure:
@@ -130,30 +96,53 @@ install procedure:
    $ sudo make install
 ```
 
-### Delta debug
+### Fortran support
 
-In order to use the delta debug features, you need to export the path
-of the corresponding python packages. For example, for a global
-install, this would resemble (edit for your installed Python version):
+In the upcoming release Fortran support will be provided by `flang`. In the meantime, if you need Fortran support you can either use the provided [docker image](https://hub.docker.com/r/verificarlo/verificarlo/) or follow the instructions below to install `dragongegg.so` with a recent gcc.
+
+```bash
+   # Install gcc-4.9, gfortran-4.9 and llvm-3.6.1 with the following commands:
+   $ sudo apt install gcc-4.9 gcc-4.9-plugin-dev g++-4.9 gfortran-4.9 libgfortran-4.9-dev
+   $ wget http://releases.llvm.org/3.6.1/clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
+   $ tar xvf clang+llvm-3.6.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz llvm-3.6.1
+   $ export LLVM_INSTALL_PATH=$PWD/llvm-3.6.1
+
+   # Install dragonegg
+   $ git clone -b gcc-llvm-3.6 --depth=1 https://github.com/yohanchatelain/DragonEgg.git
+   $ cd DragonEgg
+   $ LLVM_CONFIG=${LLVM_INSTALL_PATH}/bin/llvm-config GCC=gcc-4.9 CXX=g++-4.9 make
+   $ export DRAGONEGG_PATH=$PWD/dragonegg.so
+   
+   # Install Verificarlo
+   $ cd verificarlo/
+   $ ./autogen.sh
+   $ ./configure --with-llvm=${LLVM_INSTALL_PATH} --with-dragonegg=${DRAGONEGG_PATH} CC=gcc-4.9 CXX=g++4.9
+   $ make && sudo make install
+```
+
+### Checking installation
+
+Once installation is over, we recommend that you run the test suite to ensure
+verificarlo works as expected on your system.
+
+You may need to export the path of the installed python packages. For example, for a global install, this would resemble (edit for your installed Python version):
 
 ```bash
 	$ export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/pythonXXX.XXX/site-packages
 ```
 
-You can then check if your install was successful using:
+You can make the above change permanent by editing your `~/.bashrc`, `~/.profile` or whichever
+configuration file is relevant for your system.
+
+Then you can run the test suite with,
 
 ```bash
-	$ make installcheck
+   $ make installcheck
 ```
 
-Alternatively, you can make the changes required for `ddebug`
-permanent by editing your `~/.bashrc`, `~/.profile` or whichever
-configuration file is relevant for your system by adding the above
-line, and then reloading your environment using:
+If you disable dragonegg support during configure, Fortran tests will be disabled and considered as passing the test.
 
-```bash
-	$ source ~/.bashrc
-```
+
 
 ## Usage
 
@@ -181,6 +170,12 @@ It is important to include the necessary link flags if you use extra libraries.
 For example, you should include `-lm` if you are linking against the math
 library and include `-lstdc++` if you use functions in the standard C++
 library.
+
+## Examples and Tutorial
+
+The `tests/` directory contains various examples of Verificarlo usage.
+
+A [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) is available.
 
 ## Backends
 
@@ -247,8 +242,10 @@ Usage: libinterflop_ieee.so [OPTION...]
 
   -b, --debug-binary         enable binary debug output
   -d, --debug                enable debug output
-  -n, --print-new-line       print new lines after debug output
-  -s, --no-print-debug-mode  do not print debug mode before debug outputting
+  -n, --print-new-line       add a new line after debug ouput
+  -o, --print-subnormal-normalized
+                             normalize subnormal numbers
+  -s, --no-backend-name      do not print backend name in debug output
   -?, --help                 Give this help list
       --usage                Give a short usage message
 
@@ -257,13 +254,6 @@ test: verificarlo loaded backend libinterflop_ieee.so
 interflop_ieee 1.23457e-05 - 9.87654e+12 -> -9.87654e+12
 interflop_ieee 1.23457e-05 * 9.87654e+12 -> 1.21933e+08
 interflop_ieee 1.23457e-05 / 9.87654e+12 -> 1.25e-18
-...
-
-VFC_BACKENDS="libinterflop_ieee.so --debug --no-print-debug-mode" ./test
-test: verificarlo loaded backend libinterflop_ieee.so
-1.23457e-05 - 9.87654e+12 -> -9.87654e+12
-1.23457e-05 * 9.87654e+12 -> 1.21933e+08
-1.23457e-05 / 9.87654e+12 -> 1.25e-18
 ...
 
 VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line" ./test
@@ -287,10 +277,9 @@ interflop_ieee_bin
 
 ### MCA Backend (libinterflop_mca.so)
 
-The MCA backends implements Montecarlo Arithmetic.  It uses quad types to
-compute MCA operations on doubles and the double type to compute MCA operations
-on floats. It is much faster than the MCA-MPFR backend, but it is recent and
-still experimental.
+The MCA backends implements Montecarlo Arithmetic.  It uses quad type to
+compute MCA operations on doubles and double type to compute MCA operations
+on floats. It is much faster than the legacy MCA-MPFR backend.
 
 ```
 VFC_BACKENDS="libinterflop_mca.so --help" ./test
@@ -322,9 +311,8 @@ precision used for the floating point operations in double precision
 (respectively for single precision with --precision-binary32) It
 accepts an integer value that represents the virtual precision at
 which MCA operations are performed. Its default value is 53 for
-binary64 and 24 for binary32. For a more precise definition of the
-virtual precision, you can refer to
-https://hal.archives-ouvertes.fr/hal-01192668.
+binary64 and 24 for binary32. A precise definition of the
+virtual precision is given [here](https://hal.archives-ouvertes.fr/hal-01192668).
 
 One should note when using the QUAD backend, that the round operations during
 MCA computation always use round-to-zero mode.
@@ -346,11 +334,9 @@ MCA-MPFR backend accepts the same options than the MCA backend.
 ### Bitmask Backend (libinterflop_bitmask.so)
 
 The Bitmask backend implements a fast first order model of noise. It
-relies on bitmask operations to achieve low overhead
-(~$\times$4). Contrary to MCA backends, introduced noise is biased,
-which means that the expected value of the noise is not equal to
-0. For more details, you can refer to the section 2.3.2 of
-https://tel.archives-ouvertes.fr/tel-02473301/document.
+relies on bitmask operations to achieve low overhead. Unlike MCA backends, 
+the introduced noise is biased, which means that the expected value of the noise 
+is not equal to 0 as explained in [Chatelain's thesis, section 2.3.2](https://tel.archives-ouvertes.fr/tel-02473301/document).
 
 ```
 VFC_BACKENDS="libinterflop_bitmask.so --help" ./test
@@ -438,13 +424,6 @@ module3 *
 Inclusion and exclusion files can be used together, in that case inclusion
 takes precedence over inclusion.
 
-## Examples and Tutorial
-
-The `tests/` directory contains various examples of Verificarlo usage.
-
-A [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) in
-english and french is available.
-
 ## Postprocessing
 
 The `postprocessing/` directory contains postprocessing tools to compute floating
@@ -513,7 +492,7 @@ For questions, feedbacks or discussions about Verificarlo you can join our group
 https://groups.google.com/forum/#!forum/verificarlo
 
 ## License
-Copyright (c) 2019
+Copyright (c) 2019-2020
    Verificarlo Contributors
 
 Copyright (c) 2018

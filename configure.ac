@@ -155,6 +155,6 @@ AC_CONFIG_FILES([Makefile
                  tests/paths.sh
                 ])
 
-AC_CONFIG_FILES([verificarlo.in], [])
+AC_CONFIG_FILES([verificarlo.in tests/test_bitmask_backend/test.sh], [chmod +x tests/test_bitmask_backend/test.sh])
 
 AC_OUTPUT
