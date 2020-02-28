@@ -2,7 +2,7 @@
  *                                                                           *
  *  This file is part of Verificarlo.                                        *
  *                                                                           *
- *  Copyright (c) 2015-2019                                                  *
+ *  Copyright (c) 2015-2020                                                  *
  *     Verificarlo contributors                                              *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *     CMLA, Ecole Normale Superieure de Cachan                              *
@@ -72,6 +72,7 @@ unsigned char already_initialized = 0;
 /* Logger functions */
 #undef BACKEND_HEADER
 #define BACKEND_HEADER verificarlo
+void logger_init(void);
 void logger_info(const char *fmt, ...);
 void logger_warning(const char *fmt, ...);
 void logger_error(const char *fmt, ...);
@@ -171,6 +172,9 @@ __attribute__((constructor)) static void vfc_init(void) {
     return;
   }
 
+  /* Initialize the logger */
+  logger_init();
+  
   /* Parse VFC_BACKENDS */
   char *vfc_backends = getenv("VFC_BACKENDS");
   if (vfc_backends == NULL) {

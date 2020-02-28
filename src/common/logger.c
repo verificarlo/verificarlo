@@ -6,6 +6,7 @@
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *     CMLA, Ecole Normale Superieure de Cachan                              *
  *  Copyright (c) 2018-2020                                                  *
+ *     Verificarlo contributors                                              *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *                                                                           *
  *  Verificarlo is free software: you can redistribute it and/or modify      *
@@ -97,6 +98,9 @@ static const char vfc_backends_logger[] = "VFC_BACKENDS_LOGGER";
 /* Environment variable for enabling/disabling the color */
 static const char vfc_backends_colored_logger[] = "VFC_BACKENDS_COLORED_LOGGER";
 
+static bool logger_enabled = true;
+static bool logger_colored = false;
+
 /* Returns true if the logger is enabled */
 bool is_logger_enabled(void) {
   const char *is_logger_enabled_env = getenv(vfc_backends_logger);
@@ -113,20 +117,20 @@ bool is_logger_enabled(void) {
 bool is_logger_colored(void) {
   const char *is_colored_logger_env = getenv(vfc_backends_colored_logger);
   if (is_colored_logger_env == NULL) {
-    return true;
+    return false;
   } else if (strcasecmp(is_colored_logger_env, "True") == 0) {
     return true;
   } else {
     return false;
-  }
+  }	  
 }
 
 /* Display the info message */
 void logger_info(const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  if (is_logger_enabled()) {
-    if (is_logger_colored()) {
+  if (logger_enabled) {
+    if (logger_colored) {
       fprintf(stderr, "%sInfo%s [%s%s%s]: ", ansi_colors[info_color],
               ansi_colors[reset_color], ansi_colors[backend_color],
               BACKEND_HEADER_STR, ansi_colors[reset_color]);
@@ -141,8 +145,8 @@ void logger_info(const char *fmt, ...) {
 void logger_warning(const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  if (is_logger_enabled()) {
-    if (is_logger_colored()) {
+  if (logger_enabled) {
+    if (logger_colored) {
       fprintf(stderr, "%sWarning%s [%s%s%s]: ", ansi_colors[warning_color],
               ansi_colors[reset_color], ansi_colors[backend_color],
               BACKEND_HEADER_STR, ansi_colors[reset_color]);
@@ -157,8 +161,8 @@ void logger_warning(const char *fmt, ...) {
 void logger_error(const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  if (is_logger_enabled()) {
-    if (is_logger_colored()) {
+  if (logger_enabled) {
+    if (logger_colored) {
       fprintf(stderr, "%sError%s [%s%s%s]: ", ansi_colors[error_color],
               ansi_colors[reset_color], ansi_colors[backend_color],
               BACKEND_HEADER_STR, ansi_colors[reset_color]);
@@ -171,8 +175,8 @@ void logger_error(const char *fmt, ...) {
 
 /* Display the info message */
 void vlogger_info(const char *fmt, va_list argp) {
-  if (is_logger_enabled()) {
-    if (is_logger_colored()) {
+  if (logger_enabled) {
+    if (logger_colored) {
       fprintf(stderr, "%sInfo%s [%s%s%s]: ", ansi_colors[info_color],
               ansi_colors[reset_color], ansi_colors[backend_color],
               BACKEND_HEADER_STR, ansi_colors[reset_color]);
@@ -185,8 +189,8 @@ void vlogger_info(const char *fmt, va_list argp) {
 
 /* Display the warning message */
 void vlogger_warning(const char *fmt, va_list argp) {
-  if (is_logger_enabled()) {
-    if (is_logger_colored()) {
+  if (logger_enabled) {
+    if (logger_colored) {
       fprintf(stderr, "%sWarning%s [%s%s%s]: ", ansi_colors[warning_color],
               ansi_colors[reset_color], ansi_colors[backend_color],
               BACKEND_HEADER_STR, ansi_colors[reset_color]);
@@ -199,8 +203,8 @@ void vlogger_warning(const char *fmt, va_list argp) {
 
 /* Display the error message */
 void vlogger_error(const char *fmt, va_list argp) {
-  if (is_logger_enabled()) {
-    if (is_logger_colored()) {
+  if (logger_enabled) {
+    if (logger_colored) {
       fprintf(stderr, "%sError%s [%s%s%s]: ", ansi_colors[error_color],
               ansi_colors[reset_color], ansi_colors[backend_color],
               BACKEND_HEADER_STR, ansi_colors[reset_color]);
@@ -210,3 +214,11 @@ void vlogger_error(const char *fmt, va_list argp) {
   }
   verrx(EXIT_FAILURE, fmt, argp);
 }
+
+__attribute__((constructor)) void logger_init(void) {
+
+  logger_enabled = is_logger_enabled();
+  logger_colored = is_logger_colored();
+  
+}
+

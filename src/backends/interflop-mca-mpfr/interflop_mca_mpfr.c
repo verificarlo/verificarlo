@@ -191,7 +191,7 @@ static double _mca_rand(void) {
 
 /* Set the mca seed */
 static void _set_mca_seed(bool choose_seed, uint64_t seed) {
-  _set_seed(&random_state, choose_seed, seed);
+  _set_seed_default(&random_state, choose_seed, seed);
 }
 
 /* Macro function that add mca noise to X */

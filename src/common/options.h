@@ -6,6 +6,7 @@
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *     CMLA, Ecole Normale Superieure de Cachan                              *
  *  Copyright (c) 2018-2020                                                  *
+ *     Verificarlo contributors                                              *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *                                                                           *
  *  Verificarlo is free software: you can redistribute it and/or modify      *
@@ -59,7 +60,7 @@
   }
 
 /* Generic set_seed function which is common for most of the backends */
-void _set_seed(tinymt64_t *random_state, const bool choose_seed,
-               const uint64_t seed);
+void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
+		       const uint64_t seed);
 
 #endif /* __OPTIONS_H__ */
