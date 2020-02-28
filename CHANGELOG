@@ -3,57 +3,57 @@ Verificarlo CHANGELOG
 # [v0.3.0] Unreleased
 
 ## Added
-    * Support for LLVM up to 9.0.1
-    * Add VFC_BACKEND_COLORED_LOGGER environment variable for enabling/disabling the colored messages
-    * Add VFC_BACKEND_LOGGER environment variable for enabling/disabling the logger
-    * Add logger for displaying colored messages
-    * Add DAZ/FTZ options for flushing subnormal numbers to 0
-	- --daz: denormals-are-zero, flushes subnormal inputs to 0
-	- --ftz: flush-to-zero, flushes subnormal output to 0
-    * Add bitmask backend (libinterflop_bitmask.so), a fast first order model of noise
-    * Add VFC_BACKENDS_SILENT_LOAD environment variable for disabling messages when a backend is loaded
-    * Add options for interflop_ieee backend
-	- --debug-binary: enable binary debug output
-	- --no-backend-name: do not print backend name in debug output
-	- --print-new-line: add a new line after debug output
-	- --print-subnormal-normalized: print subnormal number in the normalized form
-    * Separate virtual precisions for binary32 and binary64 values
-    * Add delta-debug scripts for using delta-debug with Verificarlo
-    * Add an option for fixing the seed of the RNG
+   * Support for LLVM up to 9.0.1
+   * Add VFC_BACKEND_COLORED_LOGGER environment variable for enabling/disabling the colored messages
+   * Add VFC_BACKEND_LOGGER environment variable for enabling/disabling the logger
+   * Add logger for displaying colored messages
+   * Add DAZ/FTZ options for flushing subnormal numbers to 0
+       - --daz: denormals-are-zero, flushes subnormal inputs to 0
+       - --ftz: flush-to-zero, flushes subnormal output to 0
+   * Add bitmask backend (libinterflop_bitmask.so), a fast first order model of noise
+   * Add VFC_BACKENDS_SILENT_LOAD environment variable for disabling messages when a backend is loaded
+   * Add options for interflop_ieee backend
+       - --debug-binary: enable binary debug output
+       - --no-backend-name: do not print backend name in debug output
+       - --print-new-line: add a new line after debug output
+       - --print-subnormal-normalized: print subnormal number in the normalized form
+   * Separate virtual precisions for binary32 and binary64 values
+   * Add delta-debug scripts for using delta-debug with Verificarlo
+   * Add an option for fixing the seed of the RNG
 
 ## Changed
-    * Update configure.ac for checking special types and features
-    * Optimize and factorize interlop_mca_mpfr backend
-    * Optimize and factorize interflop_mca backend
-    * Upgrade python scripts to Python3
-    * Backends mca and mca-mpfr are bitwise comparable
+   * Update configure.ac for checking special types and features
+   * Optimize and factorize interlop_mca_mpfr backend
+   * Optimize and factorize interflop_mca backend
+   * Upgrade python scripts to Python3
+   * Backends mca and mca-mpfr are bitwise comparable
 
 ## Fixed
-    * Fix issues in interflop_ieee backend
-    * Fix multiple vfc_init calls
-    * Use quote around PWD to support paths with spaces
-    * Fix bug in interflop_mca backend
-    * Fix GPG key error in .travis.yml
-    * Fix issue with the verbose mode
-    * Fix LIBS dependencies in configure.ac
-    * Fix bug in libVFCInstrument which sometimes leads to not properly instrumented operations
-    * Check that at least one loaded backend provides operations
+   * Fix issues in interflop_ieee backend
+   * Fix multiple vfc_init calls
+   * Use quote around PWD to support paths with spaces
+   * Fix bug in interflop_mca backend
+   * Fix GPG key error in .travis.yml
+   * Fix issue with the verbose mode
+   * Fix LIBS dependencies in configure.ac
+   * Fix bug in libVFCInstrument which sometimes leads to not properly instrumented operations
+   * Check that at least one loaded backend provides operations
 
-# [v0.2.3] 2019/08/19
+[v0.2.3] 2019/08/19
 
 ## Added
-    * Backend interflop_ieee which uses standard IEEE 754 arithmetic
-    * Options for backends are passed with VFC_BACKENDS="/path/to/interflop_backend.so --option1 --option2 ..."
-    * Backend are loadead with the VFC_BACKENDS environment variable
-    * Use Interflop interface
+   * Use Interflop interface
+   * Backend interflop_ieee which uses standard IEEE 754 arithmetic
+   * Backend are loadead with the VFC_BACKENDS environment variable
+   * Options for backends are passed with VFC_BACKENDS="/path/to/interflop_backend.so --option1 --option2 ..."
 
 ## Fixed
-    * Correctly detect non supported fp types
-    * Fix handling of boolean vectors
-    * Fix memory leak in quad backend
+   * Correctly detect non supported fp types
+   * Fix handling of boolean vectors
+   * Fix memory leak in quad backend
 
 ## Removed
-    * Environment variables VERIFICARLO_BACKENDS, VERIFICARLO_PRECISION and VERIFICARLO_MCAMODE
+   * Environment variables VERIFICARLO_BACKENDS, VERIFICARLO_PRECISION and VERIFICARLO_MCAMODE
 
 # [v0.2.2] 2019/08/07
     * Unstable branch detection with gcov

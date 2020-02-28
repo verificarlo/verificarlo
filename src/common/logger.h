@@ -6,6 +6,7 @@
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *     CMLA, Ecole Normale Superieure de Cachan                              *
  *  Copyright (c) 2018-2020                                                  *
+ *     Verificarlo contributors                                              *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *                                                                           *
  *  Verificarlo is free software: you can redistribute it and/or modify      *
@@ -39,5 +40,7 @@ void vlogger_info(const char *fmt, va_list argp);
 void vlogger_warning(const char *fmt, va_list argp);
 /* Display the error message */
 void vlogger_error(const char *fmt, va_list argp);
+
+void logger_init(void);
 
 #endif /* __LOGGER_H__ */

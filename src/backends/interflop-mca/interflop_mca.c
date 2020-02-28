@@ -6,6 +6,7 @@
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *     CMLA, Ecole Normale Superieure de Cachan                              *
  *  Copyright (c) 2018-2020                                                  *
+ *     Verificarlo contributors                                              *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *                                                                           *
  *  Verificarlo is free software: you can redistribute it and/or modify      *
@@ -239,7 +240,7 @@ static void _mca_inexact_binary128(__float128 *qa) {
 
 /* Set the mca seed */
 static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
-  _set_seed(&random_state, choose_seed, seed);
+  _set_seed_default(&random_state, choose_seed, seed);
 }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
@@ -249,9 +250,29 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
  * result converted to the original format for return
  *******************************************************************/
 
+/* perform_bin_op: applies the binary operator (op) to (a) and (b) */
+/* and stores the result in (res) */
+#define PERFORM_BIN_OP(OP, RES, A, B)		\
+  switch (OP) {					\
+  case mca_add:					\
+    RES = (A) + (B);				\
+    break;					\
+  case mca_mul:					\
+    RES = (A) * (B);				\
+    break;					\
+  case mca_sub:					\
+    RES = (A) - (B);				\
+    break;					\
+  case mca_div:					\
+    RES = (A) / (B);				\
+    break;					\
+  default:					\
+    logger_error("invalid operator %c", OP);	\
+  };
+
 /* Generic macro function that returns mca(A OP B) */
 /* Functions are determined according to the type of X */
-#define _BINARY_OP(A, B, OP, CTX, X)                                           \
+#define _MCA_BINARY_OP(A, B, OP, CTX, X)				\
   do {                                                                         \
     typeof(X) _A = A;                                                          \
     typeof(X) _B = B;                                                          \
@@ -264,7 +285,7 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
       _INEXACT_BINARYN(X, &_A);                                                \
       _INEXACT_BINARYN(X, &_B);                                                \
     }                                                                          \
-    PERFORM_BIN_OP(mca, OP, _RES, _A, _B);                                     \
+    PERFORM_BIN_OP(OP, _RES, _A, _B);					\
     if (MCALIB_MODE == mcamode_rr || MCALIB_MODE == mcamode_mca) {             \
       _INEXACT_BINARYN(X, &_RES);                                              \
     }                                                                          \
@@ -278,14 +299,14 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
 /* Intermediate computations are performed with binary64 */
 inline float _mca_binary32_binary_op(const float a, const float b,
                                      const mca_operations dop, void *context) {
-  _BINARY_OP(a, b, dop, context, (double)0);
+  _MCA_BINARY_OP(a, b, dop, context, (double)0);
 }
 
 /* Performs mca(a qop b) where a and b are binary64 values */
 /* Intermediate computations are performed with binary128 */
 inline double _mca_binary64_binary_op(const double a, const double b,
                                       const mca_operations qop, void *context) {
-  _BINARY_OP(a, b, qop, context, (__float128)0);
+  _MCA_BINARY_OP(a, b, qop, context, (__float128)0);
 }
 
 /************************* FPHOOKS FUNCTIONS *************************

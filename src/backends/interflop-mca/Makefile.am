@@ -1,5 +1,5 @@
 lib_LTLIBRARIES = libinterflop_mca.la
-libinterflop_mca_la_SOURCES = interflop_mca.c ../../common/logger.c ../../common/float_utils.c ../../common/options.c
+libinterflop_mca_la_SOURCES = interflop_mca.c ../../common/logger.c ../../common/options.c
 libinterflop_mca_la_CFLAGS = -DBACKEND_HEADER="interflop_mca"
 if WALL_CFLAGS
 libinterflop_mca_la_CFLAGS += -Wall -Wextra

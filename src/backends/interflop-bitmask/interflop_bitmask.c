@@ -213,13 +213,33 @@ static uint64_t get_random_binary64_mask(void) {
 
 /* Fix the seed of the Random Number Generator */
 static void _set_bitmask_seed(const bool choose_seed, const uint64_t seed) {
-  _set_seed(&random_state, choose_seed, seed);
+  _set_seed_default(&random_state, choose_seed, seed);
 }
 
 /******************** BITMASK ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the BITMASK operation. Operands
  * They apply a bitmask to the result
  *******************************************************************/
+
+/* perform_bin_op: applies the binary operator (op) to (a) and (b) */
+/* and stores the result in (res) */
+#define PERFORM_BIN_OP(OP, RES, A, B)		\
+  switch (OP) {					\
+  case bitmask_add:				\
+    RES = (A) + (B);				\
+    break;					\
+  case bitmask_mul:				\
+    RES = (A) * (B);				\
+    break;					\
+  case bitmask_sub:				\
+    RES = (A) - (B);				\
+    break;					\
+  case bitmask_div:				\
+    RES = (A) / (B);				\
+    break;					\
+  default:					\
+    logger_error("invalid operator %c", OP);	\
+  };
 
 #define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
   /* if mode ieee, do not introduce noise */                                   \
@@ -295,7 +315,7 @@ static void _inexact_binary64(double *x) {
       _INEXACT_BINARYN(&A);                                                    \
       _INEXACT_BINARYN(&B);                                                    \
     }                                                                          \
-    PERFORM_BIN_OP(bitmask, OP, RES, A, B);                                    \
+    PERFORM_BIN_OP(OP, RES, A, B);					\
     if (BITMASKLIB_MODE == bitmask_mode_ob ||                                  \
         BITMASKLIB_MODE == bitmask_mode_full) {                                \
       _INEXACT_BINARYN(&RES);                                                  \

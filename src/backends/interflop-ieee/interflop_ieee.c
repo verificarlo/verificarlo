@@ -171,59 +171,59 @@ inline void debug_print_double(void *context, const operation_type typeop,
     STR = "FCMP_FALSE";                                                        \
     break;                                                                     \
   case FCMP_OEQ:                                                               \
-    *C = ((!isnan(A)) && (!isnan(B)) && (A == B));                             \
+    *C = ((A) == (B));							\
     STR = "FCMP_OEQ";                                                          \
     break;                                                                     \
   case FCMP_OGT:                                                               \
-    *C = ((!isnan(A)) && (!isnan(B)) && (A > B));                              \
+    *C = isgreater(A, B);						\
     STR = "FCMP_OGT";                                                          \
     break;                                                                     \
   case FCMP_OGE:                                                               \
-    *C = ((!isnan(A)) && (!isnan(B)) && (A >= B));                             \
+    *C = isgreaterequal(A, B);						\
     STR = "FCMP_OGE";                                                          \
     break;                                                                     \
   case FCMP_OLT:                                                               \
-    *C = ((!isnan(A)) && (!isnan(B)) && (A < B));                              \
+    *C = isless(A, B);							\
     STR = "FCMP_OLT";                                                          \
     break;                                                                     \
   case FCMP_OLE:                                                               \
-    *C = ((!isnan(A)) && (!isnan(B)) && (A <= B));                             \
+    *C = islessequal(A, B);						\
     STR = "FCMP_OLE";                                                          \
     break;                                                                     \
   case FCMP_ONE:                                                               \
-    *C = ((!isnan(A)) && (!isnan(B)) && (A != B));                             \
+    *C = islessgreater(A, B);						\
     STR = "FCMP_ONE";                                                          \
     break;                                                                     \
   case FCMP_ORD:                                                               \
-    *C = ((!isnan(A)) && (!isnan(B)));                                         \
+    *C = !isunordered(A, B);						\
     STR = "FCMP_ORD";                                                          \
     break;                                                                     \
   case FCMP_UEQ:                                                               \
-    *C = ((!isnan(A)) || (!isnan(B)) || (A == B));                             \
+    *C = isunordered(A, B);						\
     STR = "FCMP_UEQ";                                                          \
     break;                                                                     \
-  case FCMP_UGT:                                                               \
-    *C = ((!isnan(A)) || (!isnan(B)) || (A > B));                              \
+  case FCMP_UGT:							\
+    *C = isunordered(A, B);						\
     STR = "FCMP_UGT";                                                          \
     break;                                                                     \
   case FCMP_UGE:                                                               \
-    *C = ((!isnan(A)) || (!isnan(B)) || (A >= B));                             \
+    *C = isunordered(A, B);						\    
     STR = "FCMP_UGE";                                                          \
     break;                                                                     \
   case FCMP_ULT:                                                               \
-    *C = ((!isnan(A)) || (!isnan(B)) || (A < B));                              \
+    *C = isunordered(A, B);						\
     str = "FCMP_ULT";                                                          \
     break;                                                                     \
   case FCMP_ULE:                                                               \
-    *C = ((!isnan(A)) || (!isnan(B)) || (A <= B));                             \
+    *C = isunordered(A, B);						\
     STR = "FCMP_ULE";                                                          \
     break;                                                                     \
   case FCMP_UNE:                                                               \
-    *C = ((!isnan(A)) || (!isnan(B)) || (A != B));                             \
+    *C = isunordered(A, B);						\
     STR = "FCMP_UNE";                                                          \
     break;                                                                     \
   case FCMP_UNO:                                                               \
-    *C = ((!isnan(A)) || (!isnan(B)));                                         \
+    *C = isunordered(A, B);						\
     str = "FCMP_UNO";                                                          \
     break;                                                                     \
   case FCMP_TRUE:                                                              \
