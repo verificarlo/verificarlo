@@ -50,8 +50,7 @@ RUN git clone --depth=1 https://github.com/verificarlo/verificarlo.git &&  \
     ./configure --with-llvm=${LLVM_INSTALL_PATH} --with-dragonegg=${DRAGONEGG_PATH} CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} || cat config.log 
 
 # Build and test verificarlo
-RUN cat $HOME/.bashrc && \
-    cd verificarlo && \
+RUN cd verificarlo && \
     make && sudo make install && \
     make installcheck
 

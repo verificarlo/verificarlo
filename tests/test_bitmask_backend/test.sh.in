@@ -64,8 +64,9 @@ check() {
 
 SAMPLES=100
 
-gcc -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lquadmath
-gcc -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lquadmath
+GCC="@GCC_PATH@"
+$GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lquadmath
+$GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lquadmath
 
 # Test operates at different precisions, and different operands.
 # It compares that results are equivalents up to the bit.
