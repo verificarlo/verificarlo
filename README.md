@@ -402,7 +402,7 @@ The option `--tolerance` sets the tolerance within the backend will trigger a
 cancellation. By default tolerance is set to 1.
 
 The option `--warning` warns on the standard output stream when a cancellation is
-trigger by the backend.
+triggered by the backend.
 
 The option `--seed` fixes the random generator seed. It should not generally be
 used except if one to reproduce a particular MCA trace.
