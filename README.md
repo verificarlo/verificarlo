@@ -401,6 +401,10 @@ The option `--seed` fixes the random generator seed. It should not
 generally be used except to reproduce a particular Bitmask
 trace.
 
+### Cancellation Backend (libinterflop_cancellation.so)
+
+The Cancellation backend 
+
 ## Verificarlo inclusion / exclusion options
 
 If you only wish to instrument a specific function in your program, use the
