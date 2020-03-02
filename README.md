@@ -389,7 +389,26 @@ trace.
 
 ### Cancellation Backend (libinterflop_cancellation.so)
 
-The Cancellation backend 
+The Cancellation backend implements an automatic cancellation detector at
+runtime. It is founded on bitwise operations to detect cancellation quickly than
+in other backend. If a cancellation is detected then the backend applies noise on
+the cancelled part with the model of noise from the MCA backend. The backend
+additional cost of runtime time is constant and predetermined for each operation
+performed.
+
+This backend can be used with three options.
+
+The option `--tolerance` sets the tolerance within the backend will trigger a
+cancellation. By default tolerance is set to 1.
+
+The option `--warning` warns on the standard output stream when a cancellation is
+trigger by the backend.
+
+The option `--seed` fixes the random generator seed. It should not generally be
+used except if one to reproduce a particular MCA trace.
+
+Finally the user should know that this backend is still experimental and in
+developpement. There is no guarantee on the results provided by this backend.
 
 ## Verificarlo inclusion / exclusion options
 
