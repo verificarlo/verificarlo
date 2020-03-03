@@ -20,6 +20,7 @@ A tool for debugging and assessing floating point precision and reproducibility.
       * [MCA Backend (libinterflop_mca.so)](#mca-backend-libinterflop_mcaso)
       * [MCA-MPFR Backend (libinterflop_mca_mpfr.so)](#mca-mpfr-backend-libinterflop_mca_mpfrso)
       * [Bitmask Backend (libinterflop_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
+      * [Cancellation Backend (libinterflop_cancellation.so)](#cancellation-backend-libinterflop_cancellation)
    * [Verificarlo inclusion / exclusion options](#verificarlo-inclusion--exclusion-options)
    * [Postprocessing](#postprocessing)
    * [Unstable branch detection](#unstable-branch-detection)
@@ -390,7 +391,7 @@ trace.
 ### Cancellation Backend (libinterflop_cancellation.so)
 
 The Cancellation backend implements an automatic cancellation detector at
-runtime. It is founded on bitwise operations to detect cancellation quickly than
+runtime. It is founded on bitwise operations to detect cancellation faster than
 in other backend. If a cancellation is detected then the backend applies noise on
 the cancelled part with the model of noise from the MCA backend. The backend
 additional cost of runtime time is constant and predetermined for each operation
