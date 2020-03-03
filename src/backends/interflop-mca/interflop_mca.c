@@ -459,6 +459,9 @@ void print_information_header(void *context) {
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
+  /* Initialize the logger */
+  logger_init();
+
   _set_mca_precision_binary32(MCA_PRECISION_BINARY32_DEFAULT);
   _set_mca_precision_binary64(MCA_PRECISION_BINARY64_DEFAULT);
   _set_mca_mode(MCA_MODE_DEFAULT);

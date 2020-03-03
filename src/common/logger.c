@@ -215,7 +215,7 @@ void vlogger_error(const char *fmt, va_list argp) {
   verrx(EXIT_FAILURE, fmt, argp);
 }
 
-__attribute__((constructor)) void logger_init(void) {
+void logger_init(void) {
 
   logger_enabled = is_logger_enabled();
   logger_colored = is_logger_colored();
