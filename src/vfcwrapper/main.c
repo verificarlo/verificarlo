@@ -117,7 +117,7 @@ void ddebug_generate_inclusion(char *dd_generate_path, hashset_t set) {
         dup2(output, 1);
         execlp("addr2line", "/usr/bin/addr2line", "-fpaCs", "-e", executable,
                addr, NULL);
-	logger_error("error running addr2line");
+        logger_error("error running addr2line");
       } else {
         int status;
         wait(&status);
@@ -133,7 +133,7 @@ __attribute__((destructor)) static void vfc_atexit(void) {
   if (dd_generate_path) {
     ddebug_generate_inclusion(dd_generate_path, dd_must_instrument);
     logger_info("ddebug: generated complete inclusion file at %s\n",
-          dd_generate_path);
+                dd_generate_path);
   }
   hashset_destroy(dd_must_instrument);
 #endif
@@ -151,8 +151,9 @@ __attribute__((destructor)) static void vfc_atexit(void) {
       }                                                                        \
     }                                                                          \
     if (res == 0)                                                              \
-      logger_error("No backend instruments " #operation " for " #precision ".\n" \
-		   "Include one backend in VFC_BACKENDS that provides it"); \
+      logger_error("No backend instruments " #operation " for " #precision     \
+                   ".\n"                                                       \
+                   "Include one backend in VFC_BACKENDS that provides it");    \
   } while (0)
 
 /* vfc_init is run when loading vfcwrapper and initializes vfc backends */
@@ -174,11 +175,12 @@ __attribute__((constructor)) static void vfc_init(void) {
 
   /* Initialize the logger */
   logger_init();
-  
+
   /* Parse VFC_BACKENDS */
   char *vfc_backends = getenv("VFC_BACKENDS");
   if (vfc_backends == NULL) {
-    logger_error("VFC_BACKENDS is empty, at least one backend should be provided");
+    logger_error(
+        "VFC_BACKENDS is empty, at least one backend should be provided");
   }
 
   /* Environnement variable to disable loading message */
@@ -202,7 +204,7 @@ __attribute__((constructor)) static void vfc_init(void) {
     char *arg = strtok_r(token, " ", &spaceptr);
     while (arg) {
       if (backend_argc >= MAX_ARGS) {
-	logger_error("VFC_BACKENDS syntax error: too many arguments");
+        logger_error("VFC_BACKENDS syntax error: too many arguments");
       }
       backend_argv[backend_argc++] = arg;
       arg = strtok_r(NULL, " ", &spaceptr);
@@ -212,7 +214,8 @@ __attribute__((constructor)) static void vfc_init(void) {
     /* load the backend .so */
     void *handle = dlopen(backend_argv[0], RTLD_NOW);
     if (handle == NULL) {
-      logger_error("Cannot load backend %s: dlopen error\n%s", token, dlerror());
+      logger_error("Cannot load backend %s: dlopen error\n%s", token,
+                   dlerror());
     }
 
     if (!silent_load)
@@ -227,13 +230,13 @@ __attribute__((constructor)) static void vfc_init(void) {
     const char *dlsym_error = dlerror();
     if (dlsym_error) {
       logger_error("No interflop_init function in backend %s: %s", token,
-           strerror(errno));
+                   strerror(errno));
     }
 
     /* Register backend */
     if (loaded_backends == MAX_BACKENDS) {
       logger_error("No more than %d backends can be used simultaneously",
-           MAX_BACKENDS);
+                   MAX_BACKENDS);
     }
     backends[loaded_backends] =
         handle_init(backend_argc, backend_argv, &contexts[loaded_backends]);
@@ -245,7 +248,7 @@ __attribute__((constructor)) static void vfc_init(void) {
 
   if (loaded_backends == 0) {
     logger_error(
-         "VFC_BACKENDS syntax error: at least one backend should be provided");
+        "VFC_BACKENDS syntax error: at least one backend should be provided");
   }
 
   /* Check that at least one backend implements each required operation */
@@ -268,8 +271,9 @@ __attribute__((constructor)) static void vfc_init(void) {
   dd_filter_path = getenv("VFC_DDEBUG_INCLUDE");
   dd_generate_path = getenv("VFC_DDEBUG_GEN");
   if (dd_filter_path && dd_generate_path) {
-    logger_error("VFC_DDEBUG_INCLUDE and VFC_DDEBUG_GEN should not be both defined "
-            "at the same time");
+    logger_error(
+        "VFC_DDEBUG_INCLUDE and VFC_DDEBUG_GEN should not be both defined "
+        "at the same time");
   }
   FILE *input = fopen(dd_filter_path, "r");
   if (input) {
@@ -282,11 +286,11 @@ __attribute__((constructor)) static void vfc_init(void) {
         hashset_add(dd_must_instrument, addr + CALL_OP_SIZE);
       } else {
         logger_error("ddebug: error parsing VFC_DDEBUG_INCLUDE %s at line %d",
-             dd_filter_path, lineno);
+                     dd_filter_path, lineno);
       }
     }
     logger_info("ddebug: only %zu addresses will be instrumented\n",
-          hashset_num_items(dd_must_instrument));
+                hashset_num_items(dd_must_instrument));
   }
 #endif
 }

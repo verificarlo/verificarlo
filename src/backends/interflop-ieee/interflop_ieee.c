@@ -134,10 +134,10 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
       char *float_fmt =                                                        \
           (subnormal_normalized) ? FMT_SUBNORMAL_NORMALIZED(a) : FMT(a);       \
       if (print_header)                                                        \
-	if (((t_context*)context)->print_new_line)			\
-	  logger_info("%s\n",header);					\
-	else								\
-	  logger_info("%s",header);					\
+        if (((t_context *)context)->print_new_line)                            \
+          logger_info("%s\n", header);                                         \
+        else                                                                   \
+          logger_info("%s", header);                                           \
       if (typeop == ARITHMETIC) {                                              \
         debug_print(context, float_fmt, "%g %s ", a, a, op);                   \
         debug_print(context, float_fmt, "%g -> ", b);                          \
@@ -171,59 +171,59 @@ inline void debug_print_double(void *context, const operation_type typeop,
     STR = "FCMP_FALSE";                                                        \
     break;                                                                     \
   case FCMP_OEQ:                                                               \
-    *C = ((A) == (B));							\
+    *C = ((A) == (B));                                                         \
     STR = "FCMP_OEQ";                                                          \
     break;                                                                     \
   case FCMP_OGT:                                                               \
-    *C = isgreater(A, B);						\
+    *C = isgreater(A, B);                                                      \
     STR = "FCMP_OGT";                                                          \
     break;                                                                     \
   case FCMP_OGE:                                                               \
-    *C = isgreaterequal(A, B);						\
+    *C = isgreaterequal(A, B);                                                 \
     STR = "FCMP_OGE";                                                          \
     break;                                                                     \
   case FCMP_OLT:                                                               \
-    *C = isless(A, B);							\
+    *C = isless(A, B);                                                         \
     STR = "FCMP_OLT";                                                          \
     break;                                                                     \
   case FCMP_OLE:                                                               \
-    *C = islessequal(A, B);						\
+    *C = islessequal(A, B);                                                    \
     STR = "FCMP_OLE";                                                          \
     break;                                                                     \
   case FCMP_ONE:                                                               \
-    *C = islessgreater(A, B);						\
+    *C = islessgreater(A, B);                                                  \
     STR = "FCMP_ONE";                                                          \
     break;                                                                     \
   case FCMP_ORD:                                                               \
-    *C = !isunordered(A, B);						\
+    *C = !isunordered(A, B);                                                   \
     STR = "FCMP_ORD";                                                          \
     break;                                                                     \
   case FCMP_UEQ:                                                               \
-    *C = isunordered(A, B);						\
+    *C = isunordered(A, B);                                                    \
     STR = "FCMP_UEQ";                                                          \
     break;                                                                     \
-  case FCMP_UGT:							\
-    *C = isunordered(A, B);						\
+  case FCMP_UGT:                                                               \
+    *C = isunordered(A, B);                                                    \
     STR = "FCMP_UGT";                                                          \
     break;                                                                     \
   case FCMP_UGE:                                                               \
-    *C = isunordered(A, B);						\    
+    *C = isunordered(A, B);                                                    \
     STR = "FCMP_UGE";                                                          \
     break;                                                                     \
   case FCMP_ULT:                                                               \
-    *C = isunordered(A, B);						\
+    *C = isunordered(A, B);                                                    \
     str = "FCMP_ULT";                                                          \
     break;                                                                     \
   case FCMP_ULE:                                                               \
-    *C = isunordered(A, B);						\
+    *C = isunordered(A, B);                                                    \
     STR = "FCMP_ULE";                                                          \
     break;                                                                     \
   case FCMP_UNE:                                                               \
-    *C = isunordered(A, B);						\
+    *C = isunordered(A, B);                                                    \
     STR = "FCMP_UNE";                                                          \
     break;                                                                     \
   case FCMP_UNO:                                                               \
-    *C = isunordered(A, B);						\
+    *C = isunordered(A, B);                                                    \
     str = "FCMP_UNO";                                                          \
     break;                                                                     \
   case FCMP_TRUE:                                                              \
@@ -343,6 +343,10 @@ static struct argp argp = {options, parse_opt, "", ""};
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
+
+  /* Initialize the logger */
+  logger_init();
+
   t_context *ctx = calloc(1, sizeof(t_context));
   init_context(ctx);
   /* parse backend arguments */
