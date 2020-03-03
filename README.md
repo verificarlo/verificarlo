@@ -20,7 +20,7 @@ A tool for debugging and assessing floating point precision and reproducibility.
       * [MCA Backend (libinterflop_mca.so)](#mca-backend-libinterflop_mcaso)
       * [MCA-MPFR Backend (libinterflop_mca_mpfr.so)](#mca-mpfr-backend-libinterflop_mca_mpfrso)
       * [Bitmask Backend (libinterflop_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
-      * [Cancellation Backend (libinterflop_cancellation.so)](#cancellation-backend-libinterflop_cancellation)
+      * [Cancellation Backend (libinterflop_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
    * [Verificarlo inclusion / exclusion options](#verificarlo-inclusion--exclusion-options)
    * [Postprocessing](#postprocessing)
    * [Unstable branch detection](#unstable-branch-detection)
