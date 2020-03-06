@@ -423,11 +423,11 @@ trace.
 ### Cancellation Backend (libinterflop_cancellation.so)
 
 The Cancellation backend implements an automatic cancellation detector at
-runtime. It is founded on bitwise operations to detect cancellation faster than
-in other backend. If a cancellation is detected then the backend applies noise on
-the cancelled part with the model of noise from the MCA backend. The backend
-additional cost of runtime time is constant and predetermined for each operation
-performed.
+runtime. It is founded on difference in exponents to detect cancellation faster
+than in other backend. If a cancellation is detected then the backend applies
+noise on the cancelled part with the model of noise from the MCA backend. The
+backend additional cost of runtime time is constant and predetermined for each
+operation performed.
 
 ```
 Info [verificarlo]: loaded backend libinterflop_cancellation.so
