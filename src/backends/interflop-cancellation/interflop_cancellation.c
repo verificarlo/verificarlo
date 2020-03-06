@@ -80,43 +80,32 @@ static double _mca_rand(void) {
   return tinymt64_generate_doubleOO(&random_state);
 }
 
-#define exp(X)                                                                 \
-  ({                                                                           \
-    /* Convert X to an int */                                                  \
-    u_int64_t _V_ = *(u_int64_t *)&X;                                          \
-    /* Get size of the exponent */                                             \
-    int _E_ = (6 + 3 * (sizeof(X) >> 2) - 1);                                  \
-    /* Get the size of the mantiss */                                          \
-    int _M_ = (sizeof(X) * 8 - _E_ - 1);                                       \
-    /* Compute the exponent */                                                 \
-    (int)bit_a_b(_V_ >> _M_, 0, _E_ - 1) - ((1 << _E_ - 1) - 2);               \
-  })
+/* noise = rand * 2^(exp) */
+static inline double _noise_binary64(const int exp) {
+  const double d_rand = (_mca_rand() - 0.5);
+  return _fast_pow2_binary64(exp) * d_rand;
+}
 
-#define inexact(X, S) (X + pow(2, exp(X) - S) * _mca_rand())
+/* Generic function for computing the mca noise */
+#define _NOISE(X, EXP)                                                         \
+  _Generic(X, double : _noise_binary64, __float128 : _noise_binary128)(EXP)
+
+#define _INEXACT(X, VIRTUAL_PRECISION)                                         \
+  {                                                                            \
+    const int32_t e_a = GET_EXP_FLT(*X);                                       \
+    const int32_t e_n = e_a - (VIRTUAL_PRECISION - 1);                         \
+    *X = *X + _noise_binary64(e_n);                                            \
+  }
 
 /* Set the mca seed */
 static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
   _set_seed_default(&random_state, choose_seed, seed);
 }
 
-/****************** CANCELLATION DETECTION FUNCTIONS *************************
- *  Compute the difference between the max of both operands and the exposant
- * of the result to find the size of the cancellation
- ****************************************************************************/
-
-#define detect(X, Y, Z) ((int)max(exp(X), exp(Y)) - exp(Z))
-
-/******************** MCA ARITHMETIC FUNCTIONS ********************
- * The following set of functions perform the MCA operation. Operands
- * are first converted to quad  format (GCC), inbound and outbound
- * perturbations are applied using the _mca_inexact function, and the
- * result converted to the original format for return
- *******************************************************************/
-
-// perform_bin_op: applies the binary operator (op) to (a) and (b)
-// and stores the result in (res)
-
-#define mant(X) ((int)(sizeof(X) * 8 - (6 + 3 * (sizeof(X) >> 2) - 1) - 1))
+/* detect: computes the difference between the max of both operands and the
+ * exposant of the result to find the size of the cancellation */
+#define detect(X, Y, Z)                                                        \
+  ((int)max(GET_EXP_FLT(X), GET_EXP_FLT(Y)) - GET_EXP_FLT(*Z))
 
 /* cancell: detects the cancellation size; and checks if its larger than the
  * chosen tolerance. It reports a warning to the user and adds a MCA noise of
@@ -129,22 +118,20 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
       if (WARN) {                                                              \
         logger_info("cancellation of size %d detected\n", cancellation);       \
       }                                                                        \
-      int exp = (mant(Z) + 1) - cancellation;                                  \
-      Z = inexact(Z, exp);                                                     \
+      _INEXACT(Z, cancellation);                                               \
     }                                                                          \
-    Z;                                                                         \
   })
 
 /* Cancellations can only happen during additions and substractions */
 
 static void _interflop_add_float(float a, float b, float *c, void *context) {
   *c = a + b;
-  *c = cancell(a, b, *c);
+  cancell(a, b, c);
 }
 
 static void _interflop_sub_float(float a, float b, float *c, void *context) {
   *c = a - b;
-  *c = cancell(a, b, *c);
+  cancell(a, b, c);
 }
 
 static void _interflop_mul_float(float a, float b, float *c, void *context) {
@@ -158,13 +145,13 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
   *c = a + b;
-  *c = cancell(a, b, *c);
+  cancell(a, b, c);
 }
 
 static void _interflop_sub_double(double a, double b, double *c,
                                   void *context) {
   *c = a - b;
-  *c = cancell(a, b, *c);
+  cancell(a, b, c);
 }
 
 static void _interflop_mul_double(double a, double b, double *c,
