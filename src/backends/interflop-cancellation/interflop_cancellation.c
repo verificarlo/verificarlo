@@ -25,7 +25,6 @@
  *                                                                           *
  *****************************************************************************/
 
-
 #include <argp.h>
 #include <err.h>
 #include <errno.h>
@@ -33,10 +32,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <string.h>
 
 #include "../../common/float_const.h"
 #include "../../common/float_struct.h"
@@ -45,7 +44,6 @@
 #include "../../common/logger.h"
 #include "../../common/options.h"
 #include "../../common/tinymt64.h"
-
 
 #include "../../common/float_const.h"
 #include "../../common/tinymt64.h"
@@ -60,41 +58,19 @@ typedef struct {
 #define WARNING_DEFAULT 0
 
 static int WARN = WARNING_DEFAULT;
-
 static int TOLERANCE = TOLERANCE_DEFAULT;
-
-// possible op values
-#define MCA_ADD 1
-#define MCA_SUB 2
-#define MCA_MUL 3
-#define MCA_DIV 4
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
-#define bit(A,i) ((A >> i) & 1)
-#define bit_a_b(X,a,b) (((X << (sizeof(X)*8 - max(a,b) - 1)) >> (sizeof(X)*8 - max(a,b) - 1)) & ((X >> min(a,b) ) << min(a,b)))
+#define bit(A, i) ((A >> i) & 1)
+#define bit_a_b(X, a, b)                                                       \
+  (((X << (sizeof(X) * 8 - max(a, b) - 1)) >>                                  \
+    (sizeof(X) * 8 - max(a, b) - 1)) &                                         \
+   ((X >> min(a, b)) << min(a, b)))
 
-static float _mca_sbin(float a, float b, int qop);
-static double _mca_dbin(double a, double b, int qop);
+static void _set_tolerance(int tolerance) { TOLERANCE = tolerance; }
 
-/******************** MCA CONTROL FUNCTIONS *******************
- * The following functions are used to set virtual precision and
- * MCA mode of operation.
- ***************************************************************/
-
-static int _set_mca_tolerance(int tolerance) {
-  TOLERANCE = tolerance;
-  return 0;
-}
-
-static int _set_warning() {
-  WARN = 1;
-}
-
-/******************** MCA RANDOM FUNCTIONS ********************
- * The following functions are used to calculate the random
- * perturbations used for MCA
- ***************************************************************/
+static void _set_warning(bool warning) { WARN = warning; }
 
 /* random generator internal state */
 static tinymt64_t random_state;
@@ -104,17 +80,19 @@ static double _mca_rand(void) {
   return tinymt64_generate_doubleOO(&random_state);
 }
 
-#define exp(X) ({                                     \
-  /* Convert X to an int */                           \
-  u_int64_t _V_ = *(u_int64_t*)&X;                    \
-  /* Get size of the exponent */                      \
-  int _E_ = (6+3*(sizeof(X) >> 2)-1);                 \
-  /* Get the size of the mantiss */                   \
-  int _M_ = (sizeof(X)*8-_E_-1);                      \
-  /* Compute the exponent */                          \
-  (int)bit_a_b(_V_>>_M_,0,_E_-1) - ((1<<_E_-1)-2);})
+#define exp(X)                                                                 \
+  ({                                                                           \
+    /* Convert X to an int */                                                  \
+    u_int64_t _V_ = *(u_int64_t *)&X;                                          \
+    /* Get size of the exponent */                                             \
+    int _E_ = (6 + 3 * (sizeof(X) >> 2) - 1);                                  \
+    /* Get the size of the mantiss */                                          \
+    int _M_ = (sizeof(X) * 8 - _E_ - 1);                                       \
+    /* Compute the exponent */                                                 \
+    (int)bit_a_b(_V_ >> _M_, 0, _E_ - 1) - ((1 << _E_ - 1) - 2);               \
+  })
 
-#define inexact(X,S) (X + pow(2,exp(X)-S) * _mca_rand())
+#define inexact(X, S) (X + pow(2, exp(X) - S) * _mca_rand())
 
 /* Set the mca seed */
 static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
@@ -126,7 +104,7 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
  * of the result to find the size of the cancellation
  ****************************************************************************/
 
-#define detect(X,Y,Z) ((int)max(exp(X),exp(Y))-exp(Z))
+#define detect(X, Y, Z) ((int)max(exp(X), exp(Y)) - exp(Z))
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the MCA operation. Operands
@@ -138,27 +116,30 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
 // perform_bin_op: applies the binary operator (op) to (a) and (b)
 // and stores the result in (res)
 
-#define mant(X) ((int)(sizeof(X)*8-(6+3*(sizeof(X) >> 2)-1)-1))
+#define mant(X) ((int)(sizeof(X) * 8 - (6 + 3 * (sizeof(X) >> 2) - 1) - 1))
 
-#define cancell(X,Y,Z) ({                                              \
-  int cancellation = detect(X,Y,Z);                                    \
-  if(cancellation >= TOLERANCE) {                                      \
-    if(WARN) {                                                         \
-      logger_info("cancellation of size %d detected\n", cancellation); \
-    }                                                                  \
-      int exp = (mant(Z)+1) - cancellation;                            \
-      Z = inexact(Z,exp);                                              \
-  }                                                                    \
-  Z;})
+/* cancell: detects the cancellation size; and checks if its larger than the
+ * chosen tolerance. It reports a warning to the user and adds a MCA noise of
+ * the magnitude of the cancelled bits. */
 
-/************************* FPHOOKS FUNCTIONS *************************
- * These functions correspond to those inserted into the source code
- * during source to source compilation and are replacement to floating
- * point operators
- **********************************************************************/
+#define cancell(X, Y, Z)                                                       \
+  ({                                                                           \
+    int cancellation = detect(X, Y, Z);                                        \
+    if (cancellation >= TOLERANCE) {                                           \
+      if (WARN) {                                                              \
+        logger_info("cancellation of size %d detected\n", cancellation);       \
+      }                                                                        \
+      int exp = (mant(Z) + 1) - cancellation;                                  \
+      Z = inexact(Z, exp);                                                     \
+    }                                                                          \
+    Z;                                                                         \
+  })
+
+/* Cancellations can only happen during additions and substractions */
 
 static void _interflop_add_float(float a, float b, float *c, void *context) {
   *c = a + b;
+  *c = cancell(a, b, *c);
 }
 
 static void _interflop_sub_float(float a, float b, float *c, void *context) {
@@ -177,6 +158,7 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
   *c = a + b;
+  *c = cancell(a, b, *c);
 }
 
 static void _interflop_sub_double(double a, double b, double *c,
@@ -212,13 +194,13 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     int val = strtol(arg, &endptr, 10);
     if (errno != 0 || val < 0) {
       logger_error("--tolerance invalid value provided, must be a"
-          "positive integer.");
+                   "positive integer.");
     } else {
-      _set_mca_tolerance(val);
+      _set_tolerance(val);
     }
     break;
   case 'w':
-      _set_warning();
+    _set_warning(true);
     break;
   case 's':
     errno = 0;
@@ -246,18 +228,17 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
 
   logger_init();
 
-  _set_mca_tolerance(TOLERANCE_DEFAULT);
+  _set_tolerance(TOLERANCE_DEFAULT);
 
   t_context *ctx = malloc(sizeof(t_context));
   *context = ctx;
   init_context(ctx);
 
-
   /* parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
 
   logger_info("interflop_cancellation: loaded backend with tolerance = %d ",
-        TOLERANCE);
+              TOLERANCE);
 
   struct interflop_backend_interface_t interflop_backend_cancellation = {
       _interflop_add_float,
