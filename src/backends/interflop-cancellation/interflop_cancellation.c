@@ -148,10 +148,9 @@ static void _interflop_div_double(double a, double b, double *c,
 }
 
 static struct argp_option options[] = {
-    /* --debug, sets the variable debug = true */
-    {"tolerance", 't', "TOLERANCE", 0, "select tolerance (tolerance >= 0)"},
-    {"warning", 'w', "WARNING", 0, "active warning for cancellations"},
-    {"seed", 's', "SEED", 0, "fix the random generator seed"},
+    {"tolerance", 't', "TOLERANCE", 0, "Select tolerance (TOLERANCE >= 0)"},
+    {"warning", 'w', "WARNING", 0, "Enable warning for cancellations"},
+    {"seed", 's', "SEED", 0, "Fix the random generator seed"},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
