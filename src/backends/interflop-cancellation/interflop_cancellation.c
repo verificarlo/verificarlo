@@ -85,36 +85,24 @@ static inline double _noise_binary64(const int exp) {
   return _fast_pow2_binary64(exp) * d_rand;
 }
 
-/* Generic function for computing the mca noise */
-#define _NOISE(X, EXP)                                                         \
-  _Generic(X, double : _noise_binary64, __float128 : _noise_binary128)(EXP)
-
-/* _INEXACT adds an MCA noise of magnitude VIRTUAL_PRECISION
- * this particular version in the case of cancellations does not use
- * extended quad types */
-#define _INEXACT(X, VIRTUAL_PRECISION)                                         \
-  {                                                                            \
-    const int32_t e_a = GET_EXP_FLT(*X);                                       \
-    const int32_t e_n = e_a - (VIRTUAL_PRECISION - 1);                         \
-    *X = *X + _noise_binary64(e_n);                                            \
-  }
-
-/* detect: computes the difference between the max of both operands and the
- * exposant of the result to find the size of the cancellation */
-#define detect(X, Y, Z)                                                        \
-  ((int)max(GET_EXP_FLT(X), GET_EXP_FLT(Y)) - GET_EXP_FLT(*Z))
-
 /* cancell: detects the cancellation size; and checks if its larger than the
  * chosen tolerance. It reports a warning to the user and adds a MCA noise of
  * the magnitude of the cancelled bits. */
 #define cancell(X, Y, Z)                                                       \
   ({                                                                           \
-    int cancellation = detect(X, Y, Z);                                        \
+    const int32_t e_z = GET_EXP_FLT(*Z);                                       \
+   /* computes the difference between the max of both operands and the
+    * exposant of the result to find the size of the cancellation */           \
+    int cancellation = ((int)max(GET_EXP_FLT(X), GET_EXP_FLT(Y)) - e_z);       \
     if (cancellation >= TOLERANCE) {                                           \
       if (WARN) {                                                              \
         logger_info("cancellation of size %d detected\n", cancellation);       \
       }                                                                        \
-      _INEXACT(Z, cancellation);                                               \
+      /* Add an MCA noise of magnitude VIRTUAL_PRECISION
+       * this particular version in the case of cancellations does not use
+       * extended quad types */                                                \
+      const int32_t e_n = e_z - (cancellation - 1);                            \
+      *Z = *Z + _noise_binary64(e_n);                                          \
     }                                                                          \
   })
 
