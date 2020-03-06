@@ -32,7 +32,6 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <sys/time.h>
@@ -57,12 +56,12 @@ typedef struct {
 } t_context;
 
 /* define default environment variables and default parameters */
-#define MCA_TOLERANCE_DEFAULT 1
+#define TOLERANCE_DEFAULT 1
 #define WARNING_DEFAULT 0
 
 static int WARN = WARNING_DEFAULT;
 
-static int MCALIB_T = MCA_TOLERANCE_DEFAULT;
+static int TOLERANCE = TOLERANCE_DEFAULT;
 
 // possible op values
 #define MCA_ADD 1
@@ -84,7 +83,7 @@ static double _mca_dbin(double a, double b, int qop);
  ***************************************************************/
 
 static int _set_mca_tolerance(int tolerance) {
-  MCALIB_T = tolerance;
+  TOLERANCE = tolerance;
   return 0;
 }
 
@@ -141,14 +140,15 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
 
 #define mant(X) ((int)(sizeof(X)*8-(6+3*(sizeof(X) >> 2)-1)-1))
 
-#define cancell(X,Y,Z) ({                                         \
-  int cancellation = detect(X,Y,Z);                               \
-  if(cancellation >= MCALIB_T){                                   \
-    if(WARN){                                                     \
-      printf("cancellation of size %d detected\n", cancellation);}\
-      int exp = (mant(Z)+1) - cancellation;                       \
-      Z = inexact(Z,exp);                                         \
-  }                                                               \
+#define cancell(X,Y,Z) ({                                              \
+  int cancellation = detect(X,Y,Z);                                    \
+  if(cancellation >= TOLERANCE) {                                      \
+    if(WARN) {                                                         \
+      logger_info("cancellation of size %d detected\n", cancellation); \
+    }                                                                  \
+      int exp = (mant(Z)+1) - cancellation;                            \
+      Z = inexact(Z,exp);                                              \
+  }                                                                    \
   Z;})
 
 /************************* FPHOOKS FUNCTIONS *************************
@@ -211,8 +211,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     errno = 0;
     int val = strtol(arg, &endptr, 10);
     if (errno != 0 || val < 0) {
-      errx(1, "interflop_cancellation: --tolerance invalid value provided, must be a "
-              "positive integer.");
+      logger_error("--tolerance invalid value provided, must be a"
+          "positive integer.");
     } else {
       _set_mca_tolerance(val);
     }
@@ -225,8 +225,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     ctx->choose_seed = 1;
     ctx->seed = strtoull(arg, &endptr, 10);
     if (errno != 0) {
-      errx(1,
-           "interflop_cancelletion: --seed invalid value provided, must be an integer");
+      logger_error("--seed invalid value provided, must be an integer");
     }
     break;
   default:
@@ -245,17 +244,20 @@ static void init_context(t_context *ctx) {
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
-  _set_mca_tolerance(MCA_TOLERANCE_DEFAULT);
+  logger_init();
+
+  _set_mca_tolerance(TOLERANCE_DEFAULT);
 
   t_context *ctx = malloc(sizeof(t_context));
   *context = ctx;
   init_context(ctx);
 
+
   /* parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
 
-  warnx("interflop_cancellation: loaded backend with tolerance = %d ",
-        MCALIB_T);
+  logger_info("interflop_cancellation: loaded backend with tolerance = %d ",
+        TOLERANCE);
 
   struct interflop_backend_interface_t interflop_backend_cancellation = {
       _interflop_add_float,
