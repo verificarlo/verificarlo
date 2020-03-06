@@ -92,14 +92,14 @@ static inline double _noise_binary64(const int exp) {
   ({                                                                           \
     const int32_t e_z = GET_EXP_FLT(*Z);                                       \
    /* computes the difference between the max of both operands and the
-    * exposant of the result to find the size of the cancellation */           \
-    int cancellation = ((int)max(GET_EXP_FLT(X), GET_EXP_FLT(Y)) - e_z);       \
+    * exponent of the result to find the size of the cancellation */           \
+    int cancellation = max(GET_EXP_FLT(X), GET_EXP_FLT(Y)) - e_z;              \
     if (cancellation >= TOLERANCE) {                                           \
       if (WARN) {                                                              \
         logger_info("cancellation of size %d detected\n", cancellation);       \
       }                                                                        \
-      /* Add an MCA noise of magnitude VIRTUAL_PRECISION
-       * this particular version in the case of cancellations does not use
+      /* Add an MCA noise of the magnitude of cancelled bits.
+       * This particular version in the case of cancellations does not use
        * extended quad types */                                                \
       const int32_t e_n = e_z - (cancellation - 1);                            \
       *Z = *Z + _noise_binary64(e_n);                                          \
