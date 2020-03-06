@@ -25,27 +25,20 @@
 #include <endian.h>
 #include <math.h>
 #include <printf.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
-#include "../../common/float_const.h"
-#include "../../common/float_struct.h"
+#include "float_const.h"
+#include "float_struct.h"
+#include "float_utils.h"
+#include "generic_builtin.h"
 
 #define STRING_MAX 256
 
 #define BYTE_U32 0xF0000000
 #define BYTE_U64 0xF000000000000000
 #define GET_BYTE_MASK(X) _Generic((X), uint32_t : BYTE_U32, uint64_t : BYTE_U64)
-
-/* Returns the first least 1-bit + 1 = position of the first trailing 0-bit */
-#define FFS(X)                                                                 \
-  _Generic(X, uint32_t : __builtin_ffs(X), uint64_t : __builtin_ffsl(X))
-
-/* Returns the number of leading 0-bits in x,
-   starting at the most significant bit position.
-   If x is 0, the result is undefined. */
-#define CLZ(X)                                                                 \
-  _Generic(X, uint32_t : __builtin_clz(X), uint64_t : __builtin_clzl(X))
 
 /* Returns the format string depending on the type of X */
 #define GET_BINARY_FMT(X)                                                      \
@@ -136,7 +129,8 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
     int32_t offset;                                                            \
     typeof(real.u) exponent;                                                   \
     typeof(real.u) mantissa;                                                   \
-    switch (fpclassify(real_value)) {                                          \
+    const int class = FPCLASSIFY(real_value);                                  \
+    switch (class) {                                                           \
     case FP_ZERO:                                                              \
       implicit_bit = '0';                                                      \
       exponent = 0;                                                            \

@@ -38,7 +38,11 @@
 
 #include "../../common/float_const.h"
 #include "../../common/float_struct.h"
+#include "../../common/float_utils.h"
+#include "../../common/generic_builtin.h"
 #include "../../common/interflop.h"
+#include "../../common/logger.h"
+#include "../../common/options.h"
 #include "../../common/tinymt64.h"
 
 typedef enum {
@@ -47,9 +51,17 @@ typedef enum {
   KEY_MODE = 'm',
   KEY_OPERATOR = 'o',
   KEY_SEED = 's',
-  KEY_DAZ,
-  KEY_FTZ
+  KEY_DAZ = 'd',
+  KEY_FTZ = 'f'
 } key_args;
+
+static const char key_prec_b32_str[] = "precision-binary32";
+static const char key_prec_b64_str[] = "precision-binary64";
+static const char key_mode_str[] = "mode";
+static const char key_operator_str[] = "operator";
+static const char key_seed_str[] = "seed";
+static const char key_daz_str[] = "daz";
+static const char key_ftz_str[] = "ftz";
 
 typedef struct {
   bool choose_seed;
@@ -68,7 +80,7 @@ typedef enum {
 } bitmask_mode;
 
 /* string name of the bitmask modes */
-static const char *BITMASKMODE[] = {"ieee", "full", "ib", "ob"};
+static const char *BITMASK_MODE_STR[] = {"ieee", "full", "ib", "ob"};
 
 /* define the available BITMASK */
 typedef enum {
@@ -79,7 +91,7 @@ typedef enum {
 } bitmask_operator;
 
 /* string name of the bitmask */
-static const char *BITMASKOPERATOR[] = {"zero", "one", "rand"};
+static const char *BITMASK_OPERATOR_STR[] = {"zero", "one", "rand"};
 
 /* define default environment variables and default parameters */
 #define BITMASK_PRECISION_BINARY32_MIN 1
@@ -95,6 +107,9 @@ static int BITMASKLIB_MODE = BITMASK_MODE_DEFAULT;
 static int BITMASKLIB_OPERATOR = BITMASK_OPERATOR_DEFAULT;
 static int BITMASKLIB_BINARY32_T = BITMASK_PRECISION_BINARY64_DEFAULT;
 static int BITMASKLIB_BINARY64_T = BITMASK_PRECISION_BINARY32_DEFAULT;
+
+#define GET_BINARYN_T(X)                                                       \
+  _Generic(X, float : BITMASKLIB_BINARY32_T, double : BITMASKLIB_BINARY64_T)
 
 /* possible op values */
 typedef enum {
@@ -114,63 +129,56 @@ static double _bitmask_binary64_binary_op(double a, double b,
 static uint32_t binary32_bitmask = FLOAT_MASK_ONE;
 static uint64_t binary64_bitmask = DOUBLE_MASK_ONE;
 
+#define GET_BITMASK(X)                                                         \
+  _Generic(X, \
+				float: binary32_bitmask,    \
+				double:binary64_bitmask,    \
+				float*:&binary32_bitmask,   \
+				double*:&binary64_bitmask)
+
 /******************** BITMASK CONTROL FUNCTIONS *******************
  * The following functions are used to set virtual precision and
  * BITMASK mode of operation.
  ***************************************************************/
 
-static void _set_bitmask_mode(bitmask_mode mode) {
-  if (mode > _bitmask_mode_end_)
-    errx(1, "interflop_bitmask: --mode invalid value provided, must be one of: "
-            "{ieee, full, ib, ob}.");
-
+static void _set_bitmask_mode(const bitmask_mode mode) {
+  if (mode >= _bitmask_mode_end_) {
+    logger_error("--%s invalid value provided, must be one of: "
+                 "{ieee, full, ib, ob}.",
+                 key_mode_str);
+  }
   BITMASKLIB_MODE = mode;
 }
 
-static void _set_bitmask_operator(bitmask_operator bitmask) {
-  if (bitmask > _bitmask_operator_end_)
-    errx(
-        1,
-        "interflop_bitmask: --operator invalid value provided, must be one of: "
-        "{zero, one, rand}.");
-
+static void _set_bitmask_operator(const bitmask_operator bitmask) {
+  if (bitmask > _bitmask_operator_end_) {
+    logger_error("--%s invalid value provided, must be one of: "
+                 "{zero, one, rand}.",
+                 key_operator_str);
+  }
   BITMASKLIB_OPERATOR = bitmask;
 }
 
-static void _set_bitmask_precision_binary32(int precision) {
-  if (precision < BITMASK_PRECISION_BINARY32_MIN) {
-    errx(1,
-         "interflop_bitmask: invalid precision for binary32 type. Must be "
-         "greater than %d",
-         BITMASK_PRECISION_BINARY32_MIN);
-  } else if (precision > BITMASK_PRECISION_BINARY32_MAX) {
-    warnx(
-        "interflop_bitmask: precision for binary32 type is too high, no noise "
-        "will be added");
+#define _set_bitmask_precision(precision, VIRTUAL_PRECISION, Y, X)             \
+  {                                                                            \
+    typeof(Y) *bitmask = GET_BITMASK((typeof(X) *)0);                          \
+    const int32_t PREC = GET_PREC(X);                                          \
+    typeof(Y) MASK_ONE = GET_MASK_ONE(X);                                      \
+    *bitmask = (VIRTUAL_PRECISION <= PREC)                                     \
+                   ? MASK_ONE << (PREC - VIRTUAL_PRECISION)                    \
+                   : MASK_ONE;                                                 \
   }
-  BITMASKLIB_BINARY32_T = precision;
-  binary32_bitmask = (BITMASKLIB_BINARY32_T <= FLOAT_PREC)
-                         ? FLOAT_MASK_ONE
-                               << (FLOAT_PREC - BITMASKLIB_BINARY32_T)
-                         : FLOAT_MASK_ONE;
+
+static void _set_bitmask_precision_binary32(const int precision) {
+  _set_precision(BITMASK, precision, &BITMASKLIB_BINARY32_T, (float)0);
+  _set_bitmask_precision(precision, BITMASKLIB_BINARY32_T,
+                         (typeof(binary32_bitmask))0, (float)0);
 }
 
-static void _set_bitmask_precision_binary64(int precision) {
-  if (precision < BITMASK_PRECISION_BINARY64_MIN) {
-    errx(1,
-         "interflop_bitmask: invalid precision for binary64 type. Must be "
-         "greater than %d",
-         BITMASK_PRECISION_BINARY64_MIN);
-  } else if (precision > BITMASK_PRECISION_BINARY64_MAX) {
-    warnx(
-        "interflop_bitmask: precision for binary64 type is too high, no noise "
-        "will be added");
-  }
-  BITMASKLIB_BINARY64_T = precision;
-  binary64_bitmask = (BITMASKLIB_BINARY64_T <= DOUBLE_PREC)
-                         ? DOUBLE_MASK_ONE
-                               << (DOUBLE_PREC - BITMASKLIB_BINARY64_T)
-                         : DOUBLE_MASK_ONE;
+static void _set_bitmask_precision_binary64(const int precision) {
+  _set_precision(BITMASK, precision, &BITMASKLIB_BINARY64_T, (double)0);
+  _set_bitmask_precision(precision, BITMASKLIB_BINARY64_T,
+                         (typeof(binary64_bitmask))0, (double)0);
 }
 
 /******************** BITMASK RANDOM FUNCTIONS ********************
@@ -184,31 +192,28 @@ static uint64_t get_random_mask(void) {
   return tinymt64_generate_uint64(&random_state);
 }
 
-static uint64_t get_random_binary64_mask(void) {
-  uint64_t mask = get_random_mask();
-  return mask;
-}
-
+/* Returns a 32-bits random mask */
 static uint32_t get_random_binary32_mask(void) {
   binary64 mask;
   mask.u64 = get_random_mask();
   return mask.u32[0];
 }
 
-static void _set_bitmask_seed(bool choose_seed, uint64_t seed) {
-  if (choose_seed) {
-    tinymt64_init(&random_state, seed);
-  } else {
-    const int key_length = 3;
-    uint64_t init_key[key_length];
-    struct timeval t1;
-    gettimeofday(&t1, NULL);
-    /* Hopefully the following seed is good enough for Montercarlo */
-    init_key[0] = t1.tv_sec;
-    init_key[1] = t1.tv_usec;
-    init_key[2] = getpid();
-    tinymt64_init_by_array(&random_state, init_key, key_length);
-  }
+/* Returns a 64-bits random mask */
+static uint64_t get_random_binary64_mask(void) {
+  uint64_t mask = get_random_mask();
+  return mask;
+}
+
+/* Returns a random mask depending on the type of X */
+#define GET_RANDOM_MASK(X)                                                     \
+  _Generic(X, float                                                            \
+           : get_random_binary32_mask, double                                  \
+           : get_random_binary64_mask)()
+
+/* Fix the seed of the Random Number Generator */
+static void _set_bitmask_seed(const bool choose_seed, const uint64_t seed) {
+  _set_seed_default(&random_state, choose_seed, seed);
 }
 
 /******************** BITMASK ARITHMETIC FUNCTIONS ********************
@@ -218,185 +223,119 @@ static void _set_bitmask_seed(bool choose_seed, uint64_t seed) {
 
 /* perform_bin_op: applies the binary operator (op) to (a) and (b) */
 /* and stores the result in (res) */
-#define perform_bin_op(op, res, a, b)                                          \
-  switch (op) {                                                                \
-  case bitmask_add:                                                            \
-    res = (a) + (b);                                                           \
-    break;                                                                     \
-  case bitmask_mul:                                                            \
-    res = (a) * (b);                                                           \
-    break;                                                                     \
-  case bitmask_sub:                                                            \
-    res = (a) - (b);                                                           \
-    break;                                                                     \
-  case bitmask_div:                                                            \
-    res = (a) / (b);                                                           \
-    break;                                                                     \
-  default:                                                                     \
-    perror("invalid operator in bitmask.\n");                                  \
-    abort();                                                                   \
+#define PERFORM_BIN_OP(OP, RES, A, B)		\
+  switch (OP) {					\
+  case bitmask_add:				\
+    RES = (A) + (B);				\
+    break;					\
+  case bitmask_mul:				\
+    RES = (A) * (B);				\
+    break;					\
+  case bitmask_sub:				\
+    RES = (A) - (B);				\
+    break;					\
+  case bitmask_div:				\
+    RES = (A) / (B);				\
+    break;					\
+  default:					\
+    logger_error("invalid operator %c", OP);	\
   };
 
-static bool _is_representable_float(const float x) {
-  binary32 b32 = {.f32 = x};
-  if (b32.ieee.mantissa == 0) {
-    return true;
-  } else {
-    uint32_t trailing_0 = __builtin_ctz(b32.ieee.mantissa);
-    return FLOAT_PMAN_SIZE < (BITMASKLIB_BINARY32_T + trailing_0);
-  }
-}
+#define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
+  /* if mode ieee, do not introduce noise */                                   \
+  (BITMASKLIB_MODE == bitmask_mode_ieee) ||				\
+  /* Check that we are not in a special case */				\
+  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||	\
+  /* In RR if the number is representable in current virtual precision, */ \
+  /* do not add any noise if */						\
+  (BITMASKLIB_MODE == bitmask_mode_ob && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
-static bool _is_representable_double(const double x) {
-  binary64 b64 = {.f64 = x};
-  if (b64.ieee.mantissa == 0) {
-    return true;
-  } else {
-    uint64_t trailing_0 = __builtin_ctzl(b64.ieee.mantissa);
-    return DOUBLE_PMAN_SIZE < (BITMASKLIB_BINARY64_T + trailing_0);
-  }
-}
+#define _INEXACT(B)                                                            \
+  do {                                                                         \
+    const typeof(B.u) sign_size = GET_SIGN_SIZE(B.type);                       \
+    const typeof(B.u) exp_size = GET_EXP_SIZE(B.type);                         \
+    const typeof(B.u) pman_size = GET_PMAN_SIZE(B.type);                       \
+    const typeof(B.u) mask_one = GET_MASK_ONE(B.type);                         \
+    const int binary_t = GET_BINARYN_T(B.type);                                \
+    typeof(B.u) bitmask = GET_BITMASK(B.type);                                 \
+    if (FPCLASSIFY(*x) == FP_SUBNORMAL) {                                      \
+      /* We must use the CLZ2 variant since bitfield type                      \
+           are incompatible with _Generic feature */                           \
+      const typeof(B.u) leading_0 =                                            \
+          CLZ2(B.u, B.ieee.mantissa) - (sign_size + exp_size);                 \
+      if (pman_size < (leading_0 + binary_t)) {                                \
+        bitmask = mask_one;                                                    \
+      } else {                                                                 \
+        bitmask |= (mask_one << (pman_size - (leading_0 + binary_t)));         \
+      }                                                                        \
+    }                                                                          \
+    if (BITMASKLIB_OPERATOR == bitmask_operator_rand) {                        \
+      const typeof(B.u) rand_mask = GET_RANDOM_MASK(B.type);                   \
+      B.ieee.mantissa ^= ~bitmask & rand_mask;                                 \
+    } else if (BITMASKLIB_OPERATOR == bitmask_operator_one) {                  \
+      B.u |= ~bitmask;                                                         \
+    } else if (BITMASKLIB_OPERATOR == bitmask_operator_zero) {                 \
+      B.u &= bitmask;                                                          \
+    } else {                                                                   \
+      __builtin_unreachable();                                                 \
+    }                                                                          \
+    *x = B.type;                                                               \
+  } while (0);
 
 static void _inexact_binary32(float *x) {
-
-  if (BITMASKLIB_MODE == bitmask_mode_ieee) {
-    return;
-  } else if (fpclassify(*x) != FP_NORMAL && fpclassify(*x) != FP_SUBNORMAL) {
-    return;
-  } else if (BITMASKLIB_MODE == bitmask_mode_ob &&
-             _is_representable_float(*x)) {
+  if (_MUST_NOT_BE_NOISED(*x, BITMASKLIB_BINARY32_T)) {
     return;
   } else {
-
     binary32 b32 = {.f32 = *x};
-
-    uint32_t bitmask = binary32_bitmask;
-    if (fpclassify(*x) == FP_SUBNORMAL) {
-      const uint32_t leading_0 =
-          __builtin_clz(b32.ieee.mantissa) - (FLOAT_SIGN_SIZE + FLOAT_EXP_SIZE);
-      if (FLOAT_PMAN_SIZE < (leading_0 + BITMASKLIB_BINARY32_T)) {
-        bitmask = FLOAT_MASK_ONE;
-      } else {
-        bitmask = bitmask |
-                  (FLOAT_MASK_ONE
-                   << (FLOAT_PMAN_SIZE - (leading_0 + BITMASKLIB_BINARY32_T)));
-      }
-    }
-
-    if (BITMASKLIB_OPERATOR == bitmask_operator_rand) {
-      uint32_t rand_binary32_mask = get_random_binary32_mask();
-      b32.ieee.mantissa ^= ~bitmask & rand_binary32_mask;
-    } else if (BITMASKLIB_OPERATOR == bitmask_operator_one) {
-      b32.u32 |= ~binary32_bitmask;
-    } else if (BITMASKLIB_OPERATOR == bitmask_operator_zero) {
-      b32.u32 &= binary32_bitmask;
-    } else {
-      __builtin_unreachable();
-    }
-
-    *x = b32.f32;
+    _INEXACT(b32)
   }
 }
 
 static void _inexact_binary64(double *x) {
-
-  if (BITMASKLIB_MODE == bitmask_mode_ieee) {
-    return;
-  } else if (fpclassify(*x) != FP_NORMAL && fpclassify(*x) != FP_SUBNORMAL) {
-    return;
-  } else if (BITMASKLIB_MODE == bitmask_mode_ob &&
-             _is_representable_double(*x)) {
+  if (_MUST_NOT_BE_NOISED(*x, BITMASKLIB_BINARY64_T)) {
     return;
   } else {
-
     binary64 b64 = {.f64 = *x};
-
-    uint64_t bitmask = binary64_bitmask;
-    if (fpclassify(*x) == FP_SUBNORMAL) {
-      const uint64_t leading_0 = __builtin_clzl(b64.ieee.mantissa) -
-                                 (DOUBLE_SIGN_SIZE + DOUBLE_EXP_SIZE);
-      if (DOUBLE_PMAN_SIZE < (leading_0 + BITMASKLIB_BINARY64_T)) {
-        bitmask = DOUBLE_MASK_ONE;
-      } else {
-        bitmask = bitmask |
-                  (DOUBLE_MASK_ONE
-                   << (DOUBLE_PMAN_SIZE - (leading_0 + BITMASKLIB_BINARY64_T)));
-      }
-    }
-
-    if (BITMASKLIB_OPERATOR == bitmask_operator_rand) {
-      const uint64_t rand_binary64_mask = get_random_binary64_mask();
-      b64.ieee.mantissa ^= ~bitmask & rand_binary64_mask;
-    } else if (BITMASKLIB_OPERATOR == bitmask_operator_one) {
-      b64.u64 |= ~bitmask;
-    } else if (BITMASKLIB_OPERATOR == bitmask_operator_zero) {
-      b64.u64 &= bitmask;
-    } else {
-      __builtin_unreachable();
-    }
-
-    *x = b64.f64;
+    _INEXACT(b64);
   }
 }
+
+#define _INEXACT_BINARYN(X)                                                    \
+  _Generic(X, float * : _inexact_binary32, double * : _inexact_binary64)(X)
+
+#define _BITMASK_BINARY_OP(A, B, OP, CTX)                                      \
+  {                                                                            \
+    typeof(A) RES = 0;                                                         \
+    if (((t_context *)CTX)->daz) {                                             \
+      A = DAZ(A);                                                              \
+      B = DAZ(B);                                                              \
+    }                                                                          \
+    if (BITMASKLIB_MODE == bitmask_mode_ib ||                                  \
+        BITMASKLIB_MODE == bitmask_mode_full) {                                \
+      _INEXACT_BINARYN(&A);                                                    \
+      _INEXACT_BINARYN(&B);                                                    \
+    }                                                                          \
+    PERFORM_BIN_OP(OP, RES, A, B);					\
+    if (BITMASKLIB_MODE == bitmask_mode_ob ||                                  \
+        BITMASKLIB_MODE == bitmask_mode_full) {                                \
+      _INEXACT_BINARYN(&RES);                                                  \
+    }                                                                          \
+    if (((t_context *)CTX)->ftz) {                                             \
+      RES = FTZ(RES);                                                          \
+    }                                                                          \
+    return RES;                                                                \
+  }
 
 static float _bitmask_binary32_binary_op(float a, float b,
                                          const bitmask_operations op,
                                          void *context) {
-  float res = 0.0f;
-
-  if (((t_context *)context)->daz) {
-    a = (fpclassify(a) == FP_SUBNORMAL) ? 0.0f : a;
-    b = (fpclassify(b) == FP_SUBNORMAL) ? 0.0f : b;
-  }
-
-  if (BITMASKLIB_MODE == bitmask_mode_ib ||
-      BITMASKLIB_MODE == bitmask_mode_full) {
-    _inexact_binary32(&a);
-    _inexact_binary32(&b);
-  }
-
-  perform_bin_op(op, res, a, b);
-
-  if (BITMASKLIB_MODE == bitmask_mode_ob ||
-      BITMASKLIB_MODE == bitmask_mode_full) {
-    _inexact_binary32(&res);
-  }
-
-  if (((t_context *)context)->ftz) {
-    res = (fpclassify(res) == FP_SUBNORMAL) ? 0.0f : res;
-  }
-
-  return res;
+  _BITMASK_BINARY_OP(a, b, op, context)
 }
 
 static double _bitmask_binary64_binary_op(double a, double b,
                                           const bitmask_operations op,
                                           void *context) {
-  double res = 0.0;
-
-  if (((t_context *)context)->daz) {
-    a = (fpclassify(a) == FP_SUBNORMAL) ? 0.0 : a;
-    b = (fpclassify(b) == FP_SUBNORMAL) ? 0.0 : b;
-  }
-
-  if (BITMASKLIB_MODE == bitmask_mode_ib ||
-      BITMASKLIB_MODE == bitmask_mode_full) {
-    _inexact_binary64(&a);
-    _inexact_binary64(&b);
-  }
-
-  perform_bin_op(op, res, a, b);
-
-  if (BITMASKLIB_MODE == bitmask_mode_ob ||
-      BITMASKLIB_MODE == bitmask_mode_full) {
-    _inexact_binary64(&res);
-  }
-
-  if (((t_context *)context)->ftz) {
-    res = (fpclassify(res) == FP_SUBNORMAL) ? 0.0 : res;
-  }
-
-  return res;
+  _BITMASK_BINARY_OP(a, b, op, context)
 }
 
 /******************** BITMASK COMPARE FUNCTIONS ********************
@@ -446,18 +385,18 @@ static void _interflop_div_double(double a, double b, double *c,
 }
 
 static struct argp_option options[] = {
-    /* --debug, sets the variable debug = true */
-    {"precision-binary32", KEY_PREC_B32, "PRECISION", 0,
+    {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
      "select precision for binary32 (PRECISION > 0)"},
-    {"precision-binary64", KEY_PREC_B64, "PRECISION", 0,
+    {key_prec_b64_str, KEY_PREC_B64, "PRECISION", 0,
      "select precision for binary64 (PRECISION > 0)"},
-    {"mode", KEY_MODE, "MODE", 0,
-     "select BITMASK mode among {ieee, full, ib, ob}"},
-    {"operator", KEY_OPERATOR, "OPERATOR", 0,
+    {key_mode_str, KEY_MODE, "MODE", 0,
+     "select MCA mode among {ieee, mca, pb, rr}"},
+    {key_operator_str, KEY_OPERATOR, "OPERATOR", 0,
      "select BITMASK operator among {zero, one, rand}"},
-    {"seed", KEY_SEED, "SEED", 0, "fix the random generator seed"},
-    {"daz", KEY_DAZ, 0, 0, "denormals-are-zero: sets denormals inputs to zero"},
-    {"ftz", KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero"},
+    {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed"},
+    {key_daz_str, KEY_DAZ, 0, 0,
+     "denormals-are-zero: sets denormals inputs to zero"},
+    {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero"},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -469,9 +408,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     errno = 0;
     int val = strtol(arg, &endptr, 10);
     if (errno != 0 || val <= 0) {
-      errx(EXIT_FAILURE, "interflop_bitmask: --precision-binary32 invalid "
-                         "value provided, must be a "
-                         "positive integer.");
+      logger_error("--%s invalid "
+                   "value provided, must be a "
+                   "positive integer.",
+                   key_prec_b32_str);
     } else {
       _set_bitmask_precision_binary32(val);
     }
@@ -481,56 +421,64 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     errno = 0;
     val = strtol(arg, &endptr, 10);
     if (errno != 0 || val <= 0) {
-      errx(EXIT_FAILURE, "interflop_bitmask: --precision-binary64 invalid "
-                         "value provided, must be a "
-                         "positive integer.");
+      logger_error("--%s invalid "
+                   "value provided, must be a "
+                   "positive integer.",
+                   key_prec_b64_str);
     } else {
       _set_bitmask_precision_binary64(val);
     }
     break;
   case KEY_MODE:
     /* mode */
-    if (strcasecmp(BITMASKMODE[bitmask_mode_ieee], arg) == 0) {
+    if (strcasecmp(BITMASK_MODE_STR[bitmask_mode_ieee], arg) == 0) {
       _set_bitmask_mode(bitmask_mode_ieee);
-    } else if (strcasecmp(BITMASKMODE[bitmask_mode_full], arg) == 0) {
+    } else if (strcasecmp(BITMASK_MODE_STR[bitmask_mode_full], arg) == 0) {
       _set_bitmask_mode(bitmask_mode_full);
-    } else if (strcasecmp(BITMASKMODE[bitmask_mode_ib], arg) == 0) {
+    } else if (strcasecmp(BITMASK_MODE_STR[bitmask_mode_ib], arg) == 0) {
       _set_bitmask_mode(bitmask_mode_ib);
-    } else if (strcasecmp(BITMASKMODE[bitmask_mode_ob], arg) == 0) {
+    } else if (strcasecmp(BITMASK_MODE_STR[bitmask_mode_ob], arg) == 0) {
       _set_bitmask_mode(bitmask_mode_ob);
     } else {
-      errx(1,
-           "interflop_bitmask: --mode invalid value provided, must be one of: "
-           "{ieee, full, ib, ob}.");
+      logger_error("--%s invalid value provided, must be one of: "
+                   "{ieee, full, ib, ob}.",
+                   key_mode_str);
     }
     break;
   case KEY_OPERATOR:
-    /* mode */
-    if (strcasecmp(BITMASKOPERATOR[bitmask_operator_zero], arg) == 0) {
+    /* operator */
+    if (strcasecmp(BITMASK_OPERATOR_STR[bitmask_operator_zero], arg) == 0) {
       _set_bitmask_operator(bitmask_operator_zero);
-    } else if (strcasecmp(BITMASKOPERATOR[bitmask_operator_one], arg) == 0) {
+    } else if (strcasecmp(BITMASK_OPERATOR_STR[bitmask_operator_one], arg) ==
+               0) {
       _set_bitmask_operator(bitmask_operator_one);
-    } else if (strcasecmp(BITMASKOPERATOR[bitmask_operator_rand], arg) == 0) {
+    } else if (strcasecmp(BITMASK_OPERATOR_STR[bitmask_operator_rand], arg) ==
+               0) {
       _set_bitmask_operator(bitmask_operator_rand);
     } else {
-      errx(1, "interflop_bitmask: --operator invalid value provided, must be "
-              "one of: "
-              "{zero, one, rand}.");
+      logger_error("--%s invalid value provided, must be "
+                   "one of: "
+                   "{zero, one, rand}.",
+                   key_operator_str);
     }
     break;
   case KEY_SEED:
+    /* set seed */
     errno = 0;
     ctx->choose_seed = true;
     ctx->seed = strtoull(arg, &endptr, 10);
     if (errno != 0) {
-      errx(1, "interflop_bitmask: --seed invalid value provided, must be an "
-              "integer");
+      logger_error("--%s invalid value provided, must be an "
+                   "integer",
+                   key_seed_str);
     }
     break;
   case KEY_DAZ:
+    /* denormal-are-zero */
     ctx->daz = true;
     break;
   case KEY_FTZ:
+    /* flush-to-zero */
     ctx->ftz = true;
     break;
   default:
@@ -548,8 +496,29 @@ static void init_context(t_context *ctx) {
   ctx->ftz = false;
 }
 
+static void print_information_header(void *context) {
+  t_context *ctx = (t_context *)context;
+
+  logger_info(
+      "load backend with "
+      "%s = %d, "
+      "%s = %d, "
+      "%s = %s, "
+      "%s = %s, "
+      "%s = %s and "
+      "%s = %s"
+      "\n",
+      key_prec_b32_str, BITMASKLIB_BINARY32_T, key_prec_b64_str,
+      BITMASKLIB_BINARY64_T, key_mode_str, BITMASK_MODE_STR[BITMASKLIB_MODE],
+      key_operator_str, BITMASK_OPERATOR_STR[BITMASKLIB_OPERATOR], key_daz_str,
+      ctx->daz ? "true" : "false", key_ftz_str, ctx->ftz ? "true" : "false");
+}
+
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
+
+  /* Initialize the logger */
+  logger_init();
 
   _set_bitmask_precision_binary32(BITMASK_PRECISION_BINARY32_DEFAULT);
   _set_bitmask_precision_binary64(BITMASK_PRECISION_BINARY64_DEFAULT);
@@ -563,10 +532,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
 
-  warnx("interflop_bitmask: loaded backend with precision-binary32 = %d, "
-        "precision-binary64 = %d, mode = %s and operator = %s",
-        BITMASKLIB_BINARY32_T, BITMASKLIB_BINARY64_T,
-        BITMASKMODE[BITMASKLIB_MODE], BITMASKOPERATOR[BITMASKLIB_OPERATOR]);
+  print_information_header(ctx);
 
   struct interflop_backend_interface_t interflop_backend_bitmask = {
       _interflop_add_float,

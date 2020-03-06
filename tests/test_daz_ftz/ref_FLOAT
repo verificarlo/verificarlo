@@ -1,0 +1,17 @@
+# Reference float D: denormal, N: normal
+# ieee    D D -> N
+# ieee    N N -> D
+# daz     D D -> 0
+# daz     N N -> D
+# ftz     D D -> N
+# ftz     N N -> 0
+# daz/ftz D D -> 0
+# daz/ftz N N -> 0
+0x1.fffffcp-126
+0x1.000000p-149
+0x0.000000p+0
+0x1.000000p-149
+0x1.fffffcp-126
+0x0.000000p+0
+0x0.000000p+0
+0x0.000000p+0

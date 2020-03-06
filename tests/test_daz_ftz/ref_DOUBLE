@@ -1,0 +1,17 @@
+# Reference double D: denormal, N: normal
+# ieee    D D -> N
+# ieee    N N -> D
+# daz     D D -> 0
+# daz     N N -> D
+# ftz     D D -> N
+# ftz     N N -> 0
+# daz/ftz D D -> 0
+# daz/ftz N N -> 0
+0x1.ffffffffffffep-1022
+0x0.0000000000001p-1022
+0x0.0000000000000p+0
+0x0.0000000000001p-1022
+0x1.ffffffffffffep-1022
+0x0.0000000000000p+0
+0x0.0000000000000p+0
+0x0.0000000000000p+0
