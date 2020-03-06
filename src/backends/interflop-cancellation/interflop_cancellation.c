@@ -7,6 +7,8 @@
  *     CMLA, Ecole Normale Superieure de Cachan                              *
  *  Copyright (c) 2018                                                       *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
+ *  Copyright (c) 2018-2020                                                  *
+ *     Verificarlo contributors                                              *
  *                                                                           *
  *  Verificarlo is free software: you can redistribute it and/or modify      *
  *  it under the terms of the GNU General Public License as published by     *
@@ -23,7 +25,6 @@
  *                                                                           *
  *****************************************************************************/
 
-// Changelog:
 
 #include <argp.h>
 #include <err.h>
@@ -39,13 +40,19 @@
 #include <string.h>
 
 #include "../../common/float_const.h"
+#include "../../common/float_struct.h"
+#include "../../common/float_utils.h"
 #include "../../common/interflop.h"
+#include "../../common/logger.h"
+#include "../../common/options.h"
 #include "../../common/tinymt64.h"
 
-#include "quadmath-imp.h"
+
+#include "../../common/float_const.h"
+#include "../../common/tinymt64.h"
 
 typedef struct {
-  int choose_seed;
+  bool choose_seed;
   uint64_t seed;
 } t_context;
 
@@ -102,32 +109,21 @@ static double _mca_rand(void) {
   /* Convert X to an int */                           \
   u_int64_t _V_ = *(u_int64_t*)&X;                    \
   /* Get size of the exponent */                      \
-  int _E_ = (6+3*(sizeof(X) >> 2)-1);                 \ 
+  int _E_ = (6+3*(sizeof(X) >> 2)-1);                 \
   /* Get the size of the mantiss */                   \
   int _M_ = (sizeof(X)*8-_E_-1);                      \
-  /* Compute the exponent */                          \     
+  /* Compute the exponent */                          \
   (int)bit_a_b(_V_>>_M_,0,_E_-1) - ((1<<_E_-1)-2);})
 
 #define inexact(X,S) (X + pow(2,exp(X)-S) * _mca_rand())
 
-static void _set_mca_seed(int choose_seed, uint64_t seed) {
-  if (choose_seed) {
-    tinymt64_init(&random_state, seed);
-  } else {
-    const int key_length = 3;
-    uint64_t init_key[key_length];
-    struct timeval t1;
-    gettimeofday(&t1, NULL);
-    /* Hopefully the following seed is good enough for Montercarlo */
-    init_key[0] = t1.tv_sec;
-    init_key[1] = t1.tv_usec;
-    init_key[2] = getpid();
-    tinymt64_init_by_array(&random_state, init_key, key_length);
-  }
+/* Set the mca seed */
+static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
+  _set_seed_default(&random_state, choose_seed, seed);
 }
 
 /****************** CANCELLATION DETECTION FUNCTIONS *************************
- *  Compute the difference between the max of both operands and the exposant 
+ *  Compute the difference between the max of both operands and the exposant
  * of the result to find the size of the cancellation
  ****************************************************************************/
 

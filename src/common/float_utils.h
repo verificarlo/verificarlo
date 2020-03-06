@@ -29,6 +29,7 @@
 
 #include <math.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #include "float_const.h"
 #include "float_struct.h"
