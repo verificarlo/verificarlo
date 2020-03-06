@@ -60,13 +60,7 @@ typedef struct {
 static int WARN = WARNING_DEFAULT;
 static int TOLERANCE = TOLERANCE_DEFAULT;
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
-#define bit(A, i) ((A >> i) & 1)
-#define bit_a_b(X, a, b)                                                       \
-  (((X << (sizeof(X) * 8 - max(a, b) - 1)) >>                                  \
-    (sizeof(X) * 8 - max(a, b) - 1)) &                                         \
-   ((X >> min(a, b)) << min(a, b)))
 
 static void _set_tolerance(int tolerance) { TOLERANCE = tolerance; }
 
@@ -74,6 +68,11 @@ static void _set_warning(bool warning) { WARN = warning; }
 
 /* random generator internal state */
 static tinymt64_t random_state;
+
+/* Set the mca seed */
+static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
+  _set_seed_default(&random_state, choose_seed, seed);
+}
 
 static double _mca_rand(void) {
   /* Returns a random double in the (0,1) open interval */
@@ -90,17 +89,15 @@ static inline double _noise_binary64(const int exp) {
 #define _NOISE(X, EXP)                                                         \
   _Generic(X, double : _noise_binary64, __float128 : _noise_binary128)(EXP)
 
+/* _INEXACT adds an MCA noise of magnitude VIRTUAL_PRECISION
+ * this particular version in the case of cancellations does not use
+ * extended quad types */
 #define _INEXACT(X, VIRTUAL_PRECISION)                                         \
   {                                                                            \
     const int32_t e_a = GET_EXP_FLT(*X);                                       \
     const int32_t e_n = e_a - (VIRTUAL_PRECISION - 1);                         \
     *X = *X + _noise_binary64(e_n);                                            \
   }
-
-/* Set the mca seed */
-static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
-  _set_seed_default(&random_state, choose_seed, seed);
-}
 
 /* detect: computes the difference between the max of both operands and the
  * exposant of the result to find the size of the cancellation */
@@ -110,7 +107,6 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
 /* cancell: detects the cancellation size; and checks if its larger than the
  * chosen tolerance. It reports a warning to the user and adds a MCA noise of
  * the magnitude of the cancelled bits. */
-
 #define cancell(X, Y, Z)                                                       \
   ({                                                                           \
     int cancellation = detect(X, Y, Z);                                        \
@@ -123,7 +119,6 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
   })
 
 /* Cancellations can only happen during additions and substractions */
-
 static void _interflop_add_float(float a, float b, float *c, void *context) {
   *c = a + b;
   cancell(a, b, c);
@@ -132,14 +127,6 @@ static void _interflop_add_float(float a, float b, float *c, void *context) {
 static void _interflop_sub_float(float a, float b, float *c, void *context) {
   *c = a - b;
   cancell(a, b, c);
-}
-
-static void _interflop_mul_float(float a, float b, float *c, void *context) {
-  *c = a * b;
-}
-
-static void _interflop_div_float(float a, float b, float *c, void *context) {
-  *c = a / b;
 }
 
 static void _interflop_add_double(double a, double b, double *c,
@@ -152,6 +139,14 @@ static void _interflop_sub_double(double a, double b, double *c,
                                   void *context) {
   *c = a - b;
   cancell(a, b, c);
+}
+
+static void _interflop_mul_float(float a, float b, float *c, void *context) {
+  *c = a * b;
+}
+
+static void _interflop_div_float(float a, float b, float *c, void *context) {
+  *c = a / b;
 }
 
 static void _interflop_mul_double(double a, double b, double *c,
