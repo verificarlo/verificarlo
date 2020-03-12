@@ -1,1 +1,1 @@
-SUBDIRS= interflop-ieee interflop-mca interflop-mca-mpfr interflop-bitmask
+SUBDIRS= interflop-ieee interflop-mca interflop-mca-mpfr interflop-cancellation interflop-bitmask

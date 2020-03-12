@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+#
+# ddCmp: compares the reference run and a current run, returns with success if
+# there is no numerical deviation higher than 1e-6.
+#
+# The first argument is the folder with the reference output, the second
+# argument is the folder with the current output.
+
+from fractions import Fraction
+import math
+import sys
+
+MAX_DEVIATION=1e-6
+REFDIR=sys.argv[1]
+CURDIR=sys.argv[2]
+
+def read_output(DIR):
+    with open("{}/res.dat".format(DIR)) as f:
+        return Fraction(f.read())
+
+# Read reference and current outputs
+ref = read_output(REFDIR)
+cur = read_output(CURDIR)
+
+# Compute the deviation
+mean = abs(float((ref + cur)/2))
+std = math.sqrt(float((ref - mean)**2 + (ref - cur)**2))
+deviation = std/mean # dev = sigma / | mu |
+
+# Write log to CURDIR/res.stat
+with open("{}/res.stat".format(CURDIR), 'w') as f:
+    f.write("reference = {} current = {} deviation = {}\n".format(
+        ref, cur, deviation))
+
+# Fail if the deviation is higher than 1e-6
+sys.exit(0 if deviation < MAX_DEVIATION else 1)
