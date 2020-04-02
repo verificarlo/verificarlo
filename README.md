@@ -589,7 +589,7 @@ number indicates the exact assembly instruction address.
 It is possible to highlight faulty instructions inside your code editor by
 using a script such as `tests/test_ddebug_archimedes/vfc_dderrors.py`, which
 returns a [quickfix](http://vimdoc.sourceforge.net/htmldoc/quickfix.html)
-compatible with the union ddmin instructions.
+compatible output with the union of _ddmin_ instructions.
 
 
 ## Unstable branch detection
