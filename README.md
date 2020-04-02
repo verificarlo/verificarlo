@@ -560,7 +560,7 @@ full mca mode. `vfc_ddebug` is the delta-debug orchestration script.
 `vfc_ddebug` will test instruction sub-sets. Each time an irreductible `ddmin`
 set is found it is signaled to the user and asigned a number `ddmin0`,
 `ddmin1`, ...., `ddminX`. The faulty instructions of `ddminX` set are stored in
-the `dd.line/ddminX/dd.line.include` (these are the instructions thate were
+the `dd.line/ddminX/dd.line.include` (these are the instructions that were
 instrumented with the noise backend during the run).
 
 The union of the _"culprit"_ instructions can also be found in
@@ -569,6 +569,19 @@ The union of the _"culprit"_ instructions can also be found in
 A full example demonstrating delta-debug usage can be found in the
 [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) and in
 the `tests/test_ddebug_archimedes`.
+
+As an example, in the `test_ddebug_archimedes`, two ddmin sets are found:
+
+```
+$ cat dd.line/ddmin0/dd.line.include
+0x000000000040136c: archimedes at archimedes.c:16
+$ cat dd.line/ddmin1/dd.line.include
+0x0000000000401399: archimedes at archimedes.c:17
+```
+
+indicating that the two instructions at lines `archimedes.c:16` and
+`archimedes.c:17` are responsible for the numerical instability. The first
+number indicates the exact assembly instruction address.
 
 ## Unstable branch detection
 
