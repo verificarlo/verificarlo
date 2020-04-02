@@ -1,30 +1,29 @@
 Verificarlo CHANGELOG
 
-# [v0.3.0] Unreleased
+# [v0.3.0] 2020/04/02
 
 ## Added
    * Support for LLVM up to 9.0.1
-   * Add VFC_BACKEND_COLORED_LOGGER environment variable for enabling/disabling the colored messages
-   * Add VFC_BACKEND_LOGGER environment variable for enabling/disabling the logger
-   * Add logger for displaying colored messages
+   * Add delta-debug to Verificarlo to pinpoint numerical bugs
+   * Add a newer backend to detect and measure the impact of cancellations
+   * Add bitmask backend (libinterflop_bitmask.so), a fast first order model of noise
    * Add DAZ/FTZ options for flushing subnormal numbers to 0
        - --daz: denormals-are-zero, flushes subnormal inputs to 0
        - --ftz: flush-to-zero, flushes subnormal output to 0
-   * Add bitmask backend (libinterflop_bitmask.so), a fast first order model of noise
-   * Add VFC_BACKENDS_SILENT_LOAD environment variable for disabling messages when a backend is loaded
    * Add options for interflop_ieee backend
        - --debug-binary: enable binary debug output
        - --no-backend-name: do not print backend name in debug output
        - --print-new-line: add a new line after debug output
        - --print-subnormal-normalized: print subnormal number in the normalized form
    * Separate virtual precisions for binary32 and binary64 values
-   * Add delta-debug scripts for using delta-debug with Verificarlo
-   * Add an option for fixing the seed of the RNG
+   * Add an option for selecting the seed of the RNG
+   * Add VFC_BACKENDS_SILENT_LOAD environment variable for disabling messages when a backend is loaded
+   * Add VFC_BACKEND_LOGGER environment variable for enabling/disabling the logger
+   * Add VFC_BACKEND_COLORED_LOGGER environment variable for enabling/disabling the colored messages
 
 ## Changed
    * Update configure.ac for checking special types and features
-   * Optimize and factorize interlop_mca_mpfr backend
-   * Optimize and factorize interflop_mca backend
+   * Optimize and factorize interlop_mca_mpfr and interflop_mca backends
    * Upgrade python scripts to Python3
    * Backends mca and mca-mpfr are bitwise comparable
 
@@ -42,7 +41,7 @@ Verificarlo CHANGELOG
 [v0.2.3] 2019/08/19
 
 ## Added
-   * Use Interflop interface
+   * Use Interflop interface which suport loading backends as dynamic plugins
    * Backend interflop_ieee which uses standard IEEE 754 arithmetic
    * Backend are loadead with the VFC_BACKENDS environment variable
    * Options for backends are passed with VFC_BACKENDS="/path/to/interflop_backend.so --option1 --option2 ..."
