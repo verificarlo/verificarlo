@@ -21,6 +21,7 @@ A tool for debugging and assessing floating point precision and reproducibility.
       * [MCA-MPFR Backend (libinterflop_mca_mpfr.so)](#mca-mpfr-backend-libinterflop_mca_mpfrso)
       * [Bitmask Backend (libinterflop_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
       * [Cancellation Backend (libinterflop_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
+      * [VPREC Backend (libinterflop_vprec.so)](#vprec-backend-libinterflop_vprecso)
    * [Verificarlo inclusion / exclusion options](#verificarlo-inclusion--exclusion-options)
    * [Postprocessing](#postprocessing)
    * [Pinpointing errors with delta-debug](#pinpointing-errors-with-delta-debug)
@@ -135,7 +136,7 @@ for a global install, this would resemble (edit for your installed Python
 version):
 
 ```bash
-	$ export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/pythonXXX.XXX/site-packages
+$ export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/pythonXXX.XXX/site-packages
 ```
 
 You can make the above change permanent by editing your `~/.bashrc`,
@@ -333,7 +334,7 @@ following case insensitive values:
 
 The option `--precision-binary64=PRECISION` controls the virtual
 precision used for the floating point operations in double precision
-(respectively for single precision with --precision-binary32) It
+(respectively for single precision with --precision-binary32). It
 accepts an integer value that represents the virtual precision at
 which MCA operations are performed. Its default value is 53 for
 binary64 and 24 for binary32. A precise definition of the
@@ -345,9 +346,9 @@ MCA computation always use round-to-zero mode.
 In Random Round mode, the exact operations in given virtual precision are
 preserved.
 
-The options `--daz` and `--ftz` flush subnormal numbers to 0.
-The `--daz` (**Denormals-Are-Zero**) flush subnormal inputs to 0.
-The `--ftz` (**Flush-To-Zero**) flush subnormal output to 0.
+The options `--daz` and `--ftz` flush subnormal numbers to 0.  
+The `--daz` (**Denormals-Are-Zero**) flushes subnormal inputs to 0.  
+The `--ftz` (**Flush-To-Zero**) flushes subnormal output to 0.
 
 ```bash
    $ VFC_BACKENDS="libinterflop_mca.so --mode=ieee" ./test
@@ -401,8 +402,8 @@ accepts the following case insensitive values:
 
 * `ieee`: the program uses the standard IEEE arithmetic, no errors are introduced
 * `ib`: InBound precision errors only
-* `ob`: OutBound precision errors only (default mode)
-* `full`: InBound and OutBound modes combine
+* `ob`: OutBound precision errors only (*default mode*)
+* `full`: InBound and OutBound modes combined
 
 The option `--operator=OPERATOR` controls the bitmask operator to
 apply. It accepts the following case insensitive values:
@@ -461,6 +462,62 @@ used except if one to reproduce a particular MCA trace.
 
 Finally the user should know that this backend is still experimental and in
 developpement.
+
+### VPREC Backend (libinterflop_vprec.so)
+
+The VPREC backend simulates any floating-point formats that can fits into
+the IEEE-754 double precision format with a round to the nearest.
+The backend allows modifying the bit length of the exponent (range) and the
+pseudo-mantissa (precision).
+
+```bash
+Usage: libinterflop_vprec.so [OPTION...]
+
+  -m, --mode=MODE            select VPREC mode among {ieee, full, ib, ob}
+      --precision-binary32=PRECISION
+                             select precision for binary32 (PRECISION >= 0)
+      --precision-binary64=PRECISION
+                             select precision for binary64 (PRECISION >= 0)
+      --range-binary32=RANGE select range for binary32 (0 < RANGE && RANGE <=
+                             11)
+      --range-binary64=RANGE select range for binary64 (0 < RANGE && RANGE <=
+                             11)
+  -d, --daz                  denormals-are-zero: sets denormals inputs to zero
+  -f, --ftz                  flush-to-zero: sets denormal output to zero
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+```
+
+Three options control the behavior of the VPREC backend.
+
+The option `--mode=MODE` controls the arithmetic error mode. It accepts the following case insensitive values:
+
+ *`ieee`: the program uses standard IEEE arithmetic, no rounding are introduced
+ *`ib`: InBound precision only
+ *`ob`: OutBound precision only (*default mode*)
+ *`full`: Inbound and outbound mode combined
+
+The option `--precision-binary64=PRECISION` controls the pseudo-mantissa bit length of
+the new tested format for floating-point operations in double precision
+(respectively for single precision with --precision-binary32).
+It accepts an integer value that represents the precision at which
+the rounding will be done.
+
+The option `--range-binary64=PRECISION` controls the exponent bit length of
+the new tested format for floating-point operations in double precision
+(respectively for single precision with --range-binary32).
+It accepts an integer value that represents the magnitude of the numbers.
+
+A detailled description of the backend is given [here](https://www.researchgate.net/profile/Yohan_Chatelain/publication/335232310_Automatic_Exploration_of_Reduced_Floating-Point_Representations_in_Iterative_Methods/links/5d8e18e9a6fdcc25549f95b3/Automatic-Exploration-of-Reduced-Floating-Point-Representations-in-Iterative-Methods.pdf).
+
+The following example shows the computation with the single precision and the simulation of the `bfloat16` format with VPREC:
+
+```bash
+   $ VFC_BACKENDS="libinterflop_vprec.so --precision-binary32=23 --range-binary32=8" ./a.out
+   $ (2.903225*2.903225)*16384.000000 = 138096.062500
+   $ VFC_BACKENDS="libinterflop_vprec.so --precision-binary32=10 --range-binary32=5" ./a.out
+   $ (2.903225*2.903225)*16384.000000 = inf
+```
 
 ## Verificarlo inclusion / exclusion options
 
