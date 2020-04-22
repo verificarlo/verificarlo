@@ -16,7 +16,7 @@ addons:
       - libmpfr-dev
       - gcc-4.9 gcc-4.9-plugin-dev g++-4.9 gfortran-4.9 libgfortran-4.9-dev
       - autoconf automake build-essential libedit-dev binutils
-      - python3-dev python3-numpy cython3 wget xz-utils
+      - python3-dev python3-numpy cython3 wget xz-utils python3-pip python3-setuptools
 
 stages:
   - before_install
@@ -37,6 +37,8 @@ before_install:
   - LLVM_CONFIG=${LLVM_INSTALL_PATH}/bin/llvm-config GCC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} make
   - mkdir -p ${GCC_INSTALL_PATH}/plugin/
   - sudo cp dragonegg.so ${GCC_INSTALL_PATH}/plugin/dragonegg.so
+  - sudo pip3 install --upgrade pip
+  - sudo pip3 install bigfloat
 
 install:
   - cd $TRAVIS_BUILD_DIR
