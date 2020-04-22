@@ -352,11 +352,11 @@ The `--ftz` (**Flush-To-Zero**) flushes subnormal output to 0.
 
 ```bash
    $ VFC_BACKENDS="libinterflop_mca.so --mode=ieee" ./test
-   $ 0x0.fffffep-126 +0x1.000000p-149 = 0x1.000000p-126
+   0x0.fffffep-126 +0x1.000000p-149 = 0x1.000000p-126
    $ VFC_BACKENDS="libinterflop_mca.so --mode=ieee --daz" ./test
-   $ 0x0.fffffep-126 +0x1.000000p-149 = 0x0
+   0x0.fffffep-126 +0x1.000000p-149 = 0x0
    $ VFC_BACKENDS="libinterflop_mca.so --mode=ieee --ftz" ./test
-   $ 0x0.fffffep-126 +0x1.000000p-149 = 0x1.000000p-126
+   0x0.fffffep-126 +0x1.000000p-149 = 0x1.000000p-126
 ```
 
 The option `--seed` fixes the random generator seed. It should not generally be used
@@ -465,7 +465,7 @@ developpement.
 
 ### VPREC Backend (libinterflop_vprec.so)
 
-The VPREC backend simulates any floating-point formats that can fits into
+The VPREC backend simulates any floating-point formats that can fit into
 the IEEE-754 double precision format with a round to the nearest.
 The backend allows modifying the bit length of the exponent (range) and the
 pseudo-mantissa (precision).
@@ -508,15 +508,15 @@ the new tested format for floating-point operations in double precision
 (respectively for single precision with --range-binary32).
 It accepts an integer value that represents the magnitude of the numbers.
 
-A detailled description of the backend is given [here](https://www.researchgate.net/profile/Yohan_Chatelain/publication/335232310_Automatic_Exploration_of_Reduced_Floating-Point_Representations_in_Iterative_Methods/links/5d8e18e9a6fdcc25549f95b3/Automatic-Exploration-of-Reduced-Floating-Point-Representations-in-Iterative-Methods.pdf).
+A detailed description of the backend is given [here](https://www.researchgate.net/profile/Yohan_Chatelain/publication/335232310_Automatic_Exploration_of_Reduced_Floating-Point_Representations_in_Iterative_Methods/links/5d8e18e9a6fdcc25549f95b3/Automatic-Exploration-of-Reduced-Floating-Point-Representations-in-Iterative-Methods.pdf).
 
-The following example shows the computation with the single precision and the simulation of the `bfloat16` format with VPREC:
+The following example shows the computation with single precision and the simulation of the `bfloat16` format with VPREC:
 
 ```bash
    $ VFC_BACKENDS="libinterflop_vprec.so --precision-binary32=23 --range-binary32=8" ./a.out
-   $ (2.903225*2.903225)*16384.000000 = 138096.062500
+   (2.903225*2.903225)*16384.000000 = 138096.062500
    $ VFC_BACKENDS="libinterflop_vprec.so --precision-binary32=10 --range-binary32=5" ./a.out
-   $ (2.903225*2.903225)*16384.000000 = inf
+   (2.903225*2.903225)*16384.000000 = inf
 ```
 
 ## Verificarlo inclusion / exclusion options
