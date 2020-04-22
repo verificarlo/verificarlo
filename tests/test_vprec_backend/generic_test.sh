@@ -105,3 +105,5 @@ for TYPE in "${float_type_list[@]}"; do
 	done
     done
 done
+
+cat log.error
