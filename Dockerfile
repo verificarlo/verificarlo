@@ -19,7 +19,7 @@ RUN apt-get -y update && apt-get -y install --no-install-recommends \
     bash ca-certificates make git libmpfr-dev \
     gcc-${GCC_VERSION} gcc-${GCC_VERSION}-plugin-dev g++-${GCC_VERSION} gfortran-${GCC_VERSION} libgfortran-${GCC_VERSION}-dev \
     autoconf automake libedit-dev libtool libz-dev \
-    python3 python3-numpy python3-matplotlib binutils vim sudo wget xz-utils && \
+    python3 python3-numpy python3-matplotlib python3-pip python3-setuptools binutils vim sudo wget xz-utils && \
     rm -rf /var/lib/apt/lists/
 
 WORKDIR /build/
@@ -41,6 +41,10 @@ RUN git clone -b gcc-llvm-3.6 --depth=1 https://github.com/yohanchatelain/Dragon
 WORKDIR DragonEgg
 RUN LLVM_CONFIG=${LLVM_INSTALL_PATH}/bin/llvm-config GCC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} make
 ARG DRAGONEGG_PATH=/build/DragonEgg/dragonegg.so
+
+# Install bigfloat package for manipulating MPFR with Python
+RUN sudo pip3 install --upgrade pip && \
+    sudo pip3 install bigfloat
 
 # Download and configure verificarlo from git master
 WORKDIR /build/verificarlo
