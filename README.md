@@ -492,10 +492,10 @@ Three options control the behavior of the VPREC backend.
 
 The option `--mode=MODE` controls the arithmetic error mode. It accepts the following case insensitive values:
 
- *`ieee`: the program uses standard IEEE arithmetic, no rounding are introduced
- *`ib`: InBound precision only
- *`ob`: OutBound precision only (*default mode*)
- *`full`: Inbound and outbound mode combined
+ * `ieee`: the program uses standard IEEE arithmetic, no rounding are introduced
+ * `ib`: InBound precision only
+ * `ob`: OutBound precision only (*default mode*)
+ * `full`: Inbound and outbound mode combined
 
 The option `--precision-binary64=PRECISION` controls the pseudo-mantissa bit length of
 the new tested format for floating-point operations in double precision
