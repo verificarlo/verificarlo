@@ -206,7 +206,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
 
-  logger_info("interflop_cancellation: loaded backend with tolerance = %d ",
+  logger_info("interflop_cancellation: loaded backend with tolerance = %d\n",
               TOLERANCE);
 
   struct interflop_backend_interface_t interflop_backend_cancellation = {
