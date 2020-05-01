@@ -504,7 +504,7 @@ static struct argp_option options[] = {
     {key_prec_b64_str, KEY_PREC_B64, "PRECISION", 0,
      "select precision for binary64 (PRECISION >= 0)"},
     {key_range_b32_str, KEY_RANGE_B32, "RANGE", 0,
-     "select range for binary32 (0 < RANGE && RANGE <= 11)"},
+     "select range for binary32 (0 < RANGE && RANGE <= 8)"},
     {key_range_b64_str, KEY_RANGE_B64, "RANGE", 0,
      "select range for binary64 (0 < RANGE && RANGE <= 11)"},
     {key_mode_str, KEY_MODE, "MODE", 0,
