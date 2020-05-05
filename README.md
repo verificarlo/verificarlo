@@ -479,7 +479,7 @@ Usage: libinterflop_vprec.so [OPTION...]
       --precision-binary64=PRECISION
                              select precision for binary64 (PRECISION >= 0)
       --range-binary32=RANGE select range for binary32 (0 < RANGE && RANGE <=
-                             11)
+                             8)
       --range-binary64=RANGE select range for binary64 (0 < RANGE && RANGE <=
                              11)
   -d, --daz                  denormals-are-zero: sets denormals inputs to zero
