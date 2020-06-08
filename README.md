@@ -70,7 +70,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
   * LLVM, clang and opt from 3.3 up to 9.0.1, http://clang.llvm.org/
   * gcc from 4.9
   * For Fortran support see section Fortran support
-  * python3 and NumPy
+  * python3 with numpy and bigfloat packages
   * autotools (automake, autoconf)
 
 Then run the following command inside verificarlo directory:
