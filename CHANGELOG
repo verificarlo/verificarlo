@@ -1,5 +1,34 @@
 Verificarlo CHANGELOG
 
+# [v0.4.0] 2020/07/03
+
+## Added
+  * Support for LLVM up to 10.0.1
+  * Add flang support for Fortran
+  * Add test_fortran_NAS that compiles and run the CG test from the NAS Parallel Benchmarks
+  * Add test_cpp for testing the compilation of C++ files
+  * Add wrappers for each target language: verificarlo-c, verificarlo-f and verificarlo-c++
+  * Add the option --linker to verificarlo to choose which linker to use
+  * Add the option --show-cmd in verificarlo to print internal commands
+  * Add clang-format-lint in the CI pipeline to check the clang-format conformity of source files
+  * Add VPREC backend that allows simulating any floating-point formats that fit into the IEEE-754 double precision format
+
+## Changed
+  * Update configure.ac to check gcc and llvm version
+  * Update m4/ax_llvm.m4 to remove the dragonegg option
+  * Update test_vprec_backend to reduce its execution time
+
+## Fixed
+  * Fix test_branch_instrumentation to force FP constants to be actual float
+  * Fix test_kahan that does not correctly output files
+  * Fix wrong max range for binary32 type
+  * Fix typo in exclusion/inclusion rules
+
+## Removed
+  * Support for LLVM 3.3 to 3.9
+  * Support for gcc version older than 4.9
+  * Support for dragonegg+gcc
+
 # [v0.3.0] 2020/04/02
 
 ## Added
