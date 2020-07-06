@@ -34,8 +34,10 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
+#include <cxxabi.h>
 #include <fstream>
 #include <set>
+#include <sstream>
 #include <utility>
 
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 6
@@ -122,6 +124,49 @@ struct VfclibInst : public ModulePass {
 
   VfclibInst() : ModulePass(ID) {}
 
+  // Taken from
+  // https://www.fluentcpp.com/2017/04/21/how-to-split-a-string-in-c/
+  std::vector<std::string> split(const std::string &s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter)) {
+      tokens.push_back(token);
+    }
+    return tokens;
+  }
+
+  StringRef getModuleName(Module &M) {
+    const std::string &sourceFilename = M.getModuleIdentifier();
+    /* Split the path with the separator */
+    std::vector<std::string> tokensDir = split(sourceFilename, '/');
+    /* Split the module name with the relative path separator */
+    std::vector<std::string> tokensTmp = split(tokensDir.back(), '#');
+    /* Split the module name with the . */
+    std::vector<std::string> tokens = split(tokensTmp.back(), '.');
+    /* Drop the .ll */
+    tokens.pop_back();
+    /* Drop the .1 */
+    tokens.pop_back();
+    /* Drop the .<tmp> extension */
+    tokens.pop_back();
+    return tokens.back();
+  }
+
+  // Demangling function
+  std::string demangle(std::string src) {
+    int status = 0;
+    char *demangled_name = NULL;
+    if ((demangled_name = abi::__cxa_demangle(src.c_str(), 0, 0, &status))) {
+      src = demangled_name;
+      std::size_t first = src.find("(");
+      src = src.substr(0, first);
+    }
+    free(demangled_name);
+
+    return src;
+  }
+
   void parseFunctionSetFile(Module &M, cl::opt<std::string> &fileName,
                             std::set<std::string> &FunctionSet) {
     // Skip if empty fileName
@@ -140,7 +185,7 @@ struct VfclibInst : public ModulePass {
     int lineno = 0;
     std::string line;
     // drop the .1.ll suffix in the module name
-    StringRef mod_name = StringRef(M.getModuleIdentifier()).drop_back(5);
+    StringRef mod_name = getModuleName(M);
     while (std::getline(loopstream, line)) {
       lineno++;
       StringRef l = StringRef(line);
@@ -214,7 +259,7 @@ struct VfclibInst : public ModulePass {
   bool runOnFunction(Module &M, Function &F) {
     if (VfclibInstVerbose) {
       errs() << "In Function: ";
-      errs().write_escaped(F.getName()) << '\n';
+      errs().write_escaped(demangle(F.getName())) << '\n';
     }
 
     bool modified = false;
