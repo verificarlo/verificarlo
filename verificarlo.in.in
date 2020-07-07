@@ -35,6 +35,7 @@ PACKAGE_STRING = "@PACKAGE_STRING@"
 LIBDIR = "%LIBDIR%"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
+libvfcfuncinstrument = LIBDIR + '/libvfcfuncinstrument.so'
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
 mcalib_includes = PROJECT_ROOT + "/../include/"
 vfcwrapper = mcalib_includes + 'vfcwrapper.c'
@@ -109,7 +110,7 @@ def linker_mode(sources, options, output, args):
     extra_args = "-static " if args.static else "-fPIC "
     extra_args += "-DINST_FCMP " if args.inst_fcmp else ""
     extra_args += "-DDDEBUG " if args.ddebug else ""
-    shell('{clang} -c -O3 {extra_args} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
+    shell('{clang} -c -O3 -Wno-varargs {extra_args} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
         extra_args=extra_args,
         vfcwrapper=vfcwrapper,
@@ -141,13 +142,17 @@ def compiler_mode(sources, options, output, args):
     for source in sources:
         basename = os.path.splitext(source)[0]
         ir = basename + '.1.ll'
+        func = basename + '.2.ll'
         ins = basename + '.2.ll'
 
         compiler = linkers[args.linker]
 
+        debug = '-g' if args.inst_func else ''
+
         # Compile to ir (fortran uses flang, c uses clang)
-        shell('{compiler} -c -S {source} -emit-llvm {options} -o {ir}'.format(
+        shell('{compiler} -c -S {debug} {source} -emit-llvm {options} -o {ir}'.format(
             compiler=compiler,
+            debug=debug,
             source=source,
             options=options,
             ir=ir))
@@ -170,6 +175,17 @@ def compiler_mode(sources, options, output, args):
         # Activate fcmp instrumentation
         if args.inst_fcmp:
             extra_args += "-vfclibinst-inst-fcmp "
+
+        if args.inst_func:
+            # Apply function's instrumentation pass
+            shell('{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir} -o {func}'.format(
+                opt=opt,
+                libvfcfuncinstrument=libvfcfuncinstrument,
+                ir=ir,
+                func=func
+                ))
+            ir = basename + '.2.ll'
+            ins = basename + '.3.ll'
 
         # Apply MCA instrumentation pass
         shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {extra_args} {selectfunction} {ir} -o {ins}'.format(
@@ -201,6 +217,7 @@ if __name__ == "__main__":
     parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
     parser.add_argument('--verbose', action='store_true', help='verbose output')
     parser.add_argument('--inst-fcmp', action='store_true', help='instrument floating point comparisons')
+    parser.add_argument('--inst-func', action='store_true', help='instrument functions')
     parser.add_argument('--show-cmd', action='store_true', help='show internal commands')
     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
     parser.add_argument('--linker', choices=linkers.keys(), default=default_linker, help="linker to use, {dl} by default".format(dl=default_linker))

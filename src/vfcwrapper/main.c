@@ -80,9 +80,17 @@ void logger_error(const char *fmt, ...);
 static char *dd_filter_path = NULL;
 static char *dd_generate_path = NULL;
 
-/* Hashset implementation for deltadebug */
+/* Function instrumentation prototypes */
 
-struct hashset_st {
+void vfc_init_func_inst();
+
+void vfc_quit_func_inst();
+
+/* Hashmap header */
+
+#define __VFC_HASHMAP_HEADER__
+
+struct vfc_hashmap_st {
   size_t nbits;
   size_t mask;
 
@@ -91,28 +99,62 @@ struct hashset_st {
   size_t nitems;
   size_t n_deleted_items;
 };
-typedef struct hashset_st *hashset_t;
+typedef struct vfc_hashmap_st *vfc_hashmap_t;
 
-hashset_t hashset_create(void);
-void hashset_destroy(hashset_t set);
-size_t hashset_num_items(hashset_t set);
-int hashset_add(hashset_t set, void *item);
-int hashset_is_member(hashset_t set, void *item);
+// allocate and initialize the map
+vfc_hashmap_t vfc_hashmap_create();
 
-hashset_t dd_must_instrument;
+// free the map
+void vfc_hashmap_destroy(vfc_hashmap_t map);
 
-void ddebug_generate_inclusion(char *dd_generate_path, hashset_t set) {
+// get the value at an index of a map
+size_t get_value_at(size_t *items, size_t i);
+
+// get the key at an index of a map
+size_t get_key_at(size_t *items, size_t i);
+
+// set the value at an index of a map
+void set_value_at(size_t *items, size_t value, size_t i);
+
+// set the key at an index of a map
+void set_key_at(size_t *items, size_t key, size_t i);
+
+// insert an element in the map
+void vfc_hashmap_insert(vfc_hashmap_t map, size_t key, void *item);
+
+// remove an element of the map
+void vfc_hashmap_remove(vfc_hashmap_t map, size_t key);
+
+// test if an element is in the map
+char vfc_hashmap_have(vfc_hashmap_t map, size_t key);
+
+// get an element of the map
+void *vfc_hashmap_get(vfc_hashmap_t map, size_t key);
+
+// get the number of elements in the map
+size_t vfc_hashmap_num_items(vfc_hashmap_t map);
+
+// Hash function for strings
+size_t vfc_hashmap_str_function(const char *id);
+
+// Free the hashmap
+void vfc_hashmap_free(vfc_hashmap_t map);
+
+vfc_hashmap_t dd_must_instrument;
+
+void ddebug_generate_inclusion(char *dd_generate_path, vfc_hashmap_t map) {
   int output = open(dd_generate_path, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
   if (output == -1) {
     logger_error("cannot open DDEBUG_GEN file %s", dd_generate_path);
   }
-  for (int i = 0; i < set->capacity; i++) {
-    if (set->items[i] != 0 && set->items[i] != 1) {
+  for (int i = 0; i < map->capacity; i++) {
+    if (get_value_at(map->items, i) != 0 && get_value_at(map->items, i) != 1) {
       pid_t pid = fork();
       if (pid == 0) {
         char addr[19];
         char executable[64];
-        snprintf(addr, 19, "%p", (void *)(set->items[i] - CALL_OP_SIZE));
+        snprintf(addr, 19, "%p",
+                 (void *)(get_value_at(map->items, i) - CALL_OP_SIZE));
         snprintf(executable, 64, "/proc/%d/exe", getppid());
         dup2(output, 1);
         execlp("addr2line", "/usr/bin/addr2line", "-fpaCs", "-e", executable,
@@ -128,15 +170,23 @@ void ddebug_generate_inclusion(char *dd_generate_path, hashset_t set) {
   close(output);
 }
 
-__attribute__((destructor)) static void vfc_atexit(void) {
+__attribute__((destructor(0))) static void vfc_atexit(void) {
+
+  /* Send finalize message to backends */
+  for (int i = 0; i < loaded_backends; i++)
+    if (backends[i].interflop_exit_function)
+      backends[i].interflop_finalize(contexts[i]);
+
 #ifdef DDEBUG
   if (dd_generate_path) {
     ddebug_generate_inclusion(dd_generate_path, dd_must_instrument);
     logger_info("ddebug: generated complete inclusion file at %s\n",
                 dd_generate_path);
   }
-  hashset_destroy(dd_must_instrument);
+  vfc_hashmap_destroy(dd_must_instrument);
 #endif
+
+  vfc_quit_func_inst();
 }
 
 /* Checks that a least one of the loaded backend implements the chosen
@@ -157,7 +207,7 @@ __attribute__((destructor)) static void vfc_atexit(void) {
   } while (0)
 
 /* vfc_init is run when loading vfcwrapper and initializes vfc backends */
-__attribute__((constructor)) static void vfc_init(void) {
+__attribute__((constructor(0))) static void vfc_init(void) {
 
   /* The vfcwrapper library constructor may be loaded multiple times.  This
    * happends for example, when a .so compiled with Verificarlo is loaded with
@@ -172,6 +222,9 @@ __attribute__((constructor)) static void vfc_init(void) {
   } else {
     return;
   }
+
+  /* Initialize instumentation */
+  vfc_init_func_inst();
 
   /* Initialize the logger */
   logger_init();
@@ -267,7 +320,7 @@ __attribute__((constructor)) static void vfc_init(void) {
 
 #ifdef DDEBUG
   /* Initialize ddebug */
-  dd_must_instrument = hashset_create();
+  dd_must_instrument = vfc_hashmap_create();
   dd_filter_path = getenv("VFC_DDEBUG_INCLUDE");
   dd_generate_path = getenv("VFC_DDEBUG_GEN");
   if (dd_filter_path && dd_generate_path) {
@@ -283,14 +336,15 @@ __attribute__((constructor)) static void vfc_init(void) {
     while (fgets(line, sizeof line, input)) {
       lineno++;
       if (sscanf(line, "%p", &addr) == 1) {
-        hashset_add(dd_must_instrument, addr + CALL_OP_SIZE);
+        vfc_hashmap_insert(dd_must_instrument, (size_t)addr + CALL_OP_SIZE,
+                           addr + CALL_OP_SIZE);
       } else {
         logger_error("ddebug: error parsing VFC_DDEBUG_INCLUDE %s at line %d",
                      dd_filter_path, lineno);
       }
     }
     logger_info("ddebug: only %zu addresses will be instrumented\n",
-                hashset_num_items(dd_must_instrument));
+                vfc_hashmap_num_items(dd_must_instrument));
   }
 #endif
 }
@@ -301,12 +355,12 @@ __attribute__((constructor)) static void vfc_init(void) {
 #define ddebug(operator)                                                       \
   void *addr = __builtin_return_address(0);                                    \
   if (dd_filter_path) {                                                        \
-    if (!hashset_is_member(dd_must_instrument, addr)) {                        \
+    if (!vfc_hashmap_have(dd_must_instrument, (size_t)addr)) {                 \
       return a operator b;                                                     \
     } else {                                                                   \
     }                                                                          \
   } else if (dd_generate_path) {                                               \
-    hashset_add(dd_must_instrument, addr);                                     \
+    vfc_hashmap_insert(dd_must_instrument, (size_t)addr, addr);                \
   }
 
 #else
