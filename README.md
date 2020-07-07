@@ -1,6 +1,6 @@
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
-## Verificarlo v0.3.0
+## Verificarlo v0.4.0
 
 [![Build Status](https://travis-ci.org/verificarlo/verificarlo.svg?branch=master)](https://travis-ci.org/verificarlo/verificarlo)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
@@ -149,7 +149,7 @@ Either modify your makefile to use `verificarlo` as the compiler (`CC=verificarl
 directly:
 
 ```bash
-   $ verificarlo-c *.c *.f90 -o ./program
+   $ verificarlo-c program.c -o ./program
 ```
 
 If you are trying to compile a shared library, such as those built by the Cython
@@ -493,7 +493,7 @@ the new tested format for floating-point operations in double precision
 (respectively for single precision with --range-binary32).
 It accepts an integer value that represents the magnitude of the numbers.
 
-A detailed description of the backend is given [here](https://www.researchgate.net/profile/Yohan_Chatelain/publication/335232310_Automatic_Exploration_of_Reduced_Floating-Point_Representations_in_Iterative_Methods/links/5d8e18e9a6fdcc25549f95b3/Automatic-Exploration-of-Reduced-Floating-Point-Representations-in-Iterative-Methods.pdf).
+A detailed description of the backend is given [here](https://hal.archives-ouvertes.fr/hal-02564972/document).
 
 The following example shows the computation with single precision and the simulation of the `bfloat16` format with VPREC:
 
