@@ -159,7 +159,7 @@ extension to Python, you can then also set the shared linker environment variabl
 When invoked with the `--verbose` flag, verificarlo provides detailed output of
 the instrumentation process.
 
-If you want to use functions's instrumentation with a backend, you need to activate instrumentation at the compilation with the flag `--inst-func`. Be carefull the body of functions which are not compilated with verificarlo can't be modified in any way.
+If you want to use functions's instrumentation with a backend, you need to activate instrumentation at the compilation with the flag `--inst-func`. Be careful the body of functions which are not compiled with verificarlo can't be modified in any way.
 
 It is important to include the necessary link flags if you use extra libraries.
 For example, you should include `-lm` if you are linking against the math
@@ -547,7 +547,7 @@ If you need to set a custom precision for a set of call sites, you can use the f
    $ verificarlo-c main.c -o main --inst-func
 ```
 
-Once the file is compilated, you can get information on instrumented functions by producing a profile file: 
+Once the file is compiled, you can get information on instrumented functions by producing a profile file: 
 
 ```bash
    $ export VFC_BACKENDS="libinterflop_vprec.so --prec-output-file=output.txt" ./main
@@ -603,17 +603,17 @@ input:  1  52   23
 output: 1  52   23
 ```
 
-You are now able to customize the length of the mantissa/exponent for each argument but also to set the internal precision for floating point operations in a function compilated with verificarlo.
-To do that you can change the desired field in the profile file and using it as an input with the following command:
+You are now able to customize the length of the mantissa/exponent for each argument but also to set the internal precision for floating point operations in a function compiled with verificarlo.
+To do that you can change the desired field in the profile file and use it as an input with the following command:
 
 ```bash
    $ export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=output.txt --instrument=all" ./main
 ```
 
-The `--instrument` parameters set the comportment of the backend:
+The `--instrument` parameters set the behavior of the backend:
   - `arguments` apply given precisions to arguments only
-  - `operations` apply given precisions to internal arithmetic operations only
-  - `all` apply given given precisions to internal arithmetic operations and to arguments
+  - `operations` apply given precisions to arithmetic operations inside the function only
+  - `all` apply given given precisions to arithmetic operations inside the function and to arguments
   - `none` (default) does not apply any custom precision
 
 The program is now executed with the given configuration.
