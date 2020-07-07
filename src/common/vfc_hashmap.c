@@ -17,70 +17,68 @@
 
 #include <stdlib.h>
 
-
 #define HASH_MULTIPLIER 31
 static const unsigned int hashmap_prime_1 = 73;
 static const unsigned int hashmap_prime_2 = 5009;
 
 #ifndef __VFC_HASHMAP_HEADER__
 
-  struct vfc_hashmap_st {
-    size_t nbits;
-    size_t mask;
+struct vfc_hashmap_st {
+  size_t nbits;
+  size_t mask;
 
-    size_t capacity;
-    size_t *items;
-    size_t nitems;
-    size_t n_deleted_items;
-  };
-  typedef struct vfc_hashmap_st *vfc_hashmap_t;
+  size_t capacity;
+  size_t *items;
+  size_t nitems;
+  size_t n_deleted_items;
+};
+typedef struct vfc_hashmap_st *vfc_hashmap_t;
 
-  // allocate and initialize the map
-  vfc_hashmap_t vfc_hashmap_create();
+// allocate and initialize the map
+vfc_hashmap_t vfc_hashmap_create();
 
-  // get the value at an index of a map 
-  size_t get_value_at(size_t *items, size_t i);
+// get the value at an index of a map
+size_t get_value_at(size_t *items, size_t i);
 
-  // get the key at an index of a map
-  size_t get_key_at(size_t *items, size_t i);
+// get the key at an index of a map
+size_t get_key_at(size_t *items, size_t i);
 
-  // set the value at an index of a map
-  void set_value_at(size_t *items, size_t value, size_t i);
+// set the value at an index of a map
+void set_value_at(size_t *items, size_t value, size_t i);
 
-  // set the key at an index of a map
-  void set_key_at(size_t *items, size_t key, size_t i);
+// set the key at an index of a map
+void set_key_at(size_t *items, size_t key, size_t i);
 
-  // free the map
-  void vfc_hashmap_destroy(vfc_hashmap_t map);
+// free the map
+void vfc_hashmap_destroy(vfc_hashmap_t map);
 
-  // insert an element in the map
-  void vfc_hashmap_insert(vfc_hashmap_t map, size_t key, void *item);
+// insert an element in the map
+void vfc_hashmap_insert(vfc_hashmap_t map, size_t key, void *item);
 
-  // remove an element of the map
-  void vfc_hashmap_remove(vfc_hashmap_t map, size_t key);
+// remove an element of the map
+void vfc_hashmap_remove(vfc_hashmap_t map, size_t key);
 
-  // test if an element is in the map 
-  char vfc_hashmap_have(vfc_hashmap_t map, size_t key);
+// test if an element is in the map
+char vfc_hashmap_have(vfc_hashmap_t map, size_t key);
 
-  // get an element of the map
-  void* vfc_hashmap_get(vfc_hashmap_t map, size_t key);
+// get an element of the map
+void *vfc_hashmap_get(vfc_hashmap_t map, size_t key);
 
-  // get the number of elements in the map
-  size_t vfc_hashmap_num_items(vfc_hashmap_t map);
+// get the number of elements in the map
+size_t vfc_hashmap_num_items(vfc_hashmap_t map);
 
-  // Hash function
-  size_t vfc_hashmap_str_function(const char *id);
-  
+// Hash function
+size_t vfc_hashmap_str_function(const char *id);
+
 #endif
 
 /***************** Verificarlo hashmap FUNCTIONS ********************
- * The following set of functions are used in backends and wrapper 
+ * The following set of functions are used in backends and wrapper
  * to stock and access quickly internal data.
  *******************************************************************/
 
 // free the map
-void vfc_hashmap_destroy(vfc_hashmap_t map)
-{
+void vfc_hashmap_destroy(vfc_hashmap_t map) {
   if (map) {
     free(map->items);
   }
@@ -88,8 +86,7 @@ void vfc_hashmap_destroy(vfc_hashmap_t map)
 }
 
 // allocate and initialize the map
-vfc_hashmap_t vfc_hashmap_create()
-{
+vfc_hashmap_t vfc_hashmap_create() {
   vfc_hashmap_t map = calloc(1, sizeof(struct vfc_hashmap_st));
 
   if (map == NULL) {
@@ -109,23 +106,15 @@ vfc_hashmap_t vfc_hashmap_create()
   return map;
 }
 
-size_t get_value_at(size_t *items, size_t i)
-{
-  return items[i * 2];
-}
+size_t get_value_at(size_t *items, size_t i) { return items[i * 2]; }
 
-size_t get_key_at(size_t *items, size_t i)
-{
-  return items[(i * 2) + 1];
-}
+size_t get_key_at(size_t *items, size_t i) { return items[(i * 2) + 1]; }
 
-void set_value_at(size_t *items, size_t value, size_t i)
-{
+void set_value_at(size_t *items, size_t value, size_t i) {
   items[i * 2] = value;
 }
 
-void set_key_at(size_t *items, size_t key, size_t i)
-{
+void set_key_at(size_t *items, size_t key, size_t i) {
   items[(i * 2) + 1] = key;
 }
 
@@ -140,7 +129,8 @@ static int hashmap_add_member(vfc_hashmap_t map, size_t key, void *item) {
 
   ii = map->mask & (hashmap_prime_1 * key);
 
-  while (get_value_at(map->items, ii) != 0 && get_value_at(map->items, ii) != 1) {
+  while (get_value_at(map->items, ii) != 0 &&
+         get_value_at(map->items, ii) != 1) {
     if (get_value_at(map->items, ii) == value) {
       return 0;
     } else {
@@ -174,22 +164,21 @@ static void maybe_rehash_map(vfc_hashmap_t map) {
     map->nitems = 0;
     map->n_deleted_items = 0;
     for (ii = 0; ii < old_capacity; ii++) {
-      hashmap_add_member(map, get_key_at(old_items, ii), (void*) get_value_at(old_items, ii));
+      hashmap_add_member(map, get_key_at(old_items, ii),
+                         (void *)get_value_at(old_items, ii));
     }
     free(old_items);
   }
 }
 
 // insert an element in the map
-void vfc_hashmap_insert(vfc_hashmap_t map, size_t key, void *item)
-{
+void vfc_hashmap_insert(vfc_hashmap_t map, size_t key, void *item) {
   hashmap_add_member(map, key, item);
   maybe_rehash_map(map);
 }
 
 // remove an element of the map
-void vfc_hashmap_remove(vfc_hashmap_t map, size_t key)
-{
+void vfc_hashmap_remove(vfc_hashmap_t map, size_t key) {
   size_t ii = map->mask & (hashmap_prime_1 * key);
 
   while (get_value_at(map->items, ii) != 0) {
@@ -204,9 +193,8 @@ void vfc_hashmap_remove(vfc_hashmap_t map, size_t key)
   }
 }
 
-// test if an element is in the map 
-char vfc_hashmap_have(vfc_hashmap_t map, size_t key)
-{
+// test if an element is in the map
+char vfc_hashmap_have(vfc_hashmap_t map, size_t key) {
   size_t ii = map->mask & (hashmap_prime_1 * key);
 
   while (get_value_at(map->items, ii) != 0) {
@@ -220,13 +208,12 @@ char vfc_hashmap_have(vfc_hashmap_t map, size_t key)
 }
 
 // get an element of the map
-void* vfc_hashmap_get(vfc_hashmap_t map, size_t key)
-{
+void *vfc_hashmap_get(vfc_hashmap_t map, size_t key) {
   size_t ii = map->mask & (hashmap_prime_1 * key);
 
   while (get_value_at(map->items, ii) != 0) {
     if (get_key_at(map->items, ii) == key) {
-      return (void*) get_value_at(map->items, ii);
+      return (void *)get_value_at(map->items, ii);
     } else {
       ii = map->mask & (ii + hashmap_prime_2);
     }
@@ -235,10 +222,7 @@ void* vfc_hashmap_get(vfc_hashmap_t map, size_t key)
 }
 
 // get the number of elements in the map
-size_t vfc_hashmap_num_items(vfc_hashmap_t map)
-{
-  return map->nitems;
-}
+size_t vfc_hashmap_num_items(vfc_hashmap_t map) { return map->nitems; }
 
 // Hash function for strings
 size_t vfc_hashmap_str_function(const char *id) {
@@ -257,9 +241,8 @@ size_t vfc_hashmap_str_function(const char *id) {
 }
 
 // Free the hashmap
-void vfc_hashmap_free(vfc_hashmap_t map)
-{
+void vfc_hashmap_free(vfc_hashmap_t map) {
   for (int ii = 0; ii < map->capacity; ii++)
-    if(get_value_at(map->items, ii) != 0 && get_value_at(map->items, ii)!= 0)
-      free((void*) get_value_at(map->items, ii));
+    if (get_value_at(map->items, ii) != 0 && get_value_at(map->items, ii) != 0)
+      free((void *)get_value_at(map->items, ii));
 }

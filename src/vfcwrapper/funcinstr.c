@@ -28,14 +28,16 @@
 vfc_hashmap_t _vfc_func_map;
 
 // Add a function in the hash table
-interflop_function_info_t* vfc_func_table_add(interflop_function_info_t function) {
+interflop_function_info_t *
+vfc_func_table_add(interflop_function_info_t function) {
   size_t key = vfc_hashmap_str_function(function.id);
 
-  interflop_function_info_t *ptr = (interflop_function_info_t *) malloc(sizeof(interflop_function_info_t));
+  interflop_function_info_t *ptr =
+      (interflop_function_info_t *)malloc(sizeof(interflop_function_info_t));
 
   (*ptr) = function;
 
-  vfc_hashmap_insert(_vfc_func_map, key, (void*) ptr);
+  vfc_hashmap_insert(_vfc_func_map, key, (void *)ptr);
 
   return ptr;
 }
@@ -50,23 +52,20 @@ interflop_function_info_t *vfc_func_table_get(const char *id) {
 // Print the table
 void _vfc_func_table_print(FILE *f) {
   for (int ii = 0; ii < _vfc_func_map->capacity; ii++) {
-    if(get_value_at(_vfc_func_map->items, ii) != 0 && get_value_at(_vfc_func_map->items, ii) != 0){
-      interflop_function_info_t *function = (interflop_function_info_t *) get_value_at(_vfc_func_map->items, ii);
-      fprintf(f, "%s\t%hd\t%hd\t%hd\t%hd\n",
-                        function->id, function->isLibraryFunction,
-                        function->isIntrinsicFunction, function->useFloat,
-                        function->useDouble);
+    if (get_value_at(_vfc_func_map->items, ii) != 0 &&
+        get_value_at(_vfc_func_map->items, ii) != 0) {
+      interflop_function_info_t *function =
+          (interflop_function_info_t *)get_value_at(_vfc_func_map->items, ii);
+      fprintf(f, "%s\t%hd\t%hd\t%hd\t%hd\n", function->id,
+              function->isLibraryFunction, function->isIntrinsicFunction,
+              function->useFloat, function->useDouble);
     }
   }
 }
 
-void vfc_func_table_init()
-{
-  _vfc_func_map = vfc_hashmap_create();
-}
+void vfc_func_table_init() { _vfc_func_map = vfc_hashmap_create(); }
 
-void vfc_func_table_quit()
-{
+void vfc_func_table_quit() {
   vfc_hashmap_free(_vfc_func_map);
 
   vfc_hashmap_destroy(_vfc_func_map);
@@ -75,20 +74,21 @@ void vfc_func_table_quit()
 /************************************************************
  *                       Call Stack                         *
  ************************************************************/
-static interflop_function_stack_t _vfc_call_stack = { NULL, 
-                                                      _VFC_CALL_STACK_MAXSIZE, 
-                                                      _VFC_CALL_STACK_MAXSIZE};
+static interflop_function_stack_t _vfc_call_stack = {
+    NULL, _VFC_CALL_STACK_MAXSIZE, _VFC_CALL_STACK_MAXSIZE};
 
 // Initialize the call stack
 void vfc_call_stack_init() {
-  _vfc_call_stack.array = malloc(_vfc_call_stack.capacity * sizeof(interflop_function_info_t *));
+  _vfc_call_stack.array =
+      malloc(_vfc_call_stack.capacity * sizeof(interflop_function_info_t *));
   _vfc_call_stack.array[--_vfc_call_stack.top] = NULL;
 }
 
 // Push a function in the call stack
 void vfc_call_stack_push(interflop_function_info_t *function) {
   if (_vfc_call_stack.top == 0) {
-    logger_error("Call stack is full, her max size is %zu\n", _VFC_CALL_STACK_MAXSIZE);
+    logger_error("Call stack is full, her max size is %zu\n",
+                 _VFC_CALL_STACK_MAXSIZE);
     return;
   }
 
@@ -96,8 +96,8 @@ void vfc_call_stack_push(interflop_function_info_t *function) {
 }
 
 // Remove a function in the call stack
-interflop_function_info_t * vfc_call_stack_pop() {
-  if (_vfc_call_stack.top  < _VFC_CALL_STACK_MAXSIZE)
+interflop_function_info_t *vfc_call_stack_pop() {
+  if (_vfc_call_stack.top < _VFC_CALL_STACK_MAXSIZE)
     return _vfc_call_stack.array[_vfc_call_stack.top++];
 
   return NULL;
@@ -105,15 +105,13 @@ interflop_function_info_t * vfc_call_stack_pop() {
 
 // Print the call stack
 void vfc_call_stack_print(FILE *f) {
-  for (int i = _VFC_CALL_STACK_MAXSIZE -2; i >= _vfc_call_stack.top; i--)
+  for (int i = _VFC_CALL_STACK_MAXSIZE - 2; i >= _vfc_call_stack.top; i--)
     fprintf(f, "%s/", _vfc_call_stack.array[i]->id);
   fprintf(f, "\n");
 }
 
 // Free the call stack
-void vfc_call_stack_free() {
-  free(_vfc_call_stack.array);
-}
+void vfc_call_stack_free() { free(_vfc_call_stack.array); }
 
 /************************************************************
  *                  Enter and Exit functions                *
@@ -121,50 +119,49 @@ void vfc_call_stack_free() {
 
 // Function called before each function's call of the code
 void vfc_enter_function(char *func_name, char isLibraryFunction,
-                        char isIntrinsicFunction, char useFloat,
-                        char useDouble, int n, ...) {
+                        char isIntrinsicFunction, char useFloat, char useDouble,
+                        int n, ...) {
   // get a pointer to the function if she is in the table
   interflop_function_info_t *function = vfc_func_table_get(func_name);
 
   if (function == NULL) {
-    interflop_function_info_t f = {"",
-                                  isLibraryFunction,
-                                  isIntrinsicFunction,
-                                  useFloat,
-                                  useDouble};
+    interflop_function_info_t f = {"", isLibraryFunction, isIntrinsicFunction,
+                                   useFloat, useDouble};
     strncpy(f.id, func_name, 500);
     function = vfc_func_table_add(f);
   }
 
   vfc_call_stack_push(function);
 
-  if (useFloat || useDouble){
+  if (useFloat || useDouble) {
     va_list ap;
-    // n is the number of argument intercepted, each argument 
-    // is represented by a type ID and a ponter 
-    va_start(ap, n*2);
+    // n is the number of argument intercepted, each argument
+    // is represented by a type ID and a ponter
+    va_start(ap, n * 2);
 
     for (int i = 0; i < loaded_backends; i++)
       if (backends[i].interflop_enter_function)
-        backends[i].interflop_enter_function(&_vfc_call_stack, contexts[i], n, ap);
+        backends[i].interflop_enter_function(&_vfc_call_stack, contexts[i], n,
+                                             ap);
 
     va_end(ap);
   }
 }
 
-  // Function called after each function's call of the code
+// Function called after each function's call of the code
 void vfc_exit_function(char *func_name, char isLibraryFunction,
-                        char isIntrinsicFunction, char useFloat,
-                        char useDouble, int n, ...) {
-  if (useFloat || useDouble){
+                       char isIntrinsicFunction, char useFloat, char useDouble,
+                       int n, ...) {
+  if (useFloat || useDouble) {
     va_list ap;
-    // n is the number of argument intercepted, each argument 
-    // is represented by a type ID and a ponter 
-    va_start(ap, n*2);
+    // n is the number of argument intercepted, each argument
+    // is represented by a type ID and a ponter
+    va_start(ap, n * 2);
 
     for (int i = 0; i < loaded_backends; i++)
       if (backends[i].interflop_exit_function)
-        backends[i].interflop_exit_function(&_vfc_call_stack, contexts[i], n, ap);
+        backends[i].interflop_exit_function(&_vfc_call_stack, contexts[i], n,
+                                            ap);
 
     va_end(ap);
   }
@@ -177,7 +174,7 @@ void vfc_exit_function(char *func_name, char isLibraryFunction,
  ************************************************************/
 
 void vfc_init_func_inst() {
-	// Initialize the call stack
+  // Initialize the call stack
   vfc_call_stack_init();
 
   // Initialize the hashmap
@@ -186,7 +183,7 @@ void vfc_init_func_inst() {
 
 void vfc_quit_func_inst() {
 
-	// Free the call stack
+  // Free the call stack
   vfc_call_stack_free();
 
   // Free the hashmap

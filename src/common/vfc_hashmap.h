@@ -34,7 +34,7 @@ typedef struct vfc_hashmap_st *vfc_hashmap_t;
 // allocate and initialize the map
 vfc_hashmap_t vfc_hashmap_create();
 
-// get the value at an index of a map 
+// get the value at an index of a map
 size_t get_value_at(size_t *items, size_t i);
 
 // get the key at an index of a map
@@ -55,11 +55,11 @@ void vfc_hashmap_insert(vfc_hashmap_t map, size_t key, void *item);
 // remove an element of the map
 void vfc_hashmap_remove(vfc_hashmap_t map, size_t key);
 
-// test if an element is in the map 
+// test if an element is in the map
 char vfc_hashmap_have(vfc_hashmap_t map, size_t key);
 
 // get an element of the map
-void* vfc_hashmap_get(vfc_hashmap_t map, size_t key);
+void *vfc_hashmap_get(vfc_hashmap_t map, size_t key);
 
 // get the number of elements in the map
 size_t vfc_hashmap_num_items(vfc_hashmap_t map);
