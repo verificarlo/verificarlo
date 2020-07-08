@@ -150,7 +150,13 @@ struct VfclibFunc : public ModulePass {
 
     AllocaInst *ptr = new AllocaInst(
         VType, 0, 0, FunctionName + "_arg_" + std::to_string(cpt++));
-    ptr->insertBefore(&(*(B.begin())));
+
+    for (auto &ii : B){
+      if(!isa<PHINode>(ii)){
+        ptr->insertBefore(&ii);
+        break;
+      }
+    }
 
     return ptr;
   }

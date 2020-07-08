@@ -26,7 +26,7 @@ enum FTYPES { FFLOAT, FDOUBLE, FTYPES_END };
 
 typedef struct interflop_function_info {
   // Indicate the identifier of the function
-  char id[500];
+  char *id;
   // Indicate if the function is from library
   short isLibraryFunction;
   // Indicate if the function is intrinsic

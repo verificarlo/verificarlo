@@ -125,9 +125,8 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
   interflop_function_info_t *function = vfc_func_table_get(func_name);
 
   if (function == NULL) {
-    interflop_function_info_t f = {"", isLibraryFunction, isIntrinsicFunction,
+    interflop_function_info_t f = {func_name, isLibraryFunction, isIntrinsicFunction,
                                    useFloat, useDouble};
-    strncpy(f.id, func_name, 500);
     function = vfc_func_table_add(f);
   }
 

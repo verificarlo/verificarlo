@@ -592,7 +592,7 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
     function_inst = malloc(sizeof(_vprec_inst_function_t));
 
     // initialize the structure
-    strncpy(function_inst->id, function_info->id, 500);
+    strcpy(function_inst->id, function_info->id);
     function_inst->precision_binary64 =
         set_vprec_func_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT,
                                  VPREC_PRECISION_BINARY64_DEFAULT);
