@@ -414,7 +414,7 @@ static inline double _vprec_binary64_binary_op(double a, double b,
 }
 
 /******************** VPREC INSTRUMENTATION FUNCTIONS ********************
- * The following set of functions are used to apply vprec on instrumented
+ * The following set of functions is used to apply vprec on instrumented
  * functions. For that we need a hashmap to stock data and reading and
  * writing functions to get and save them. Enter and exit functions are
  * called before and after the instrumented function and allow us to set
@@ -424,26 +424,30 @@ static inline double _vprec_binary64_binary_op(double a, double b,
 vfc_hashmap_t _vprec_func_map;
 
 /* type (4 bits) | range (6 bits) | precision (6 bits) */
-typedef unsigned short _vprec_precision_t;
+typedef unsigned short _vprec_func_precision_t;
 
 /* last 4 bits are for the type concerned by this precision */
-_vprec_precision_t get_vprec_precision_type(const _vprec_precision_t prec) {
+_vprec_func_precision_t
+get_vprec_func_precision_type(const _vprec_func_precision_t prec) {
   return (prec & 0xF000) >> 12;
 }
 
 /* next 6 bits are for the exponent precision */
-_vprec_precision_t get_vprec_precision_exponent(const _vprec_precision_t prec) {
+_vprec_func_precision_t
+get_vprec_func_precision_exponent(const _vprec_func_precision_t prec) {
   return (prec & 0xFC0) >> 6;
 }
 
 /* first 6 bits are for the mantissa precision */
-_vprec_precision_t get_vprec_precision_mantissa(const _vprec_precision_t prec) {
+_vprec_func_precision_t
+get_vprec_func_precision_mantissa(const _vprec_func_precision_t prec) {
   return prec & 0x3F;
 }
 
-_vprec_precision_t set_vprec_precision(_vprec_precision_t type,
-                                       _vprec_precision_t range,
-                                       _vprec_precision_t precision) {
+_vprec_func_precision_t
+set_vprec_func_precision(_vprec_func_precision_t type,
+                         _vprec_func_precision_t range,
+                         _vprec_func_precision_t precision) {
   if (type >= FTYPES_END) {
     logger_error("given types is not managed by function instrumentation: %hd",
                  type);
@@ -466,7 +470,7 @@ _vprec_precision_t set_vprec_precision(_vprec_precision_t type,
       type == FDOUBLE) {
     logger_error("invalid precision for binary 64: %hd", precision);
   }
-  _vprec_precision_t prec = (type << 12) | (range << 6) | precision;
+  _vprec_func_precision_t prec = (type << 12) | (range << 6) | precision;
   return prec;
 }
 
@@ -474,13 +478,13 @@ typedef struct _vprec_inst_function {
   // id of the function
   char id[500];
   // internal precision for 32 bit float operations
-  _vprec_precision_t precision_binary32;
+  _vprec_func_precision_t precision_binary32;
   // internal precision for 64 bit float operations
-  _vprec_precision_t precision_binary64;
+  _vprec_func_precision_t precision_binary64;
   // precisions for floating point input arguments
-  _vprec_precision_t *input_arguments;
+  _vprec_func_precision_t *input_arguments;
   // precisions for floating point ouput arguments
-  _vprec_precision_t *output_arguments;
+  _vprec_func_precision_t *output_arguments;
   // number of floating point input arguments
   int nb_input_args;
   // number of floating point output arguments
@@ -500,23 +504,23 @@ void _vprec_read_hasmap(FILE *fin) {
                 &function.nb_output_args, &function.n_calls) == 8) {
     // set the internal precision for 64 bit floating point operations
     function.precision_binary64 =
-        set_vprec_precision(FDOUBLE, binary64_range, binary64_precision);
+        set_vprec_func_precision(FDOUBLE, binary64_range, binary64_precision);
     // set the internal precision for 32 bit floating point operations
     function.precision_binary32 =
-        set_vprec_precision(FFLOAT, binary32_range, binary32_precision);
+        set_vprec_func_precision(FFLOAT, binary32_range, binary32_precision);
     // allocate space for input arguments
     function.input_arguments =
-        malloc(function.nb_input_args * sizeof(_vprec_precision_t));
+        malloc(function.nb_input_args * sizeof(_vprec_func_precision_t));
     // allocate space for output arguments
     function.output_arguments =
-        malloc(function.nb_output_args * sizeof(_vprec_precision_t));
+        malloc(function.nb_output_args * sizeof(_vprec_func_precision_t));
 
     // get input arguments precision
     for (int i = 0; i < function.nb_input_args; i++) {
       if (fscanf(fin, "input:\t%d\t%d\t%d\n", &type, &binary64_precision,
                  &binary64_range)) {
         function.input_arguments[i] =
-            set_vprec_precision(type, binary64_range, binary64_precision);
+            set_vprec_func_precision(type, binary64_range, binary64_precision);
       } else {
         break;
       }
@@ -527,7 +531,7 @@ void _vprec_read_hasmap(FILE *fin) {
       if (fscanf(fin, "output:\t%d\t%d\t%d\n", &type, &binary64_precision,
                  &binary64_range)) {
         function.output_arguments[i] =
-            set_vprec_precision(type, binary64_range, binary64_precision);
+            set_vprec_func_precision(type, binary64_range, binary64_precision);
       } else {
         break;
       }
@@ -549,23 +553,25 @@ void _vprec_write_hasmap(FILE *fout) {
           (_vprec_inst_function_t *)get_value_at(_vprec_func_map->items, ii);
 
       fprintf(fout, "%s\t%hu\t%hu\t%hu\t%hu\t%d\t%d\t%d\n", function->id,
-              get_vprec_precision_mantissa(function->precision_binary64),
-              get_vprec_precision_exponent(function->precision_binary64),
-              get_vprec_precision_mantissa(function->precision_binary32),
-              get_vprec_precision_exponent(function->precision_binary32),
+              get_vprec_func_precision_mantissa(function->precision_binary64),
+              get_vprec_func_precision_exponent(function->precision_binary64),
+              get_vprec_func_precision_mantissa(function->precision_binary32),
+              get_vprec_func_precision_exponent(function->precision_binary32),
               function->nb_input_args, function->nb_output_args,
               function->n_calls);
       for (int i = 0; i < function->nb_input_args; i++) {
-        fprintf(fout, "input:\t%hu\t%hu\t%hu\n",
-                get_vprec_precision_type(function->input_arguments[i]),
-                get_vprec_precision_mantissa(function->input_arguments[i]),
-                get_vprec_precision_exponent(function->input_arguments[i]));
+        fprintf(
+            fout, "input:\t%hu\t%hu\t%hu\n",
+            get_vprec_func_precision_type(function->input_arguments[i]),
+            get_vprec_func_precision_mantissa(function->input_arguments[i]),
+            get_vprec_func_precision_exponent(function->input_arguments[i]));
       }
       for (int i = 0; i < function->nb_output_args; i++) {
-        fprintf(fout, "output:\t%hu\t%hu\t%hu\n",
-                get_vprec_precision_type(function->output_arguments[i]),
-                get_vprec_precision_mantissa(function->output_arguments[i]),
-                get_vprec_precision_exponent(function->output_arguments[i]));
+        fprintf(
+            fout, "output:\t%hu\t%hu\t%hu\n",
+            get_vprec_func_precision_type(function->output_arguments[i]),
+            get_vprec_func_precision_mantissa(function->output_arguments[i]),
+            get_vprec_func_precision_exponent(function->output_arguments[i]));
       }
     }
   }
@@ -581,16 +587,16 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
   _vprec_inst_function_t *function_inst = vfc_hashmap_get(
       _vprec_func_map, vfc_hashmap_str_function(function_info->id));
 
-  // if the function is not the hashtable
+  // if the function is not in the hashtable
   if (function_inst == NULL) {
     function_inst = malloc(sizeof(_vprec_inst_function_t));
 
     // initialize the structure
     strncpy(function_inst->id, function_info->id, 500);
     function_inst->precision_binary64 =
-        set_vprec_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT,
-                            VPREC_PRECISION_BINARY64_DEFAULT);
-    function_inst->precision_binary32 = set_vprec_precision(
+        set_vprec_func_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT,
+                                 VPREC_PRECISION_BINARY64_DEFAULT);
+    function_inst->precision_binary32 = set_vprec_func_precision(
         FFLOAT, VPREC_RANGE_BINARY32_DEFAULT, VPREC_PRECISION_BINARY32_DEFAULT);
     function_inst->nb_input_args = 0;
     function_inst->nb_output_args = 0;
@@ -612,19 +618,19 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
       !function_info->isIntrinsicFunction && VPREC_INST_MODE != vprecinst_arg &&
       VPREC_INST_MODE != vprecinst_none) {
     _set_vprec_precision_binary64(
-        get_vprec_precision_mantissa(function_inst->precision_binary64));
+        get_vprec_func_precision_mantissa(function_inst->precision_binary64));
     _set_vprec_range_binary64(
-        get_vprec_precision_exponent(function_inst->precision_binary64));
+        get_vprec_func_precision_exponent(function_inst->precision_binary64));
     _set_vprec_precision_binary32(
-        get_vprec_precision_mantissa(function_inst->precision_binary32));
+        get_vprec_func_precision_mantissa(function_inst->precision_binary32));
     _set_vprec_range_binary32(
-        get_vprec_precision_exponent(function_inst->precision_binary32));
+        get_vprec_func_precision_exponent(function_inst->precision_binary32));
   }
 
   // if input arguments are not in the structure
   if (function_inst->input_arguments == NULL && nb_args > 0) {
     function_inst->input_arguments =
-        malloc(sizeof(_vprec_precision_t) * nb_args);
+        malloc(sizeof(_vprec_func_precision_t) * nb_args);
     function_inst->nb_input_args = nb_args;
 
     for (int i = 0; i < nb_args; i++) {
@@ -633,16 +639,16 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
       if (type == FDOUBLE) {
         function_inst->input_arguments[i] =
-            set_vprec_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT,
-                                VPREC_PRECISION_BINARY64_DEFAULT);
+            set_vprec_func_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT,
+                                     VPREC_PRECISION_BINARY64_DEFAULT);
       } else if (type == FFLOAT) {
         function_inst->input_arguments[i] =
-            set_vprec_precision(FFLOAT, VPREC_RANGE_BINARY32_DEFAULT,
-                                VPREC_PRECISION_BINARY32_DEFAULT);
+            set_vprec_func_precision(FFLOAT, VPREC_RANGE_BINARY32_DEFAULT,
+                                     VPREC_PRECISION_BINARY32_DEFAULT);
       }
     }
 
-    // round to default value is useless so exit
+    // round to default value is useless, so exit
     return;
   }
 
@@ -655,16 +661,18 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
       if (type == FDOUBLE) {
         double *value = va_arg(ap, double *);
-        *value = _vprec_round_binary64(
-            *value, 1, context,
-            get_vprec_precision_exponent(function_inst->input_arguments[i]),
-            get_vprec_precision_mantissa(function_inst->input_arguments[i]));
+        *value = _vprec_round_binary64(*value, 1, context,
+                                       get_vprec_func_precision_exponent(
+                                           function_inst->input_arguments[i]),
+                                       get_vprec_func_precision_mantissa(
+                                           function_inst->input_arguments[i]));
       } else if (type == FFLOAT) {
         float *value = va_arg(ap, float *);
-        *value = _vprec_round_binary32(
-            *value, 1, context,
-            get_vprec_precision_exponent(function_inst->input_arguments[i]),
-            get_vprec_precision_mantissa(function_inst->input_arguments[i]));
+        *value = _vprec_round_binary32(*value, 1, context,
+                                       get_vprec_func_precision_exponent(
+                                           function_inst->input_arguments[i]),
+                                       get_vprec_func_precision_mantissa(
+                                           function_inst->input_arguments[i]));
       }
     }
   }
@@ -689,21 +697,23 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
       _vprec_inst_function_t *function_parent = vfc_hashmap_get(
           _vprec_func_map, vfc_hashmap_str_function(parent_info->id));
 
-      _set_vprec_precision_binary64(
-          get_vprec_precision_mantissa(function_parent->precision_binary64));
-      _set_vprec_range_binary64(
-          get_vprec_precision_exponent(function_parent->precision_binary64));
-      _set_vprec_precision_binary32(
-          get_vprec_precision_mantissa(function_parent->precision_binary32));
-      _set_vprec_range_binary32(
-          get_vprec_precision_exponent(function_parent->precision_binary32));
+      if (function_parent != NULL) {
+        _set_vprec_precision_binary64(get_vprec_func_precision_mantissa(
+            function_parent->precision_binary64));
+        _set_vprec_range_binary64(get_vprec_func_precision_exponent(
+            function_parent->precision_binary64));
+        _set_vprec_precision_binary32(get_vprec_func_precision_mantissa(
+            function_parent->precision_binary32));
+        _set_vprec_range_binary32(get_vprec_func_precision_exponent(
+            function_parent->precision_binary32));
+      }
     }
   }
 
   // if output arguments are not in the structure
   if (function_inst->output_arguments == NULL && nb_args > 0) {
     function_inst->output_arguments =
-        malloc(sizeof(_vprec_precision_t) * nb_args);
+        malloc(sizeof(_vprec_func_precision_t) * nb_args);
     function_inst->nb_output_args = nb_args;
 
     for (int i = 0; i < nb_args; i++) {
@@ -712,16 +722,16 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
 
       if (type == FDOUBLE) {
         function_inst->output_arguments[i] =
-            set_vprec_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT,
-                                VPREC_PRECISION_BINARY64_DEFAULT);
+            set_vprec_func_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT,
+                                     VPREC_PRECISION_BINARY64_DEFAULT);
       } else if (type == FFLOAT) {
         function_inst->output_arguments[i] =
-            set_vprec_precision(FFLOAT, VPREC_RANGE_BINARY32_DEFAULT,
-                                VPREC_PRECISION_BINARY32_DEFAULT);
+            set_vprec_func_precision(FFLOAT, VPREC_RANGE_BINARY32_DEFAULT,
+                                     VPREC_PRECISION_BINARY32_DEFAULT);
       }
     }
 
-    // round to default value is useless so exit
+    // round to default value is useless, so exit
     return;
   }
 
@@ -736,16 +746,20 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
 
         if (type == FDOUBLE) {
           double *value = va_arg(ap, double *);
-          *value = _vprec_round_binary64(
-              *value, 0, context,
-              get_vprec_precision_exponent(function_inst->output_arguments[i]),
-              get_vprec_precision_mantissa(function_inst->output_arguments[i]));
+          *value =
+              _vprec_round_binary64(*value, 0, context,
+                                    get_vprec_func_precision_exponent(
+                                        function_inst->output_arguments[i]),
+                                    get_vprec_func_precision_mantissa(
+                                        function_inst->output_arguments[i]));
         } else if (type == FFLOAT) {
           float *value = va_arg(ap, float *);
-          *value = _vprec_round_binary32(
-              *value, 0, context,
-              get_vprec_precision_exponent(function_inst->output_arguments[i]),
-              get_vprec_precision_mantissa(function_inst->output_arguments[i]));
+          *value =
+              _vprec_round_binary32(*value, 0, context,
+                                    get_vprec_func_precision_exponent(
+                                        function_inst->output_arguments[i]),
+                                    get_vprec_func_precision_mantissa(
+                                        function_inst->output_arguments[i]));
         }
       }
     }

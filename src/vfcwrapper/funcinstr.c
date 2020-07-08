@@ -42,7 +42,7 @@ vfc_func_table_add(interflop_function_info_t function) {
   return ptr;
 }
 
-// Search a function in the table
+// Search a function in the hash table
 interflop_function_info_t *vfc_func_table_get(const char *id) {
   size_t key = vfc_hashmap_str_function(id);
 
@@ -74,20 +74,20 @@ void vfc_func_table_quit() {
 /************************************************************
  *                       Call Stack                         *
  ************************************************************/
-static interflop_function_stack_t _vfc_call_stack = {
-    NULL, _VFC_CALL_STACK_MAXSIZE, _VFC_CALL_STACK_MAXSIZE};
+static interflop_function_stack_t _vfc_call_stack = {NULL,
+                                                     _VFC_CALL_STACK_MAXSIZE};
 
 // Initialize the call stack
 void vfc_call_stack_init() {
   _vfc_call_stack.array =
-      malloc(_vfc_call_stack.capacity * sizeof(interflop_function_info_t *));
+      malloc(_VFC_CALL_STACK_MAXSIZE * sizeof(interflop_function_info_t *));
   _vfc_call_stack.array[--_vfc_call_stack.top] = NULL;
 }
 
 // Push a function in the call stack
 void vfc_call_stack_push(interflop_function_info_t *function) {
   if (_vfc_call_stack.top == 0) {
-    logger_error("Call stack is full, her max size is %zu\n",
+    logger_error("Call stack is full, it max size is %zu\n",
                  _VFC_CALL_STACK_MAXSIZE);
     return;
   }
@@ -121,7 +121,7 @@ void vfc_call_stack_free() { free(_vfc_call_stack.array); }
 void vfc_enter_function(char *func_name, char isLibraryFunction,
                         char isIntrinsicFunction, char useFloat, char useDouble,
                         int n, ...) {
-  // get a pointer to the function if she is in the table
+  // Get a pointer to the function if she is in the table
   interflop_function_info_t *function = vfc_func_table_get(func_name);
 
   if (function == NULL) {
@@ -135,8 +135,8 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
 
   if (useFloat || useDouble) {
     va_list ap;
-    // n is the number of argument intercepted, each argument
-    // is represented by a type ID and a ponter
+    // n is the number of arguments intercepted, each argument
+    // is represented by a type ID and a pointer
     va_start(ap, n * 2);
 
     for (int i = 0; i < loaded_backends; i++)
@@ -154,8 +154,8 @@ void vfc_exit_function(char *func_name, char isLibraryFunction,
                        int n, ...) {
   if (useFloat || useDouble) {
     va_list ap;
-    // n is the number of argument intercepted, each argument
-    // is represented by a type ID and a ponter
+    // n is the number of arguments intercepted, each argument
+    // is represented by a type ID and a pointer
     va_start(ap, n * 2);
 
     for (int i = 0; i < loaded_backends; i++)

@@ -40,7 +40,6 @@ typedef struct interflop_function_info {
 /* Verificarlo call stack */
 typedef struct interflop_function_stack {
   interflop_function_info_t **array;
-  long int capacity;
   long int top;
 } interflop_function_stack_t;
 

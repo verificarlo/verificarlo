@@ -12,19 +12,19 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test.c/powf_61	$i	11	23	8	2	1	1
+"test.c/powf_64	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8
-test.c/pow_43	$i	11	23	8	2	1	1
+test.c/pow_47	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Fdouble_82	$i	11	23	8	2	1	1
+test.c/Fdouble_84	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Ffloat_83	$i	11	23	8	2	1	1
+test.c/Ffloat_85	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8" > config.txt
@@ -38,19 +38,19 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test.c/powf_61	52	11	$i	8	2	1	1
+"test.c/powf_64	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8
-test.c/pow_43	52	11	$i	8	2	1	1
+test.c/pow_47	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Fdouble_82	52	11	$i	8	2	1	1
+test.c/Fdouble_84	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Ffloat_83	52	11	$i	8	2	1	1
+test.c/Ffloat_85	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8" > config.txt
@@ -68,19 +68,19 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test.c/powf_61	$i	11	23	8	2	1	1
+"test.c/powf_64	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8
-test.c/pow_43	$i	11	23	8	2	1	1
+test.c/pow_47	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Fdouble_82	$i	11	23	8	2	1	1
+test.c/Fdouble_84	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Ffloat_83	$i	11	23	8	2	1	1
+test.c/Ffloat_85	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8" > config.txt
@@ -94,19 +94,19 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test.c/powf_61	52	11	$i	8	2	1	1
+"test.c/powf_64	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8
-test.c/pow_43	52	11	$i	8	2	1	1
+test.c/pow_47	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Fdouble_82	52	11	$i	8	2	1	1
+test.c/Fdouble_84	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Ffloat_83	52	11	$i	8	2	1	1
+test.c/Ffloat_85	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8" > config.txt
@@ -124,19 +124,19 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test.c/powf_61	$i	11	23	8	2	1	1
+"test.c/powf_64	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8
-test.c/pow_43	$i	11	23	8	2	1	1
+test.c/pow_47	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Fdouble_82	$i	11	23	8	2	1	1
+test.c/Fdouble_84	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Ffloat_83	$i	11	23	8	2	1	1
+test.c/Ffloat_85	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8" > config.txt
@@ -150,19 +150,19 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test.c/powf_61	52	11	$i	8	2	1	1
+"test.c/powf_64	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8
-test.c/pow_43	52	11	$i	8	2	1	1
+test.c/pow_47	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Fdouble_82	52	11	$i	8	2	1	1
+test.c/Fdouble_84	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Ffloat_83	52	11	$i	8	2	1	1
+test.c/Ffloat_85	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8" > config.txt
@@ -180,19 +180,19 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test.c/powf_61	$i	11	23	8	2	1	1
+"test.c/powf_64	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8
-test.c/pow_43	$i	11	23	8	2	1	1
+test.c/pow_47	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Fdouble_82	$i	11	23	8	2	1	1
+test.c/Fdouble_84	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Ffloat_83	$i	11	23	8	2	1	1
+test.c/Ffloat_85	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8" > config.txt
@@ -206,19 +206,19 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test.c/powf_61	52	11	$i	8	2	1	1
+"test.c/powf_64	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8
-test.c/pow_43	52	11	$i	8	2	1	1
+test.c/pow_47	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Fdouble_82	52	11	$i	8	2	1	1
+test.c/Fdouble_84	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Ffloat_83	52	11	$i	8	2	1	1
+test.c/Ffloat_85	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8" > config.txt
