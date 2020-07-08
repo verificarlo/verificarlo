@@ -41,7 +41,7 @@ RUN ./autogen.sh && \
     		--with-flang CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} \
     || cat config.log
 
-# Build and test verificarlo
+# Build verificarlo
 RUN make && make install
 
 # Setup working directory
