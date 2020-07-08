@@ -159,8 +159,6 @@ extension to Python, you can then also set the shared linker environment variabl
 When invoked with the `--verbose` flag, verificarlo provides detailed output of
 the instrumentation process.
 
-If you want to use functions's instrumentation with a backend, you need to activate instrumentation at the compilation with the flag `--inst-func`. Be careful the body of functions which are not compiled with verificarlo can't be modified in any way.
-
 It is important to include the necessary link flags if you use extra libraries.
 For example, you should include `-lm` if you are linking against the math
 library.
@@ -541,13 +539,28 @@ module3 *
 Inclusion and exclusion files can be used together, in that case inclusion
 takes precedence over exclusion.
 
-If you need to set a custom precision for a set of call sites, you can use the functions's instrumentation proposed by verificarlo. Firstly, you need to activate instrumentation by giving the `--inst-func` flag to verificarlo:
+## Function instrumentation
+
+Verificarlo can instrument functions of a code during compilation by using the flag `--inst-func`.
 
 ```bash
    $ verificarlo-c main.c -o main --inst-func
 ```
 
-Once the file is compiled, you can get information on instrumented functions by producing a profile file: 
+When this flag is activated, verificarlo instrument every call-site of the code, can modify inputs and/or outputs and can get information on the instrumented function. Each call-site is represented by an ID composed of his file, the name of the called function and the line of the call. This feature is complementary to the standard instrumentation of arithmetic operations inside the functions made by verificarlo and can be used together to study the floating point precision of a code more precisely.
+
+Once the code compiled with the function instrumentation flag, you can use instrumentation parameters of different backends.
+
+
+## VPREC custom precision
+
+With the function instrumentation, the VPREC backend allow you to customize the precision used inside of every function compiled with verificarlo and even the precision of every arguments of a called function. Firstly the code should be compiled with the function instrumentation flag.
+
+```bash
+   $ verificarlo-c main.c -o main --inst-func
+```
+
+Then you can execute your code with the VPREC backend and give to him an output file with the `--prec-output-file` parameter. Starting by producing this profiling file will make the customizaton easier.
 
 ```bash
    $ export VFC_BACKENDS="libinterflop_vprec.so --prec-output-file=output.txt" ./main
