@@ -12,7 +12,7 @@ ARG GCC_VERSION=7
 ARG GCC_PATH=/usr/lib/gcc/x86_64-linux-gnu/${GCC_VERSION}
 ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
 ENV PATH /usr/local/bin:$PATH
-ENV PYTHONPATH=/usr/local/lib/python$PYTHON_VERSION/site-packages/:$PYTHONPATH
+ENV PYTHONPATH /usr/local/lib/python$PYTHON_VERSION/site-packages/:$PYTHONPATH
 
 # Retrieve dependencies
 RUN apt-get -y update && apt-get -y --no-install-recommends install tzdata 
@@ -42,8 +42,7 @@ RUN ./autogen.sh && \
     || cat config.log
 
 # Build and test verificarlo
-RUN make && make install && \
-    make installcheck
+RUN make && make install
 
 # Setup working directory
 VOLUME /workdir
