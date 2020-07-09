@@ -34,5 +34,6 @@ installcheck:
 		grep FAIL tests/testplan.log | \
 		while IFS= read -r line ; do \
 			TEST=$$(echo $$line | cut -d' ' -f4); echo "************** TEST $${TEST}"; cat tests/$${TEST}/test.log; \
-		done \
+		done; \
+		exit 1;
 	fi
