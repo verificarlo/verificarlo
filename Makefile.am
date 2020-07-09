@@ -35,5 +35,5 @@ installcheck:
 		while IFS= read -r line ; do \
 			TEST=$$(echo $$line | cut -d' ' -f4); echo "************** TEST $${TEST}"; cat tests/$${TEST}/test.log; \
 		done; \
-		exit 1;
+		exit 1; \
 	fi
