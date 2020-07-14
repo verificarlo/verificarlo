@@ -1,28 +1,28 @@
 SEED=5929
 
-verificarlo-c -D FLOAT test_canc_detect.c -o test_canc_detect -Wall
-rm -f OUTPUT/output_canc_detect_FLOAT
-for i in `seq 0 22`; do
-	export VFC_BACKENDS="libinterflop_cancellation.so --tolerance $i --seed=$SEED"
-  ./test_canc_detect >> OUTPUT/output_canc_detect_FLOAT
+export VFC_BACKENDS_SILENT_LOAD="True"
+
+verificarlo-c test_float.c -o test_float
+
+rm -f output.txt
+
+for i in `seq 0 23`; do
+	export VFC_BACKENDS="libinterflop_cancellation.so --tolerance $i --seed=$SEED --warning=WARNING"
+  ./test_float $i >> output.txt 2>&1 
 done
 
-verificarlo-c -D DOUBLE test_canc_detect.c -o test_canc_detect -Wall
-rm -f OUTPUT/output_canc_detect_DOUBLE
-for i in `seq 0 51`; do
-	export VFC_BACKENDS="libinterflop_cancellation.so --tolerance $i --seed=$SEED"
-  ./test_canc_detect >> OUTPUT/output_canc_detect_DOUBLE
+verificarlo-c test_double.c -o test_double 
+
+for i in `seq 0 52`; do
+	export VFC_BACKENDS="libinterflop_cancellation.so --tolerance $i --seed=$SEED --warning=WARNING"
+  ./test_double $i >> output.txt 2>&1 
 done
 
-rm -f test.log
-diff  OUTPUT/output_canc_detect_DOUBLE RES/res_canc_detect_DOUBLE >> test.log
-diff  OUTPUT/output_canc_detect_FLOAT RES/res_canc_detect_FLOAT >> test.log
+echo $(diff -U 0 result.txt output.txt | grep ^@ | wc -l)
 
-res=`wc -l < test.log`
-
-if [ $res != 0 ] ; then
-echo "error"
-exit 1
-else
-echo "ok"
+if [ $(diff -U 0 result.txt output.txt | grep ^@ | wc -l) == 0 ]
+then 
+	exit 0
+else 
+	exit 1
 fi

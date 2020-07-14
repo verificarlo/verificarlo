@@ -199,6 +199,7 @@ def compiler_mode(sources, options, output, args):
 
         if not output:
             output = '-o ' + basename + '.o'
+
         # Produce object file
         shell('{compiler} -c {output} {ins} {options}'.format(
             compiler=compiler,

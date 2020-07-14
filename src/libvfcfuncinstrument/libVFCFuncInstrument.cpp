@@ -38,6 +38,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 
 #include <cxxabi.h>
@@ -52,65 +53,58 @@ using namespace llvm;
 
 namespace {
 
-static Type *Int8PtrTy;
-static Type *Int8Ty;
-static Type *Int32Ty;
-static Type *Int64Ty;
-static Type *FloatTy;
-static Type *DoubleTy;
-static Type *VoidTy;
 static Function *func_enter;
 static Function *func_exit;
 
 // Enumeration of managed types
 enum Ftypes { FLOAT, DOUBLE };
 
-struct VfclibFunc : public ModulePass {
-  static char ID;
+// Array of values
+Value *Types2val[] = {NULL, NULL};
 
-  VfclibFunc() : ModulePass(ID) {}
+// Demangling function
+std::string demangle(std::string src) {
+  int status = 0;
+  char *demangled_name = NULL;
+  if ((demangled_name = abi::__cxa_demangle(src.c_str(), 0, 0, &status))) {
+    src = demangled_name;
+    std::size_t first = src.find("(");
+    src = src.substr(0, first);
+  }
+  free(demangled_name);
 
-  void getAnalysisUsage(AnalysisUsage &AU) const override {
-    AU.setPreservesCFG();
-    AU.addRequired<TargetLibraryInfoWrapperPass>();
-    AU.addRequired<UnifyFunctionExitNodes>();
+  return src;
+}
+
+// Fill use_double and use_float with true if the call_inst pi use at least
+// of the managed types
+void haveFloatingPointArithmetic(Instruction *call, Function *f,
+                                 bool is_from_library, bool is_intrinsic,
+                                 bool *use_float, bool *use_double, Module &M) {
+  Type *ReturnTy;
+  Type *FloatTy = Type::getFloatTy(M.getContext());
+  Type *DoubleTy = Type::getDoubleTy(M.getContext());
+
+  if (f) {
+    ReturnTy = f->getReturnType();
+  } else {
+    ReturnTy = call->getType();
   }
 
-  // Fill use_double and use_float with true if the call_inst pi use at least
-  // of the managed types
-  void haveFloatingPointArithmetic(Instruction *call, Function *f,
-                                   bool is_from_library, bool is_intrinsic,
-                                   bool *use_float, bool *use_double) {
-    Type *ReturnTy;
+  // Test if return type of call is float
+  (*use_float) = ReturnTy == FloatTy;
 
-    if (f) {
-      ReturnTy = f->getReturnType();
-    } else {
-      ReturnTy = call->getType();
-      ;
-    }
+  // Test if return type of call is double
+  (*use_double) = ReturnTy == DoubleTy;
 
-    // Test if return type of call is float
-    (*use_float) = ReturnTy == FloatTy;
-
-    // Test if return type of call is double
-    (*use_double) = ReturnTy == DoubleTy;
-
-    // Test if f treat floats point numbers
-    if (is_intrinsic or is_from_library) {
-      // Loop over arguments types
-      for (auto it = call->op_begin(); it < call->op_end() - 1; it++) {
-        if ((*it)->getType() == FloatTy)
-          (*use_float) = true;
-        if ((*it)->getType() == DoubleTy)
-          (*use_double) = true;
-      }
-    } else {
-      // Loop over each instruction of the function and test if one of them
-      // use float or double
-      for (auto &bbi : (*f)) {
-        for (auto &ii : bbi) {
-          Type *opType = ii.getOperand(0)->getType();
+  // Test if f treat floats point numbers
+  if (!is_intrinsic && !is_from_library) {
+    // Loop over each instruction of the function and test if one of them
+    // use float or double
+    for (auto &bbi : (*f)) {
+      for (auto &ii : bbi) {
+        for (size_t i = 0; i < ii.getNumOperands(); i++) {
+          Type *opType = ii.getOperand(i)->getType();
 
           if (opType->isVectorTy()) {
             VectorType *t = static_cast<VectorType *>(opType);
@@ -123,213 +117,242 @@ struct VfclibFunc : public ModulePass {
           if (opType == DoubleTy)
             (*use_double) = true;
         }
-
-        if ((*use_float) or (*use_double))
-          break;
       }
     }
-  }
-
-  // Demangling function
-  std::string demangle(std::string src) {
-    int status = 0;
-    char *demangled_name = NULL;
-    if ((demangled_name = abi::__cxa_demangle(src.c_str(), 0, 0, &status))) {
-      src = demangled_name;
-      std::size_t first = src.find("(");
-      src = src.substr(0, first);
+  } else {
+    // Loop over arguments types
+    for (auto it = call->op_begin(); it < call->op_end() - 1; it++) {
+      if ((*it)->getType() == FloatTy)
+        (*use_float) = true;
+      if ((*it)->getType() == DoubleTy)
+        (*use_double) = true;
     }
-    free(demangled_name);
-
-    return src;
   }
+}
 
-  AllocaInst *allocatePtr(BasicBlock &B, Type *VType,
-                          std::string FunctionName) {
-    static size_t cpt = 0;
+void InstrumentFunction(std::vector<Value *> MetaData,
+                        Function *CurrentFunction, Function *HookedFunction,
+                        const CallInst *call, BasicBlock *B) {
+  IRBuilder<> Builder(B);
 
-    AllocaInst *ptr = new AllocaInst(
-        VType, 0, 0, FunctionName + "_arg_" + std::to_string(cpt++));
-
-    for (auto &ii : B) {
-      if (!isa<PHINode>(ii)) {
-        ptr->insertBefore(&ii);
-        break;
-      }
-    }
-
-    return ptr;
-  }
-
-  Type *fillArgs(bool is_enter, std::vector<Value *> &Args, Value *v,
-                 Value **Types2val, int &cpt) {
-    Type *VType = NULL;
-    Type *T = v->getType();
-
-    if (T == FloatTy) {
-      // Push the typeID
-      VType = FloatTy;
-      Args.push_back(Types2val[FLOAT]);
-
-      // Number of argument added
-      cpt++;
-
-    } else if (T == DoubleTy) {
-      // Push the typeID
-      VType = DoubleTy;
-      Args.push_back(Types2val[DOUBLE]);
-
-      // Number of argument added
-      cpt++;
-    }
-
-    return VType;
-  }
-
-  void mainInstrumentation(Module &M) {
-    Function *F = M.getFunction("main");
-
-    if (F == NULL) {
-      std::string Mangled;
-      raw_string_ostream mangledNameStream(Mangled);
-      Mangler::getNameWithPrefix(mangledNameStream, "main", M.getDataLayout());
-      mangledNameStream.flush();
-      F = M.getFunction(Mangled);
-      if (F == NULL) {
-        return;
-      }
-    }
-
-    DISubprogram *Sub = F->getSubprogram();
-
-    std::string main_id = Sub->getFilename().str() + "/" +
-                          Sub->getName().str() + "_" +
-                          std::to_string(Sub->getLine());
-
-    IRBuilder<> Builder(&(*F->begin()));
-
-    Value *MainID = Builder.CreateGlobalStringPtr(main_id);
-
-    // Metadata Info
-    bool is_from_library = 0;
-    bool is_intrinsic = 0;
-    bool use_float, use_double;
-
-    haveFloatingPointArithmetic(NULL, F, is_from_library, is_intrinsic,
-                                &use_float, &use_double);
-
-    // Constants creation
-    Constant *isLibraryFunction = ConstantInt::get(Int8Ty, is_from_library);
-    Constant *isInstrinsicFunction = ConstantInt::get(Int8Ty, is_intrinsic);
-    Constant *haveFloat = ConstantInt::get(Int8Ty, use_float);
-    Constant *haveDouble = ConstantInt::get(Int8Ty, use_double);
-    Constant *zero_const = ConstantInt::get(Int32Ty, 0);
-
-    // Enter function arguments
-    std::vector<Value *> MainArgs{
-        MainID,    isLibraryFunction, isInstrinsicFunction,
-        haveFloat, haveDouble,        zero_const};
-
-    BasicBlock &EntryNode = F->getEntryBlock();
-
-    Builder.SetInsertPoint(&EntryNode, EntryNode.begin());
-
-    Builder.CreateCall(func_enter, MainArgs);
-
-    UnifyFunctionExitNodes pass;
-
-    pass.runOnFunction(*F);
-
-    BasicBlock *ExitNode = pass.getReturnBlock();
-
-    if (ExitNode != nullptr) {
-      Instruction *terminator = ExitNode->getTerminator();
-
-      if (terminator != nullptr) {
-        Builder.SetInsertPoint(terminator);
-
-        Builder.CreateCall(func_exit, MainArgs);
-      }
+  // Step 1: add space on the heap for poiters
+  size_t input_cpt = 0;
+  std::vector<Value *> InputAlloca;
+  for (auto &args : CurrentFunction->args()) {
+    if (args.getType() == Builder.getDoubleTy()) {
+      InputAlloca.push_back(
+          Builder.CreateAlloca(Builder.getDoubleTy(), nullptr));
+      input_cpt++;
+    } else if (args.getType() == Builder.getFloatTy()) {
+      InputAlloca.push_back(
+          Builder.CreateAlloca(Builder.getFloatTy(), nullptr));
+      input_cpt++;
     }
   }
 
-  /**************************************************************************
-   *                     Function Call Instrumentation                      *
-   *                                                                        *
-   *  // The old function call                                              *
-   *  resf = f ( arg1, arg2 )                                               *
-   *                                                                        *
-   *  // is replaced by the folowing sequence of Instructions               *
-   *                                                                        *
-   *  // create pointers for arguments                                      *
-   *  ptr_arg1 = store arg1                                                 *
-   *  ptr_arg2 = store arg2                                                 *
-   *                                                                        *
-   *  // call to vfc_enter_function                                         *
-   *  call void vfc_enter_function( function_ID, nb_param, type_arg1,       *
-   *                                 ptr_arg1, type_arg2, ptr_arg2 )        *
-   *                                                                        *
-   *  // get new arguments values                                           *
-   *  new_arg1 = load ptr_arg1                                              *
-   *  new_arg2 = load ptr_arg2                                              *
-   *                                                                        *
-   *  // call to the original function with new arguments                   *
-   *  tmp_resf = f ( new_arg1, new_arg2 )                                   *
-   *                                                                        *
-   *  // create pointer for result                                          *
-   *  ptr_tmp_resf = store tmp_resf                                         *
-   *                                                                        *
-   *  // call to vfc_exit_function                                          *
-   *  call void vfc_exit_function(  function_ID, nb_param,                  *
-   *                                type_resf, ptr_tmp_resf )               *
-   *                                                                        *
-   *  // get the new return value                                           *
-   *  res_f = load ptr_tmp_resf                                             *
-   **************************************************************************/
+  std::vector<Value *> InputMetaData = MetaData;
+  InputMetaData.push_back(ConstantInt::get(Builder.getInt32Ty(), input_cpt));
+
+  size_t output_cpt = 0;
+  std::vector<Value *> OutputAlloca;
+  if (HookedFunction->getReturnType() == Builder.getDoubleTy()) {
+    OutputAlloca.push_back(
+        Builder.CreateAlloca(Builder.getDoubleTy(), nullptr));
+    output_cpt++;
+  } else if (HookedFunction->getReturnType() == Builder.getFloatTy()) {
+    OutputAlloca.push_back(Builder.CreateAlloca(Builder.getFloatTy(), nullptr));
+    output_cpt++;
+  }
+
+  std::vector<Value *> OutputMetaData = MetaData;
+  OutputMetaData.push_back(ConstantInt::get(Builder.getInt32Ty(), output_cpt));
+
+  // Step 2: store values
+  std::vector<Value *> EnterArgs = InputMetaData;
+  size_t index = 0;
+  for (auto &args : CurrentFunction->args()) {
+    if (args.getType() == Builder.getDoubleTy()) {
+      EnterArgs.push_back(Types2val[DOUBLE]);
+      EnterArgs.push_back(InputAlloca[index]);
+      Builder.CreateStore(&args, InputAlloca[index++]);
+    } else if (args.getType() == Builder.getFloatTy()) {
+      EnterArgs.push_back(Types2val[FLOAT]);
+      EnterArgs.push_back(InputAlloca[index]);
+      Builder.CreateStore(&args, InputAlloca[index++]);
+    }
+  }
+
+  // Step 3: call vfc_enter
+  Builder.CreateCall(func_enter, EnterArgs);
+
+  // Step 4: load modified values
+  std::vector<Value *> FunctionArgs;
+  index = 0;
+  for (auto &args : CurrentFunction->args()) {
+    if (args.getType() == Builder.getDoubleTy()) {
+      FunctionArgs.push_back(
+          Builder.CreateLoad(Builder.getDoubleTy(), InputAlloca[index++]));
+    } else if (args.getType() == Builder.getFloatTy()) {
+      FunctionArgs.push_back(
+          Builder.CreateLoad(Builder.getFloatTy(), InputAlloca[index++]));
+    } else {
+      FunctionArgs.push_back(&args);
+    }
+  }
+
+  // Step 5: call hooked function with modified values
+  Value *ret;
+  if (call) {
+    CallInst *hook = cast<CallInst>(call->clone());
+    int i = 0;
+    for (auto &args : FunctionArgs)
+      hook->setArgOperand(i++, args);
+    ret = Builder.Insert(hook);
+  } else {
+    ret = Builder.CreateCall(HookedFunction, FunctionArgs);
+  }
+
+  // Step 6: store return value
+  std::vector<Value *> ExitArgs = OutputMetaData;
+  if (ret->getType() == Builder.getDoubleTy()) {
+    ExitArgs.push_back(Types2val[DOUBLE]);
+    ExitArgs.push_back(OutputAlloca[0]);
+    Builder.CreateStore(ret, OutputAlloca[0]);
+  } else if (ret->getType() == Builder.getFloatTy()) {
+    ExitArgs.push_back(Types2val[FLOAT]);
+    ExitArgs.push_back(OutputAlloca[0]);
+    Builder.CreateStore(ret, OutputAlloca[0]);
+  }
+
+  // Step 7: call vfc_exit
+  Builder.CreateCall(func_exit, ExitArgs);
+
+  // Step 8: load the modified return value
+  if (ret->getType() == Builder.getDoubleTy()) {
+    ret = Builder.CreateLoad(Builder.getDoubleTy(), OutputAlloca[0]);
+  } else if (ret->getType() == Builder.getFloatTy()) {
+    ret = Builder.CreateLoad(Builder.getFloatTy(), OutputAlloca[0]);
+  }
+
+  // Step 9: return the modified return value if necessary
+  if (HookedFunction->getReturnType() != Builder.getVoidTy()) {
+    Builder.CreateRet(ret);
+  } else {
+    Builder.CreateRetVoid();
+  }
+}
+
+struct VfclibFunc : public ModulePass {
+  static char ID;
+  std::vector<Function *> OriginalFunctions;
+  size_t inst_cpt;
+
+  void getAnalysisUsage(AnalysisUsage &AU) const override {
+    AU.setPreservesCFG();
+    AU.addRequired<TargetLibraryInfoWrapperPass>();
+  }
+
+  VfclibFunc() : ModulePass(ID) { inst_cpt = 1; }
 
   virtual bool runOnModule(Module &M) {
     const TargetLibraryInfo *TLI =
         &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
 
-    // Types
-    Int8PtrTy = Type::getInt8PtrTy(M.getContext());
-    Int8Ty = Type::getInt8Ty(M.getContext());
-    Int32Ty = Type::getInt32Ty(M.getContext());
-    Int64Ty = Type::getInt64Ty(M.getContext());
-    FloatTy = Type::getFloatTy(M.getContext());
-    DoubleTy = Type::getDoubleTy(M.getContext());
-    VoidTy = Type::getVoidTy(M.getContext());
+    Types2val[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 0);
+    Types2val[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 1);
 
-    // Types string ptr
-    IRBuilder<> Builder(&(*(*M.begin()).begin()));
-    Value *Types2val[] = {ConstantInt::get(Int32Ty, 0),
-                          ConstantInt::get(Int32Ty, 1)};
+    /*************************************************************************
+     *                  Get original functions's names                       *
+     *************************************************************************/
+    for (auto &F : M) {
+      if ((!F.isIntrinsic()) && (F.getName().str() != "main"))
+        OriginalFunctions.push_back(&F);
+    }
 
     /*************************************************************************
      *                  Enter and exit functions declarations                *
      *************************************************************************/
 
-    std::vector<Type *> ArgTypes{Int8PtrTy, Int8Ty, Int8Ty,
-                                 Int8Ty,    Int8Ty, Int32Ty};
+    std::vector<Type *> ArgTypes{
+        Type::getInt8PtrTy(M.getContext()), Type::getInt8Ty(M.getContext()),
+        Type::getInt8Ty(M.getContext()),    Type::getInt8Ty(M.getContext()),
+        Type::getInt8Ty(M.getContext()),    Type::getInt32Ty(M.getContext())};
 
     // void vfc_enter_function (char*, char, char, char, char, int, ...)
     Constant *func = M.getOrInsertFunction(
-        "vfc_enter_function", FunctionType::get(VoidTy, ArgTypes, true));
+        "vfc_enter_function",
+        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true));
 
     func_enter = cast<Function>(func);
+    func_enter->setCallingConv(CallingConv::C);
 
     // void vfc_exit_function (char*, char, char, char, char, int, ...)
-    func = M.getOrInsertFunction("vfc_exit_function",
-                                 FunctionType::get(VoidTy, ArgTypes, true));
+    func = M.getOrInsertFunction(
+        "vfc_exit_function",
+        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true));
 
     func_exit = cast<Function>(func);
+    func_exit->setCallingConv(CallingConv::C);
 
-    /**************************************************************************
-     *                     Function's calls instrumentation                   *
-     **************************************************************************/
+    /*************************************************************************
+     *                             Main special case                         *
+     *************************************************************************/
+    if (M.getFunction("main")) {
+      Function *Main = M.getFunction("main");
 
-    for (auto &F : M) {
-      for (auto &B : F) {
+      ValueToValueMapTy VMap;
+      Function *Clone = CloneFunction(Main, VMap);
+
+      DISubprogram *Sub = Main->getSubprogram();
+      std::string Name = Sub->getName().str();
+      std::string File = Sub->getFilename().str();
+      std::string Line = std::to_string(Sub->getLine());
+      std::string NewName = "vfc_" + File + "/" + Name + "_" + Line + "_" +
+                            std::to_string(inst_cpt) + "_" + "_hook";
+      std::string FunctionName =
+          File + "/" + Name + "_" + Line + "_" + std::to_string(inst_cpt++);
+
+      bool use_float, use_double;
+
+      // Test if the function use double or float
+      haveFloatingPointArithmetic(NULL, Main, 0, 0, &use_float, &use_double, M);
+
+      // Delete Main Body
+      Main->deleteBody();
+
+      BasicBlock *block = BasicBlock::Create(M.getContext(), "block", Main);
+      IRBuilder<> Builder(block);
+
+      // Create function ID
+      Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
+
+      // Constants creation
+      Constant *isLibraryFunction =
+          ConstantInt::get(Type::getInt8Ty(M.getContext()), 0);
+      Constant *isInstrinsicFunction =
+          ConstantInt::get(Type::getInt8Ty(M.getContext()), 0);
+      Constant *haveFloat =
+          ConstantInt::get(Type::getInt8Ty(M.getContext()), use_float);
+      Constant *haveDouble =
+          ConstantInt::get(Type::getInt8Ty(M.getContext()), use_double);
+
+      // Enter metadata arguments
+      std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
+                                    isInstrinsicFunction, haveFloat,
+                                    haveDouble};
+
+      Clone->setName(NewName);
+
+      InstrumentFunction(MetaData, Main, Clone, NULL, block);
+
+      OriginalFunctions.push_back(Clone);
+    }
+
+    /*************************************************************************
+     *                             Function calls                            *
+     *************************************************************************/
+    for (auto &F : OriginalFunctions) {
+      for (auto &B : (*F)) {
         IRBuilder<> Builder(&B);
 
         for (auto ii = B.begin(); ii != B.end();) {
@@ -338,11 +361,19 @@ struct VfclibFunc : public ModulePass {
           if (isa<CallInst>(pi)) {
             // collect metadata info //
             Function *f = cast<CallInst>(pi)->getCalledFunction();
+
             MDNode *N = pi->getMetadata("dbg");
             DILocation *Loc = cast<DILocation>(N);
-            unsigned Line = Loc->getLine();
+            unsigned line = Loc->getLine();
             std::string File = Loc->getFilename().str();
-            std::string Name = f->getName().str();
+            std::string Name = demangle(f->getName().str());
+            std::string Line = std::to_string(line);
+            std::string NewName = "vfc_" + File + "/" + f->getName().str() +
+                                  "_" + Line + "_" + std::to_string(inst_cpt) +
+                                  "_" + "_hook";
+
+            std::string FunctionName = File + "/" + Name + "_" + Line + "_" +
+                                       std::to_string(inst_cpt++);
 
             // Test if f is a library function //
             LibFunc libfunc;
@@ -351,137 +382,56 @@ struct VfclibFunc : public ModulePass {
             // Test if f is instrinsic //
             bool is_intrinsic = f->isIntrinsic();
 
-            bool use_float, use_double;
+            if (Name.substr(0, 9) != "llvm.dbg.") {
+              bool use_float, use_double;
 
-            // Test if the function use double or float
-            haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
-                                        &use_float, &use_double);
+              // Test if the function use double or float
+              haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
+                                          &use_float, &use_double, M);
 
-            // Demangle the name of F //
-            Name = demangle(Name);
+              // Create function ID
+              Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
 
-            // Create function ID
-            std::string FunctionName =
-                File + "/" + Name + "_" + std::to_string(Line);
-            Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
+              // Constants creation
+              Constant *isLibraryFunction = ConstantInt::get(
+                  Type::getInt8Ty(M.getContext()), is_from_library);
+              Constant *isInstrinsicFunction = ConstantInt::get(
+                  Type::getInt8Ty(M.getContext()), is_intrinsic);
+              Constant *haveFloat =
+                  ConstantInt::get(Type::getInt8Ty(M.getContext()), use_float);
+              Constant *haveDouble =
+                  ConstantInt::get(Type::getInt8Ty(M.getContext()), use_double);
 
-            // Constants creation
-            Constant *isLibraryFunction =
-                ConstantInt::get(Int8Ty, is_from_library);
-            Constant *isInstrinsicFunction =
-                ConstantInt::get(Int8Ty, is_intrinsic);
-            Constant *haveFloat = ConstantInt::get(Int8Ty, use_float);
-            Constant *haveDouble = ConstantInt::get(Int8Ty, use_double);
-            Constant *zero_const = ConstantInt::get(Int32Ty, 0);
+              // Enter function arguments
+              std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
+                                            isInstrinsicFunction, haveFloat,
+                                            haveDouble};
 
-            // Enter function arguments
-            std::vector<Value *> EnterArgs{
-                FunctionID, isLibraryFunction, isInstrinsicFunction,
-                haveFloat,  haveDouble,        zero_const};
-
-            // Exit function arguments
-            std::vector<Value *> ExitArgs{
-                FunctionID, isLibraryFunction, isInstrinsicFunction,
-                haveFloat,  haveDouble,        zero_const};
-
-            // Temporary function call to make loads and stores insertions
-            // easier
-            CallInst *enter_call = CallInst::Create(func_enter, EnterArgs);
-            enter_call->insertBefore(pi);
-
-            // The clone of the instrumented function's call will be used with
-            // hooked arguments and the original one will be replaced by the
-            // load of the hooked return value
-            Instruction *func_call = pi->clone();
-            func_call->insertBefore(pi);
-
-            // Temporary function call to make loads and stores insertions
-            // easier
-            CallInst *exit_call = CallInst::Create(func_exit, ExitArgs);
-            exit_call->insertBefore(pi);
-
-            // Instrumented function arguments
-            std::vector<Value *> FunctionArgs;
-
-            int m = 0;
-            // loop over arguments
-            for (auto it = pi->op_begin(); it < pi->op_end() - 1; it++) {
-              // Get Value
-              Value *v = (*it);
-
-              Type *VType = fillArgs(1, EnterArgs, v, Types2val, m);
-
-              if (VType == NULL) {
-                FunctionArgs.push_back(v);
-                continue;
+              Type *ReturnTy = f->getReturnType();
+              std::vector<Type *> CallTypes;
+              for (auto it = pi->op_begin(); it < pi->op_end() - 1; it++) {
+                CallTypes.push_back(cast<Value>(it)->getType());
               }
 
-              // Allocate pointer
-              AllocaInst *ptr = allocatePtr(B, VType, FunctionName);
+              Constant *c = M.getOrInsertFunction(
+                  NewName, FunctionType::get(ReturnTy, CallTypes, false));
+              Function *hook_func = cast<Function>(c);
 
-              // Enter store and load
-              StoreInst *enter_str = new StoreInst(v, ptr);
-              enter_str->insertBefore(enter_call);
-              LoadInst *enter_load = new LoadInst(VType, ptr);
-              enter_load->insertAfter(enter_call);
-              EnterArgs.push_back(ptr);
-              FunctionArgs.push_back(enter_load);
+              hook_func->setAttributes(f->getAttributes());
+              hook_func->setCallingConv(f->getCallingConv());
+
+              BasicBlock *block =
+                  BasicBlock::Create(M.getContext(), "block", hook_func);
+
+              InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
+                                 block);
+
+              cast<CallInst>(pi)->setCalledFunction(hook_func);
             }
-
-            // Values modified by the instumented function
-            std::vector<Value *> Returns;
-            Returns.push_back(func_call);
-
-            int n = 0;
-            for (auto &it : Returns) {
-              // Get Value
-              Value *v = it;
-
-              Type *VType = fillArgs(0, ExitArgs, v, Types2val, n);
-
-              if (VType == NULL) {
-                pi->eraseFromParent();
-                continue;
-              }
-
-              // Allocate pointer
-              AllocaInst *ptr = allocatePtr(B, VType, FunctionName);
-
-              StoreInst *exit_str = new StoreInst(v, ptr);
-              exit_str->insertBefore(exit_call);
-              LoadInst *exit_load = new LoadInst(VType, ptr);
-              ExitArgs.push_back(ptr);
-
-              if (v == func_call) {
-                ReplaceInstWithInst(pi, exit_load);
-              } else {
-                exit_load->insertAfter(exit_call);
-              }
-            }
-
-            // Replace temporary functions calls by definitive ones
-            CallInst *new_enter_call = CallInst::Create(func_enter, EnterArgs);
-            ReplaceInstWithInst(enter_call, new_enter_call);
-
-            CallInst *new_exit_call = CallInst::Create(func_exit, ExitArgs);
-            ReplaceInstWithInst(exit_call, new_exit_call);
-
-            // Replace with the good number of operand
-            Constant *num_operands = ConstantInt::get(Int32Ty, m);
-            new_enter_call->setOperand(5, num_operands);
-
-            // Replace with the good number of return value
-            Constant *num_results = ConstantInt::get(Int32Ty, n);
-            new_exit_call->setOperand(5, num_results);
-
-            CallInst *new_func_call = CallInst::Create(f, FunctionArgs);
-            ReplaceInstWithInst(func_call, new_func_call);
           }
         }
       }
     }
-
-    mainInstrumentation(M);
 
     return true;
   }

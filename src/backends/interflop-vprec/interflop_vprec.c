@@ -654,7 +654,8 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
   // set precision with custom values depending on the mode
   if (((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) &&
-      (VPREC_INST_MODE == vprecinst_all || VPREC_INST_MODE == vprecinst_arg) &&
+      ((VPREC_INST_MODE == vprecinst_all) ||
+       (VPREC_INST_MODE == vprecinst_arg)) &&
       VPREC_INST_MODE != vprecinst_none) {
     for (int i = 0; i < nb_args; i++) {
       int type = va_arg(ap, int);
