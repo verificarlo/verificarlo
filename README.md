@@ -541,26 +541,23 @@ takes precedence over exclusion.
 
 ## Function instrumentation
 
-Verificarlo can instrument functions of a code during compilation by using the flag `--inst-func`.
+Verificarlo can instrument the functions of a code by using the flag `--inst-func`; this flag is required by some backends which can operate at the level of function calls. For example, VPREC takes advantage this feature to explore custom precision at function granularity. This is presented in the next section.
 
 ```bash
    $ verificarlo-c main.c -o main --inst-func
 ```
 
-When this flag is activated, verificarlo instrument every call-site of the code, can modify inputs and/or outputs and can get information on the instrumented function. Each call-site is represented by an ID composed of his file, the name of the called function and the line of the call. This feature is complementary to the standard instrumentation of arithmetic operations inside the functions made by verificarlo and can be used together to study the floating point precision of a code more precisely.
-
-Once the code compiled with the function instrumentation flag, you can use instrumentation parameters of different backends.
-
+Verificarlo will instrument every call-site, inputs and outputs can be modified by the backends. Each call-site is represented by an ID composed of his file, the name of the called function and the line of the call. This feature is complementary to the standard instrumentation of arithmetic operations inside the functions made by verificarlo and can be used together to study the floating point precision of a code more precisely.
 
 ## VPREC custom precision
 
-With the function instrumentation, the VPREC backend allow you to customize the precision used inside of every function compiled with verificarlo and even the precision of every arguments of a called function. Firstly the code should be compiled with the function instrumentation flag.
+With the function instrumentation, VPREC backend allows you to customize the precision at the function granularity and the precision of every arguments of a called function. First, the code should be compiled with the function instrumentation flag.
 
 ```bash
    $ verificarlo-c main.c -o main --inst-func
 ```
 
-Then you can execute your code with the VPREC backend and give to him an output file with the `--prec-output-file` parameter. Starting by producing this profiling file will make the customizaton easier.
+Then you can execute your code with the VPREC backend and set a precision profiling output file with the `--prec-output-file` parameter. 
 
 ```bash
    $ export VFC_BACKENDS="libinterflop_vprec.so --prec-output-file=output.txt" ./main
@@ -577,13 +574,13 @@ output: type  precision   range
 ```
 
 Where:
-  - `file` is the file which containts the call of the function
+  - `file` is the file which contains the call of the function
   - `name` is the name of the called function
   - `line` is the line where the function is called in the source code
-  - `precision_binary64` control the length of the mantissa for a 64 bit float in internal operations
-  - `range_binary64` control the length of the exponent for a 64 bit float in internal operations
-  - `precision_binary32` control the length of the mantissa for a 32 bit float in internal operations 
-  - `range_binary32` control the length of the exponent for a 64 bit float in internal operations
+  - `precision_binary64` controls the length of the mantissa for a 64 bit float for operations inside the function
+  - `range_binary64` controls the length of the exponent for a 64 bit float for operations inside the function
+  - `precision_binary32` control the length of the mantissa for a 32 bit float for operations inside the function
+  - `range_binary32` control the length of the exponent for a 64 bit float for operations inside the function
   - `nb_inputs` is the number of floating point inputs intercepted
   - `nb_outputs` is the number of floating point outputs intercepted
   - `nb_calls` is the number of calls to the function from this site
@@ -604,7 +601,7 @@ double print(int n, double a, double b) {
 
 double res = print(2, 3.5);
 ```
-will produce this set of informations:
+will produce this profile file:
 
 ```
 main.c/print_20  52  11  23  8  2 1 1
