@@ -539,6 +539,98 @@ module3 *
 Inclusion and exclusion files can be used together, in that case inclusion
 takes precedence over exclusion.
 
+## Function instrumentation
+
+Verificarlo can instrument functions of a code during compilation by using the flag `--inst-func`.
+
+```bash
+   $ verificarlo-c main.c -o main --inst-func
+```
+
+When this flag is activated, verificarlo instrument every call-site of the code, can modify inputs and/or outputs and can get information on the instrumented function. Each call-site is represented by an ID composed of his file, the name of the called function and the line of the call. This feature is complementary to the standard instrumentation of arithmetic operations inside the functions made by verificarlo and can be used together to study the floating point precision of a code more precisely.
+
+Once the code compiled with the function instrumentation flag, you can use instrumentation parameters of different backends.
+
+
+## VPREC custom precision
+
+With the function instrumentation, the VPREC backend allow you to customize the precision used inside of every function compiled with verificarlo and even the precision of every arguments of a called function. Firstly the code should be compiled with the function instrumentation flag.
+
+```bash
+   $ verificarlo-c main.c -o main --inst-func
+```
+
+Then you can execute your code with the VPREC backend and give to him an output file with the `--prec-output-file` parameter. Starting by producing this profiling file will make the customizaton easier.
+
+```bash
+   $ export VFC_BACKENDS="libinterflop_vprec.so --prec-output-file=output.txt" ./main
+```
+
+In this file you can see information on the functions and on floating point arguments with the following structure: 
+
+```
+file/name_line  precision_binary64  range_binary64  precision_binary32  range_binary32  nb_inputs nb_outputs  nb_calls
+input:  type  precision   range
+...
+input:  type  precision   range
+output: type  precision   range
+```
+
+Where:
+  - `file` is the file which containts the call of the function
+  - `name` is the name of the called function
+  - `line` is the line where the function is called in the source code
+  - `precision_binary64` control the length of the mantissa for a 64 bit float in internal operations
+  - `range_binary64` control the length of the exponent for a 64 bit float in internal operations
+  - `precision_binary32` control the length of the mantissa for a 32 bit float in internal operations 
+  - `range_binary32` control the length of the exponent for a 64 bit float in internal operations
+  - `nb_inputs` is the number of floating point inputs intercepted
+  - `nb_outputs` is the number of floating point outputs intercepted
+  - `nb_calls` is the number of calls to the function from this site
+  - `type` is the type of the argument (0 = float and 1 = double)
+  - `precision` is the length of the mantissa for this argument
+  - `range` is the length of the exponent for this argument
+
+Only floating point arguments are managed by vprec, so for example this code: 
+
+```c
+double print(int n, double a, double b) {
+  for (int i = 0; i < n; i++)   
+    printf("%lf %lf\n", a, b);
+  return a + b;
+}
+
+...
+
+double res = print(2, 3.5);
+```
+will produce this set of informations:
+
+```
+main.c/print_20  52  11  23  8  2 1 1
+# a 
+input:  1  52   23
+# b
+input:  1  52   23
+# res
+output: 1  52   23
+```
+
+You are now able to customize the length of the mantissa/exponent for each argument but also to set the internal precision for floating point operations in a function compiled with verificarlo.
+To do that you can change the desired field in the profile file and use it as an input with the following command:
+
+```bash
+   $ export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=output.txt --instrument=all" ./main
+```
+
+The `--instrument` parameters set the behavior of the backend:
+  - `arguments` apply given precisions to arguments only
+  - `operations` apply given precisions to arithmetic operations inside the function only
+  - `all` apply given given precisions to arithmetic operations inside the function and to arguments
+  - `none` (default) does not apply any custom precision
+
+The program is now executed with the given configuration.
+
 ## Postprocessing
 
 The `postprocessing/` directory contains postprocessing tools to compute floating

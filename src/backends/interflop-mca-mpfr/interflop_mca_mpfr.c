@@ -487,6 +487,9 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_sub_double,
       _interflop_mul_double,
       _interflop_div_double,
+      NULL,
+      NULL,
+      NULL,
       NULL};
 
   /* Initialize the seed */

@@ -21,6 +21,28 @@ enum FCMP_PREDICATE {
   FCMP_TRUE,
 };
 
+/* Enumeration of types managed by function instrumentation */
+enum FTYPES { FFLOAT, FDOUBLE, FTYPES_END };
+
+typedef struct interflop_function_info {
+  // Indicate the identifier of the function
+  char *id;
+  // Indicate if the function is from library
+  short isLibraryFunction;
+  // Indicate if the function is intrinsic
+  short isIntrinsicFunction;
+  // Indicate if the function use double
+  short useFloat;
+  // Indicate if the function use float
+  short useDouble;
+} interflop_function_info_t;
+
+/* Verificarlo call stack */
+typedef struct interflop_function_stack {
+  interflop_function_info_t **array;
+  long int top;
+} interflop_function_stack_t;
+
 struct interflop_backend_interface_t {
   void (*interflop_add_float)(float a, float b, float *c, void *context);
   void (*interflop_sub_float)(float a, float b, float *c, void *context);
@@ -35,6 +57,16 @@ struct interflop_backend_interface_t {
   void (*interflop_div_double)(double a, double b, double *c, void *context);
   void (*interflop_cmp_double)(enum FCMP_PREDICATE p, double a, double b,
                                int *c, void *context);
+
+  void (*interflop_enter_function)(interflop_function_stack_t *stack,
+                                   void *context, int nb_args, va_list ap);
+
+  void (*interflop_exit_function)(interflop_function_stack_t *stack,
+                                  void *context, int nb_args, va_list ap);
+
+  /* interflop_finalize: called at the end of the instrumented program
+   * execution */
+  void (*interflop_finalize)(void *context);
 };
 
 /* interflop_init: called at initialization before using a backend.
