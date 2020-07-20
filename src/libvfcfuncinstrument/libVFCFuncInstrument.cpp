@@ -23,6 +23,8 @@
 #include "../../config.h"
 #include "llvm/Analysis/CallGraphSCCPass.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
+#include "llvm/Analysis/LoopInfo.h"
+#include "llvm/IR/Dominators.h"
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfoMetadata.h"
@@ -76,33 +78,34 @@ std::string demangle(std::string src) {
   return src;
 }
 
-// Fill use_double and use_float with true if the call_inst pi use at least
-// of the managed types
+// Count the number of floating point instruction in a function if possible
+// check if the function have float or double input/ouptut else
 void haveFloatingPointArithmetic(Instruction *call, Function *f,
                                  bool is_from_library, bool is_intrinsic,
-                                 bool *use_float, bool *use_double, Module &M) {
-  Type *ReturnTy;
+                                 size_t *float_cpt, size_t *double_cpt, Module &M) {
   Type *FloatTy = Type::getFloatTy(M.getContext());
   Type *DoubleTy = Type::getDoubleTy(M.getContext());
 
-  if (f) {
-    ReturnTy = f->getReturnType();
-  } else {
-    ReturnTy = call->getType();
-  }
-
-  // Test if return type of call is float
-  (*use_float) = ReturnTy == FloatTy;
-
-  // Test if return type of call is double
-  (*use_double) = ReturnTy == DoubleTy;
+  bool use_float, use_double;
 
   // Test if f treat floats point numbers
-  if (!is_intrinsic && !is_from_library) {
+  if (f->size() != 0) {
+
+    // Get loop info for the function
+    DominatorTree DT = DominatorTree();
+    DT.recalculate(*f);
+    LoopInfoBase<BasicBlock, Loop>* LI = new LoopInfoBase<BasicBlock, Loop>();
+    LI->releaseMemory();
+    LI->analyze(DT);
+
     // Loop over each instruction of the function and test if one of them
     // use float or double
     for (auto &bbi : (*f)) {
+      unsigned int weight = pow(10, LI->getLoopDepth(&bbi));
+
       for (auto &ii : bbi) {
+        use_float = use_double = false;
+
         for (size_t i = 0; i < ii.getNumOperands(); i++) {
           Type *opType = ii.getOperand(i)->getType();
 
@@ -112,21 +115,47 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
           }
 
           if (opType == FloatTy)
-            (*use_float) = true;
+            use_float = true;
 
           if (opType == DoubleTy)
-            (*use_double) = true;
+            use_double = true;
         }
+
+        // increment counter if operation use a float
+        if (use_float)
+          (*float_cpt) += weight;
+
+        // increment counter if operation use a double
+        if (use_double)
+          (*double_cpt) += weight;
       }
     }
   } else {
+    use_float = use_double = false;
+
+    Type *ReturnTy;
+    if (f) {
+      ReturnTy = f->getReturnType();
+    } else {
+      ReturnTy = call->getType();
+    }
+
+    use_float = (ReturnTy == FloatTy);
+    use_double = (ReturnTy == DoubleTy);
+
     // Loop over arguments types
     for (auto it = call->op_begin(); it < call->op_end() - 1; it++) {
       if ((*it)->getType() == FloatTy)
-        (*use_float) = true;
+        use_float = true;
       if ((*it)->getType() == DoubleTy)
-        (*use_double) = true;
+        use_double = true;
     }
+
+    if (use_float)
+      (*float_cpt) = 1;
+
+    if (use_double)
+      (*double_cpt) = 1;
   }
 }
 
@@ -275,8 +304,8 @@ struct VfclibFunc : public ModulePass {
 
     std::vector<Type *> ArgTypes{
         Type::getInt8PtrTy(M.getContext()), Type::getInt8Ty(M.getContext()),
-        Type::getInt8Ty(M.getContext()),    Type::getInt8Ty(M.getContext()),
-        Type::getInt8Ty(M.getContext()),    Type::getInt32Ty(M.getContext())};
+        Type::getInt8Ty(M.getContext()),    Type::getInt64Ty(M.getContext()),
+        Type::getInt64Ty(M.getContext()),    Type::getInt32Ty(M.getContext())};
 
     // void vfc_enter_function (char*, char, char, char, char, int, ...)
     Constant *func = M.getOrInsertFunction(
@@ -312,10 +341,11 @@ struct VfclibFunc : public ModulePass {
       std::string FunctionName =
           File + "/" + Name + "_" + Line + "_" + std::to_string(inst_cpt++);
 
-      bool use_float, use_double;
+      size_t float_cpt = 0;
+      size_t double_cpt = 0;
 
       // Test if the function use double or float
-      haveFloatingPointArithmetic(NULL, Main, 0, 0, &use_float, &use_double, M);
+      haveFloatingPointArithmetic(NULL, Main, 0, 0, &float_cpt, &double_cpt, M);
 
       // Delete Main Body
       Main->deleteBody();
@@ -332,9 +362,9 @@ struct VfclibFunc : public ModulePass {
       Constant *isInstrinsicFunction =
           ConstantInt::get(Type::getInt8Ty(M.getContext()), 0);
       Constant *haveFloat =
-          ConstantInt::get(Type::getInt8Ty(M.getContext()), use_float);
+          ConstantInt::get(Type::getInt64Ty(M.getContext()), float_cpt);
       Constant *haveDouble =
-          ConstantInt::get(Type::getInt8Ty(M.getContext()), use_double);
+          ConstantInt::get(Type::getInt64Ty(M.getContext()), double_cpt);
 
       // Enter metadata arguments
       std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
@@ -383,11 +413,12 @@ struct VfclibFunc : public ModulePass {
             bool is_intrinsic = f->isIntrinsic();
 
             if (Name.substr(0, 9) != "llvm.dbg.") {
-              bool use_float, use_double;
+              size_t float_cpt = 0;
+              size_t double_cpt = 0;
 
               // Test if the function use double or float
               haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
-                                          &use_float, &use_double, M);
+                                          &float_cpt, &double_cpt, M);
 
               // Create function ID
               Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
@@ -398,9 +429,9 @@ struct VfclibFunc : public ModulePass {
               Constant *isInstrinsicFunction = ConstantInt::get(
                   Type::getInt8Ty(M.getContext()), is_intrinsic);
               Constant *haveFloat =
-                  ConstantInt::get(Type::getInt8Ty(M.getContext()), use_float);
+                  ConstantInt::get(Type::getInt64Ty(M.getContext()), float_cpt);
               Constant *haveDouble =
-                  ConstantInt::get(Type::getInt8Ty(M.getContext()), use_double);
+                  ConstantInt::get(Type::getInt64Ty(M.getContext()), double_cpt);
 
               // Enter function arguments
               std::vector<Value *> MetaData{FunctionID, isLibraryFunction,

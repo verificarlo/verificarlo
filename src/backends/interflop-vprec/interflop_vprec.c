@@ -475,33 +475,77 @@ set_vprec_func_precision(_vprec_func_precision_t type,
 }
 
 typedef struct _vprec_inst_function {
-  // id of the function
+  // Id of the function
   char id[500];
-  // internal precision for 32 bit float operations
+  // Indicate if the function is from library
+  short isLibraryFunction;
+  // Indicate if the function is intrinsic
+  short isIntrinsicFunction;
+  // Counter of Floating Point instruction
+  size_t useFloat;
+  // Counter of Floating Point instruction
+  size_t useDouble;
+  // Internal precision for 32 bit float operations
   _vprec_func_precision_t precision_binary32;
-  // internal precision for 64 bit float operations
+  // Internal precision for 64 bit float operations
   _vprec_func_precision_t precision_binary64;
-  // precisions for floating point input arguments
+  // Precisions for floating point input arguments
   _vprec_func_precision_t *input_arguments;
-  // precisions for floating point ouput arguments
+  // Precisions for floating point ouput arguments
   _vprec_func_precision_t *output_arguments;
-  // number of floating point input arguments
+  // Number of floating point input arguments
   int nb_input_args;
-  // number of floating point output arguments
+  // Number of floating point output arguments
   int nb_output_args;
-  // number of call for this call site
+  // Number of call for this call site
   int n_calls;
 } _vprec_inst_function_t;
+
+void _vprec_write_hasmap(FILE *fout) {
+  for (int ii = 0; ii < _vprec_func_map->capacity; ii++) {
+    if (get_value_at(_vprec_func_map->items, ii) != 0 &&
+        get_value_at(_vprec_func_map->items, ii) != 0) {
+      _vprec_inst_function_t *function =
+          (_vprec_inst_function_t *)get_value_at(_vprec_func_map->items, ii);
+
+      fprintf(fout, "%s\t%hd\t%hd\t%zu\t%zu\t%hu\t%hu\t%hu\t%hu\t%d\t%d\t%d\n", function->id,
+              function->isLibraryFunction, function->isIntrinsicFunction,
+              function->useFloat, function->useDouble,
+              get_vprec_func_precision_mantissa(function->precision_binary64),
+              get_vprec_func_precision_exponent(function->precision_binary64),
+              get_vprec_func_precision_mantissa(function->precision_binary32),
+              get_vprec_func_precision_exponent(function->precision_binary32),
+              function->nb_input_args, function->nb_output_args,
+              function->n_calls);
+      for (int i = 0; i < function->nb_input_args; i++) {
+        fprintf(
+            fout, "input:\t%hu\t%hu\t%hu\n",
+            get_vprec_func_precision_type(function->input_arguments[i]),
+            get_vprec_func_precision_mantissa(function->input_arguments[i]),
+            get_vprec_func_precision_exponent(function->input_arguments[i]));
+      }
+      for (int i = 0; i < function->nb_output_args; i++) {
+        fprintf(
+            fout, "output:\t%hu\t%hu\t%hu\n",
+            get_vprec_func_precision_type(function->output_arguments[i]),
+            get_vprec_func_precision_mantissa(function->output_arguments[i]),
+            get_vprec_func_precision_exponent(function->output_arguments[i]));
+      }
+    }
+  }
+}
 
 void _vprec_read_hasmap(FILE *fin) {
   _vprec_inst_function_t function;
   int binary64_precision, binary64_range, binary32_precision, binary32_range,
       type;
 
-  while (fscanf(fin, "%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", function.id,
+  while (fscanf(fin, "%s\t%hd\t%hd\t%zu\t%zu\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", function.id,
+                &function.isLibraryFunction, &function.isIntrinsicFunction,
+                &function.useFloat, &function.useDouble,
                 &binary64_precision, &binary64_range, &binary32_precision,
                 &binary32_range, &function.nb_input_args,
-                &function.nb_output_args, &function.n_calls) == 8) {
+                &function.nb_output_args, &function.n_calls) == 12) {
     // set the internal precision for 64 bit floating point operations
     function.precision_binary64 =
         set_vprec_func_precision(FDOUBLE, binary64_range, binary64_precision);
@@ -545,38 +589,6 @@ void _vprec_read_hasmap(FILE *fin) {
   }
 }
 
-void _vprec_write_hasmap(FILE *fout) {
-  for (int ii = 0; ii < _vprec_func_map->capacity; ii++) {
-    if (get_value_at(_vprec_func_map->items, ii) != 0 &&
-        get_value_at(_vprec_func_map->items, ii) != 0) {
-      _vprec_inst_function_t *function =
-          (_vprec_inst_function_t *)get_value_at(_vprec_func_map->items, ii);
-
-      fprintf(fout, "%s\t%hu\t%hu\t%hu\t%hu\t%d\t%d\t%d\n", function->id,
-              get_vprec_func_precision_mantissa(function->precision_binary64),
-              get_vprec_func_precision_exponent(function->precision_binary64),
-              get_vprec_func_precision_mantissa(function->precision_binary32),
-              get_vprec_func_precision_exponent(function->precision_binary32),
-              function->nb_input_args, function->nb_output_args,
-              function->n_calls);
-      for (int i = 0; i < function->nb_input_args; i++) {
-        fprintf(
-            fout, "input:\t%hu\t%hu\t%hu\n",
-            get_vprec_func_precision_type(function->input_arguments[i]),
-            get_vprec_func_precision_mantissa(function->input_arguments[i]),
-            get_vprec_func_precision_exponent(function->input_arguments[i]));
-      }
-      for (int i = 0; i < function->nb_output_args; i++) {
-        fprintf(
-            fout, "output:\t%hu\t%hu\t%hu\n",
-            get_vprec_func_precision_type(function->output_arguments[i]),
-            get_vprec_func_precision_mantissa(function->output_arguments[i]),
-            get_vprec_func_precision_exponent(function->output_arguments[i]));
-      }
-    }
-  }
-}
-
 void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
                                int nb_args, va_list ap) {
   interflop_function_info_t *function_info = stack->array[stack->top];
@@ -598,6 +610,10 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
                                  VPREC_PRECISION_BINARY64_DEFAULT);
     function_inst->precision_binary32 = set_vprec_func_precision(
         FFLOAT, VPREC_RANGE_BINARY32_DEFAULT, VPREC_PRECISION_BINARY32_DEFAULT);
+    function_inst->isLibraryFunction = function_info->isLibraryFunction;
+    function_inst->isIntrinsicFunction = function_info->isIntrinsicFunction;
+    function_inst->useFloat = function_info->useFloat;
+    function_inst->useDouble = function_info->useDouble;
     function_inst->nb_input_args = 0;
     function_inst->nb_output_args = 0;
     function_inst->input_arguments = NULL;
