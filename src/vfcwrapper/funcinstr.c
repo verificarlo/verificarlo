@@ -119,8 +119,8 @@ void vfc_call_stack_free() { free(_vfc_call_stack.array); }
 
 // Function called before each function's call of the code
 void vfc_enter_function(char *func_name, char isLibraryFunction,
-                        char isIntrinsicFunction, size_t useFloat, size_t useDouble,
-                        int n, ...) {
+                        char isIntrinsicFunction, size_t useFloat,
+                        size_t useDouble, int n, ...) {
   // Get a pointer to the function if she is in the table
   interflop_function_info_t *function = vfc_func_table_get(func_name);
 
@@ -149,8 +149,8 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
 
 // Function called after each function's call of the code
 void vfc_exit_function(char *func_name, char isLibraryFunction,
-                       char isIntrinsicFunction, size_t useFloat, size_t useDouble,
-                       int n, ...) {
+                       char isIntrinsicFunction, size_t useFloat,
+                       size_t useDouble, int n, ...) {
   if ((useFloat != 0) || (useDouble != 0)) {
     va_list ap;
     // n is the number of arguments intercepted, each argument

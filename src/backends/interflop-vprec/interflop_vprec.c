@@ -508,9 +508,10 @@ void _vprec_write_hasmap(FILE *fout) {
       _vprec_inst_function_t *function =
           (_vprec_inst_function_t *)get_value_at(_vprec_func_map->items, ii);
 
-      fprintf(fout, "%s\t%hd\t%hd\t%zu\t%zu\t%hu\t%hu\t%hu\t%hu\t%d\t%d\t%d\n", function->id,
-              function->isLibraryFunction, function->isIntrinsicFunction,
-              function->useFloat, function->useDouble,
+      fprintf(fout, "%s\t%hd\t%hd\t%zu\t%zu\t%hu\t%hu\t%hu\t%hu\t%d\t%d\t%d\n",
+              function->id, function->isLibraryFunction,
+              function->isIntrinsicFunction, function->useFloat,
+              function->useDouble,
               get_vprec_func_precision_mantissa(function->precision_binary64),
               get_vprec_func_precision_exponent(function->precision_binary64),
               get_vprec_func_precision_mantissa(function->precision_binary32),
@@ -540,11 +541,11 @@ void _vprec_read_hasmap(FILE *fin) {
   int binary64_precision, binary64_range, binary32_precision, binary32_range,
       type;
 
-  while (fscanf(fin, "%s\t%hd\t%hd\t%zu\t%zu\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", function.id,
-                &function.isLibraryFunction, &function.isIntrinsicFunction,
-                &function.useFloat, &function.useDouble,
-                &binary64_precision, &binary64_range, &binary32_precision,
-                &binary32_range, &function.nb_input_args,
+  while (fscanf(fin, "%s\t%hd\t%hd\t%zu\t%zu\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+                function.id, &function.isLibraryFunction,
+                &function.isIntrinsicFunction, &function.useFloat,
+                &function.useDouble, &binary64_precision, &binary64_range,
+                &binary32_precision, &binary32_range, &function.nb_input_args,
                 &function.nb_output_args, &function.n_calls) == 12) {
     // set the internal precision for 64 bit floating point operations
     function.precision_binary64 =

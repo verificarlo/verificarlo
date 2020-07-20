@@ -22,13 +22,13 @@
 
 #include "../../config.h"
 #include "llvm/Analysis/CallGraphSCCPass.h"
-#include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/LoopInfo.h"
-#include "llvm/IR/Dominators.h"
+#include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/Dominators.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -82,7 +82,8 @@ std::string demangle(std::string src) {
 // check if the function have float or double input/ouptut else
 void haveFloatingPointArithmetic(Instruction *call, Function *f,
                                  bool is_from_library, bool is_intrinsic,
-                                 size_t *float_cpt, size_t *double_cpt, Module &M) {
+                                 size_t *float_cpt, size_t *double_cpt,
+                                 Module &M) {
   Type *FloatTy = Type::getFloatTy(M.getContext());
   Type *DoubleTy = Type::getDoubleTy(M.getContext());
 
@@ -94,7 +95,7 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
     // Get loop info for the function
     DominatorTree DT = DominatorTree();
     DT.recalculate(*f);
-    LoopInfoBase<BasicBlock, Loop>* LI = new LoopInfoBase<BasicBlock, Loop>();
+    LoopInfoBase<BasicBlock, Loop> *LI = new LoopInfoBase<BasicBlock, Loop>();
     LI->releaseMemory();
     LI->analyze(DT);
 
@@ -305,7 +306,7 @@ struct VfclibFunc : public ModulePass {
     std::vector<Type *> ArgTypes{
         Type::getInt8PtrTy(M.getContext()), Type::getInt8Ty(M.getContext()),
         Type::getInt8Ty(M.getContext()),    Type::getInt64Ty(M.getContext()),
-        Type::getInt64Ty(M.getContext()),    Type::getInt32Ty(M.getContext())};
+        Type::getInt64Ty(M.getContext()),   Type::getInt32Ty(M.getContext())};
 
     // void vfc_enter_function (char*, char, char, char, char, int, ...)
     Constant *func = M.getOrInsertFunction(
@@ -430,8 +431,8 @@ struct VfclibFunc : public ModulePass {
                   Type::getInt8Ty(M.getContext()), is_intrinsic);
               Constant *haveFloat =
                   ConstantInt::get(Type::getInt64Ty(M.getContext()), float_cpt);
-              Constant *haveDouble =
-                  ConstantInt::get(Type::getInt64Ty(M.getContext()), double_cpt);
+              Constant *haveDouble = ConstantInt::get(
+                  Type::getInt64Ty(M.getContext()), double_cpt);
 
               // Enter function arguments
               std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
