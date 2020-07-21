@@ -70,7 +70,7 @@ std::string demangle(std::string src) {
   char *demangled_name = NULL;
   if ((demangled_name = abi::__cxa_demangle(src.c_str(), 0, 0, &status))) {
     src = demangled_name;
-    std::size_t first = src.find("(");
+    size_t first = src.find("(");
     src = src.substr(0, first);
   }
   free(demangled_name);
@@ -396,7 +396,7 @@ struct VfclibFunc : public ModulePass {
             MDNode *N = pi->getMetadata("dbg");
             DILocation *Loc = cast<DILocation>(N);
             unsigned line = Loc->getLine();
-            std::string File = Loc->getFilename().str();
+            std::string File = f->getParent()->getSourceFileName();
             std::string Name = demangle(f->getName().str());
             std::string Line = std::to_string(line);
             std::string NewName = "vfc_" + File + "/" + f->getName().str() +
@@ -413,13 +413,13 @@ struct VfclibFunc : public ModulePass {
             // Test if f is instrinsic //
             bool is_intrinsic = f->isIntrinsic();
 
-            if (Name.substr(0, 9) != "llvm.dbg.") {
-              size_t float_cpt = 0;
-              size_t double_cpt = 0;
-
-              // Test if the function use double or float
-              haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
+            // Test if the function use double or float
+            size_t float_cpt = 0;
+            size_t double_cpt = 0;
+            haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
                                           &float_cpt, &double_cpt, M);
+
+            if (!(is_intrinsic && float_cpt == 0 && double_cpt == 0)) {
 
               // Create function ID
               Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);

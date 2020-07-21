@@ -1,0 +1,326 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import pandas as pd 
+import matplotlib.pyplot as plt
+from tabulate import tabulate
+import random
+import math
+import sys
+import struct
+import shlex
+import os.path
+import subprocess
+from os import listdir
+
+# file used for profile, and input
+profile_name = "vfc_config.txt"
+
+def set_environment_variable(envVar, value, env):
+	#replace current value, if the environment variable already exists
+	env[envVar.strip()] = value.strip()
+
+	return env
+
+def unset_environment_variable(envVar, env):
+	#replace current value, if the environment variable already exists
+	del env[envVar.strip()]
+
+	return env
+
+
+def add_environment_variable(envVar, value, env):
+	#check if the environment variable already exists, then append or add the new value
+	if (envVar.strip() in env):
+		env[envVar.strip()] = value + ":" + env[envVar.strip()]
+	else:
+		env[envVar.strip()] = value.strip()
+
+	return env
+
+
+def shell(cmd, newEnv):
+	env = None
+	if (newEnv is None):
+		env = os.environ.copy()
+	else:
+		env = newEnv
+
+	cmdNew = ""
+	cmdSplit = shlex.split(cmd)
+	for cmdEntry in cmdSplit:
+		cmdNew = cmdNew + " " + cmdEntry.strip()
+
+	commandOutput = None
+	commandOutput = subprocess.run(cmdNew.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+		timeout=100, universal_newlines=True, env=env)
+
+	return commandOutput.returncode
+
+def saveArgs(Arguments):
+	f = open(profile_name, 'r')
+
+	Lines = f.readlines()
+	
+	i = 0
+	z = 0
+	while i < len(Lines):
+		ID, Lib, Int, Float, Double, Prec64, Range64, \
+		Prec32, Range32, Ninputs, Noutputs, Ncalls = Lines[i].split()
+
+		Lib, Int, Ninputs, Noutputs = int(Lib), int(Int), int(Ninputs), int(Noutputs)
+
+		if Lib == 1 or Int == 1:
+			j = i + 1
+			while j < (i + Ninputs + Noutputs + 1):
+				Lines[j] = "{}	{}	{}	{}\n".format(
+					Arguments.at[z, 'IO'],
+					Arguments.at[z, 'Type'],
+					Arguments.at[z, 'Prec'],
+					Arguments.at[z, 'Range'])
+				z = z + 1
+				j = j + 1
+
+		i = i + Ninputs + Noutputs + 1
+
+	f.close()
+
+	f = open(profile_name, 'w')
+
+	for line in Lines:
+		f.write(line)
+
+	f.close()
+
+
+def run(script, output_dir, env):
+	# create the runing command
+	command = "./" + script + " " + output_dir
+
+	return shell(command, env)
+
+def cmp(script, reference_dir, current_dir, env):
+	# create the comparison command
+	command = "./" + script + " " + reference_dir + " " + current_dir
+
+	return shell(command, env)
+
+
+def getProfile(file):
+	# get informations from profile file
+	if not os.path.isfile(file):
+		print("error profile file not found")
+		exit()
+
+	f = open(file, 'r')
+	Lines = f.readlines()
+
+	Functions = []
+	Arguments = []
+
+	i = 0
+	while i < len(Lines):
+		ID, Lib, Int, Float, Double, Prec64, Range64, \
+		Prec32, Range32, Ninputs, Noutputs, Ncalls = Lines[i].split()
+
+		Lib = int(Lib)
+		Int = int(Int)
+		Float = int(Float)
+		Double = int(Double)
+		Prec64 = int(Prec64)
+		Range64 = int(Range64)
+		Prec32 = int(Prec32)
+		Range32 = int(Range32)
+		Ninputs = int(Ninputs)
+		Noutputs = int(Noutputs)
+		Ncalls = int(Ncalls)
+
+		thisFunction = [ ID, Lib, Int, Float, Double, Prec64, Range64, 
+						Prec32, Range32, Ninputs, Noutputs, Ncalls]
+
+		Functions.append(thisFunction)
+
+		j = i + 1
+		while j < i + Ninputs + Noutputs + 1:
+			IO, Type, Prec, Range = Lines[j].split()
+
+			Type = int(Type)
+			Prec = int(Prec)
+			Range = int(Range)
+
+			functionArgs = [ID, Lib, Int, IO, Type, Prec, Range, Ncalls]
+
+			Arguments.append(functionArgs)
+
+			j = j + 1
+
+		i = i + Ninputs + Noutputs + 1
+
+	FunctionsFrame = 	pd.DataFrame(Functions, 
+						columns = [	'ID', 'Lib','Int','Float','Double','Prec64',
+						'Range64','Prec32','Range32','Ninputs','Noutputs','Ncalls']) 
+
+	FunctionsFrame = FunctionsFrame[(FunctionsFrame['Lib'] == 0) & (FunctionsFrame['Int'] == 0)]
+
+	ArgumentsFrame =  	pd.DataFrame(Arguments, 
+						columns = [	'ID', 'Lib', 'Int', 'IO','Type','Prec','Range', 'Ncalls']) 
+
+	ArgumentsFrame = ArgumentsFrame[(ArgumentsFrame['Lib'] == 1) | (ArgumentsFrame['Int'] == 1)] 
+
+	f.close()
+
+	return FunctionsFrame.reset_index(drop=True), ArgumentsFrame.reset_index(drop=True)
+
+def CheckArgs(runPath, cmpPath, reference_dir, current_dir, env, Arguments):
+	saveArgs(Arguments)
+
+	run(runPath, current_dir, env)
+
+	return cmp(cmpPath, reference_dir, current_dir, env)
+
+
+def EnergyArgs(Arguments):
+	E = 0
+	for i in Arguments.index:
+		V = 0
+		if Arguments["Type"][i] == 1:
+			V = (Arguments["Prec"][i] + Arguments["Range"][i])/63.0
+		else:
+			V = (Arguments["Prec"][i] + Arguments["Range"][i])/31.0
+		E += Arguments["Ncalls"][i] * V
+	return E
+
+def ModifyArgs(Arguments):
+	Copy = Arguments.copy()
+
+	i = random.randrange(0, len(Copy.index))
+
+	A = ["Prec", "Range"]
+	B = [[23, 8], [52, 11]]
+
+	j = random.randrange(0,2)
+
+	Copy.at[i, A[j]] = random.randrange(1, B[Copy["Type"][i]][j]+1)
+
+	return Copy
+
+
+def sigmoid(x, a, b, c, d):
+    return ((a - b) / (1. + np.exp(x - (c / 2)) ** d)) + b
+
+if __name__ == "__main__":
+
+	if len(sys.argv) < 3:
+		print("vfc_precexp [exrun] [excmp]")
+		exit()
+
+	runPath = sys.argv[1]
+	cmpPath = sys.argv[2]
+
+	if not os.path.exists(runPath):
+		print("runing script not found")
+		exit(0)
+
+	if not os.path.exists(cmpPath):
+		print("comparison scirpt not found")
+		exit(0)
+
+	if not os.access(runPath, os.X_OK):
+		print("runing scirpt is not executable")
+		exit(0)
+
+	if not os.access(cmpPath, os.X_OK):
+		print("comparison scirpt is not executable")
+		exit(0)
+
+	if os.path.isfile("./exp_ref_output"):
+		os.mkdir("./exp_ref_output")
+
+	if os.path.isfile("./exp_std_output"):
+		os.mkdir("./exp_std_output")
+
+	env = os.environ.copy()
+
+	#########################################
+	#  				Profile Run 			#
+	#########################################
+	# unset input file
+	if "VFC_PREC_INPUT" in env:
+		unset_environment_variable("VFC_PREC_INPUT", env)
+
+	# set backend
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-output-file={}".format(profile_name), env)
+
+	# run to create profile file
+	run(runPath, "exp_ref_output", env)
+
+	# get dataset
+	FunctionsFrame, ArgumentsFrame = getProfile(profile_name)
+
+	#########################################
+	#  Simulated annealing on arguments 	#
+	#########################################
+
+	esp = []
+	energy = []
+	temp = []
+
+	# set backend
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --instrument=arguments".format(profile_name), env)
+
+	N = 2 * pow(10, 3)
+	S = ArgumentsFrame.copy()
+	E = EnergyArgs(S)
+
+	for i in range(N):
+		T = sigmoid(i, 1.0, 0.0, N, 0.01)
+		# modify state
+		Stmp = ModifyArgs(S)
+
+		# compute state energy
+		Etmp = EnergyArgs(Stmp)
+
+		# test state
+		Flag = CheckArgs(runPath, cmpPath, "exp_ref_output", "exp_std_output", env, Stmp)
+
+		# choose if test if accepted
+		if Flag:
+			DeltaE = (E - Etmp)
+			if DeltaE >= 0:
+				S, E = Stmp, Etmp
+			else:
+				try:
+					P = math.exp(DeltaE/T)
+				except OverflowError:
+					P = 0
+				esp.append(P)
+				if random.uniform(0, 1) < P:
+					S, E = Stmp, Etmp
+			energy.append(E)
+			temp.append(T)
+
+		print("{}/{}".format(i+1, N), T, E)
+
+	ArgumentsFrame = S
+
+	plt.plot(esp)
+	plt.show()
+	plt.plot(temp)
+	plt.show()
+	plt.plot(energy)
+	plt.show()
+
+	#########################################
+	#  Simulated annealing on operations 	#
+	#########################################
+
+	#########################################
+	#  		Simulated annealing on both 	#
+	#########################################
+
+	#########################################
+	#  				Save Results 			#
+	#########################################
+
+	FunctionsFrame.to_csv("FunctionsFrame.csv")
+	ArgumentsFrame.to_csv("ArgumentsFrame.csv")
