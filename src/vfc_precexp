@@ -51,60 +51,49 @@ def shell(cmd, newEnv):
 	for cmdEntry in cmdSplit:
 		cmdNew = cmdNew + " " + cmdEntry.strip()
 
+	proc = subprocess.Popen(cmdNew.split(), stdout=subprocess.PIPE, 
+		stderr=subprocess.PIPE, universal_newlines=True, env=env)
+
+	try:
+		proc.communicate(timeout = 5)
+	except subprocess.TimeoutExpired:
+		proc.kill()
+		return 1
+
+	proc.wait()
+
+	return proc.returncode
+
+	"""
+
 	commandOutput = None
-	commandOutput = subprocess.run(cmdNew.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
-		timeout=100, universal_newlines=True, env=env)
+	try:
+		commandOutput = subprocess.run(cmdNew.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+		timeout=5, universal_newlines=True, env=env)
+	except subprocess.TimeoutExpired:
+		print("TimeoutExpired")
+		return 15
 
 	return commandOutput.returncode
-
-def saveArgs(Arguments):
-	f = open(profile_name, 'r')
-
-	Lines = f.readlines()
-	
-	i = 0
-	z = 0
-	while i < len(Lines):
-		ID, Lib, Int, Float, Double, Prec64, Range64, \
-		Prec32, Range32, Ninputs, Noutputs, Ncalls = Lines[i].split()
-
-		Lib, Int, Ninputs, Noutputs = int(Lib), int(Int), int(Ninputs), int(Noutputs)
-
-		if Lib == 1 or Int == 1:
-			j = i + 1
-			while j < (i + Ninputs + Noutputs + 1):
-				Lines[j] = "{}	{}	{}	{}\n".format(
-					Arguments.at[z, 'IO'],
-					Arguments.at[z, 'Type'],
-					Arguments.at[z, 'Prec'],
-					Arguments.at[z, 'Range'])
-				z = z + 1
-				j = j + 1
-
-		i = i + Ninputs + Noutputs + 1
-
-	f.close()
-
-	f = open(profile_name, 'w')
-
-	for line in Lines:
-		f.write(line)
-
-	f.close()
+	"""
 
 
 def run(script, output_dir, env):
 	# create the runing command
 	command = "./" + script + " " + output_dir
 
-	return shell(command, env)
+	return_code = shell(command, env)
+
+	if return_code != 0:
+		print("Error during run, return code =  {}".format(return_code))
+
+	return return_code
 
 def cmp(script, reference_dir, current_dir, env):
 	# create the comparison command
 	command = "./" + script + " " + reference_dir + " " + current_dir
 
-	return shell(command, env)
-
+	return (shell(command, env) == 0)
 
 def getProfile(file):
 	# get informations from profile file
@@ -160,40 +149,85 @@ def getProfile(file):
 						columns = [	'ID', 'Lib','Int','Float','Double','Prec64',
 						'Range64','Prec32','Range32','Ninputs','Noutputs','Ncalls']) 
 
-	FunctionsFrame = FunctionsFrame[(FunctionsFrame['Lib'] == 0) & (FunctionsFrame['Int'] == 0)]
+	FunctionsFilter = FunctionsFrame.copy()
+	FunctionsFilter = FunctionsFilter[(FunctionsFilter['Lib'] == 0) & (FunctionsFilter['Int'] == 0)]
 
 	ArgumentsFrame =  	pd.DataFrame(Arguments, 
 						columns = [	'ID', 'Lib', 'Int', 'IO','Type','Prec','Range', 'Ncalls']) 
 
-	ArgumentsFrame = ArgumentsFrame[(ArgumentsFrame['Lib'] == 1) | (ArgumentsFrame['Int'] == 1)] 
+	ArgumentsFilter = ArgumentsFrame.copy()
+	ArgumentsFilter = ArgumentsFilter[(ArgumentsFilter['Lib'] == 1) | (ArgumentsFilter['Int'] == 1)] 
 
 	f.close()
 
-	return FunctionsFrame.reset_index(drop=True), ArgumentsFrame.reset_index(drop=True)
+	return FunctionsFrame, FunctionsFilter.index, ArgumentsFrame, ArgumentsFilter.index
 
-def CheckArgs(runPath, cmpPath, reference_dir, current_dir, env, Arguments):
-	saveArgs(Arguments)
+def save(Arguments, Operations):
+	f = open(profile_name, 'w')
+
+	arg_index = 0
+
+	for i in Operations.index:
+		f.write("{ID}\t{Lib}\t{Int}\t{Float}\t{Double}\t{Prec64}\t{Range64}\t{Prec32}\t{Range32}\t{Ninputs}\t{Noutputs}\t{Ncalls}\n".format(
+				ID = Operations.at[i, "ID"], 
+				Lib = Operations.at[i, "Lib"],
+				Int = Operations.at[i, "Int"],
+				Float = Operations.at[i, "Float"],
+				Double = Operations.at[i, "Double"],
+				Prec64 = Operations.at[i, "Prec64"],
+				Range64 = Operations.at[i, "Range64"],
+				Prec32 = Operations.at[i, "Prec32"], 
+				Range32 = Operations.at[i, "Range32"],
+				Ninputs = Operations.at[i, "Ninputs"],
+				Noutputs = Operations.at[i, "Noutputs"],
+				Ncalls = Operations.at[i, "Ncalls"]))
+
+		j = arg_index
+		while j < arg_index + Operations.at[i, "Ninputs"] + Operations.at[i, "Noutputs"]:
+			f.write("{IO}\t{Type}\t{Prec}\t{Range}\n".format(
+					IO = Arguments.at[j, 'IO'],
+					Type = Arguments.at[j, 'Type'],
+					Prec = Arguments.at[j, 'Prec'],
+					Range = Arguments.at[j, 'Range']))
+			j = j + 1
+		arg_index = j
+
+	f.close()
+
+def Check(runPath, cmpPath, reference_dir, current_dir, env, Arguments, Operations):
+	save(Arguments, Operations)
 
 	run(runPath, current_dir, env)
 
 	return cmp(cmpPath, reference_dir, current_dir, env)
 
 
-def EnergyArgs(Arguments):
+def Energy(Arguments, ArgumentsIndex, Operations, OperationsIndex):
 	E = 0
-	for i in Arguments.index:
+
+	# Arguments
+	for i in ArgumentsIndex:
 		V = 0
-		if Arguments["Type"][i] == 1:
-			V = (Arguments["Prec"][i] + Arguments["Range"][i])/63.0
+		if Arguments.at[i, "Type"] == 1:
+			V = (Arguments.at[i, "Prec"] + Arguments.at[i, "Range"])/63.0
 		else:
-			V = (Arguments["Prec"][i] + Arguments["Range"][i])/31.0
-		E += Arguments["Ncalls"][i] * V
+			V = (Arguments.at[i, "Prec"] + Arguments.at[i, "Range"])/31.0
+		E += Arguments.at[i, "Ncalls"] * V
+
+	#Operations
+	for i in OperationsIndex:
+		if Operations.at[i, "Float"] != 0:
+			V = ((Operations.at[i, "Prec32"] + Operations.at[i, "Range32"])/31.0)
+			E += V * Operations.at[i, "Ncalls"]
+		if Operations.at[i, "Double"] != 0:
+			V = ((Operations.at[i, "Prec64"] + Operations.at[i, "Range64"])/63.0)
+			E += V * Operations.at[i, "Ncalls"]
 	return E
 
-def ModifyArgs(Arguments):
+def ModifyArgs(Arguments, ArgumentsIndex):
 	Copy = Arguments.copy()
 
-	i = random.randrange(0, len(Copy.index))
+	i = random.choice(ArgumentsIndex)
 
 	A = ["Prec", "Range"]
 	B = [[23, 8], [52, 11]]
@@ -201,6 +235,20 @@ def ModifyArgs(Arguments):
 	j = random.randrange(0,2)
 
 	Copy.at[i, A[j]] = random.randrange(1, B[Copy["Type"][i]][j]+1)
+
+	return Copy
+
+def ModifyOps(Operations, OperationsIndex):
+	Copy = Operations.copy()
+
+	i = random.choice(OperationsIndex)
+
+	A = ["Prec32", "Range32", "Prec64", "Range64"]
+	B = [23, 8, 52, 11]
+
+	j = random.randrange(0,4)
+
+	Copy.at[i, A[j]] = random.randrange(1, B[j]+1)
 
 	return Copy
 
@@ -255,33 +303,34 @@ if __name__ == "__main__":
 	run(runPath, "exp_ref_output", env)
 
 	# get dataset
-	FunctionsFrame, ArgumentsFrame = getProfile(profile_name)
+	FunctionsFrame, FunctionsIndex, ArgumentsFrame, ArgumentsIndex = getProfile(profile_name)
 
 	#########################################
 	#  Simulated annealing on arguments 	#
 	#########################################
 
-	esp = []
-	energy = []
-	temp = []
+	print("################## Arguments ##################")
+
+	f = open("vfc_args.dat", 'w')
 
 	# set backend
 	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --instrument=arguments".format(profile_name), env)
 
-	N = 2 * pow(10, 3)
+	N = 2000
 	S = ArgumentsFrame.copy()
-	E = EnergyArgs(S)
+	E = Energy(S, ArgumentsIndex, FunctionsFrame, FunctionsIndex)
+	P = 1
 
 	for i in range(N):
-		T = sigmoid(i, 1.0, 0.0, N, 0.01)
+		T = sigmoid(i, 1.0, 0.0, N, 0.008)
 		# modify state
-		Stmp = ModifyArgs(S)
+		Stmp = ModifyArgs(S, ArgumentsIndex)
 
 		# compute state energy
-		Etmp = EnergyArgs(Stmp)
+		Etmp = Energy(Stmp, ArgumentsIndex, FunctionsFrame, FunctionsIndex)
 
 		# test state
-		Flag = CheckArgs(runPath, cmpPath, "exp_ref_output", "exp_std_output", env, Stmp)
+		Flag = Check(runPath, cmpPath, "exp_ref_output", "exp_std_output", env, Stmp, FunctionsFrame)
 
 		# choose if test if accepted
 		if Flag:
@@ -293,34 +342,122 @@ if __name__ == "__main__":
 					P = math.exp(DeltaE/T)
 				except OverflowError:
 					P = 0
-				esp.append(P)
 				if random.uniform(0, 1) < P:
 					S, E = Stmp, Etmp
-			energy.append(E)
-			temp.append(T)
+
+			f.write("{}\t{}\t{}\n".format(P, E, T))
 
 		print("{}/{}".format(i+1, N), T, E)
 
-	ArgumentsFrame = S
+	ArgumentsResults = S
 
-	plt.plot(esp)
-	plt.show()
-	plt.plot(temp)
-	plt.show()
-	plt.plot(energy)
-	plt.show()
+	f.close()
 
 	#########################################
 	#  Simulated annealing on operations 	#
 	#########################################
 
+	print("################## Operations ##################")
+
+	f = open("vfc_ops.dat", 'w')
+
+	# set backend
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --instrument=operations".format(profile_name), env)
+
+	N = 2000
+	S = FunctionsFrame.copy()
+	E = Energy(ArgumentsFrame, ArgumentsIndex, S, FunctionsIndex)
+	P = 1
+
+	for i in range(N):
+		T = sigmoid(i, 1.0, 0.0, N, 0.008)
+		# modify state
+		Stmp = ModifyOps(S, FunctionsIndex)
+
+		# compute state energy
+		Etmp = Energy(ArgumentsFrame, ArgumentsIndex, Stmp, FunctionsIndex)
+
+		# test state
+		Flag = Check(runPath, cmpPath, "exp_ref_output", "exp_std_output", env, ArgumentsFrame, Stmp)
+
+		# choose if test if accepted
+		if Flag:
+			DeltaE = (E - Etmp)
+			if DeltaE >= 0:
+				S, E = Stmp, Etmp
+			else:
+				try:
+					P = math.exp(DeltaE/T)
+				except OverflowError:
+					P = 0
+				if random.uniform(0, 1) < P:
+					S, E = Stmp, Etmp
+		
+		f.write("{}\t{}\t{}\n".format(P, E, T))
+
+		print("{}/{}".format(i+1, N), T, E)
+
+	OperationsResults = S
+
+	f.close()
+
 	#########################################
 	#  		Simulated annealing on both 	#
 	#########################################
+
+	print("################## Arguments & Operations ##################")
+
+	f = open("vfc_args_ops.dat", 'w')
+
+	# set backend
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --instrument=all".format(profile_name), env)
+
+	N = 2000
+	S = [ArgumentsResults.copy(), OperationsResults.copy()]
+	E = Energy(S[0], ArgumentsIndex, S[1], FunctionsIndex)
+	P = 1
+
+	for i in range(N):
+		T = sigmoid(i, 1.0, 0.0, N, 0.008)
+		# modify state
+		Stmp = [S[0], S[1]]
+		if random.choice([0, 1]):
+			Stmp[0] = ModifyArgs(S[0], ArgumentsIndex)
+		else:
+			Stmp[1] = ModifyOps(S[1], FunctionsIndex)
+
+		# compute state energy
+		Etmp = Energy(Stmp[0], ArgumentsIndex, Stmp[1], FunctionsIndex)
+
+		# test state
+		Flag = Check(runPath, cmpPath, "exp_ref_output", "exp_std_output", env, Stmp[0], Stmp[1])
+
+		# choose if test if accepted
+		if Flag:
+			DeltaE = (E - Etmp)
+			if DeltaE >= 0:
+				S, E = Stmp, Etmp
+			else:
+				try:
+					P = math.exp(DeltaE/T)
+				except OverflowError:
+					P = 0
+				if random.uniform(0, 1) < P:
+					S, E = Stmp, Etmp
+
+			f.write("{}\t{}\t{}\n".format(P, E, T))
+
+		print("{}/{}".format(i+1, N), T, E)
+
+	BothResults = S
+
+	f.close()
 
 	#########################################
 	#  				Save Results 			#
 	#########################################
 
-	FunctionsFrame.to_csv("FunctionsFrame.csv")
-	ArgumentsFrame.to_csv("ArgumentsFrame.csv")
+	OperationsResults.to_csv("OperationsResults.csv")
+	ArgumentsResults.to_csv("ArgumentsResults.csv")
+	S[0].to_csv("BothArgsResults.csv")
+	S[1].to_csv("BothOpsResults.csv")

@@ -20,11 +20,11 @@ test.c/pow_47_9	1	0	0	1	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Fdouble_84_46	0	0	0	14	$i	11	23	8	2	1	1
+test.c/Fdouble_84_46	0	0	0	1	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Ffloat_85_48	0	0	14	0	$i	11	23	8	2	1	1
+test.c/Ffloat_85_48	0	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8" > config.txt
@@ -46,11 +46,11 @@ test.c/pow_47_9	1	0	0	1	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Fdouble_84_46	0	0	0	14	52	11	$i	8	2	1	1
+test.c/Fdouble_84_46	0	0	0	1	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Ffloat_85_48	0	0	14	0	52	11	$i	8	2	1	1
+test.c/Ffloat_85_48	0	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8" > config.txt
@@ -76,11 +76,11 @@ test.c/pow_47_9	1	0	0	1	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Fdouble_84_46	0	0	0	14	$i	11	23	8	2	1	1
+test.c/Fdouble_84_46	0	0	0	1	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Ffloat_85_48	0	0	14	0	$i	11	23	8	2	1	1
+test.c/Ffloat_85_48	0	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8" > config.txt
@@ -102,11 +102,11 @@ test.c/pow_47_9	1	0	0	1	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Fdouble_84_46	0	0	0	14	52	11	$i	8	2	1	1
+test.c/Fdouble_84_46	0	0	0	1	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Ffloat_85_48	0	0	14	0	52	11	$i	8	2	1	1
+test.c/Ffloat_85_48	0	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8" > config.txt
@@ -132,11 +132,11 @@ test.c/pow_47_9	1	0	0	1	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Fdouble_84_46	0	0	0	14	$i	11	23	8	2	1	1
+test.c/Fdouble_84_46	0	0	0	1	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Ffloat_85_48	0	0	14	0	$i	11	23	8	2	1	1
+test.c/Ffloat_85_48	0	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8" > config.txt
@@ -158,11 +158,11 @@ test.c/pow_47_9	1	0	0	1	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Fdouble_84_46	0	0	0	14	52	11	$i	8	2	1	1
+test.c/Fdouble_84_46	0	0	0	1	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Ffloat_85_48	0	0	14	0	52	11	$i	8	2	1	1
+test.c/Ffloat_85_48	0	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8" > config.txt
@@ -188,11 +188,11 @@ test.c/pow_47_9	1	0	0	1	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Fdouble_84_46	0	0	0	14	$i	11	23	8	2	1	1
+test.c/Fdouble_84_46	0	0	0	1	$i	11	23	8	2	1	1
 input:	1	$i	11
 input:	1	$i	11
 output:	1	$i	11
-test.c/Ffloat_85_48	0	0	14	0	$i	11	23	8	2	1	1
+test.c/Ffloat_85_48	0	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8" > config.txt
@@ -214,11 +214,11 @@ test.c/pow_47_9	1	0	0	1	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Fdouble_84_46	0	0	0	14	52	11	$i	8	2	1	1
+test.c/Fdouble_84_46	0	0	0	1	52	11	$i	8	2	1	1
 input:	1	52	11
 input:	1	52	11
 output:	1	52	11
-test.c/Ffloat_85_48	0	0	14	0	52	11	$i	8	2	1	1
+test.c/Ffloat_85_48	0	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8" > config.txt
