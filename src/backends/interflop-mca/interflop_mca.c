@@ -78,6 +78,7 @@ typedef enum {
   KEY_ERR_EXP,
   KEY_MODE = 'm',
   KEY_ERR_MODE = 'e',
+  KEY_ERR_EXP,
   KEY_SEED = 's',
   KEY_DAZ = 'd',
   KEY_FTZ = 'f'
@@ -231,14 +232,13 @@ static __float128 _noise_binary128(const int exp) {
       return;                                                                  \
     } else {                                                                   \
       if (((t_context *)CTX)->relErr) {                                        \
-        const int32_t e_a = GET_EXP_FLT(*X);                                   \
-        const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel);                      \
+        e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                               \
+        noise_rel = _NOISE(*X, e_n_rel);                                       \
         *X = *X + noise_rel;                                                   \
       }                                                                        \
       if (((t_context *)CTX)->absErr) {                                        \
-        const int32_t e_n_abs = ((t_context *)CTX)->absErr_exp;                \
-        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs);                      \
+        e_n_abs = ((t_context *)CTX)->absErr_exp;                              \
+        noise_abs = _NOISE(*X, e_n_abs);                                       \
         *X = *X + noise_abs;                                                   \
       }                                                                        \
     }                                                                          \
