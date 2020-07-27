@@ -229,25 +229,23 @@ static __float128 _noise_binary128(const int exp) {
 
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
-#define _INEXACT(X, VIRTUAL_PRECISION, CTX)                                         \
+#define _INEXACT(X, VIRTUAL_PRECISION, CTX)                                    \
   {                                                                            \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
     } else {                                                                   \
       const int32_t e_a = GET_EXP_FLT(*X);                                     \
-      /* const int32_t e_n = e_a - (VIRTUAL_PRECISION - 1); */                      \
-      /* const typeof(*X) noise = _NOISE(*X, e_n); */                               \
-      /* *X = *X + noise;  */                                                       \
-      const int32_t e_n_rel, e_n_abs;                                          \
-      const typeof(*X) noise_rel, noise_abs;                                   \
+      /* const int32_t e_n = e_a - (VIRTUAL_PRECISION - 1); */                 \
+      /* const typeof(*X) noise = _NOISE(*X, e_n); */                          \
+      /* *X = *X + noise;  */                                                  \
       if (((t_context *)CTX)->relErr) {                                        \
-        e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                               \
-        noise_rel = _NOISE(*X, e_n_rel);                                       \
+        const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
+        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel);                      \
         *X = *X + noise_rel;                                                   \
       }                                                                        \
       if (((t_context *)CTX)->absErr) {                                        \
-        e_n_abs = ((t_context *)CTX)->absErr_exp;                              \
-        noise_abs = _NOISE(*X, e_n_abs);                                       \
+        const int32_t e_n_abs = ((t_context *)CTX)->absErr_exp;                \
+        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs);                      \
         *X = *X + noise_abs;                                                   \
       }                                                                        \
     }                                                                          \
