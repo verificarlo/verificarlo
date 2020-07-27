@@ -1,0 +1,920 @@
+#!/usr/bin/env python3
+import numpy as np
+import pandas as pd 
+import matplotlib.pyplot as plt
+from tabulate import tabulate
+import random
+import math
+import sys
+import struct
+import shlex
+import os.path
+import subprocess
+from os import listdir
+
+def GetFunctionInfo(FunctionID):
+	CallNb = int(FunctionID[FunctionID.rfind('_')+1:])
+	FunctionID = FunctionID[:FunctionID.rfind('_')]
+	Fline = int(FunctionID[FunctionID.rfind('_')+1:])
+	FunctionID = FunctionID[:FunctionID.rfind('_')]
+	Fname = FunctionID[FunctionID.rfind('/')+1:].upper()
+	FunctionID = FunctionID[:FunctionID.rfind('/')]
+	Ffile = FunctionID[FunctionID.rfind('/')+1:]
+	return CallNb, Fline, Fname, Ffile
+
+
+if __name__ == "__main__":
+
+	DaraDir = "vfc_exp_data/"
+	Arguments = DaraDir + "ArgumentsResults.csv"
+	Operations = DaraDir + "OperationsResults.csv"
+	All_Args = DaraDir + "BothArgsResults.csv"
+	All_Ops = DaraDir + "BothOpsResults.csv"
+	SA_Args_svg = DaraDir + "vfc_args_only.svg"
+	SA_Ops_svg = DaraDir + "vfc_ops_only.svg"
+	SA_All_svg = DaraDir + "vfc_args_ops.svg"
+	Report_File = "vfc_precexp_report.html"
+	
+	if not os.path.exists(Arguments):
+		print("{} not found".format(Arguments))
+		exit(0)
+
+	if not os.path.exists(Operations):
+		print("{} not found".format(Operations))
+		exit(0)
+
+	if not os.path.exists(All_Args):
+		print("{} not found".format(All_Args))
+		exit(0)
+
+	if not os.path.exists(All_Ops):
+		print("{} not found".format(All_Ops))
+		exit(0)
+
+	if not os.path.exists(SA_Args_svg):
+		print("{} not found".format(SA_Args_svg))
+		exit(0)
+
+	if not os.path.exists(SA_All_svg):
+		print("{} not found".format(SA_All_svg))
+		exit(0)
+
+	if not os.path.exists(SA_All_svg):
+		print("{} not found".format(SA_All_svg))
+		exit(0)
+
+	Report = open(Report_File, "w")
+	Report.write("<!DOCTYPE html>\n")
+	Report.write("<html>\n")
+
+	#########################################
+	#  				  HEAD 				 	#
+	#########################################
+	Report.write("<head>\n")
+	Report.write("<meta charset=\"utf-8\" />\n")
+	Report.write("<title>Precision Exploration Report</title>\n")
+
+	################ style ##################
+	Report.write("<style>\n")
+	Report.write(".BigTitle, .PartTitle{text-align: center;}\n")
+	Report.write(".StdMantissa{display: flex; margin: 2px; background-color: rgba(0, 0, 255, 0.4); \
+		justify-content: flex-start; align-items: center}\n")
+	Report.write(".StdExponent{display: flex; margin: 2px; background-color: rgba(255, 0, 0, 0.4); \
+		justify-content: flex-start; align-items: center}\n")
+	Report.write(".Mantissa{display: flex; margin: 0px; padding-right: 2px; background-color: rgba(0, 0, 255, 0.8); \
+		justify-content: flex-end; align-items: center}\n")
+	Report.write(".Exponent{display: flex; margin: 0px; padding-right: 2px; background-color: rgba(255, 0, 0, 0.8); \
+		justify-content: flex-end; align-items: center;}\n")
+
+	Report.write(".ListElement:active .ListInfo{display: flex;}\n")
+
+	Report.write('.Histogram{display: flex; flex-direction: column; height: 40em; width: 90%; \
+		 justify-content: space-around; align-items: center}\n')
+	Report.write('.HistNcalls{display: flex; height: 7em; width: 100%; \
+		align-items: flex-end; justify-content: space-around}\n')
+	Report.write('.HistRange{display: flex; height: 7em; width: 100%; \
+		align-items: flex-end; justify-content: space-around}\n')
+	Report.write('.HistPrec{display: flex; height: 20em; width: 100%; \
+		align-items: flex-end; justify-content: space-around}\n')
+	Report.write('.navbar {\
+		overflow: hidden;\
+		background-color: #333;\
+		position: fixed;\
+		top: 0;\
+		left: 90%;\
+		height: 100%;\
+	}')
+
+	Report.write('.BigPart {\
+		float: left;\
+		display: block;\
+		color: #f2f2f2;\
+		text-align: center;\
+		text-decoration: none;\
+		background-color: #4d4d4d;\
+		border-top: solid #f0f0f0;\
+		border-bottom: solid #f0f0f0;\
+		width: 100%; \
+		font-size: 1vw;\
+	}')
+
+	Report.write('.SmallPart {\
+		float: left;\
+		display: block;\
+		color: #f0f0f0;\
+		text-align: center;\
+		text-decoration: none;\
+		width: 100%; \
+		font-size: 0.9vw;\
+	}')
+
+	Report.write('.navbar a:hover {\
+		background: #ddd;\
+		color: black;\
+	}')
+		
+
+	Report.write("</style>\n")
+
+	Report.write("</head>\n")
+
+	#########################################
+	#  				  BODY				 	#
+	#########################################
+	Report.write("<body>\n")
+
+	Report.write("<h1 class=\"BigTitle\">Precision Exploration Report</h1>\n")
+
+	Report.write('<div class="navbar">\
+		<a class=\"BigPart\" href="#ArgumentsOperationsPart"><h2>Arguments and Operations</h2></a>\
+		<a class=\"SmallPart\" href="#1_ArgumentsHistogram"><h4>Arguments Histogram</h4></a>\
+		<a class=\"SmallPart\" href="#1_ArgumentsList"><h4>Arguments List</h4></a>\
+		<a class=\"SmallPart\" href="#1_OperationsHistogram"><h4>Operations Histogram</h4></a>\
+		<a class=\"SmallPart\" href="#1_OperationsList"><h4>Operations List</h4></a>\
+		<a class=\"SmallPart\" href="#1_ResearchProgression"><h4>Research progression</h4></a>\
+		<a class=\"BigPart\" href="#ArgumentsPart"><h2>Arguments</h2></a>\
+		<a class=\"SmallPart\" href="#2_ArgumentsHistogram"><h4>Arguments Histogram</h4></a>\
+		<a class=\"SmallPart\" href="#2_ArgumentsList"><h4>Arguments List</h4></a>\
+		<a class=\"SmallPart\" href="#2_ResearchProgression"><h4>Research progression</h4></a>\
+		<a class=\"BigPart\" href="#OperationsPart"><h2>Operations</h2></a>\
+		<a class=\"SmallPart\" href="#3_OperationsHistogram"><h4>Operations Histogram</h4></a>\
+		<a class=\"SmallPart\" href="#3_OperationsList"><h4>Operations List</h4></a>\
+		<a class=\"SmallPart\" href="#3_ResearchProgression"><h4>Research progression</h4></a>\
+	</div>')
+
+	################ Arguments and operations ##################
+	Report.write("<h2 id=\"ArgumentsOperationsPart\" class=\"PartTitle\">Arguments and Operations</h2>\n")
+
+	DataAllArgs = pd.read_csv(All_Args)
+
+	DataAllArgs = DataAllArgs[(DataAllArgs['Lib'] == 1) | (DataAllArgs['Int'] == 1)].reset_index(drop=True)
+	DataAllArgs = DataAllArgs.sort_values(by=['Ncalls', 'ID'],  ascending=False).reset_index(drop=True)
+	Report.write("<h3 id=\"1_ArgumentsHistogram\">Arguments Histogram</h3>")
+
+	TypeName = ["Float", "Double"]
+	StdPrecision = [[23, 8],[52, 11]]
+	Percentage = [[36, 12],[82, 18]]
+
+	# Arguments histogram
+	FunctionList = []
+	MantissaList = []
+	ExponentList = []
+	MaxMantissaList = []
+	MaxExponentList = []
+	NcallsList = []
+
+	index = -1
+	for i in DataAllArgs.index:
+		ID = str(DataAllArgs.at[i, 'ID'])
+
+		if not ID in FunctionList:
+			FunctionList.append(ID)
+			MantissaList.append(DataAllArgs.at[i, 'Prec'])
+			ExponentList.append(DataAllArgs.at[i, 'Range'])
+			NcallsList.append(DataAllArgs.at[i, 'Ncalls'])
+			MaxMantissaList.append(StdPrecision[DataAllArgs.at[i, 'Type']][0])
+			MaxExponentList.append(StdPrecision[DataAllArgs.at[i, 'Type']][1])
+			index = index + 1
+		else:
+			MantissaList[index] = max(DataAllArgs.at[i, 'Prec'], MantissaList[index])
+			ExponentList[index] = max(DataAllArgs.at[i, 'Range'], ExponentList[index])
+			MaxMantissaList[index] = max(StdPrecision[DataAllArgs.at[i, 'Type']][0], MaxMantissaList[index])
+			MaxExponentList[index] = max(StdPrecision[DataAllArgs.at[i, 'Type']][1], MaxExponentList[index])
+
+	Report.write('<div class=\"Histogram\">\n')
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Number of calls</h4>\n')
+	Report.write('<div class=\"HistNcalls\">\n')
+	for i in range(len(FunctionList)):
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList))))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = max(NcallsList)))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 255, 0, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 255, 0, 0.8); \
+			 width: 100%;">\n'.format(
+			height = ((NcallsList[i]/max(NcallsList))) * 100))
+		if NcallsList[i] != max(NcallsList):
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = NcallsList[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Maximum number of bits needed for the exponent</h4>\n')
+	Report.write('<div class=\"HistRange\">\n')
+	for i in range(len(FunctionList)):
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList))))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = MaxExponentList[i]))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = ((MaxExponentList[i]/max(MaxExponentList))) * 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.8); \
+			 width: 100%;">\n'.format(
+			height = ((ExponentList[i]/max(MaxExponentList))) * 100))
+		if ExponentList[i] != max(ExponentList):
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = ExponentList[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Maximum number of bits needed for the mantisa</h4>\n')
+	Report.write('<div class=\"HistPrec\">\n')
+	for i in range(len(FunctionList)):
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList))))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = MaxMantissaList[i]))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = ((MaxMantissaList[i]/max(MaxMantissaList))) * 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.8); \
+			 width: 100%;">\n'.format(
+			height = ((MantissaList[i]/max(MaxMantissaList))) * 100))
+		if MantissaList[i] != max(MantissaList):
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = MantissaList[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('</div>\n')
+
+	# Arguments List
+	Report.write("<h3 id=\"1_ArgumentsList\">Arguments List</h3>")
+	FunctionList = []
+	for i in DataAllArgs.index:
+		ID = str(DataAllArgs.at[i, 'ID'])
+		if not ID in FunctionList:
+			FunctionList.append(ID)
+			
+			CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
+			Ncalls = DataAllArgs.at[i, 'Ncalls']
+
+			Report.write("<h4>Call n°{CallNb} to the function {Fname} at line {Fline} of file {Ffile} executed {Ncalls} time(s)\n</h4>".format(
+				CallNb = CallNb,
+				Fname = Fname,
+				Fline = Fline,
+				Ffile = Ffile,
+				Ncalls = Ncalls))
+
+		Report.write('<div class=\"ListInfo\" style=\"display: flex; width: 90%; justify-content: space-between;\">\n')
+		Report.write('<p style=\"margin: 2px\">{IO}\t{TypeName}\n</p>'.format(
+			IO = DataAllArgs.at[i, 'IO'], 
+			TypeName = TypeName[DataAllArgs.at[i, 'Type']]))
+		Report.write('<div style=\"display: flex; width: 75%; justify-content: space-between\">\n')
+		Report.write('<div class=\"StdMantissa\" style=\"width: {}%\">\n'.format(Percentage[DataAllArgs.at[i, 'Type']][0]))
+		Report.write('<p class=\"Mantissa\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataAllArgs.at[i, 'Prec']/StdPrecision[DataAllArgs.at[i, 'Type']][0]) * 100, 2),
+			DataAllArgs.at[i, 'Prec']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px\">{}\n</p>'.format(StdPrecision[DataAllArgs.at[i, 'Type']][0]))
+		Report.write('<div class=\"StdExponent\" style=\"width: {}%\">\n'.format(Percentage[DataAllArgs.at[i, 'Type']][1]))
+		Report.write('<p class=\"Exponent\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataAllArgs.at[i, 'Range']/StdPrecision[DataAllArgs.at[i, 'Type']][1]) * 100, 2),
+			DataAllArgs.at[i, 'Range']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px\">{}\n</p>'.format(StdPrecision[DataAllArgs.at[i, 'Type']][1]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+
+	# Operations histogram
+
+	Report.write("<h3 id=\"1_OperationsHistogram\">Operations Histogram</h3>")
+
+	DataAllOps = pd.read_csv(All_Ops)
+	DataAllOps = DataAllOps[(DataAllOps['Lib'] == 0) & (DataAllOps['Int'] == 0)].reset_index(drop=True)
+	DataAllOps = DataAllOps.sort_values(by=['Ncalls', 'ID'],  ascending=False).reset_index(drop=True)
+
+	TypeName = ["Float", "Double"]
+	StdPrecision = [[23, 8],[52, 11]]
+	Percentage = [[36, 12],[82, 18]]
+	FunctionList = []
+	Mantissa64List = []
+	Exponent64List = []
+	Mantissa32List = []
+	Exponent32List = []
+	NcallsList = []
+
+	for i in DataAllOps.index:
+		ID = str(DataAllOps.at[i, 'ID'])
+		FunctionList.append(ID)
+		Mantissa64List.append(DataAllOps.at[i, 'Prec64'])
+		Exponent64List.append(DataAllOps.at[i, 'Range64'])
+		Mantissa32List.append(DataAllOps.at[i, 'Prec32'])
+		Exponent32List.append(DataAllOps.at[i, 'Range32'])
+		NcallsList.append(DataAllOps.at[i, 'Ncalls'])
+		index = index + 1
+
+	Report.write('<div class=\"Histogram\">\n')
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Number of calls</h4>\n')
+	Report.write('<div class=\"HistNcalls\">\n')
+	for i in range(len(FunctionList)):
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList))))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = max(NcallsList)))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 255, 0, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 255, 0, 0.8); \
+			 width: 100%;">\n'.format(
+			height = ((NcallsList[i]/max(NcallsList))) * 100))
+		if NcallsList[i] != max(NcallsList):
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = NcallsList[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Maximum number of bits needed for the exponent</h4>\n')
+	Report.write('<div class=\"HistRange\">\n')
+	for i in range(len(FunctionList)):
+		# simple precision
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList)*2)))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = 8))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = (8.0/11.0) * 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.8); \
+			 width: 100%;">\n'.format(
+			height = (Exponent32List[i]/8) * 100))
+		if Exponent32List[i] != 8:
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = Exponent32List[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+
+		#double precision
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList)*2)))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = 11))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.8); \
+			 width: 100%;">\n'.format(
+			height = (Exponent64List[i]/11) * 100))
+		if Exponent64List[i] != 11:
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = Exponent64List[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Maximum number of bits needed for the mantisa</h4>\n')
+	Report.write('<div class=\"HistPrec\">\n')
+	for i in range(len(FunctionList)):
+		# simple precision
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList)*2)))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = 23))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = (23.0/52.0) * 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.8); \
+			 width: 100%;">\n'.format(
+			height = (Mantissa32List[i]/23) * 100))
+		if Mantissa32List[i] != 23:
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = Mantissa32List[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+
+		#double precision
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList)*2)))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = 52))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.8); \
+			 width: 100%;">\n'.format(
+			height = (Mantissa64List[i]/52) * 100))
+		if Mantissa64List[i] != 52:
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = Mantissa64List[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('</div>\n')
+
+	# Operations list
+
+	Report.write("<h3 id=\"1_OperationsList\">Operations List</h3>")
+
+	FunctionList = []
+	for i in DataAllOps.index:
+		ID = str(DataAllOps.at[i, 'ID'])
+		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
+		Ncalls = DataAllOps.at[i, 'Ncalls']
+
+		Report.write("<h4>Call n°{CallNb} to the function {Fname} at line {Fline} of file {Ffile} executed {Ncalls} time(s):\n</h4>".format(
+			CallNb = CallNb,
+			Fname = Fname,
+			Fline = Fline,
+			Ffile = Ffile,
+			Ncalls = Ncalls))
+
+		# simple precision
+		Report.write('<div style=\"display: flex; width: 90%; justify-content: space-between;\">\n')
+		Report.write('<p style=\"margin: 2px\">Simple Precision (32 bits):\n</p>')
+		Report.write('<div style=\"display: flex; width: 75%;\">\n')
+		Report.write('<div class=\"StdMantissa\" style=\"width: {}%\">\n'.format(Percentage[0][0]))
+		Report.write('<p class=\"Mantissa\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataAllOps.at[i, 'Prec32']/StdPrecision[1][0]) * 100, 2),
+			DataAllOps.at[i, 'Prec32']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px;\">{}\n</p>'.format(StdPrecision[0][0]))
+		Report.write('<div class=\"StdExponent\" style=\"width: {}%\">\n'.format(Percentage[0][1]))
+		Report.write('<p class=\"Exponent\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataAllOps.at[i, 'Range32']/StdPrecision[1][1]) * 100, 2),
+			DataAllOps.at[i, 'Range32']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px\">{}\n</p>'.format(StdPrecision[0][1]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+
+		# double precision
+		Report.write('<div style=\"display: flex; width: 90%; justify-content: space-between;\">\n')
+		Report.write('<p style=\"margin: 2px\">Double Precision (64 bits):\n</p>')
+		Report.write('<div style=\"display: flex; width: 75%\">\n')
+		Report.write('<div class=\"StdMantissa\" style=\"width: {}%\">\n'.format(Percentage[1][0]))
+		Report.write('<p class=\"Mantissa\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataAllOps.at[i, 'Prec64']/StdPrecision[1][0]) * 100, 2),
+			DataAllOps.at[i, 'Prec64']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px\">{}\n</p>'.format(StdPrecision[1][0]))
+		Report.write('<div class=\"StdExponent\" style=\"width: {}%\">\n'.format(Percentage[1][1]))
+		Report.write('<p class=\"Exponent\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataAllOps.at[i, 'Range64']/StdPrecision[1][1]) * 100, 2),
+			DataAllOps.at[i, 'Range64']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px\">{}\n</p>'.format(StdPrecision[1][1]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+
+	Report.write("<h3 id=\"1_ResearchProgression\">Research Progression</h3>")
+
+	Report.write("<img src={} style=\"width:90%;\" alt=\"Progression of the Research for Arguments and Operations\">".format(
+		SA_All_svg))
+
+	################ Arguments ##################
+	Report.write("<h2 id=\"ArgumentsPart\" class=\"PartTitle\">Arguments</h2>\n")
+
+	DataArgs = pd.read_csv(Arguments)
+	DataArgs = DataArgs[(DataArgs['Lib'] == 1) | (DataArgs['Int'] == 1)].reset_index(drop=True)
+	DataArgs = DataArgs.sort_values(by=['Ncalls', 'ID'],  ascending=False).reset_index(drop=True)
+	Report.write("<h3 id=\"2_ArgumentsHistogram\">Arguments Histogram</h3>")
+
+
+	TypeName = ["Float", "Double"]
+	StdPrecision = [[23, 8],[52, 11]]
+	Percentage = [[36, 12],[82, 18]]
+
+	# Arguments histogram
+	FunctionList = []
+	MantissaList = []
+	ExponentList = []
+	MaxMantissaList = []
+	MaxExponentList = []
+	NcallsList = []
+
+	index = -1
+	for i in DataArgs.index:
+		ID = str(DataArgs.at[i, 'ID'])
+
+		if not ID in FunctionList:
+			FunctionList.append(ID)
+			MantissaList.append(DataArgs.at[i, 'Prec'])
+			ExponentList.append(DataArgs.at[i, 'Range'])
+			NcallsList.append(DataArgs.at[i, 'Ncalls'])
+			MaxMantissaList.append(StdPrecision[DataArgs.at[i, 'Type']][0])
+			MaxExponentList.append(StdPrecision[DataArgs.at[i, 'Type']][1])
+			index = index + 1
+		else:
+			MantissaList[index] = max(DataArgs.at[i, 'Prec'], MantissaList[index])
+			ExponentList[index] = max(DataArgs.at[i, 'Range'], ExponentList[index])
+			MaxMantissaList[index] = max(StdPrecision[DataArgs.at[i, 'Type']][0], MaxMantissaList[index])
+			MaxExponentList[index] = max(StdPrecision[DataArgs.at[i, 'Type']][1], MaxExponentList[index])
+
+	Report.write('<div class=\"Histogram\">\n')
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Number of calls</h4>\n')
+	Report.write('<div class=\"HistNcalls\">\n')
+	for i in range(len(FunctionList)):
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList))))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = max(NcallsList)))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 255, 0, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 255, 0, 0.8); \
+			 width: 100%;">\n'.format(
+			height = ((NcallsList[i]/max(NcallsList))) * 100))
+		if NcallsList[i] != max(NcallsList):
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = NcallsList[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Maximum number of bits needed for the exponent</h4>\n')
+	Report.write('<div class=\"HistRange\">\n')
+	for i in range(len(FunctionList)):
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList))))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = MaxExponentList[i]))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = ((MaxExponentList[i]/max(MaxExponentList))) * 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.8); \
+			 width: 100%;">\n'.format(
+			height = ((ExponentList[i]/max(MaxExponentList))) * 100))
+		if ExponentList[i] != max(ExponentList):
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = ExponentList[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Maximum number of bits needed for the mantisa</h4>\n')
+	Report.write('<div class=\"HistPrec\">\n')
+	for i in range(len(FunctionList)):
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList))))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = MaxMantissaList[i]))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = ((MaxMantissaList[i]/max(MaxMantissaList))) * 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.8); \
+			 width: 100%;">\n'.format(
+			height = ((MantissaList[i]/max(MaxMantissaList))) * 100))
+		if MantissaList[i] != max(MantissaList):
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = MantissaList[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('</div>\n')
+
+	# Arguments List
+	Report.write("<h3 id=\"2_ArgumentsList\">Arguments List</h3>")
+
+	FunctionList = []
+	for i in DataArgs.index:
+		ID = str(DataArgs.at[i, 'ID'])
+		if not ID in FunctionList:
+			FunctionList.append(ID)
+			
+			CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
+			Ncalls = DataArgs.at[i, 'Ncalls']
+
+			Report.write("<h4>Call n°{CallNb} to the function {Fname} at line {Fline} of file {Ffile} executed {Ncalls} time(s):\n</h4>".format(
+				CallNb = CallNb,
+				Fname = Fname,
+				Fline = Fline,
+				Ffile = Ffile,
+				Ncalls = Ncalls))
+
+		Report.write('<div style=\"display: flex; width: 90%; justify-content: space-between;\">\n')
+		Report.write('<p style=\"margin: 2px\">{IO}\t{TypeName}\n</p>'.format(
+			IO = DataArgs.at[i, 'IO'], 
+			TypeName = TypeName[DataArgs.at[i, 'Type']]))
+		Report.write('<div style=\"display: flex; width: 75%\">\n')
+		Report.write('<div class=\"StdMantissa\" style=\"width: {}%\">\n'.format(Percentage[DataArgs.at[i, 'Type']][0]))
+		Report.write('<p class=\"Mantissa\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataArgs.at[i, 'Prec']/StdPrecision[DataArgs.at[i, 'Type']][0]) * 100, 2),
+			DataArgs.at[i, 'Prec']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px\">{}\n</p>'.format(StdPrecision[DataArgs.at[i, 'Type']][0]))
+		Report.write('<div class=\"StdExponent\" style=\"width: {}%\">\n'.format(Percentage[DataArgs.at[i, 'Type']][1]))
+		Report.write('<p class=\"Exponent\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataArgs.at[i, 'Range']/StdPrecision[DataArgs.at[i, 'Type']][1]) * 100, 2),
+			DataArgs.at[i, 'Range']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px\">{}\n</p>'.format(StdPrecision[DataArgs.at[i, 'Type']][1]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+
+	Report.write("<h3 id=\"2_ResearchProgression\">Research Progression</h3>")
+	Report.write("<img src={} style=\"width:90%;\" alt=\"Progression of the Research for Arguments\">".format(
+		SA_Args_svg))
+
+	################ Operations ##################
+	Report.write("<h2 id=\"OperationsPart\" class=\"PartTitle\">Operations</h2>\n")
+
+	Report.write("<h3 id=\"3_OperationsHistogram\">Operations Histogram</h3>")
+
+	# Operations histogram
+
+	DataOps = pd.read_csv(Operations)
+	DataOps = DataOps[(DataOps['Lib'] == 0) & (DataOps['Int'] == 0)].reset_index(drop=True)
+	DataOps = DataOps.sort_values(by=['Ncalls', 'ID'],  ascending=False).reset_index(drop=True)
+
+	TypeName = ["Float", "Double"]
+	StdPrecision = [[23, 8],[52, 11]]
+	Percentage = [[36, 12],[82, 18]]
+	FunctionList = []
+	Mantissa64List = []
+	Exponent64List = []
+	Mantissa32List = []
+	Exponent32List = []
+	NcallsList = []
+
+	for i in DataOps.index:
+		ID = str(DataOps.at[i, 'ID'])
+		FunctionList.append(ID)
+		Mantissa64List.append(DataOps.at[i, 'Prec64'])
+		Exponent64List.append(DataOps.at[i, 'Range64'])
+		Mantissa32List.append(DataOps.at[i, 'Prec32'])
+		Exponent32List.append(DataOps.at[i, 'Range32'])
+		NcallsList.append(DataOps.at[i, 'Ncalls'])
+		index = index + 1
+
+	Report.write('<div class=\"Histogram\">\n')
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Number of calls</h4>\n')
+	Report.write('<div class=\"HistNcalls\">\n')
+	for i in range(len(FunctionList)):
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList))))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = max(NcallsList)))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 255, 0, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 255, 0, 0.8); \
+			 width: 100%;">\n'.format(
+			height = ((NcallsList[i]/max(NcallsList))) * 100))
+		if NcallsList[i] != max(NcallsList):
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = NcallsList[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Maximum number of bits needed for the exponent</h4>\n')
+	Report.write('<div class=\"HistRange\">\n')
+	for i in range(len(FunctionList)):
+		# simple precision
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList)*2)))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = 8))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = (8.0/11.0) * 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.8); \
+			 width: 100%;">\n'.format(
+			height = (Exponent32List[i]/8) * 100))
+		if Exponent32List[i] != 8:
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = Exponent32List[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+
+		#double precision
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList)*2)))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = 11))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(255, 0, 0, 0.8); \
+			 width: 100%;">\n'.format(
+			height = (Exponent64List[i]/11) * 100))
+		if Exponent64List[i] != 11:
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = Exponent64List[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	Report.write('<h4 style=\"text-align: center; margin: 2px\">\
+				Maximum number of bits needed for the mantisa</h4>\n')
+	Report.write('<div class=\"HistPrec\">\n')
+	for i in range(len(FunctionList)):
+		# simple precision
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList)*2)))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = 23))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = (23.0/52.0) * 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.8); \
+			 width: 100%;">\n'.format(
+			height = (Mantissa32List[i]/23) * 100))
+		if Mantissa32List[i] != 23:
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = Mantissa32List[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+
+		#double precision
+		Report.write('<div style=\"height: 100%; width: {width}%; \
+			margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			width = 80/(len(FunctionList)*2)))
+		Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw;\">{value}</p>\n'.format(
+			value = 52))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.4); \
+			width: 100%; margin-bottom: 0.175em; display: flex; flex-direction: column; \
+			justify-content: flex-end">\n'.format(
+			height = 100))
+		Report.write('<div style=\"height: {height}%; background-color: rgba(0, 0, 255, 0.8); \
+			 width: 100%;">\n'.format(
+			height = (Mantissa64List[i]/52) * 100))
+		if Mantissa64List[i] != 52:
+			Report.write('<p style=\"margin: 0px; text-align: center; font-size: 0.60vw; \
+				position: relative; bottom: 1.2em\">{value}</p>\n'.format(
+				value = Mantissa64List[i]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+	Report.write('</div>\n')
+	Report.write('</div>\n')
+
+	# Operations list
+	Report.write("<h3 id=\"3_OperationsList\">Operations List</h3>")
+
+	FunctionList = []
+	for i in DataOps.index:
+		ID = str(DataOps.at[i, 'ID'])
+		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
+		Ncalls = DataOps.at[i, 'Ncalls']
+
+		Report.write("<h4>Call n°{CallNb} to the function {Fname} at line {Fline} of file {Ffile} executed {Ncalls} time(s):\n</h4>".format(
+			CallNb = CallNb,
+			Fname = Fname,
+			Fline = Fline,
+			Ffile = Ffile,
+			Ncalls = Ncalls))
+
+		# simple precision
+		Report.write('<div style=\"display: flex; width: 90%; justify-content: space-between;\">\n')
+		Report.write('<p style=\"margin: 2px\">Simple Precision (32 bits):\n</p>')
+		Report.write('<div style=\"display: flex; width: 75%;\">\n')
+		Report.write('<div class=\"StdMantissa\" style=\"width: {}%\">\n'.format(Percentage[0][0]))
+		Report.write('<p class=\"Mantissa\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataOps.at[i, 'Prec32']/StdPrecision[1][0]) * 100, 2),
+			DataOps.at[i, 'Prec32']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px;\">{}\n</p>'.format(StdPrecision[0][0]))
+		Report.write('<div class=\"StdExponent\" style=\"width: {}%\">\n'.format(Percentage[0][1]))
+		Report.write('<p class=\"Exponent\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataOps.at[i, 'Range32']/StdPrecision[1][1]) * 100, 2),
+			DataOps.at[i, 'Range32']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px\">{}\n</p>'.format(StdPrecision[0][1]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+
+		# double precision
+		Report.write('<div style=\"display: flex; width: 90%; justify-content: space-between;\">\n')
+		Report.write('<p style=\"margin: 2px\">Double Precision (64 bits):\n</p>')
+		Report.write('<div style=\"display: flex; width: 75%\">\n')
+		Report.write('<div class=\"StdMantissa\" style=\"width: {}%\">\n'.format(Percentage[1][0]))
+		Report.write('<p class=\"Mantissa\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataOps.at[i, 'Prec64']/StdPrecision[1][0]) * 100, 2),
+			DataOps.at[i, 'Prec64']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px\">{}\n</p>'.format(StdPrecision[1][0]))
+		Report.write('<div class=\"StdExponent\" style=\"width: {}%\">\n'.format(Percentage[1][1]))
+		Report.write('<p class=\"Exponent\" style=\"width: {}%\">{}\n</p>'.format(
+			round((DataOps.at[i, 'Range64']/StdPrecision[1][1]) * 100, 2),
+			DataOps.at[i, 'Range64']))
+		Report.write('</div>\n')
+		Report.write('<p style=\"margin: 2px\">{}\n</p>'.format(StdPrecision[1][1]))
+		Report.write('</div>\n')
+		Report.write('</div>\n')
+
+	Report.write("<h3 id=\"3_ResearchProgression\">Research Progression</h3>")
+	Report.write("<img src={} style=\"width:90%;\" alt=\"Progression of the Research for Operations\">".format(
+		SA_Ops_svg))
+
+	Report.write("</body>\n")
+
+
+	Report.write("</html>")
+	Report.close()

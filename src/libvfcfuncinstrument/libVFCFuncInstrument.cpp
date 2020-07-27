@@ -46,6 +46,7 @@
 #include <iostream>
 #include <set>
 #include <stdio.h>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -207,9 +208,13 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     int i = 0;
     for (auto &args : FunctionArgs)
       hook->setArgOperand(i++, args);
+    hook->setCalledFunction(HookedFunction);
     ret = Builder.Insert(hook);
   } else {
-    ret = Builder.CreateCall(HookedFunction, FunctionArgs);
+    CallInst *call = CallInst::Create(HookedFunction, FunctionArgs);
+    call->setAttributes(HookedFunction->getAttributes());
+    call->setCallingConv(HookedFunction->getCallingConv());
+    ret = Builder.Insert(call);
   }
 
   // Step 6: store return value
@@ -245,6 +250,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
 struct VfclibFunc : public ModulePass {
   static char ID;
   std::vector<Function *> OriginalFunctions;
+  std::vector<Function *> ClonedFunctions;
   size_t inst_cpt;
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
@@ -265,8 +271,9 @@ struct VfclibFunc : public ModulePass {
      *                  Get original functions's names                       *
      *************************************************************************/
     for (auto &F : M) {
-      if ((!F.isIntrinsic()) && (F.getName().str() != "main"))
+      if ((F.getName().str() != "main") && F.size() != 0) {
         OriginalFunctions.push_back(&F);
+      }
     }
 
     /*************************************************************************
@@ -295,6 +302,64 @@ struct VfclibFunc : public ModulePass {
     func_exit->setCallingConv(CallingConv::C);
 
     /*************************************************************************
+     *                             Original Functions                        *
+     *************************************************************************/
+    for (auto &f : OriginalFunctions) {
+      // clone f
+      ValueToValueMapTy VMap;
+      Function *Clone = CloneFunction(f, VMap);
+
+      DISubprogram *Sub = f->getSubprogram();
+      std::string Name = Sub->getName().str();
+      std::string File = Sub->getFilename().str();
+      std::string Line = std::to_string(Sub->getLine());
+      std::string NewName = "vfc_" + File + "/" + Name + "_" + Line + "_" +
+                            std::to_string(inst_cpt) + "_" + "_hook";
+      std::string FunctionName =
+          File + "/" + Name + "_" + Line + "_" + std::to_string(++inst_cpt);
+
+      bool use_float, use_double;
+
+      // Test if the function use double or float
+      haveFloatingPointArithmetic(NULL, f, 0, 0, &use_float, &use_double, M);
+
+      // delete f body
+      f->deleteBody();
+
+      // create block for f instrumentation
+      BasicBlock *block = BasicBlock::Create(M.getContext(), "block", f);
+      IRBuilder<> Builder(block);
+
+      // Create function ID
+      Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
+
+      // Constants creation
+      Constant *isLibraryFunction =
+          ConstantInt::get(Type::getInt8Ty(M.getContext()), 0);
+      Constant *isInstrinsicFunction =
+          ConstantInt::get(Type::getInt8Ty(M.getContext()), 0);
+      Constant *haveFloat =
+          ConstantInt::get(Type::getInt8Ty(M.getContext()), use_float);
+      Constant *haveDouble =
+          ConstantInt::get(Type::getInt8Ty(M.getContext()), use_double);
+
+      // Enter metadata arguments
+      std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
+                                    isInstrinsicFunction, haveFloat,
+                                    haveDouble};
+
+      // give a new name to the f clone
+      Clone->setName(NewName);
+
+      // instrument f body
+      InstrumentFunction(MetaData, f, Clone, NULL, block);
+
+      // replace f by clone in Original functions
+      std::replace(OriginalFunctions.begin(), OriginalFunctions.end(), f,
+                   Clone);
+    }
+
+    /*************************************************************************
      *                             Main special case                         *
      *************************************************************************/
     if (M.getFunction("main")) {
@@ -310,7 +375,7 @@ struct VfclibFunc : public ModulePass {
       std::string NewName = "vfc_" + File + "/" + Name + "_" + Line + "_" +
                             std::to_string(inst_cpt) + "_" + "_hook";
       std::string FunctionName =
-          File + "/" + Name + "_" + Line + "_" + std::to_string(inst_cpt++);
+          File + "/" + Name + "_" + Line + "_" + std::to_string(++inst_cpt);
 
       bool use_float, use_double;
 
@@ -373,7 +438,7 @@ struct VfclibFunc : public ModulePass {
                                   "_" + "_hook";
 
             std::string FunctionName = File + "/" + Name + "_" + Line + "_" +
-                                       std::to_string(inst_cpt++);
+                                       std::to_string(++inst_cpt);
 
             // Test if f is a library function //
             LibFunc libfunc;
@@ -382,13 +447,12 @@ struct VfclibFunc : public ModulePass {
             // Test if f is instrinsic //
             bool is_intrinsic = f->isIntrinsic();
 
-            if (Name.substr(0, 9) != "llvm.dbg.") {
-              bool use_float, use_double;
+            // Test if the function use double or float
+            bool use_float, use_double;
+            haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
+                                        &use_float, &use_double, M);
 
-              // Test if the function use double or float
-              haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
-                                          &use_float, &use_double, M);
-
+            if (!(is_intrinsic && (!use_float && !use_double))) {
               // Create function ID
               Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
 
@@ -407,26 +471,28 @@ struct VfclibFunc : public ModulePass {
                                             isInstrinsicFunction, haveFloat,
                                             haveDouble};
 
-              Type *ReturnTy = f->getReturnType();
-              std::vector<Type *> CallTypes;
-              for (auto it = pi->op_begin(); it < pi->op_end() - 1; it++) {
-                CallTypes.push_back(cast<Value>(it)->getType());
+              if (is_from_library || is_intrinsic) {
+                Type *ReturnTy = f->getReturnType();
+                std::vector<Type *> CallTypes;
+                for (auto it = pi->op_begin(); it < pi->op_end() - 1; it++) {
+                  CallTypes.push_back(cast<Value>(it)->getType());
+                }
+
+                Constant *c = M.getOrInsertFunction(
+                    NewName, FunctionType::get(ReturnTy, CallTypes, false));
+                Function *hook_func = cast<Function>(c);
+
+                hook_func->setAttributes(f->getAttributes());
+                hook_func->setCallingConv(f->getCallingConv());
+
+                BasicBlock *block =
+                    BasicBlock::Create(M.getContext(), "block", hook_func);
+
+                InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
+                                   block);
+
+                cast<CallInst>(pi)->setCalledFunction(hook_func);
               }
-
-              Constant *c = M.getOrInsertFunction(
-                  NewName, FunctionType::get(ReturnTy, CallTypes, false));
-              Function *hook_func = cast<Function>(c);
-
-              hook_func->setAttributes(f->getAttributes());
-              hook_func->setCallingConv(f->getCallingConv());
-
-              BasicBlock *block =
-                  BasicBlock::Create(M.getContext(), "block", hook_func);
-
-              InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
-                                 block);
-
-              cast<CallInst>(pi)->setCalledFunction(hook_func);
             }
           }
         }
