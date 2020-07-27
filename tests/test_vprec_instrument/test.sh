@@ -12,22 +12,22 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test.c/powf_64_26	1	0	1	0	$i	11	23	8	2	1	1
+"test.c/pow_47_14	1	0	0	1	$i	11	23	8	2	1	1
+input:	1	$i	11
+input:	1	$i	11
+output:	1	$i	11
+test.c/Ffloat_55_4	0	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8
-test.c/pow_47_9	1	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Fdouble_84_46	0	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Ffloat_85_48	0	0	1	0	$i	11	23	8	2	1	1
+test.c/powf_64_31	1	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
-output:	0	23	8" > config.txt
+output:	0	23	8
+test.c/Fdouble_38_2	0	0	0	1	$i	11	23	8	2	1	1
+input:	1	$i	11
+input:	1	$i	11
+output:	1	$i	11" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ib"
 	./test $i 23 >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ob"
@@ -38,22 +38,22 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test.c/powf_64_26	1	0	1	0	52	11	$i	8	2	1	1
+"test.c/pow_47_14	1	0	0	1	52	11	$i	8	2	1	1
+input:	1	52	11
+input:	1	52	11
+output:	1	52	11
+test.c/Ffloat_55_4	0	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8
-test.c/pow_47_9	1	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Fdouble_84_46	0	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Ffloat_85_48	0	0	1	0	52	11	$i	8	2	1	1
+test.c/powf_64_31	1	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
-output:	0	$i	8" > config.txt
+output:	0	$i	8
+test.c/Fdouble_38_2	0	0	0	1	52	11	$i	8	2	1	1
+input:	1	52	11
+input:	1	52	11
+output:	1	52	11" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ib"
 	./test 52 $i >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ob"
@@ -68,22 +68,22 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test.c/powf_64_26	1	0	1	0	$i	11	23	8	2	1	1
+"test.c/pow_47_14	1	0	0	1	$i	11	23	8	2	1	1
+input:	1	$i	11
+input:	1	$i	11
+output:	1	$i	11
+test.c/Ffloat_55_4	0	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8
-test.c/pow_47_9	1	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Fdouble_84_46	0	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Ffloat_85_48	0	0	1	0	$i	11	23	8	2	1	1
+test.c/powf_64_31	1	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
-output:	0	23	8" > config.txt
+output:	0	23	8
+test.c/Fdouble_38_2	0	0	0	1	$i	11	23	8	2	1	1
+input:	1	$i	11
+input:	1	$i	11
+output:	1	$i	11" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ib"
 	./test $i 23 >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ob"
@@ -94,22 +94,22 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test.c/powf_64_26	1	0	1	0	52	11	$i	8	2	1	1
+"test.c/pow_47_14	1	0	0	1	52	11	$i	8	2	1	1
+input:	1	52	11
+input:	1	52	11
+output:	1	52	11
+test.c/Ffloat_55_4	0	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8
-test.c/pow_47_9	1	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Fdouble_84_46	0	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Ffloat_85_48	0	0	1	0	52	11	$i	8	2	1	1
+test.c/powf_64_31	1	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
-output:	0	$i	8" > config.txt
+output:	0	$i	8
+test.c/Fdouble_38_2	0	0	0	1	52	11	$i	8	2	1	1
+input:	1	52	11
+input:	1	52	11
+output:	1	52	11" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ib"
 	./test 52 $i >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ob"
@@ -124,22 +124,22 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test.c/powf_64_26	1	0	1	0	$i	11	23	8	2	1	1
+"test.c/pow_47_14	1	0	0	1	$i	11	23	8	2	1	1
+input:	1	$i	11
+input:	1	$i	11
+output:	1	$i	11
+test.c/Ffloat_55_4	0	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8
-test.c/pow_47_9	1	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Fdouble_84_46	0	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Ffloat_85_48	0	0	1	0	$i	11	23	8	2	1	1
+test.c/powf_64_31	1	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
-output:	0	23	8" > config.txt
+output:	0	23	8
+test.c/Fdouble_38_2	0	0	0	1	$i	11	23	8	2	1	1
+input:	1	$i	11
+input:	1	$i	11
+output:	1	$i	11" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ib"
 	./test $i 23 >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ob"
@@ -150,22 +150,22 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test.c/powf_64_26	1	0	1	0	52	11	$i	8	2	1	1
+"test.c/pow_47_14	1	0	0	1	52	11	$i	8	2	1	1
+input:	1	52	11
+input:	1	52	11
+output:	1	52	11
+test.c/Ffloat_55_4	0	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8
-test.c/pow_47_9	1	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Fdouble_84_46	0	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Ffloat_85_48	0	0	1	0	52	11	$i	8	2	1	1
+test.c/powf_64_31	1	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
-output:	0	$i	8" > config.txt
+output:	0	$i	8
+test.c/Fdouble_38_2	0	0	0	1	52	11	$i	8	2	1	1
+input:	1	52	11
+input:	1	52	11
+output:	1	52	11" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ib"
 	./test 52 $i >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ob"
@@ -180,22 +180,22 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test.c/powf_64_26	1	0	1	0	$i	11	23	8	2	1	1
+"test.c/pow_47_14	1	0	0	1	$i	11	23	8	2	1	1
+input:	1	$i	11
+input:	1	$i	11
+output:	1	$i	11
+test.c/Ffloat_55_4	0	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
 output:	0	23	8
-test.c/pow_47_9	1	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Fdouble_84_46	0	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Ffloat_85_48	0	0	1	0	$i	11	23	8	2	1	1
+test.c/powf_64_31	1	0	1	0	$i	11	23	8	2	1	1
 input:	0	23	8
 input:	0	23	8
-output:	0	23	8" > config.txt
+output:	0	23	8
+test.c/Fdouble_38_2	0	0	0	1	$i	11	23	8	2	1	1
+input:	1	$i	11
+input:	1	$i	11
+output:	1	$i	11" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ib"
 	./test $i 23 >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ob"
@@ -206,22 +206,22 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test.c/powf_64_26	1	0	1	0	52	11	$i	8	2	1	1
+"test.c/pow_47_14	1	0	0	1	52	11	$i	8	2	1	1
+input:	1	52	11
+input:	1	52	11
+output:	1	52	11
+test.c/Ffloat_55_4	0	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
 output:	0	$i	8
-test.c/pow_47_9	1	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Fdouble_84_46	0	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Ffloat_85_48	0	0	1	0	52	11	$i	8	2	1	1
+test.c/powf_64_31	1	0	1	0	52	11	$i	8	2	1	1
 input:	0	$i	8
 input:	0	$i	8
-output:	0	$i	8" > config.txt
+output:	0	$i	8
+test.c/Fdouble_38_2	0	0	0	1	52	11	$i	8	2	1	1
+input:	1	52	11
+input:	1	52	11
+output:	1	52	11" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ib"
 	./test 52 $i >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ob"
