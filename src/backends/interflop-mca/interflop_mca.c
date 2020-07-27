@@ -78,10 +78,6 @@ typedef enum {
   KEY_ERR_EXP,
   KEY_MODE = 'm',
   KEY_ERR_MODE = 'e',
-<<<<<<< HEAD
-=======
-  KEY_ERR_EXP,
->>>>>>> work in progress on adding the absolute error target as an option
   KEY_SEED = 's',
   KEY_DAZ = 'd',
   KEY_FTZ = 'f'
