@@ -78,10 +78,6 @@ typedef enum {
   KEY_ERR_EXP,
   KEY_MODE = 'm',
   KEY_ERR_MODE = 'e',
-<<<<<<< HEAD
-=======
-  KEY_ERR_EXP,
->>>>>>> work in progress on adding the absolute error target as an option
   KEY_SEED = 's',
   KEY_DAZ = 'd',
   KEY_FTZ = 'f'
@@ -388,9 +384,9 @@ static struct argp_option options[] = {
      "select precision for binary64 (PRECISION > 0)", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
      "select MCA mode among {ieee, mca, pb, rr}", 0},
-    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
+    {key_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
      "select error mode among {rel, abs, all}", 0},
-    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
+    {key_mode_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
      "select magnitude of the maximum absolute error", 0},
     {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed", 0},
     {key_daz_str, KEY_DAZ, 0, 0,
