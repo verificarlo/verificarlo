@@ -75,9 +75,9 @@
 typedef enum {
   KEY_PREC_B32,
   KEY_PREC_B64,
+  KEY_ERR_EXP,
   KEY_MODE = 'm',
   KEY_ERR_MODE = 'e',
-  KEY_ERR_EXP,
   KEY_SEED = 's',
   KEY_DAZ = 'd',
   KEY_FTZ = 'f'
@@ -112,6 +112,16 @@ typedef enum {
 } mcamode;
 
 static const char *MCA_MODE_STR[] = {"ieee", "mca", "pb", "rr"};
+
+/* define the available error modes */
+typedef enum {
+  mca_err_mode_rel,
+  mca_err_mode_abs,
+  mca_err_mode_all,
+  _mca_err_mode_end_
+} mca_err_mode;
+
+static const char *MCA_ERR_MODE_STR[] = {"rel", "abs", "all"};
 
 /* define default environment variables and default parameters */
 #define MCA_PRECISION_BINARY32_MIN 1
@@ -429,6 +439,32 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
                    key_mode_str);
     }
     break;
+  case KEY_ERR_MODE:
+    /* mca mode */
+    if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_rel], arg) == 0) {
+      ctx->relErr = true;
+      ctx->absErr = false;
+    } else if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_abs], arg) == 0) {
+      ctx->relErr = false;
+      ctx->absErr = true;
+    } else if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_all], arg) == 0) {
+      ctx->relErr = true;
+      ctx->absErr = true;
+    } else {
+      logger_error("--%s invalid value provided, must be one of: "
+                   "{rel, abs, all}.",
+                   key_err_mode_str);
+    }
+    break;
+  case KEY_ERR_EXP:
+    /* exponent of the maximum absolute error */
+    errno = 0;
+    ctx->absErr_exp = strtol(arg, &endptr, 10);
+    if (errno != 0) {
+      logger_error("--%s invalid value provided, must be an integer",
+                   key_err_exp_str);
+    }
+    break;
   case KEY_SEED:
     /* seed */
     errno = 0;
@@ -456,6 +492,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
 
 void init_context(t_context *ctx) {
+  ctx->relErr = true;
+  ctx->absErr = false;
+  ctx->absErr_exp = 112;
   ctx->choose_seed = false;
   ctx->daz = false;
   ctx->ftz = false;
@@ -469,11 +508,16 @@ void print_information_header(void *context) {
               "%s = %d, "
               "%s = %d, "
               "%s = %s, "
+              "%s = %s, "
               "%s = %s and "
               "%s = %s"
               "\n",
               key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str,
               MCALIB_BINARY64_T, key_mode_str, MCA_MODE_STR[MCALIB_MODE],
+              key_err_mode_str, (ctx->relErr && !ctx->absErr) ? MCA_ERR_MODE_STR[mca_err_mode_rel] 
+                : (!ctx->relErr && ctx->absErr) ? MCA_ERR_MODE_STR[mca_err_mode_abs] 
+                : (ctx->relErr && ctx->absErr) ? MCA_ERR_MODE_STR[mca_err_mode_all] 
+                : MCA_ERR_MODE_STR[mca_err_mode_rel],
               key_daz_str, ctx->daz ? "true" : "false", key_ftz_str,
               ctx->ftz ? "true" : "false");
 }
