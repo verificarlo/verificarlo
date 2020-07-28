@@ -1250,14 +1250,6 @@ static struct argp_option options[] = {
      "select error mode among {rel, abs, all}", 0},
     {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
      "select magnitude of the maximum absolute error", 0},
-<<<<<<< HEAD
-     "select VPREC mode among {ieee, full, ib, ob}", 0},
-    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
-     "select error mode among {rel, abs, all}", 0},
-    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
-     "select magnitude of the maximum absolute error", 0},
-=======
->>>>>>> bugfix for wrongly placed copy and paste
     {key_instrument_str, KEY_INSTRUMENT, "INSTRUMENTATION", 0,
      "select VPREC instrumentation mode among {arguments, operations, full}",
      0},

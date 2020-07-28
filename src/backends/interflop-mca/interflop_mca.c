@@ -79,8 +79,11 @@ typedef enum {
   KEY_MODE = 'm',
   KEY_ERR_MODE = 'e',
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
   KEY_ERR_EXP,
+>>>>>>> work in progress on adding the absolute error target as an option
+=======
 >>>>>>> work in progress on adding the absolute error target as an option
   KEY_SEED = 's',
   KEY_DAZ = 'd',
@@ -121,7 +124,12 @@ static const char *MCA_MODE_STR[] = {"ieee", "mca", "pb", "rr"};
 typedef enum {
   mca_err_mode_rel,
   mca_err_mode_abs,
+<<<<<<< HEAD
   mca_err_mode_all
+=======
+  mca_err_mode_all,
+  _mca_err_mode_end_
+>>>>>>> work in progress on adding the absolute error target as an option
 } mca_err_mode;
 
 static const char *MCA_ERR_MODE_STR[] = {"rel", "abs", "all"};
@@ -507,6 +515,7 @@ void init_context(t_context *ctx) {
 void print_information_header(void *context) {
   t_context *ctx = (t_context *)context;
 
+<<<<<<< HEAD
   logger_info(
       "load backend with "
       "%s = %d, "
@@ -528,6 +537,24 @@ void print_information_header(void *context) {
                       : MCA_ERR_MODE_STR[mca_err_mode_rel],
       key_err_exp_str, (ctx->absErr_exp), key_daz_str,
       ctx->daz ? "true" : "false", key_ftz_str, ctx->ftz ? "true" : "false");
+=======
+  logger_info("load backend with "
+              "%s = %d, "
+              "%s = %d, "
+              "%s = %s, "
+              "%s = %s, "
+              "%s = %s and "
+              "%s = %s"
+              "\n",
+              key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str,
+              MCALIB_BINARY64_T, key_mode_str, MCA_MODE_STR[MCALIB_MODE],
+              key_err_mode_str, (ctx->relErr && !ctx->absErr) ? MCA_ERR_MODE_STR[mca_err_mode_rel] 
+                : (!ctx->relErr && ctx->absErr) ? MCA_ERR_MODE_STR[mca_err_mode_abs] 
+                : (ctx->relErr && ctx->absErr) ? MCA_ERR_MODE_STR[mca_err_mode_all] 
+                : MCA_ERR_MODE_STR[mca_err_mode_rel],
+              key_daz_str, ctx->daz ? "true" : "false", key_ftz_str,
+              ctx->ftz ? "true" : "false");
+>>>>>>> work in progress on adding the absolute error target as an option
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
