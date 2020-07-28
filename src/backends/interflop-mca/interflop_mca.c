@@ -516,10 +516,10 @@ void print_information_header(void *context) {
               (ctx->relErr && !ctx->absErr)
                   ? MCA_ERR_MODE_STR[mca_err_mode_rel]
                   : (!ctx->relErr && ctx->absErr)
-                      ? MCA_ERR_MODE_STR[mca_err_mode_abs]
-                      : (ctx->relErr && ctx->absErr)
-                          ? MCA_ERR_MODE_STR[mca_err_mode_all]
-                          : MCA_ERR_MODE_STR[mca_err_mode_rel],
+                        ? MCA_ERR_MODE_STR[mca_err_mode_abs]
+                        : (ctx->relErr && ctx->absErr)
+                              ? MCA_ERR_MODE_STR[mca_err_mode_all]
+                              : MCA_ERR_MODE_STR[mca_err_mode_rel],
               key_daz_str, ctx->daz ? "true" : "false", key_ftz_str,
               ctx->ftz ? "true" : "false");
 }
