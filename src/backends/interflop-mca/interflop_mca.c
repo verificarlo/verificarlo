@@ -117,7 +117,12 @@ static const char *MCA_MODE_STR[] = {"ieee", "mca", "pb", "rr"};
 typedef enum {
   mca_err_mode_rel,
   mca_err_mode_abs,
+<<<<<<< HEAD
   mca_err_mode_all
+=======
+  mca_err_mode_all,
+  _mca_err_mode_end_
+>>>>>>> work in progress on adding the absolute error target as an option
 } mca_err_mode;
 
 static const char *MCA_ERR_MODE_STR[] = {"rel", "abs", "all"};
