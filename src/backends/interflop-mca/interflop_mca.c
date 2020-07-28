@@ -513,9 +513,9 @@ void print_information_header(void *context) {
               "%s = %s and "
               "%s = %s"
               "\n",
-              key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str,
-              MCALIB_BINARY64_T, key_mode_str, MCA_MODE_STR[MCALIB_MODE],
-              key_err_mode_str, (ctx->relErr && !ctx->absErr)
+              key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str, MCALIB_BINARY64_T, 
+              key_mode_str, MCA_MODE_STR[MCALIB_MODE], key_err_mode_str, 
+              (ctx->relErr && !ctx->absErr)
                   ? MCA_ERR_MODE_STR[mca_err_mode_rel]
                   : (!ctx->relErr && ctx->absErr)
                         ? MCA_ERR_MODE_STR[mca_err_mode_abs]
