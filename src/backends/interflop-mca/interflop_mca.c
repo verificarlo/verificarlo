@@ -508,18 +508,20 @@ void print_information_header(void *context) {
               "%s = %d, "
               "%s = %s, "
               "%s = %s, "
+              "%s = %d, "
               "%s = %s and "
               "%s = %s"
               "\n",
               key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str,
               MCALIB_BINARY64_T, key_mode_str, MCA_MODE_STR[MCALIB_MODE],
-              (ctx->relErr && !ctx->absErr)
+              key_err_mode_str, (ctx->relErr && !ctx->absErr)
                   ? MCA_ERR_MODE_STR[mca_err_mode_rel]
                   : (!ctx->relErr && ctx->absErr)
                         ? MCA_ERR_MODE_STR[mca_err_mode_abs]
                         : (ctx->relErr && ctx->absErr)
                               ? MCA_ERR_MODE_STR[mca_err_mode_all]
                               : MCA_ERR_MODE_STR[mca_err_mode_rel],
+              key_err_exp_str, (ctx->absErr_exp),
               key_daz_str, ctx->daz ? "true" : "false", key_ftz_str,
               ctx->ftz ? "true" : "false");
 }
