@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
@@ -11,29 +10,15 @@ import struct
 import shlex
 import os.path
 import subprocess
-import threading
 from os import listdir
 
-# file used for profile, and input
-profile_name = "vfc_profile.txt"
-config_name_args = "vfc_config_args.txt"
-config_name_ops = "vfc_config_ops.txt"
-config_name_all = "vfc_config_all.txt"
-output_dir_args = ["vfc_args_ref", "vfc_args_std"]
-output_dir_ops = ["vfc_ops_ref", "vfc_ops_std"]
-output_dir_all = ["vfc_all_ref", "vfc_all_std"]
-ArgumentsFrame = pd.DataFrame()
-FunctionsFrame = pd.DataFrame()
-ArgumentsIndex = []
-FunctionsIndex = []
-runPath = ""
-cmpPath = ""
-OperationsResults = pd.DataFrame()
-ArgumentsResults = pd.DataFrame()
-BothResults = [pd.DataFrame(), pd.DataFrame()]
-N = 8000
+vfc_profile_file = "vfc_profile.txt"
+vfc_config_file = "vfc_config.txt"
+output_dir = ["vfc_ref", "vfc_std"]
+
+N = 100
 M = 100
-C = 0.09
+C = 0.08
 
 
 def set_environment_variable(envVar, value, env):
@@ -209,7 +194,7 @@ def Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Argume
 	return cmp(cmpPath, reference_dir, current_dir, env)
 
 
-def Energy(Arguments, ArgumentsIndex, Operations, OperationsIndex):
+def EnergyArgs(Arguments, ArgumentsIndex):
 	E = 0
 
 	# Arguments
@@ -221,6 +206,12 @@ def Energy(Arguments, ArgumentsIndex, Operations, OperationsIndex):
 			V = (Arguments.at[i, "Prec"] + Arguments.at[i, "Range"])/31.0
 		E += Arguments.at[i, "Ncalls"] * V
 
+	return E
+
+
+def EnergyOps(Operations, OperationsIndex):
+	E = 0
+
 	#Operations
 	for i in OperationsIndex:
 		if Operations.at[i, "Float"] != 0:
@@ -230,6 +221,9 @@ def Energy(Arguments, ArgumentsIndex, Operations, OperationsIndex):
 			V = ((Operations.at[i, "Prec64"] + Operations.at[i, "Range64"])/63.0)
 			E += V * Operations.at[i, "Ncalls"]
 	return E
+
+def Energy(Arguments, ArgumentsIndex, Operations, OperationsIndex):
+	return EnergyArgs(Arguments, ArgumentsIndex) +  EnergyOps(Operations, OperationsIndex)
 
 def ModifyArgs(Arguments, ArgumentsIndex):
 	Copy = Arguments.copy()
@@ -270,16 +264,242 @@ def ModifyOps(Operations, OperationsIndex):
 def sigmoid(x, a, b, c, d):
 	return ((a - b) / (1. + np.exp(x - (c / 2)) ** d)) + b
 
-def SA_Arguments():
-	ProbabiltyList = []
-	EnergyList = []
-	TemperatureList = []
+
+def search_minimum_operations(	runPath, 
+								cmpPath, 
+								reference_dir, 
+								current_dir, 
+								config_file,
+								env, 
+								Arguments, 
+								Operations,
+								index):
+	
+	if Operations.at[index, 'Double']:
+		l , r = 1 , Operations.at[index, 'Prec64']
+
+		flag = 1
+		while flag:
+			p = math.floor((r + l) / 2)
+			Operations.at[index, 'Prec64'] = p
+			#print(l, p, r)
+			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+				if l >= r:
+					flag = 0
+					break 
+				r = p
+			else:
+				l = p+1
+
+		l , r = 1 , Operations.at[index, 'Range64']
+
+		flag = 1
+		while flag:
+			p = math.floor((r + l) / 2)
+			Operations.at[index, 'Range64'] = p
+			#print(l, p, r)
+			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+				if l >= r:
+					flag = 0
+					break
+				r = p
+			else:
+				l = p+1
+	else:
+		Operations.at[index, 'Prec64'] = 1
+		Operations.at[index, 'Range64'] = 1
+
+
+	if Operations.at[index, 'Float']:
+		l , r = 1 , Operations.at[index, 'Prec32']
+
+		flag = 1
+		while flag:
+			p = math.floor((r + l) / 2)
+			Operations.at[index, 'Prec32'] = p
+			#print(l, p, r)
+			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+				if l >= r:
+					flag = 0
+					break 
+				r = p
+			else:
+				l = p+1
+
+
+		l , r = 1 , Operations.at[index, 'Range32']
+
+		flag = 1
+		while flag:
+			p = math.floor((r + l) / 2)
+			Operations.at[index, 'Range32'] = p
+			#print(l, p, r) 
+			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+				if l >= r:
+					flag = 0
+					break
+				r = p
+			else:
+				l = p+1
+	else:
+		Operations.at[index, 'Prec32'] = 1
+		Operations.at[index, 'Range32'] = 1
+
+def search_minimum_arguments(	runPath, 
+								cmpPath, 
+								reference_dir, 
+								current_dir, 
+								config_file,
+								env, 
+								Arguments, 
+								Operations,
+								index):
+
+	if Arguments.at[index, 'Type'] == 0:
+		l , r = 1 , Arguments.at[index, 'Prec']
+
+		flag = 1
+		while flag:
+			p = math.floor((r + l) / 2)
+			Arguments.at[index, 'Prec'] = p
+			#print(l, p, r)
+			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+				if l >= r:
+					flag = 0
+					break 
+				r = p
+			else:
+				l = p+1
+
+		l , r = 1 , Arguments.at[index, 'Range']
+		flag = 1
+
+		while flag:
+			p = math.floor((r + l) / 2)
+			Arguments.at[index, 'Range'] = p
+			#print(l, p, r) 
+			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+				if l >= r:
+					flag = 0
+					break
+				r = p
+			else:
+				l = p+1
+
+	elif Arguments.at[index, 'Type'] == 1:
+		l , r = 1 , Arguments.at[index, 'Prec']
+
+		flag = 1
+		while flag:
+			p = math.floor((r + l) / 2)
+			Arguments.at[index, 'Prec'] = p
+			#print(l, p, r)
+			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+				if l >= r:
+					flag = 0
+					break 
+				r = p
+			else:
+				l = p+1
+
+		l , r = 1 , Arguments.at[index, 'Range']
+
+		flag = 1
+		while flag:
+			p = math.floor((r + l) / 2)
+			Arguments.at[index, 'Range'] = p
+			#print(l, p, r)
+			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+				if l >= r:
+					flag = 0
+					break
+				r = p
+			else:
+				l = p+1
+
+def DICH_Arguments(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
+	print("-------------- Dich Arguments --------------")
+	ArgumentsFrameCopy = ArgumentsFrame.copy()
+	cpt = 1
+	for i in ArgumentsIndex:
+		print(cpt, "/", len(ArgumentsIndex))
+		search_minimum_arguments(	runPath, 
+									cmpPath, 
+									reference_dir, 
+									current_dir,
+									config_file,
+									env, 
+									ArgumentsFrameCopy,
+									FunctionsFrame,
+									i)
+		cpt += 1
+
+	return ArgumentsFrameCopy
+
+def DICH_Operations(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
+	# Operations
+	print("-------------- Dich Operations --------------")
+	FunctionsFrameCopy = FunctionsFrame.copy()
+	cpt = 1
+	for i in FunctionsIndex:
+		print(cpt, "/", len(FunctionsIndex))
+		search_minimum_operations(	runPath, 
+									cmpPath, 
+									reference_dir, 
+									current_dir,
+									config_file,
+									env, 
+									ArgumentsFrame,
+									FunctionsFrameCopy,
+									i)
+		cpt += 1
+
+	return FunctionsFrameCopy
+
+def DICH_All(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
+	print("-------------- Dich All --------------")
+	ArgumentsFrameCopy = ArgumentsFrame.copy()
+	FunctionsFrameCopy = FunctionsFrame.copy()
+	cpt = 1
+	for i in range(len(FunctionsFrameCopy.index)):
+		print(cpt, "/", len(FunctionsFrameCopy.index))
+		if i in FunctionsIndex:
+			search_minimum_operations(	runPath, 
+										cmpPath, 
+										reference_dir, 
+										current_dir,
+										config_file,
+										env, 
+										ArgumentsFrameCopy,
+										FunctionsFrameCopy,
+										i)
+		else:
+			tmp = ArgumentsFrameCopy[(ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
+			for j in tmp.index:
+				search_minimum_arguments(	runPath, 
+											cmpPath, 
+											reference_dir, 
+											current_dir,
+											config_file,
+											env, 
+											ArgumentsFrameCopy,
+											FunctionsFrameCopy,
+											j)
+
+		cpt += 1
+
+	return ArgumentsFrameCopy, FunctionsFrameCopy
+
+
+def SA_Arguments(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
+	print("-------------- SA Arguments --------------")
+	SA_Data = []
 
 	# set backend
-	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --instrument=arguments".format(config_name_args), env)
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --mode=full --prec-input-file={} --instrument=arguments".format(config_file), env)
 
 	S = ArgumentsFrame.copy()
-	E = Energy(S, ArgumentsIndex, FunctionsFrame, FunctionsIndex)
+	E = EnergyArgs(S, ArgumentsIndex)
 	P = 1
 	Step = M/N
 
@@ -291,19 +511,21 @@ def SA_Arguments():
 		Stmp = ModifyArgs(S, ArgumentsIndex)
 
 		# compute state energy
-		Etmp = Energy(Stmp, ArgumentsIndex, FunctionsFrame, FunctionsIndex)
+		Etmp = EnergyArgs(Stmp, ArgumentsIndex)
 
 		# test state
-		Flag = Check(runPath, cmpPath, output_dir_args[0], output_dir_args[1], config_name_args, env, Stmp, FunctionsFrame)
+		Flag = Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Stmp, FunctionsFrame)
 
 		# choose if test if accepted
 		if Flag:
-			DeltaE = (E - Etmp) * 0.1
+			DeltaE = (E - Etmp)
 			if DeltaE >= 0:
 				S, E = Stmp, Etmp
 			else:
 				try:
-					P = math.exp(DeltaE/T)
+					P = T - ((abs(DeltaE)/abs(E)) * 50)
+					if P < 0:
+						P = 0
 				except OverflowError:
 					P = 0
 				if random.uniform(0, 1) < P:
@@ -313,42 +535,26 @@ def SA_Arguments():
 			i = i + Step
 			cpt = cpt + 1
 
-		ProbabiltyList.append(P)
-		EnergyList.append(E)
-		TemperatureList.append(T)
+		SA_Data.append([P, E, T])
+
+	S = DICH_Arguments(runPath, cmpPath, reference_dir, current_dir, config_file, env, S, ArgumentsIndex, FunctionsFrame, FunctionsIndex)
 
 	S.to_csv("vfc_exp_data/ArgumentsResults.csv")
 
-	fig = plt.figure(1, figsize=(24, 14))
-	ax1, ax2, ax3 = fig.subplots(1, 3, sharex=True)
-	ax1.plot(ProbabiltyList)
-	ax2.plot(EnergyList)
-	ax3.plot(TemperatureList)
+	SA_DataFrame = pd.DataFrame(SA_Data, columns=['Probabilty', 'Energy', 'Temperature'])
 
-	ax1.set_ylabel("Probabilty")
-	ax1.set_xlabel("Iteration")
-	ax2.set_ylabel("System Energy")
-	ax2.set_xlabel("Iteration")
-	ax3.set_ylabel("Temperature")
-	ax3.set_xlabel("Iteration")
-
-	ax1.set_title("Evolution of the Probabilty during execution")
-	ax2.set_title("Evolution of the Energy during execution")
-	ax3.set_title("Evolution of the Temperature during execution")
-	plt.savefig("vfc_exp_data/vfc_args_only.svg", format='svg')
-	plt.clf()
+	SA_DataFrame.to_csv("vfc_exp_data/vfc_args_only.csv")
 
 
-def SA_Operations():
-	ProbabiltyList = []
-	EnergyList = []
-	TemperatureList = []
+def SA_Operations(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
+	print("-------------- SA Operations --------------")
+	SA_Data = []
 
 	# set backend
-	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --instrument=operations".format(config_name_ops), env)
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --mode=full --prec-input-file={} --instrument=operations".format(config_file), env)
 
 	S = FunctionsFrame.copy()
-	E = Energy(ArgumentsFrame, ArgumentsIndex, S, FunctionsIndex)
+	E = EnergyOps(S, FunctionsIndex)
 	P = 1
 	Step = M/N
 	
@@ -360,19 +566,21 @@ def SA_Operations():
 		Stmp = ModifyOps(S, FunctionsIndex)
 
 		# compute state energy
-		Etmp = Energy(ArgumentsFrame, ArgumentsIndex, Stmp, FunctionsIndex)
+		Etmp = EnergyOps(Stmp, FunctionsIndex)
 
 		# test state
-		Flag = Check(runPath, cmpPath, output_dir_ops[0], output_dir_ops[1], config_name_ops, env, ArgumentsFrame, Stmp)
+		Flag = Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, Stmp)
 
 		# choose if test if accepted
 		if Flag:
-			DeltaE = (E - Etmp) * 0.1
+			DeltaE = (E - Etmp)
 			if DeltaE >= 0:
 				S, E = Stmp, Etmp
 			else:
 				try:
-					P = math.exp(DeltaE/T)
+					P = T - ((abs(DeltaE)/abs(E)) * 50)
+					if P < 0:
+						P = 0
 				except OverflowError:
 					P = 0
 				if random.uniform(0, 1) < P:
@@ -382,38 +590,22 @@ def SA_Operations():
 			i = i + Step
 			cpt = cpt + 1
 		
-		ProbabiltyList.append(P)
-		EnergyList.append(E)
-		TemperatureList.append(T)
+	SA_Data.append([P, E, T])
+
+	S = DICH_Operations(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, S, FunctionsIndex)
 
 	S.to_csv("vfc_exp_data/OperationsResults.csv")
 
-	fig = plt.figure(1, figsize=(24, 14))
-	ax1, ax2, ax3 = fig.subplots(1, 3, sharex=True)
-	ax1.plot(ProbabiltyList)
-	ax2.plot(EnergyList)
-	ax3.plot(TemperatureList)
+	SA_DataFrame = pd.DataFrame(SA_Data, columns=['Probabilty', 'Energy', 'Temperature'])
 
-	ax1.set_ylabel("Probabilty")
-	ax1.set_xlabel("Iteration")
-	ax2.set_ylabel("System Energy")
-	ax2.set_xlabel("Iteration")
-	ax3.set_ylabel("Temperature")
-	ax3.set_xlabel("Iteration")
+	SA_DataFrame.to_csv("vfc_exp_data/vfc_ops_only.csv")
 
-	ax1.set_title("Evolution of the Probabilty during execution")
-	ax2.set_title("Evolution of the Energy during execution")
-	ax3.set_title("Evolution of the Temperature during execution")
-	plt.savefig("vfc_exp_data/vfc_ops_only.svg", format='svg')
-	plt.clf()
-
-def SA_All():
-	ProbabiltyList = []
-	EnergyList = []
-	TemperatureList = []
+def SA_All(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
+	print("-------------- SA All --------------")
+	SA_Data = []
 
 	# set backend
-	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --instrument=all".format(config_name_all), env)
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --mode=full --prec-input-file={} --instrument=all".format(config_file), env)
 
 	S = [ArgumentsFrame.copy(), FunctionsFrame.copy()]
 	E = Energy(S[0], ArgumentsIndex, S[1], FunctionsIndex)
@@ -435,16 +627,18 @@ def SA_All():
 		Etmp = Energy(Stmp[0], ArgumentsIndex, Stmp[1], FunctionsIndex)
 
 		# test state
-		Flag = Check(runPath, cmpPath, output_dir_all[0], output_dir_all[1], config_name_all, env, Stmp[0], Stmp[1])
+		Flag = Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Stmp[0], Stmp[1])
 
 		# choose if test if accepted
 		if Flag:
-			DeltaE = (E - Etmp) * 0.1
+			DeltaE = (E - Etmp)
 			if DeltaE >= 0:
 				S, E = Stmp, Etmp
 			else:
 				try:
-					P = math.exp(DeltaE/T)
+					P = T - ((abs(DeltaE)/abs(E)) * 50)
+					if P < 0:
+						P = 0
 				except OverflowError:
 					P = 0
 				if random.uniform(0, 1) < P:
@@ -454,36 +648,20 @@ def SA_All():
 			i = i + Step
 			cpt = cpt + 1
 
-		ProbabiltyList.append(P)
-		EnergyList.append(E)
-		TemperatureList.append(T)
+	SA_Data.append([P, E, T])
+
+	S[0], S[1] = DICH_All(runPath, cmpPath, reference_dir, current_dir, config_file, env, S[0], ArgumentsIndex, S[1], FunctionsIndex)
 
 	S[0].to_csv("vfc_exp_data/BothArgsResults.csv")
 	S[1].to_csv("vfc_exp_data/BothOpsResults.csv")
 
-	fig = plt.figure(1, figsize=(24, 14))
-	ax1, ax2, ax3 = fig.subplots(1, 3, sharex=True)
-	ax1.plot(ProbabiltyList)
-	ax2.plot(EnergyList)
-	ax3.plot(TemperatureList)
+	SA_DataFrame = pd.DataFrame(SA_Data, columns=['Probabilty', 'Energy', 'Temperature'])
 
-	ax1.set_ylabel("Probabilty")
-	ax1.set_xlabel("Iteration")
-	ax2.set_ylabel("System Energy")
-	ax2.set_xlabel("Iteration")
-	ax3.set_ylabel("Temperature")
-	ax3.set_xlabel("Iteration")
-
-	ax1.set_title("Evolution of the Probabilty during execution")
-	ax2.set_title("Evolution of the Energy during execution")
-	ax3.set_title("Evolution of the Temperature during execution")
-	plt.savefig("vfc_exp_data/vfc_args_ops.svg", format='svg')
-	plt.clf()
+	SA_DataFrame.to_csv("vfc_exp_data/vfc_args_ops.csv")
 
 if __name__ == "__main__":
-
 	if len(sys.argv) < 3:
-		print("vfc_precexp [exrun] [excmp]")
+		print("explore.py [exrun] [excmp]")
 		exit()
 
 	runPath = sys.argv[1]
@@ -505,28 +683,19 @@ if __name__ == "__main__":
 		print("comparison scirpt is not executable")
 		exit(0)
 
-	if not os.path.isdir("./exp_ref_output"):
+	if os.path.isfile("./exp_ref_output"):
 		os.mkdir("./exp_ref_output")
 
-	if not os.path.isdir(output_dir_args[0]):
-		os.mkdir(output_dir_args[0])
-
-	if not os.path.isdir(output_dir_args[1]):
-		os.mkdir(output_dir_args[1])
-
-	if not os.path.isdir(output_dir_ops[0]):
-		os.mkdir(output_dir_ops[0])
-
-	if not os.path.isdir(output_dir_ops[1]):
-		os.mkdir(output_dir_ops[1])
-
-	if not os.path.isdir(output_dir_all[0]):
-		os.mkdir(output_dir_all[0])
-
-	if not os.path.isdir(output_dir_all[1]):
-		os.mkdir(output_dir_all[1])
+	if os.path.isfile("./exp_std_output"):
+		os.mkdir("./exp_std_output")
 
 	env = os.environ.copy()
+
+	if not os.path.isdir(output_dir[0]):
+		os.mkdir(output_dir[0])
+
+	if not os.path.isdir(output_dir[1]):
+		os.mkdir(output_dir[1])
 
 	#########################################
 	#  				Profile Run 			#
@@ -536,24 +705,43 @@ if __name__ == "__main__":
 		unset_environment_variable("VFC_PREC_INPUT", env)
 
 	# set backend
-	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-output-file={}".format(profile_name), env)
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-output-file={}".format(vfc_profile_file), env)
 
 	# run to create profile file
-	run(runPath, output_dir_args[0], env)
-	run(runPath, output_dir_ops[0], env)
-	run(runPath, output_dir_all[0], env)
+	run(runPath, output_dir[0], env)
 
 	# get dataset
-	FunctionsFrame, FunctionsIndex, ArgumentsFrame, ArgumentsIndex = getProfile(profile_name)
+	FunctionsFrame, FunctionsIndex, ArgumentsFrame, ArgumentsIndex = getProfile(vfc_profile_file)
 
-	t1 = threading.Thread(target=SA_Arguments)
-	t2 = threading.Thread(target=SA_Operations)
-	t3 = threading.Thread(target=SA_All)
+	SA_Arguments(	runPath, 
+					cmpPath, 
+					output_dir[0], 
+					output_dir[1],
+					vfc_config_file,
+					env, 
+					ArgumentsFrame.copy(),
+					ArgumentsIndex,
+					FunctionsFrame,
+					FunctionsIndex)
 
-	t1.start()
-	t2.start()
-	t3.start()
+	SA_Operations(	runPath, 
+					cmpPath, 
+					output_dir[0], 
+					output_dir[1],
+					vfc_config_file,
+					env, 
+					ArgumentsFrame,
+					ArgumentsIndex,
+					FunctionsFrame.copy(),
+					FunctionsIndex)
 
-	t1.join()
-	t2.join()
-	t3.join()
+	SA_All(	runPath, 
+			cmpPath, 
+			output_dir[0], 
+			output_dir[1],
+			vfc_config_file,
+			env, 
+			ArgumentsFrame.copy(),
+			ArgumentsIndex,
+			FunctionsFrame.copy(),
+			FunctionsIndex)
