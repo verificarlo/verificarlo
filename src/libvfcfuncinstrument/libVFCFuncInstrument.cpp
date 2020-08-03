@@ -46,6 +46,7 @@
 #include <iostream>
 #include <set>
 #include <stdio.h>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -98,7 +99,7 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
   (*use_double) = ReturnTy == DoubleTy;
 
   // Test if f treat floats point numbers
-  if (!is_intrinsic && !is_from_library) {
+  if (f != NULL && f->size() != 0) {
     // Loop over each instruction of the function and test if one of them
     // use float or double
     for (auto &bbi : (*f)) {
@@ -119,7 +120,7 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
         }
       }
     }
-  } else {
+  } else if (call != NULL) {
     // Loop over arguments types
     for (auto it = call->op_begin(); it < call->op_end() - 1; it++) {
       if ((*it)->getType() == FloatTy)
@@ -207,9 +208,13 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     int i = 0;
     for (auto &args : FunctionArgs)
       hook->setArgOperand(i++, args);
+    hook->setCalledFunction(HookedFunction);
     ret = Builder.Insert(hook);
   } else {
-    ret = Builder.CreateCall(HookedFunction, FunctionArgs);
+    CallInst *call = CallInst::Create(HookedFunction, FunctionArgs);
+    call->setAttributes(HookedFunction->getAttributes());
+    call->setCallingConv(HookedFunction->getCallingConv());
+    ret = Builder.Insert(call);
   }
 
   // Step 6: store return value
@@ -245,6 +250,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
 struct VfclibFunc : public ModulePass {
   static char ID;
   std::vector<Function *> OriginalFunctions;
+  std::vector<Function *> ClonedFunctions;
   size_t inst_cpt;
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
@@ -265,8 +271,9 @@ struct VfclibFunc : public ModulePass {
      *                  Get original functions's names                       *
      *************************************************************************/
     for (auto &F : M) {
-      if ((!F.isIntrinsic()) && (F.getName().str() != "main"))
+      if ((F.getName().str() != "main") && F.size() != 0) {
         OriginalFunctions.push_back(&F);
+      }
     }
 
     /*************************************************************************
@@ -310,7 +317,7 @@ struct VfclibFunc : public ModulePass {
       std::string NewName = "vfc_" + File + "/" + Name + "_" + Line + "_" +
                             std::to_string(inst_cpt) + "_" + "_hook";
       std::string FunctionName =
-          File + "/" + Name + "_" + Line + "_" + std::to_string(inst_cpt++);
+          File + "/" + Name + "_" + Line + "_" + std::to_string(++inst_cpt);
 
       bool use_float, use_double;
 
@@ -373,7 +380,7 @@ struct VfclibFunc : public ModulePass {
                                   "_" + "_hook";
 
             std::string FunctionName = File + "/" + Name + "_" + Line + "_" +
-                                       std::to_string(inst_cpt++);
+                                       std::to_string(++inst_cpt);
 
             // Test if f is a library function //
             LibFunc libfunc;
@@ -382,13 +389,12 @@ struct VfclibFunc : public ModulePass {
             // Test if f is instrinsic //
             bool is_intrinsic = f->isIntrinsic();
 
-            if (Name.substr(0, 9) != "llvm.dbg.") {
-              bool use_float, use_double;
+            // Test if the function use double or float
+            bool use_float, use_double;
+            haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
+                                        &use_float, &use_double, M);
 
-              // Test if the function use double or float
-              haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
-                                          &use_float, &use_double, M);
-
+            if (!(is_intrinsic && (!use_float && !use_double))) {
               // Create function ID
               Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
 
