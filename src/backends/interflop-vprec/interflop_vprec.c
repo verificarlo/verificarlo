@@ -299,8 +299,6 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   int emax = (1 << (binary32_range - 1)) - 1;
   int emin = (emax > 1) ? 1 - emax : -1;
 
-
-
   /* in absolute error mode, the error threshold also gives the possible underflow limit */
   if ((((t_context *)context)->relErr == true) 
       && (((t_context *)context)->absErr == true)) {
@@ -380,9 +378,12 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   int emin = (emax > 1) ? 1 - emax : -1;
 
   /* in absolute error mode, the error threshold also gives the possible underflow limit */
-  if (((t_context *)context)->absErr == true) {
+  if ((((t_context *)context)->relErr == true) 
+      && (((t_context *)context)->absErr == true)) {
     if (((t_context *)context)->absErr_exp > emin)
       emin = ((t_context *)context)->absErr_exp;
+  } else if (((t_context *)context)->absErr == true) {
+    emin = ((t_context *)context)->absErr_exp;
   }
 
   binary64 aexp = {.f64 = a};
@@ -397,11 +398,16 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   }
 
   if (aexp.s64 <= emin) {
-    if ((((t_context *)context)->daz && is_input) ||
-        (((t_context *)context)->ftz && !is_input)) {
-      a = 0;
-    } else {
-      a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision, context);
+    if ((((t_context *)context)->relErr == true) 
+        && (((t_context *)context)->absErr == true)) {
+      /* vprec error mode all */
+      if ((-1)*((t_context *)context)->absErr_exp < binary64_precision)
+        a = handle_binary64_denormal(a, emin, aexp.u64, (-1)*((t_context *)context)->absErr_exp);
+      else
+        a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
+    } else if (((t_context *)context)->absErr == true) {
+      /* vprec error mode abs */
+      a = handle_binary64_denormal(a, emin, aexp.u64, (-1)*((t_context *)context)->absErr_exp);
     }
   }
 
@@ -415,7 +421,17 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* else normal case, can be executed even if a previously rounded and
    * truncated as denormal */
   if (binary64_precision < DOUBLE_PMAN_SIZE) {
-    a = round_binary64_normal(a, binary64_precision, context);
+    if ((((t_context *)context)->relErr == true) 
+        && (((t_context *)context)->absErr == true)) {
+      /* vprec error mode all */
+      if ((-1)*((t_context *)context)->absErr_exp < binary64_precision)
+        a = round_binary64_normal(a, (-1)*((t_context *)context)->absErr_exp);
+      else
+        a = round_binary64_normal(a, binary64_precision);
+    } else if (((t_context *)context)->absErr == true) {
+      /* vprec error mode abs */
+      a = round_binary64_normal(a, (-1)*((t_context *)context)->absErr_exp);
+    }
   }
 
   return a;
