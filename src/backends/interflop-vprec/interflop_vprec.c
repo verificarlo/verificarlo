@@ -299,9 +299,10 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   int emax = (1 << (binary32_range - 1)) - 1;
   int emin = (emax > 1) ? 1 - emax : -1;
 
-  /* in absolute error mode, the error threshold also gives the possible underflow limit */
-  if ((((t_context *)context)->relErr == true) 
-      && (((t_context *)context)->absErr == true)) {
+  /* in absolute error mode, the error threshold also gives the possible 
+   * underflow limit */
+  if ((((t_context *)context)->relErr == true) &&
+      (((t_context *)context)->absErr == true)) {
     if (((t_context *)context)->absErr_exp > emin)
       emin = ((t_context *)context)->absErr_exp;
   } else if (((t_context *)context)->absErr == true) {
@@ -320,7 +321,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   }
 
   if ((((t_context *)context)->daz && is_input) ||
-        (((t_context *)context)->ftz && !is_input)) {
+      (((t_context *)context)->ftz && !is_input)) {
     a = 0;
   } else {
     if ((((t_context *)context)->relErr == true) 
@@ -377,9 +378,10 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   int emax = (1 << (binary64_range - 1)) - 1;
   int emin = (emax > 1) ? 1 - emax : -1;
 
-  /* in absolute error mode, the error threshold also gives the possible underflow limit */
-  if ((((t_context *)context)->relErr == true) 
-      && (((t_context *)context)->absErr == true)) {
+  /* in absolute error mode, the error threshold also gives the possible
+   * underflow limit */
+  if ((((t_context *)context)->relErr == true) &&
+      (((t_context *)context)->absErr == true)) {
     if (((t_context *)context)->absErr_exp > emin)
       emin = ((t_context *)context)->absErr_exp;
   } else if (((t_context *)context)->absErr == true) {
