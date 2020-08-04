@@ -1309,6 +1309,10 @@ static struct argp_option options[] = {
     {key_log_file_str, KEY_LOG_FILE, "LOG", 0,
      "log file where input/output informations are written", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
+    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
+     "select error mode among {rel, abs, all}", 0},
+    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
+     "select magnitude of the maximum absolute error", 0},
      "select VPREC mode among {ieee, full, ib, ob}", 0},
     {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
      "select error mode among {rel, abs, all}", 0},
@@ -1481,7 +1485,6 @@ static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
 void init_context(t_context *ctx) {
   ctx->relErr = true;
   ctx->absErr = false;
-  ctx->absErr_exp = 112;
   ctx->absErr_exp = -DOUBLE_EXP_MIN;
   ctx->daz = false;
   ctx->ftz = false;
