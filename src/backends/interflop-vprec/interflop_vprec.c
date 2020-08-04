@@ -300,7 +300,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   // here emin is the smallest exponent in the *normal* range
   int emin = 1 - emax;
 
-  /* in absolute error mode, the error threshold also gives the possible 
+  /* in absolute error mode, the error threshold also gives the possible
    * underflow limit */
   if ((((t_context *)context)->relErr == true) &&
       (((t_context *)context)->absErr == true)) {
@@ -1050,10 +1050,9 @@ void print_information_header(void *context) {
                 : (ctx->relErr && ctx->absErr)
                       ? VPREC_ERR_MODE_STR[vprec_err_mode_all]
                       : VPREC_ERR_MODE_STR[vprec_err_mode_rel],
-      key_err_exp_str, (ctx->absErr_exp), 
-      key_daz_str, ctx->daz ? "true" : "false",
-      key_ftz_str, ctx->ftz ? "true" : "false", key_instrument_str,
-      VPREC_INST_MODE_STR[VPREC_INST_MODE]);
+      key_err_exp_str, (ctx->absErr_exp), key_daz_str,
+      ctx->daz ? "true" : "false", key_ftz_str, ctx->ftz ? "true" : "false",
+      key_instrument_str, VPREC_INST_MODE_STR[VPREC_INST_MODE]);
 }
 
 void _interflop_finalize(void *context) {
