@@ -446,7 +446,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   /* here emin is the smallest exponent in the *normal* range */
   int emin = 1 - emax;
 
-  /* in absolute error mode, the error threshold also gives the possible 
+  /* in absolute error mode, the error threshold also gives the possible
    * underflow limit */
   if ((((t_context *)context)->relErr == true) &&
       (((t_context *)context)->absErr == true)) {
