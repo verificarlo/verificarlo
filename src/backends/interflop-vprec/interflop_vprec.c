@@ -105,12 +105,7 @@ static const char *VPREC_MODE_STR[] = {"ieee", "full", "ib", "ob"};
 typedef enum {
   vprec_err_mode_rel,
   vprec_err_mode_abs,
-<<<<<<< HEAD
   vprec_err_mode_all
-=======
-  vprec_err_mode_all,
-  _vprec_err_mode_end_
->>>>>>> refining the formula; binary32, for now
 } vprec_err_mode;
 
 static const char *VPREC_ERR_MODE_STR[] = {"rel", "abs", "all"};
@@ -1250,10 +1245,6 @@ static struct argp_option options[] = {
     {key_log_file_str, KEY_LOG_FILE, "LOG", 0,
      "log file where input/output informations are written", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
-    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
-     "select error mode among {rel, abs, all}", 0},
-    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
-     "select magnitude of the maximum absolute error", 0},
      "select VPREC mode among {ieee, full, ib, ob}", 0},
     {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
      "select error mode among {rel, abs, all}", 0},
