@@ -851,6 +851,10 @@ static struct argp_option options[] = {
     {key_output_file_str, KEY_OUTPUT_FILE, "OUTPUT", 0,
      "output file where the precision profile is written", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
+    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
+     "select error mode among {rel, abs, all}", 0},
+    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
+     "select magnitude of the maximum absolute error", 0},
      "select VPREC mode among {ieee, full, ib, ob}", 0},
     {key_instrument_str, KEY_INSTRUMENT, "INSTRUMENTATION", 0,
      "select VPREC instrumentation mode among {arguments, operations, full}",
@@ -957,6 +961,32 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                    key_mode_str);
     }
     break;
+  case KEY_ERR_MODE:
+    /* vprec error mode */
+    if (strcasecmp(VPREC_ERR_MODE_STR[vprec_err_mode_rel], arg) == 0) {
+      ctx->relErr = true;
+      ctx->absErr = false;
+    } else if (strcasecmp(VPREC_ERR_MODE_STR[vprec_err_mode_rel], arg) == 0) {
+      ctx->relErr = false;
+      ctx->absErr = true;
+    } else if (strcasecmp(VPREC_ERR_MODE_STR[vprec_err_mode_rel], arg) == 0) {
+      ctx->relErr = true;
+      ctx->absErr = true;
+    } else {
+      logger_error("--%s invalid value provided, must be one of: "
+                   "{rel, abs, all}.",
+                   key_err_mode_str);
+    }
+    break;
+  case KEY_ERR_EXP:
+    /* exponent of the maximum absolute error */
+    errno = 0;
+    ctx->absErr_exp = strtol(arg, &endptr, 10);
+    if (errno != 0) {
+      logger_error("--%s invalid value provided, must be an integer",
+                   key_err_exp_str);
+    }
+    break;
   case KEY_INSTRUMENT:
     /* instrumentation mode */
     if (strcasecmp(VPREC_INST_MODE_STR[vprecinst_arg], arg) == 0) {
@@ -990,6 +1020,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
 
 void init_context(t_context *ctx) {
+  ctx->relErr = true;
+  ctx->absErr = false;
+  ctx->absErr_exp = 112;
   ctx->daz = false;
   ctx->ftz = false;
 }
@@ -1015,13 +1048,24 @@ void print_information_header(void *context) {
       "%s = %d, "
       "%s = %s, "
       "%s = %s, "
+      "%s = %d, "
+      "%s = %s, "
       "%s = %s and "
       "%s = %s"
       "\n",
       key_prec_b32_str, VPRECLIB_BINARY32_PRECISION, key_range_b32_str,
       VPRECLIB_BINARY32_RANGE, key_prec_b64_str, VPRECLIB_BINARY64_PRECISION,
       key_range_b64_str, VPRECLIB_BINARY64_RANGE, key_mode_str,
-      VPREC_MODE_STR[VPRECLIB_MODE], key_daz_str, ctx->daz ? "true" : "false",
+      VPREC_MODE_STR[VPRECLIB_MODE], key_err_mode_str,
+      (ctx->relErr && !ctx->absErr)
+          ? VPREC_ERR_MODE_STR[vprec_err_mode_rel]
+          : (!ctx->relErr && ctx->absErr)
+                ? VPREC_ERR_MODE_STR[vprec_err_mode_abs]
+                : (ctx->relErr && ctx->absErr)
+                      ? VPREC_ERR_MODE_STR[vprec_err_mode_all]
+                      : VPREC_ERR_MODE_STR[vprec_err_mode_rel],
+      key_err_exp_str, (ctx->absErr_exp), 
+      key_daz_str, ctx->daz ? "true" : "false",
       key_ftz_str, ctx->ftz ? "true" : "false", key_instrument_str,
       VPREC_INST_MODE_STR[VPREC_INST_MODE]);
 }
