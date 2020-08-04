@@ -55,9 +55,11 @@ typedef enum {
   KEY_PREC_B64,
   KEY_RANGE_B32,
   KEY_RANGE_B64,
+  KEY_ERR_EXP,
   KEY_INPUT_FILE,
   KEY_OUTPUT_FILE,
   KEY_MODE = 'm',
+  KEY_ERR_MODE = 'e',
   KEY_INSTRUMENT = 'i',
   KEY_DAZ = 'd',
   KEY_FTZ = 'f'
@@ -70,11 +72,16 @@ static const char key_range_b64_str[] = "range-binary64";
 static const char key_input_file_str[] = "prec-input-file";
 static const char key_output_file_str[] = "prec-output-file";
 static const char key_mode_str[] = "mode";
+static const char key_err_mode_str[] = "error-mode";
+static const char key_err_exp_str[] = "max-abs-error-exponent";
 static const char key_instrument_str[] = "instrument";
 static const char key_daz_str[] = "daz";
 static const char key_ftz_str[] = "ftz";
 
 typedef struct {
+  bool relErr;
+  bool absErr;
+  int absErr_exp;
   bool daz;
   bool ftz;
 } t_context;
@@ -90,6 +97,16 @@ typedef enum {
 
 /* Modes' names */
 static const char *VPREC_MODE_STR[] = {"ieee", "full", "ib", "ob"};
+
+/* define the available error modes */
+typedef enum {
+  mca_err_mode_rel,
+  mca_err_mode_abs,
+  mca_err_mode_all,
+  _mca_err_mode_end_
+} vprec_err_mode;
+
+static const char *VPREC_ERR_MODE_STR[] = {"rel", "abs", "all"};
 
 /* define the possible VPREC operation */
 typedef enum {
@@ -151,7 +168,7 @@ static const char *vprec_input_file = NULL;
 static const char *vprec_output_file = NULL;
 static vprec_inst_mode VPREC_INST_MODE = VPREC_INST_MODE_DEFAULT;
 
-/* instrumentation mode's names */
+/* instrumentation modes' names */
 static const char *VPREC_INST_MODE_STR[] = {"arguments", "operations", "all",
                                             "none"};
 
@@ -277,10 +294,16 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     return a;
   }
 
-  /* round to zero or set to infinity if underflow or overflow compare to
+  /* round to zero or set to infinity if underflow or overflow compared to
    * VPRECLIB_BINARY32_RANGE */
   int emax = (1 << (binary32_range - 1)) - 1;
   int emin = (emax > 1) ? 1 - emax : -1;
+
+  /* in absolute error mode, the error threshold also gives the possible underflow limit */
+  if ((t_context *)context)->absErr == true) {
+    if ((t_context *)context)->absErr_exp > emin)
+      emin = t_context->absErr_exp;
+  }
 
   binary32 aexp = {.f32 = a};
 
@@ -293,13 +316,11 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     sp_case = true;
   }
 
-  if (aexp.s32 <= emin) {
-    if ((((t_context *)context)->daz && is_input) ||
+  if ((((t_context *)context)->daz && is_input) ||
         (((t_context *)context)->ftz && !is_input)) {
-      a = 0;
-    } else {
-      a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
-    }
+    a = 0;
+  } else {
+    a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision, context);
   }
 
   /* Specials ops must be placed after denormal handling  */
@@ -313,7 +334,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   /* else, normal case: can be executed even if a
      previously rounded and truncated as denormal */
   if (binary32_precision < FLOAT_PMAN_SIZE) {
-    a = round_binary32_normal(a, binary32_precision);
+    a = round_binary32_normal(a, binary32_precision, context);
   }
 
   return a;
