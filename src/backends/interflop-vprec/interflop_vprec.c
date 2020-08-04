@@ -354,6 +354,12 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   int emax = (1 << (binary64_range - 1)) - 1;
   int emin = (emax > 1) ? 1 - emax : -1;
 
+  /* in absolute error mode, the error threshold also gives the possible underflow limit */
+  if ((t_context *)context)->absErr == true) {
+    if ((t_context *)context)->absErr_exp > emin)
+      emin = t_context->absErr_exp;
+  }
+
   binary64 aexp = {.f64 = a};
   aexp.s64 =
       ((DOUBLE_GET_EXP & aexp.u64) >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
@@ -370,7 +376,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         (((t_context *)context)->ftz && !is_input)) {
       a = 0;
     } else {
-      a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
+      a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision, context);
     }
   }
 
@@ -384,7 +390,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* else normal case, can be executed even if a previously rounded and
    * truncated as denormal */
   if (binary64_precision < DOUBLE_PMAN_SIZE) {
-    a = round_binary64_normal(a, binary64_precision);
+    a = round_binary64_normal(a, binary64_precision, context);
   }
 
   return a;
