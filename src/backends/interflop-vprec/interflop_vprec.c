@@ -579,7 +579,7 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
     function_inst->input_args = NULL;
     function_inst->nb_output_args = 0;
     function_inst->output_args = NULL;
-    function_inst->n_calls;
+    function_inst->n_calls = 0;
 
     // insert the function in the hashmap
     vfc_hashmap_insert(_vprec_func_map,

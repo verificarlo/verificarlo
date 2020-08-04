@@ -17,143 +17,438 @@ def GetFunctionInfo(FunctionID):
 	FunctionID = FunctionID[:FunctionID.rfind('_')]
 	Fline = int(FunctionID[FunctionID.rfind('_')+1:])
 	FunctionID = FunctionID[:FunctionID.rfind('_')]
-	Fname = FunctionID[FunctionID.rfind('/')+1:].upper()
+	Fname = FunctionID[FunctionID.rfind('/')+1:]
 	FunctionID = FunctionID[:FunctionID.rfind('/')]
 	Ffile = FunctionID[FunctionID.rfind('/')+1:]
 	return CallNb, Fline, Fname, Ffile
 
-def Histogram_A(ID, Data, Title, Color, File, yscale):
-	File.write("																					\n\
-       var data = google.visualization.arrayToDataTable([											\n\
-          "+ Data +"																				\n\
-        ]);																							\n\
-																									\n\
-        var options = {																				\n\
-        	title: \" " + Title + "\",																\n\
-			hAxis: {																				\n\
-				textStyle : { fontSize: 1 },														\n\
-				titleTextStyle: {fontSize: 1 },														\n\
-				textPosition: 'none',																\n\
-			},																						\n\
-			bar: { groupWidth: \"90%\" },															\n\
-			legend: { position: \"none\" },															\n\
-			annotations: {																			\n\
-				textStyle: {																		\n\
-					color: 'black',																	\n\
-					fontSize: 9,																	\n\
-					auraColor: 'transparent',														\n\
-				},																					\n\
-				stem: { length: 0 }, 																\n\
-				alwaysOutside: true,																\n\
-			},																						\n\
-			vAxis: {																				\n\
-				viewWindow: { min: 0, max: " + yscale + " },										\n\
-			},																						\n\
-          	colors: " + Color +	"																	\n\
-        };																							\n\
-        																							\n\
-		var view = new google.visualization.DataView(data);											\n\
-		view.setColumns([0, 1,																		\n\
-		{ calc: \"stringify\",																		\n\
-		sourceColumn: 1,																			\n\
-		type: \"string\",																			\n\
-		role: \"annotation\"}]);																	\n\
-																									\n\
-        var chart = new google.visualization.ColumnChart(document.getElementById(\'" + ID + "\'));	\n\
-        																							\n\
-        chart.draw(view, options);																	\n\
-    ")
+def AddMainChart(CallChartString, DataMain):
+	CallChartString += "\n\
+			window.addEventListener('resize', DrawMainHist)\n\
+		    google.charts.setOnLoadCallback(DrawMainHist);\n\
+				\n\
+		    function DrawMainHist() {\n\
+		      var data = google.visualization.arrayToDataTable([\n\
+          			['Functions', 'Number of calls'],\n\
+          			" + DataMain + "]); \n\
+				\n\
+		      var view = new google.visualization.DataView(data);\n\
+		      view.setColumns([0, 1,\n\
+		      	{ 	calc: \"stringify\",\n\
+					sourceColumn: 1,\n\
+					type: \"string\",\n\
+					role: \"annotation\"}\n\
+				]);\n\
+				\n\
+		      var options = {\n\
+		        title: \"Number of calls to instrumented functions\",\n\
+		        hAxis: {\n\
+		        	textStyle: {fontSize: 15},\n\
+		        	slantedText:true,\n\
+		        	slantedTextAngle:90,\n\
+		        },\n\
+		        legend: { position: \"none\" },\n\
+		        bar: {groupWidth: 25},\n\
+		        chartArea: {top: 30, left: \"25%\", width: \"60%\", height: \"100%\"},\n\
+		        height: (data.getNumberOfRows() * 40) + 50,\n\
+				annotations: {\n\
+					textStyle: {\n\
+						color: 'black',\n\
+						fontSize: 15,\n\
+						auraColor: 'transparent',\n\
+					},\n\
+					stem: { length: 0 }, \n\
+					alwaysOutside: true,\n\
+				},\n\
+		      };\n\
+				\n\
+		    	var chart = new google.visualization.BarChart(document.getElementById(\"MainHist\"));\n\
+		      \n\
+		      	chart.draw(view, options);\n\
+				\n\
+  				google.visualization.events.addListener(chart, 'click', function(e) {\n\
+				    var selection;\n\
+				    if (e.targetID) {\n\
+				      selection = e.targetID.split('#');\n\
+				      if (selection[0].indexOf('vAxis') > -1) {\n\
+				        DisplayFunctionInformations(data.getValue(parseInt(selection[selection.length - 1]), parseInt(selection[1])));\n\
+				        location.hash = '#Calls'\n\
+				      }\n\
+				    }\n\
+  				});\n\
+		  }\n\
+	"
 
-def Histogram_B(ID, Data, Title, Color, File, yscale):
-	File.write("																					\n\
-       var data = google.visualization.arrayToDataTable([											\n\
-          "+ Data +"																				\n\
-        ]);																							\n\
-																									\n\
-        var options = {																				\n\
-        	title: \" " + Title + "\",																\n\
-			hAxis: {																				\n\
-				textStyle : { fontSize: 1 },														\n\
-				titleTextStyle: {fontSize: 1 },														\n\
-				textPosition: 'none',																\n\
-			},																						\n\
-			bar: { groupWidth: \"90%\" },															\n\
-			legend: { position: \"none\" },															\n\
-			annotations: {																			\n\
-				textStyle: {																		\n\
-					color: 'black',																	\n\
-					auraColor: 'transparent',														\n\
-					fontSize: 9,																	\n\
-				},																					\n\
-				stem: { length: 0 },																\n\
-				alwaysOutside: true,																\n\
-			},																						\n\
-			vAxis: {																				\n\
-				viewWindow: { min: 0, max: " + yscale + " },										\n\
-			},																						\n\
-          	colors: " + Color +	"																	\n\
-        };																							\n\
-        																							\n\
-		var view = new google.visualization.DataView(data);											\n\
-		view.setColumns([0, 1, 																		\n\
-		{ calc: \"stringify\",																		\n\
-		sourceColumn: 1,																			\n\
-		type: \"string\",																			\n\
-		role: \"annotation\"}, 2,																	\n\
-		{ calc: \"stringify\",																		\n\
-		sourceColumn: 2,																			\n\
-		type: \"string\",																			\n\
-		role: \"annotation\"},																		\n\
-		]);																							\n\
-																									\n\
-        var chart = new google.visualization.ColumnChart(document.getElementById(\'" + ID + "\'));	\n\
-        																							\n\
-        chart.draw(view, options);																	\n\
-    ")
+	return CallChartString
 
-def Bar(ID, Data, Title, Color, File):
-	File.write("																					\n\
-       var data = google.visualization.arrayToDataTable([											\n\
-          "+ Data +"																				\n\
-        ]);																							\n\
-																									\n\
-        var options = {																				\n\
-        	title: \" " + Title + "\",																\n\
-			hAxis: {																				\n\
-				viewWindow: { min: 0, max: 52 },													\n\
-			},																						\n\
-			vAxis: {																				\n\
-				title: '', titleTextStyle: {color: 'white'}, 										\n\
-			},																						\n\
-			chartArea: {  width: \"70%\"},															\n\
-          	colors: " + Color +	",																	\n\
-			bars: 'horizontal',																		\n\
-        };																							\n\
-        																							\n\
-        var chart = new google.visualization.BarChart(document.getElementById(\'" + ID + "\'));		\n\
-        																							\n\
-        chart.draw(data, options);																	\n\
-        document.getElementById(\'" + ID + "\').style.display = \"none\";							\n\
-    ")
-
-def Line(ID, Data, Title, File, Color):
-	File.write("																					\n\
-       var data = google.visualization.arrayToDataTable([											\n\
-          "+ Data +"																				\n\
-        ]);																							\n\
-																									\n\
-        var options = {																				\n\
-        	title: \" " + Title + "\",																\n\
-          	colors: " + Color +	",																	\n\
-        };																							\n\
-        																							\n\
-        var chart = new google.visualization.LineChart(document.getElementById(\'" + ID + "\'));	\n\
-        																							\n\
-        chart.draw(data, options);																	\n\
-    ")
-
+def AddCallChart(CallChartString, ChartID, RangeData, ExponentData, MantissaData, OpsDoublePrec, OpsFloatPrec):
+	CallChartString += "\n\
+	 	window.addEventListener('resize', Draw" + ChartID + "Hist)\n\
+		google.charts.setOnLoadCallback(Draw" + ChartID + "Hist);\n\
+		function Draw" + ChartID + "Hist() {\n\
+		  		var data = google.visualization.arrayToDataTable([\n\
+		  			['IO','Minimum value', 'Maximum value'],\n\
+		  			" + RangeData + "]);\n\
+				\n\
+		      	var view = new google.visualization.DataView(data);\n\
+				\n\
+		      	view.setColumns([0, \n\
+		      		1,\n\
+		      		{calc: \"stringify\",\n\
+					sourceColumn: 1,\n\
+					type: \"string\",\n\
+					role: \"annotation\"},\n\
+		      		2,\n\
+		      		{calc: \"stringify\",\n\
+					sourceColumn: 2,\n\
+					type: \"string\",\n\
+					role: \"annotation\"}\n\
+				]);\n\
+				\n\
+		      	var options = {\n\
+		        	title: \"Inputs/Ouptuts minimum and maximum values\",\n\
+		        	annotations: {\n\
+						textStyle: {\n\
+							color: 'black',\n\
+							fontSize: 15,\n\
+							auraColor: 'transparent',\n\
+						},\n\
+						stem: { length: 0 }, \n\
+						alwaysOutside: true,\n\
+					},\n\
+					chartArea: {width: \"50%\", left: \"25%\"},\n\
+					height: 150,\n\
+					hAxis: {\n\
+						 textPosition: 'none',\n\
+					},\n\
+					colors: ['#d5dc1a','#BCC213'],\n\
+		      	};\n\
+				\n\
+				var element = document.getElementById(\"" + ChartID + "RangeHist\");\n\
+				if (element != null){\n\
+			    	var chart = new google.visualization.ColumnChart(element);\n\
+			      	chart.draw(view, options);}\n\
+				\n\
+		  		var data = google.visualization.arrayToDataTable([\n\
+		  			['IO','Exponent size'],\n\
+		  			" + ExponentData + "]);\n\
+				\n\
+		      	var view = new google.visualization.DataView(data);\n\
+				\n\
+		      	view.setColumns([0, \n\
+		      		1,\n\
+		      		{calc: \"stringify\",\n\
+					sourceColumn: 1,\n\
+					type: \"string\",\n\
+					role: \"annotation\"}\n\
+				]);\n\
+				\n\
+		      	var options = {\n\
+		        	title: \"Inputs/Ouptuts minmum and maximum eponent size\",\n\
+		        	annotations: {\n\
+						textStyle: {\n\
+							color: 'black',\n\
+							fontSize: 15,\n\
+							auraColor: 'transparent',\n\
+						},\n\
+						stem: { length: 0 }, \n\
+						alwaysOutside: true,\n\
+					},\n\
+					chartArea: {width: \"50%\", left: \"25%\"},\n\
+					height: 150,\n\
+					vAxis: { \n\
+						viewWindow: { min: 0 , max: 14 }, \n\
+					},\n\
+					hAxis: {\n\
+						 textPosition: 'none',\n\
+					},\n\
+					colors: ['#0F5C9B'],\n\
+		      	};\n\
+				\n\
+				var element = document.getElementById(\""+ ChartID + "ExponentHist\");\n\
+				if (element != null){\n\
+			    	var chart = new google.visualization.ColumnChart(element);\n\
+			      	chart.draw(view, options);}\n\
+				\n\
+		  		var data = google.visualization.arrayToDataTable([\n\
+		  			['IO','Mantissa size'],\n\
+		  			" + MantissaData + "]);\n\
+				\n\
+		      	var view = new google.visualization.DataView(data);\n\
+				\n\
+		      	view.setColumns([0, \n\
+		      		1,\n\
+		      		{calc: \"stringify\",\n\
+					sourceColumn: 1,\n\
+					type: \"string\",\n\
+					role: \"annotation\"}\n\
+				]);\n\
+				\n\
+		      	var options = {\n\
+		        	title: \"Inputs/Ouptuts minmum and maximum mantissa size\",\n\
+		        	annotations: {\n\
+						textStyle: {\n\
+							color: 'black',\n\
+							fontSize: 15,\n\
+							auraColor: 'transparent',\n\
+						},\n\
+						stem: { length: 0 }, \n\
+						alwaysOutside: true,\n\
+					},\n\
+					chartArea: {width: \"50%\", left: \"25%\"},\n\
+					height: 300,\n\
+					vAxis: { \n\
+						viewWindow: { min: 0 , max: 54 }, \n\
+					},\n\
+					colors: ['#9B0500'],\n\
+		      	};\n\
+				\n\
+				var element = document.getElementById(\""+ ChartID + "MantissaHist\");\n\
+				if (element != null){\n\
+			    	var chart = new google.visualization.ColumnChart(element);\n\
+			      	chart.draw(view, options);}\n\
+				\n\
+		      	/* Internal Operations Double */\n\
+				\n\
+		  		var data = google.visualization.arrayToDataTable([\n\
+		  			['Type','Mantissa size', '', 'ExponentSize'],\n\
+		  			"+ OpsDoublePrec +"]);\n\
+				\n\
+		      	var view = new google.visualization.DataView(data);\n\
+				\n\
+		      	view.setColumns([0, \n\
+		      		1,\n\
+		      		{calc: \"stringify\",\n\
+					sourceColumn: 1,\n\
+					type: \"string\",\n\
+					role: \"annotation\"},\n\
+					2,\n\
+					3,\n\
+					{calc: \"stringify\",\n\
+					sourceColumn: 3,\n\
+					type: \"string\",\n\
+					role: \"annotation\"},\n\
+				]);\n\
+				\n\
+		      	var options = {\n\
+		        	title: \"Precison for internal operations in double precision\",\n\
+		        	annotations: {\n\
+						textStyle: {\n\
+							color: 'black',\n\
+							fontSize: 15,\n\
+							auraColor: 'transparent',\n\
+						},\n\
+						stem: { length: 2 , color: 'transparent'}, \n\
+						alwaysOutside: true,\n\
+					},\n\
+					chartArea: {width: \"50%\", left: \"25%\"},\n\
+					height: 150,\n\
+					hAxis: { \n\
+						viewWindow: { min: 0 , max: 66 }, \n\
+					},\n\
+					vAxis: {\n\
+						 textPosition: 'none',\n\
+					},\n\
+					isStacked: true,\n\
+					colors: ['#9B0500','transparent','#0F5C9B'],\n\
+		      	};\n\
+				\n\
+				var element = document.getElementById(\""+ ChartID + "DoubleHist\");\n\
+				if (element != null){\n\
+			    	var chart = new google.visualization.BarChart(element);\n\
+			      	chart.draw(view, options);}\n\
+				\n\
+		      	/* Internal Operations Float */\n\
+				\n\
+	  			var data = google.visualization.arrayToDataTable([\n\
+		  			['Type','Mantissa size', '', 'ExponentSize'],\n\
+		  			" + OpsFloatPrec + "]);\n\
+				\n\
+		      	var view = new google.visualization.DataView(data);\n\
+				\n\
+		      	view.setColumns([0, \n\
+		      		1,\n\
+		      		{calc: \"stringify\",\n\
+					sourceColumn: 1,\n\
+					type: \"string\",\n\
+					role: \"annotation\"},\n\
+					2,\n\
+					3,\n\
+					{calc: \"stringify\",\n\
+					sourceColumn: 3,\n\
+					type: \"string\",\n\
+					role: \"annotation\"},\n\
+				]);\n\
+				\n\
+		      	var options = {\n\
+		        	title: \"Precison for internal operations in simple precision\",\n\
+		        	annotations: {\n\
+						textStyle: {\n\
+							color: 'black',\n\
+							fontSize: 15,\n\
+							auraColor: 'transparent',\n\
+						},\n\
+						stem: { length: 2, color: 'transparent' }, \n\
+						alwaysOutside: true,\n\
+					},\n\
+					chartArea: {width: \"50%\", left: \"25%\"},\n\
+					height: 150,\n\
+					hAxis: { \n\
+						viewWindow: { min: 0 , max: 66 }, \n\
+					},\n\
+					vAxis: {\n\
+						 textPosition: 'none',\n\
+					},\n\
+					isStacked: true,\n\
+					colors: ['#9B0500','transparent','#0F5C9B'],\n\
+		      	};\n\
+				\n\
+				var element = document.getElementById(\""+ ChartID + "FloatHist\");\n\
+				if (element != null){\n\
+			    	var chart = new google.visualization.BarChart(element);\n\
+			      	chart.draw(view, options);}\n\
+				\n\
+		  }\n\
+		  "
+	return CallChartString
 
 if __name__ == "__main__":
+
+	ReportString = "\n\
+<!DOCTYPE html>\n\
+<html>\n\
+	<!-- HEAD -->\n\
+	<head>\n\
+		<meta charset=\"utf-8\" />\n\
+		<title>Precision Exploration Report</title>\n\
+		\n\
+		<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>\n\
+		\n\
+		<script>\n\
+			google.charts.load(\"current\", {packages:['corechart']});\n\
+		\n\
+			/* Chart script */\n\
+		\n\
+			google.charts.setOnLoadCallback(HideAll);\n\
+		\n\
+			actualFunction = \"\";\n\
+		\n\
+			function DisplayFunctionInformations(ID){\n\
+				if(actualFunction != \"\") {\n\
+					var to_hide = document.getElementById(actualFunction);\n\
+				 	to_hide.style.display = 'none';\n\
+				}\n\
+		\n\
+				var to_display = document.getElementById(ID);\n\
+				to_display.style.display = 'block';\n\
+		\n\
+				actualFunction = ID;\n\
+			}\n\
+		\n\
+			function DisplayCallInformations(ChartID){\n\
+				ArgumentsID = ChartID + \"Arguments\";\n\
+				OperationsID = ChartID + \"Operations\";\n\
+		\n\
+				var to_display = document.getElementById(ArgumentsID);\n\
+				if (to_display != null){\n\
+					if(to_display.style.display != 'none') {\n\
+						to_display.style.display = 'none';\n\
+					}else{\n\
+						to_display.style.display = 'block';\n\
+					}\n\
+				}\n\
+		\n\
+				var to_display = document.getElementById(OperationsID);\n\
+		\n\
+				if (to_display != null){\n\
+					if(to_display.style.display != 'none') {\n\
+						to_display.style.display = 'none';\n\
+					}else{\n\
+						to_display.style.display = 'block';\n\
+					}\n\
+				}\n\
+			}\n\
+		\n\
+			function HideAll(){\n\
+			    var to_hide = document.getElementsByClassName(\"OperationsPrecision\");\n\
+			    \n\
+			    for(var i = 0; i < to_hide.length; i++){\n\
+			        to_hide[i].style.display = \"none\";\n\
+			    }\n\
+		\n\
+			    var to_hide = document.getElementsByClassName(\"ArgumentsPrecision\");\n\
+			    \n\
+			    for(var i = 0; i < to_hide.length; i++){\n\
+			        to_hide[i].style.display = \"none\";\n\
+			    }\n\
+		\n\
+			    var to_hide = document.getElementsByClassName(\"FunctionInformations\");\n\
+			    \n\
+			    for(var i = 0; i < to_hide.length; i++){\n\
+			        to_hide[i].style.display = \"none\";\n\
+			    }\n\
+			}\n\
+		</script>\n\
+		\n\
+		<style>\n\
+			body {\n\
+				font-family: arial;\n\
+				max-width: 1400px;\n\
+				margin: auto;\n\
+			}\n\
+		\n\
+			p {\n\
+				text-align: justify;\n\
+			}\n\
+		\n\
+			h1 {\n\
+				text-align: center;\n\
+			}\n\
+		\n\
+			.CallLink {\n\
+				text-decoration: none;\n\
+				color: black;\n\
+			}\n\
+		\n\
+			.InfoLink {\n\
+				text-decoration: none;\n\
+				color: black;\n\
+			}\n\
+		\n\
+		\n\
+		</style>\n\
+	</head>\n\
+		\n\
+	<!-- BODY -->\n\
+	<body>\n\
+		\n\
+		<h1 id=\"Home\">Precision Exploration Report</h1>\n\
+		\n\
+		<h2 id=\"Introduction\"> Introduction</h2>\n\
+		\n\
+		<p>\n\
+			The role of this report is to present results of the precision exploration script of verificarlo. The given result is not the optimal precision configuration and is obtained by a simple dichotomic search. The internal operations, precision is given exclusively for functions compiled with verificarlo, input(s) and output(s) precision is given for every called function.\n\
+		</p>\n\
+		\n\
+		<h2 id=\"Functions\"> Functions</h2>\n\
+		\n\
+		<p>\n\
+			This graph presents called functions which use float or double, they are sorted by number of calls and you can access to precision results for a function by clicking on the desired label.\n\
+		</p>\n\
+		\n\
+		<div id=\"MainHist\"></div>\n\
+		\n\
+		<h2 id=\"Calls\"> Functions Call Site</h2>\n\
+		\n\
+		<p>\n\
+			When a function is selected, a list with call sites of the selected function appear. You can hide or show precision information for a call site by clicking on the desired item in the list. If the function has not been compiled with verficarlo, internal operations precision are not accessible. If a function doesn't have double or float arguments, arguments precision will not be accessible too. \n\
+		</p>\n\
+		\n\
+		<!-- Function Calls -->\n\
+		\n\
+	</body>\n\
+</html>\n\
+	"
 
 	DaraDir = "vfc_exp_data/"
 	Arguments = DaraDir + "ArgumentsResults.csv"
@@ -163,7 +458,7 @@ if __name__ == "__main__":
 	SA_Args_svg = DaraDir + "vfc_args_only.svg"
 	SA_Ops_svg = DaraDir + "vfc_ops_only.svg"
 	SA_All_svg = DaraDir + "vfc_args_ops.svg"
-	Report_File = "vfc_precexp_report.html"
+	Report_File = DaraDir + "vfc_precexp_report.html"
 	
 	if not os.path.exists(Arguments):
 		print("{} not found".format(Arguments))
@@ -175,7 +470,7 @@ if __name__ == "__main__":
 		print("{} not found".format(Operations))
 		exit(0)
 	else:
-		DataOps = pd.read_csv(Operations)
+		DataAllOps = pd.read_csv(Operations)
 
 	if not os.path.exists(All_Args):
 		print("{} not found".format(All_Args))
@@ -201,568 +496,136 @@ if __name__ == "__main__":
 		print("{} not found".format(SA_All_svg))
 		exit(0)
 
-	Report = open(Report_File, "w")
-	Report.write("<!DOCTYPE html>\n")
-	Report.write("<html>\n")
-
-	# Both Arguments #
-	DataAllArgs = DataAllArgs[(DataAllArgs['Lib'] == 1) | (DataAllArgs['Int'] == 1)].reset_index(drop=True)
-	DataAllArgs = DataAllArgs.sort_values(by=['Ncalls', 'ID'],  ascending=False).reset_index(drop=True)
-
-	AllArgsNcalls = "['ID', 'Ncalls'],\n"
-	AllArgsRange = "['ID', 'Range'],\n"
-	AllArgsPrec = "['ID', 'Prec'],\n"
-
-	i = 0
-	while i < len(DataAllArgs.index):
-		ID = str(DataAllArgs.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-		tmp = DataAllArgs[DataAllArgs['ID'] == DataAllArgs.at[i, 'ID']]
-
-		AllArgsNcalls += "['{ID}', {Ncalls}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Ncalls = tmp.at[i, 'Ncalls'])
-		AllArgsRange += "['{ID}', {Range}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Range = tmp['Range'].max())
-		AllArgsPrec += "['{ID}', {Prec}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Prec = tmp['Prec'].max())
-
-		i += len(tmp.index) + 1
-
-	AllArgsNcalls = AllArgsNcalls[:-2]
-	AllArgsRange = AllArgsRange[:-2]
-	AllArgsPrec = AllArgsPrec[:-2]
-
-	# Both Operations #
-	DataAllOps = DataAllOps[(DataAllOps['Lib'] != 1) & (DataAllOps['Int'] != 1)].reset_index(drop=True)
-	DataAllOps = DataAllOps.sort_values(by=['Ncalls', 'ID'],  ascending=False).reset_index(drop=True)
-
-	AllOpsNcalls = "['ID', 'Ncalls'],\n"
-	AllOpsRange = "['ID', 'Range64', 'Range32'],\n"
-	AllOpsPrec = "['ID', 'Prec64', 'Prec32'],\n"
-
-	i = 0
-	while i < len(DataAllOps.index):
-		ID = str(DataAllOps.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-
-		AllOpsNcalls += "['{ID}', {Ncalls}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Ncalls = DataAllOps.at[i, 'Ncalls'])
-		AllOpsRange += "['{ID}', {Range64}, {Range32}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Range64 = DataAllOps.at[i, 'Range64'],
-			Range32 = DataAllOps.at[i, 'Range32'])
-		AllOpsPrec += "['{ID}', {Prec64}, {Prec32}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Prec64 = DataAllOps.at[i, 'Prec64'],
-			Prec32 = DataAllOps.at[i, 'Prec32'])
-
-		i += 1
-
-	AllOpsNcalls = AllOpsNcalls[:-2]
-	AllOpsRange = AllOpsRange[:-2]
-	AllOpsPrec = AllOpsPrec[:-2]
-
-	# Arguments #
-	DataArgs = DataArgs[(DataArgs['Lib'] == 1) | (DataArgs['Int'] == 1)].reset_index(drop=True)
-	DataArgs = DataArgs.sort_values(by=['Ncalls', 'ID'],  ascending=False).reset_index(drop=True)
-
-	ArgsNcalls = "['ID', 'Ncalls'],\n"
-	ArgsRange = "['ID', 'Range'],\n"
-	ArgsPrec = "['ID', 'Prec'],\n"
-
-	i = 0
-	while i < len(DataArgs.index):
-		ID = str(DataArgs.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-		tmp = DataArgs[DataArgs['ID'] == DataArgs.at[i, 'ID']]
-
-		ArgsNcalls += "['{ID}', {Ncalls}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Ncalls = tmp.at[i, 'Ncalls'])
-		ArgsRange += "['{ID}', {Range}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Range = tmp['Range'].max())
-		ArgsPrec += "['{ID}', {Prec}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Prec = tmp['Prec'].max())
-
-		i += len(tmp.index) + 1
-
-	ArgsNcalls = ArgsNcalls[:-2]
-	ArgsRange = ArgsRange[:-2]
-	ArgsPrec = ArgsPrec[:-2]
-
-	# Operations #
-	DataOps = DataOps[(DataOps['Lib'] != 1) & (DataOps['Int'] != 1)].reset_index(drop=True)
-	DataOps = DataOps.sort_values(by=['Ncalls', 'ID'],  ascending=False).reset_index(drop=True)
-
-	OpsNcalls = "['ID', 'Ncalls'],\n"
-	OpsRange = "['ID', 'Range64', 'Range32'],\n"
-	OpsPrec = "['ID', 'Prec64', 'Prec32'],\n"
-
-	i = 0
-	while i < len(DataOps.index):
-		ID = str(DataOps.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-
-		OpsNcalls += "['{ID}', {Ncalls}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Ncalls = DataOps.at[i, 'Ncalls'])
-		OpsRange += "['{ID}', {Range64}, {Range32}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Range64 = DataOps.at[i, 'Range64'],
-			Range32 = DataOps.at[i, 'Range32'])
-		OpsPrec += "['{ID}', {Prec64}, {Prec32}],\n".format(
-			ID = Ffile + '/' + Fname + '_' + str(Fline),
-			Prec64 = DataOps.at[i, 'Prec64'],
-			Prec32 = DataOps.at[i, 'Prec32'])
-
-		i += 1
-
-	OpsNcalls = OpsNcalls[:-2]
-	OpsRange = OpsRange[:-2]
-	OpsPrec = OpsPrec[:-2]
-
-	#########################################
-	#  				  HEAD 				 	#
-	#########################################
-	Report.write("<head>\n")
-	Report.write("																				\n\
-	<meta charset=\"UTF-8\">																	\n\
-	<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>	\n\
-    <script type=\"text/javascript\">															\n\
-      google.charts.load('current', {'packages':['bar', 'corechart']});							\n\
-      google.charts.setOnLoadCallback(drawChart);												\n\
-																								\n\
-      function drawChart() {																	\n\
-    ")
-
-	# Both Args #
-	Histogram_A('AllArgsNcalls', AllArgsNcalls, "Number of calls", "['#BCC213']", Report, str(DataAllArgs['Ncalls'].max() + 5))
-	Histogram_A('AllArgsRange', AllArgsRange, "Length of the exponent (bit)", "['#1374C2']", Report, str(11 + 5))
-	Histogram_A('AllArgsPrec', AllArgsPrec, "Length of the mantissa (bit)", "['#C20700']", Report, str(52 + 5))
-
-	i = 0
-	while i < len(DataAllArgs.index):
-		ID = str(DataAllArgs.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-		tmp = DataAllArgs[DataAllArgs['ID'] == DataAllArgs.at[i, 'ID']].reset_index(drop=True)
-
-		for j in tmp.index:
-			if tmp.at[j, 'Type'] == 0:
-				IO = tmp.at[j, 'IO'] + ' Float '
-			else:
-				IO = tmp.at[j, 'IO'] + ' Double '
-
-			AllArgsList = "['IO', 'Range', 'Prec'],\n"
-			AllArgsList += "['{IO}', {Range}, {Prec}],\n".format(
-				IO = IO,
-				Range = tmp.at[j, 'Range'],
-				Prec = tmp.at[j, 'Prec'])
-
-			Bar("AllArgsList_" + ID + "_" + str(j), 
-				AllArgsList, 
-				" ",
-				"['#1374C2', '#C20700']",
-				Report)
-
-		i += j + 1
-
-	# Both Ops #
-	Histogram_A('AllOpsNcalls', AllOpsNcalls, "Number of calls", "['#BCC213']", Report,str(DataAllOps['Ncalls'].max() + 5))
-	Histogram_B('AllOpsRange', AllOpsRange, "Length of the exponent (bit)", "['#0F5C9B', '#428FCE']", Report, str(11 + 5))
-	Histogram_B('AllOpsPrec', AllOpsPrec, "Length of the mantissa (bit)", "['#9B0500', '#CE3833']", Report, str(52 + 5))
-
-	i = 0
-	while i < len(DataAllOps.index):
-		ID = str(DataAllOps.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-
-		AllOpsList = "['Precision', 'Range', 'Prec'],\n"
-
-		AllOpsList += "['{Precision}', {Range64}, {Prec64}],\n".format(
-				Precision = "Double",
-				Range64 = DataAllOps.at[j, 'Range64'],
-				Prec64 = DataAllOps.at[j, 'Prec64'])
-		
-		Bar("AllOpsList_" + ID + "_Double", 
-			AllOpsList, 
-			" ",
-			"['#0F5C9B', '#9B0500']",
-			Report)
-
-		AllOpsList = "['Precision', 'Range', 'Prec'],\n"
-
-		AllOpsList += "['{Precision}', {Range32}, {Prec32}],\n".format(
-				Precision = "Float",
-				Range32 = DataAllOps.at[j, 'Range32'],
-				Prec32 = DataAllOps.at[j, 'Prec32'])
-
-		Bar("AllOpsList_" + ID + "_Simple", 
-			AllOpsList, 
-			" ",
-			"['#428FCE', '#CE3833']",
-			Report)
-
-		i += 1
-
-	# Args #
-
-	Histogram_A('ArgsNcalls', ArgsNcalls, "Number of calls", "['#BCC213']", Report, str(DataArgs['Ncalls'].max() + 5))
-	Histogram_A('ArgsRange', ArgsRange, "Length of the exponent (bit)", "['#1374C2']", Report, str(11 + 5))
-	Histogram_A('ArgsPrec', ArgsPrec, "Length of the mantissa (bit)", "['#C20700']", Report, str(52 + 5))
-
-	i = 0
-	while i < len(DataArgs.index):
-		ID = str(DataArgs.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-		tmp = DataArgs[DataArgs['ID'] == DataArgs.at[i, 'ID']].reset_index(drop=True)
-
-		for j in tmp.index:
-			if tmp.at[j, 'Type'] == 0:
-				IO = tmp.at[j, 'IO'] + ' Float '
-			else:
-				IO = tmp.at[j, 'IO'] + ' Double '
-
-			ArgsList = "['IO', 'Range', 'Prec'],\n"
-			ArgsList += "['{IO}', {Range}, {Prec}],\n".format(
-				IO = IO,
-				Range = tmp.at[j, 'Range'],
-				Prec = tmp.at[j, 'Prec'])
-
-			Bar("ArgsList_" + ID + "_" + str(j), 
-				ArgsList, 
-				" ",
-				"['#1374C2', '#C20700']",
-				Report)
-
-		i += j + 1
-
-	# Ops #
-	Histogram_A('OpsNcalls', OpsNcalls, "Number of calls", "['#BCC213']", Report,str( DataOps['Ncalls'].max() + 5))
-	Histogram_B('OpsRange', OpsRange, "Length of the exponent (bit)", "['#0F5C9B', '#428FCE']", Report, str(11 + 5))
-	Histogram_B('OpsPrec', OpsPrec, "Length of the mantissa (bit)", "['#9B0500', '#CE3833']", Report, str(52 + 5))
-
-	i = 0
-	while i < len(DataOps.index):
-		ID = str(DataOps.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-
-		OpsList = "['Precision', 'Range', 'Prec'],\n"
-
-		OpsList += "['{Precision}', {Range64}, {Prec64}],\n".format(
-				Precision = "Double",
-				Range64 = DataOps.at[j, 'Range64'],
-				Prec64 = DataOps.at[j, 'Prec64'])
-
-		Bar("OpsList_" + ID + "_Double", 
-			OpsList, 
-			" ",
-			"['#0F5C9B', '#9B0500']",
-			Report)
-
-		OpsList = "['Precision', 'Range', 'Prec'],\n"
-
-		OpsList += "['{Precision}', {Range32}, {Prec32}],\n".format(
-				Precision = "Float",
-				Range32 = DataOps.at[j, 'Range32'],
-				Prec32 = DataOps.at[j, 'Prec32'])
-
-		Bar("OpsList_" + ID + "_Simple", 
-			OpsList, 
-			" ",
-			"['#428FCE', '#CE3833']",
-			Report)
-
-		i += 1
-
-	# Simulated Annealing #
-
-	# Args #
-	"""
-	DataProbability = "['Iteration', 'Probability'],\n"
-	DataEnergy = "['Iteration', 'Energy'],\n"
-	DataTemperature = "['Iteration', 'Temperature'],\n"
-
-	for i in range(len(SA_Args)):
-		DataProbability += "['{Iteration}', '{Probability}'],\n".format(Iteration = i, Probability = SA_Args.at[i, "Probability"])
-		DataEnergy += "['{Iteration}', '{Energy}'],\n".format(Iteration = i, Probability = SA_Args.at[i, "Energy"])
-		DataTemperature += "['{Iteration}', '{Temperature}'],\n".format(Iteration = i, Probability = SA_Args.at[i, "Temperature"])
-
-	DataProbability = DataProbability[:-2]
-	DataEnergy = DataEnergy[:-2]
-	DataTemperature = DataTemperature[:-2]
-
-	Line("SA_Args_Probability", DataProbability, 'Evolution of the acceptation probability', Report, "['#BCC213']")
-	Line("SA_Args_Energy", DataEnergy, 'Evolution of the system energy', Report, "['#BCC213']")
-	Line("SA_Args_Temperature", DataTemperature, 'Evolution of the temperature', Report, "['#BCC213']")
-
-	# Ops #
-	DataProbability = "['Iteration', 'Probability'],\n"
-	DataEnergy = "['Iteration', 'Energy'],\n"
-	DataTemperature = "['Iteration', 'Temperature'],\n"
-
-	for i in range(len(SA_Ops)):
-		DataProbability += "['{Iteration}', '{Probability}'],\n".format(Iteration = i, Probability = SA_Ops.at[i, "Probability"])
-		DataEnergy += "['{Iteration}', '{Energy}'],\n".format(Iteration = i, Probability = SA_Ops.at[i, "Energy"])
-		DataTemperature += "['{Iteration}', '{Temperature}'],\n".format(Iteration = i, Probability = SA_Ops.at[i, "Temperature"])
-
-	DataProbability = DataProbability[:-2]
-	DataEnergy = DataEnergy[:-2]
-	DataTemperature = DataTemperature[:-2]
-
-	Line("SA_Ops_Probability", DataProbability, 'Evolution of the acceptation probability', Report, "['#BCC213']")
-	Line("SA_Ops_Energy", DataEnergy, 'Evolution of the system energy', Report, "['#BCC213']")
-	Line("SA_Ops_Temperature", DataTemperature, 'Evolution of the temperature', Report, "['#BCC213']")
-
-	# All #
-	DataProbability = "['Iteration', 'Probability'],\n"
-	DataEnergy = "['Iteration', 'Energy'],\n"
-	DataTemperature = "['Iteration', 'Temperature'],\n"
-
-	for i in range(len(SA_All)):
-		DataProbability += "['{Iteration}', '{Probability}'],\n".format(Iteration = i, Probability = SA_All.at[i, "Probability"])
-		DataEnergy += "['{Iteration}', '{Energy}'],\n".format(Iteration = i, Probability = SA_All.at[i, "Energy"])
-		DataTemperature += "['{Iteration}', '{Temperature}'],\n".format(Iteration = i, Probability = SA_All.at[i, "Temperature"])
-
-	DataProbability = DataProbability[:-2]
-	DataEnergy = DataEnergy[:-2]
-	DataTemperature = DataTemperature[:-2]
-
-	Line("SA_All_Probability", DataProbability, 'Evolution of the acceptation probability', Report, "['#BCC213']")
-	Line("SA_All_Energy", DataEnergy, 'Evolution of the system energy', Report, "['#BCC213']")
-	Line("SA_All_Temperature", DataTemperature, 'Evolution of the temperature', Report, "['#BCC213']")
-	"""
-
-	Report.write("}\n")
-
-	Report.write("																		\n\
-	function toggle(ID){																\n\
-		var all = document.getElementsByClassName(ID);									\n\
-		for (var i = 0; i < all.length; i++) {											\n\
-			if (all[i].style.display == \"none\") {										\n\
-				all[i].style.display = \"block\";										\n\
-			} else {																	\n\
-				all[i].style.display = \"none\";										\n\
-			}        																	\n\
-		}																				\n\
-	}																					\n\
-	")
-
-	Report.write("</script>\n")
-
-	Report.write("																			\n\
-		<style>																				\n\
-			.navbar {																		\n\
-			  list-style-type: none;														\n\
-			  margin: 0;																	\n\
-			  padding: 0;																	\n\
-			  width: 15%;																	\n\
-			  background-color: #f1f1f1;													\n\
-			  position: fixed;																\n\
-			  left: 85%;																	\n\
-			  height: 100%;																	\n\
-			  overflow: auto;																\n\
-			}																				\n\
-																							\n\
-			li a {																			\n\
-			  display: block;																\n\
-			  color: #000;																	\n\
-			  text-decoration: none;														\n\
-			  text-align: center;															\n\
-			  border-bottom: 2px solid #555;												\n\
-			  padding-top: 1px;																\n\
-			}																				\n\
-																							\n\
-			li a.active {																	\n\
-			  background-color: #4CAF50;													\n\
-			  color: white;																	\n\
-			}																				\n\
-																							\n\
-			li a.active {																	\n\
-			  background-color: #555;														\n\
-			  color: white;																	\n\
-			}																				\n\
-																							\n\
-			li a:hover:not(.active) {														\n\
-			  background-color: #555;														\n\
-			  color: white;																	\n\
-			}																				\n\
-		</style>																			\n\
-	")
-
-	Report.write("</head>\n")
-
-	#########################################
-	#  				  BODY 				 	#
-	#########################################
-	Report.write("<body style=\"width: 85%;\">\n")
-
-	Report.write("																					\n\
-		<ul class=\"navbar\">																		\n\
-		  	<li><a class=\"active\" href=\"#all_part\"><h3>Arguments and Operations</h3></a></li>	\n\
-			<li><a href=\"#all_args_hist\"><h5>Arguments Precision Histogram</h5></a></li>			\n\
-			<li><a href=\"#all_args_list\"><h5>Arguments Precision List</h5></a></li>				\n\
-			<li><a href=\"#all_ops_hist\"><h5>Operations Precision Histogram</h5></a></li>			\n\
-			<li><a href=\"#all_ops_list\"><h5>Operations Precision List</h5></a></li>				\n\
-			<li><a href=\"#all_SA\"><h5>Research summary</h5></a></li>								\n\
-		  	<li><a class=\"active\" href=\"#args_part\"><h3>Arguments</h3></a></li>					\n\
-			<li><a href=\"#args_hist\"><h5>Arguments Precision Histogram</h5></a></li>				\n\
-			<li><a href=\"#args_list\"><h5>Arguments Precision List</h5></a></li>					\n\
-			<li><a href=\"#args_SA\"><h5>Research summary</h5></a></li>								\n\
-		  	<li><a class=\"active\" href=\"#ops_part\"><h3>Operations</h3></a></li>					\n\
-			<li><a href=\"#ops_hist\"><h5>Operations Precision Histogram</h5></a></li>				\n\
-			<li><a href=\"#ops_list\"><h5>Operations Precision List</h5></a></li>					\n\
-			<li><a href=\"#ops_SA\"><h5>Research summary</h5></a></li>								\n\
-		</ul>																						\n\
-		")
-
-	Report.write("<h1 id=\"home\" style=\"text-align: center; \">Optimized Precision Report</h1>\n")
-
-	############# All #############
-
-	# Title
-	Report.write("<h2 id=\"all_part\" style=\"text-align: center; \">Arguments precision and internal Operations precision</h2>\n")
-
-	# Sub Title
-	Report.write("<h3 id=\"all_args_hist\" style=\"text-align: center; \">Arguments minimum precision Histogram</h3>\n")
-
-	# Histogram
-	Report.write("<div id=\"AllArgsNcalls\" style=\"width: 95%; \"></div>\n")
-	Report.write("<div id=\"AllArgsRange\" style=\"width: 95%; \"></div>\n")
-	Report.write("<div id=\"AllArgsPrec\" style=\"width: 95%; \"></div>\n")
-
-	# Sub Title
-	Report.write("<h3 id=\"all_args_list\" style=\"text-align: center; \">Arguments minimum precison List</h3>\n")
-
-	# List
-	i = 0
-	while i < len(DataAllArgs.index):
-		ID = str(DataAllArgs.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-		tmp = DataAllArgs[DataAllArgs['ID'] == DataAllArgs.at[i, 'ID']].reset_index(drop=True)
-
-		Title = "Call to " + Fname + " in file " + Ffile + " at line " + str(Fline) + " (called " + str(DataAllArgs.at[i, 'Ncalls']) + " times):"
-		Report.write("<h4 onclick=toggle('" + "AllArgsList_" + ID + "_" + str(i) + "')>" + Title + "</h4>")
-
-		for j in tmp.index:
-			Report.write("<div class=\"" + "AllArgsList_" + ID + "_" + str(i) + "\" id=\"" + "AllArgsList_" + ID + "_" + str(j) + "\" style=\"width: 85%; height: 100px\"></div>\n")
-
-		i += j + 1
-
-	# Sub Title
-	Report.write("<h3 id=\"all_ops_hist\" style=\"text-align: center; \">Internal Operations precision Histogram</h3>\n")
-
-	# Histogram
-	Report.write("<div id=\"AllOpsNcalls\" style=\"width: 95%; \"></div>\n")
-	Report.write("<div id=\"AllOpsRange\" style=\"width: 95%; \"></div>\n")
-	Report.write("<div id=\"AllOpsPrec\" style=\"width: 95%; \"></div>\n")
-
-	# Sub Title
-	Report.write("<h3 id=\"all_ops_list\" style=\"text-align: center; \">Internal Operations precision List</h3>\n")
-
-	# List
-	i = 0
-	while i < len(DataAllOps.index):
-		ID = str(DataAllOps.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-
-		Title = "Function " + Fname + " in file " + Ffile + " at line " + str(Fline) + " (called " + str(DataAllOps.at[i, 'Ncalls']) + " times):"
-		Report.write("<h4 onclick=toggle('" + "AllOpsList_" + ID + "')>" + Title + "</h4>")
-
-		Report.write("<div class = \"" + "AllOpsList_" + ID + "\" id=\""+ "AllOpsList_" + ID + "_Double" + "\" style=\"width: 85%; height: 100px\"></div>\n")
-		Report.write("<div class = \"" + "AllOpsList_" + ID + "\" id=\""+ "AllOpsList_" + ID + "_Simple" + "\" style=\"width: 85%; height: 100px\"></div>\n")
-
-		i += 1
-
-	# Sub Title
-	Report.write("<h3 id=\"all_SA\" style=\"text-align: center; \">Research Progression</h3>\n")
-
-	# Research graph
-	Report.write("<img src={} style=\"width:100%;\" alt=\"Progression of the Research for Arguments and Operations\">".format(
-		SA_All_svg))
-
-	############# Arguments #############
-
-	# Title
-	Report.write("<h2 id=\"args_part\" style=\"text-align: center; \">Arguments precision</h2>\n")
-
-	# Sub Title
-	Report.write("<h3 id=\"args_hist\" style=\"text-align: center; \">Arguments minimum precison Histogram</h3>\n")
-
-	# Histogram
-	Report.write("<div id=\"ArgsNcalls\" style=\"width: 95%; \"></div>\n")
-	Report.write("<div id=\"ArgsRange\" style=\"width: 95%; \"></div>\n")
-	Report.write("<div id=\"ArgsPrec\" style=\"width: 95%; \"></div>\n")
-
-	# Sub Title
-	Report.write("<h3 id=\"args_list\" style=\"text-align: center; \">Arguments minimum precison List</h3>\n")
-
-	# List
-	i = 0
-	while i < len(DataArgs.index):
-		ID = str(DataArgs.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-		tmp = DataArgs[DataArgs['ID'] == DataArgs.at[i, 'ID']].reset_index(drop=True)
-
-		Title = "Call to " + Fname + " in file " + Ffile + " at line " + str(Fline) + " (called " + str(DataArgs.at[i, 'Ncalls']) + " times):"
-		Report.write("<h4 onclick=toggle('" + "ArgsList_" + ID + "_" + str(i) + "')>" + Title + "</h4>")
-
-		for j in tmp.index:
-			Report.write("<div class=\"" + "ArgsList_" + ID + "_" + str(i) + "\" id=\""+ "ArgsList_" + ID + "_" + str(j) + "\" style=\"width: 85%; height: 100px\"></div>\n")
-
-		i += j + 1
-
-
-	# Sub Title
-	Report.write("<h3 id=\"args_SA\" style=\"text-align: center; \">Research Progression</h3>\n")
-
-	# Research graph
-	Report.write("<img src={} style=\"width:100%;\" alt=\"Progression of the Research for Arguments\">".format(
-		SA_Args_svg))
-
-	############# Operations #############
-
-	# Title
-	Report.write("<h2 id=\"ops_part\" style=\"text-align: center; \">Internal Operations precision</h2>\n")
-
-	# Sub Title
-	Report.write("<h3 id=\"ops_hist\" style=\"text-align: center; \">Internal Operations precision Histogram</h3>\n")
-
-	# Histogram
-	Report.write("<div id=\"OpsNcalls\" style=\"width: 95%; \"></div>\n")
-	Report.write("<div id=\"OpsRange\" style=\"width: 95%; \"></div>\n")
-	Report.write("<div id=\"OpsPrec\" style=\"width: 95%; \"></div>\n")
-
-	# Sub Title
-	Report.write("<h3 id=\"ops_list\" style=\"text-align: center; \">Internal Operations precision List</h3>\n")
-
-	# List
-	i = 0
-	while i < len(DataOps.index):
-		ID = str(DataOps.at[i, 'ID'])
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(ID)
-
-		Title = "Function " + Fname + " in file " + Ffile + " at line " + str(Fline) + " (called " + str(DataOps.at[i, 'Ncalls']) + " times):"
-		Report.write("<h4 onclick=toggle('" + "OpsList_" + ID + "')>" + Title + "</h4>")
-
-		Report.write("<div class = \"" + "OpsList_" + ID + "\" id=\""+ "OpsList_" + ID + "_Double" + "\" style=\"width: 85%; height: 100px\"></div>\n")
-		Report.write("<div class = \"" + "OpsList_" + ID + "\" id=\""+ "OpsList_" + ID + "_Simple" + "\" style=\"width: 85%; height: 100px\"></div>\n")
-
-		i += 1
-
-	# Sub Title
-	Report.write("<h3 id=\"ops_SA\" style=\"text-align: center; \">Research Progression</h3>\n")
-
-	# Research Graph
-	Report.write("<img src={} style=\"width:100%;\" alt=\"Progression of the Research for Operations\">".format(
-		SA_Ops_svg))
-
-	Report.write("</body>\n")
-
-	Report.write("</html>")
-	Report.close()
+	CallChartString = ""
+
+	################ Functions List ################
+
+	dict = {}
+	dict_index = {}
+
+	for i in DataAllOps.index:
+		CallNb, Fline, Fname, Ffile = GetFunctionInfo(DataAllOps.at[i, 'ID'])
+
+		if Fname in dict.keys():
+			dict[Fname] += DataAllOps.at[i, 'Ncalls']
+			dict_index[Fname].append(i)
+		else:
+			dict[Fname] = DataAllOps.at[i, 'Ncalls']
+			dict_index[Fname] = [i]
+
+	SortedFunctions = pd.DataFrame(dict.items(), columns=['function','ncalls']).sort_values(by = 'ncalls', ascending=False, ignore_index=True)
+
+	DataMain = ""
+
+	for i in SortedFunctions.index:
+		DataMain += "['{Function}',{Ncalls}],\n".format(
+						Function = SortedFunctions.at[i, 'function'].upper(),
+						Ncalls = SortedFunctions.at[i, 'ncalls'])
+
+	CallChartString = AddMainChart(CallChartString, DataMain)
+
+	################ Function Calls ################
+
+	FunctionCallsStr = ""
+
+	for i in SortedFunctions.index:
+		FunctionCallsStr += "<div ID=\"{Function}\" class=\"FunctionInformations\">\n".format(
+			Function = SortedFunctions.at[i, 'function'].upper())
+
+		tmp_ops = DataAllOps.copy()
+		tmp_ops = tmp_ops.drop([x for x in tmp_ops.index if x not in dict_index[SortedFunctions.at[i, 'function']]])
+		tmp_ops = tmp_ops.sort_values(by = 'Ncalls', ascending=False, ignore_index=True)
+
+		for j in tmp_ops.index:
+			CallNb, Fline, Fname, Ffile = GetFunctionInfo(tmp_ops.at[j, 'ID'])
+
+			if Fname == SortedFunctions.at[i, 'function']:
+				ChartID = Ffile.replace('.', '_') + "_" + Fname.replace('.', '_') + "_" + str(CallNb)
+				RangeData = ""
+				ExponentData = ""
+				MantissaData = ""
+				OpsDoublePrec = ""
+				OpsFloatPrec = ""
+
+				FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID + "Arguments\" onClick=\"DisplayCallInformations('"+ ChartID+ "'); Draw_" + ChartID + "_Hist()\" \
+						class=\"InfoLink\"><h4>Call to {Fname} in {Ffile} at line {Fline} executed {Ncalls} time(s):</h4></a>\n".format(
+					Fname = Fname.upper(),
+					Ffile = Ffile,
+					Fline = Fline,
+					Ncalls = tmp_ops.at[j, 'Ncalls'])
+
+				tmp_args = DataAllArgs.copy()
+				tmp_args = tmp_args[tmp_args['ID'] == tmp_ops.at[j, 'ID']]
+				for k in tmp_args.index:
+					if tmp_args.at[k, 'Type'] == 0:
+						RangeData += "['{IO}',{Min}, {Max}],\n".format(
+							IO = tmp_args.at[k, 'IO'] + " - Float",
+							Min = tmp_args.at[k, 'Min'],
+							Max = tmp_args.at[k, 'Max'])
+						ExponentData += "['{IO}',{Exponent}],\n".format(
+							IO = tmp_args.at[k, 'IO'] + " - Float",
+							Exponent = tmp_args.at[k, 'Range'])
+						MantissaData += "['{IO}',{Mantissa}],\n".format(
+							IO = tmp_args.at[k, 'IO'] + " - Float",
+							Mantissa = tmp_args.at[k, 'Prec'])
+					else :
+						RangeData += "['{IO}',{Min}, {Max}],\n".format(
+							IO = tmp_args.at[k, 'IO'] + " - Double",
+							Min = tmp_args.at[k, 'Min'],
+							Max = tmp_args.at[k, 'Max'])
+						ExponentData += "['{IO}',{Exponent}],\n".format(
+							IO = tmp_args.at[k, 'IO'] + " - Double",
+							Exponent = tmp_args.at[k, 'Range'])
+						MantissaData += "['{IO}',{Mantissa}],\n".format(
+							IO = tmp_args.at[k, 'IO'] + " - Double",
+							Mantissa = tmp_args.at[k, 'Prec'],)
+
+				OpsFloatPrec += "['Float',{Prec32},{Fill},{Range32}],\n".format(
+					Prec32 = tmp_ops.at[j, 'Prec32'],
+					Fill = 23 - tmp_ops.at[j, 'Prec32'],
+					Range32 = tmp_ops.at[j, 'Range32'])
+
+				OpsDoublePrec += "['Double',{Prec64},{Fill},{Range64}],\n".format(
+					Prec64 = tmp_ops.at[j, 'Prec64'],
+					Fill = 52 - tmp_ops.at[j, 'Prec64'],
+					Range64 = tmp_ops.at[j, 'Range64'])
+
+				if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
+					FunctionCallsStr += "\n\
+					<div id=\"" + ChartID + "Arguments\" class=\"ArgumentsPrecision\">\n\
+						<h4 style=\"text-align: center;\">Arguments Precisions</h4>				\n\
+						<div id=\"" + ChartID + "RangeHist\"></div>\n\
+						<div id=\"" + ChartID + "ExponentHist\"></div>\n\
+						<div id=\"" + ChartID + "MantissaHist\"></div>\n\
+					</div>\n\
+					"
+				if not (tmp_ops.at[j, 'Int'] or tmp_ops.at[j, 'Lib']):
+					FunctionCallsStr += "\n\
+					<div id=\"" + ChartID + "Operations\"  class=\"OperationsPrecision\">\n\
+					<h4 style=\"text-align: center;\">Internal Operations Precisions</h4>	\n\
+					"
+					if tmp_ops.at[j, 'Double']:
+						FunctionCallsStr += "\n\
+							<div id=\"" + ChartID + "DoubleHist\"></div>\n\
+						"
+					if tmp_ops.at[j, 'Float']:
+						FunctionCallsStr += "\n\
+							<div id=\"" + ChartID + "FloatHist\"></div>\n\
+						"
+					FunctionCallsStr += "\n\
+					</div>																	\n\
+						"
+
+				CallChartString = AddCallChart(CallChartString, ChartID, RangeData, ExponentData, MantissaData, OpsDoublePrec, OpsFloatPrec)
+		FunctionCallsStr += "</div>\n"
+
+	FunctionCallsStr += "\n"
+	
+	ReportString = ReportString.replace('\t\t<!-- Function Calls -->', FunctionCallsStr)
+	ReportString = ReportString.replace('\t\t\t/* Chart script */', CallChartString)
+
+	ReportFile = open("report.html", "w")
+
+	ReportString = ReportFile.write(ReportString)
+
+	ReportFile.close()
