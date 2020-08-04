@@ -850,15 +850,19 @@ static struct argp_option options[] = {
     {key_output_file_str, KEY_OUTPUT_FILE, "OUTPUT", 0,
      "output file where the precision profile is written", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
-    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
-     "select error mode among {rel, abs, all}", 0},
-    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
-     "select magnitude of the maximum absolute error", 0},
      "select VPREC mode among {ieee, full, ib, ob}", 0},
     {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
      "select error mode among {rel, abs, all}", 0},
     {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
      "select magnitude of the maximum absolute error", 0},
+<<<<<<< HEAD
+     "select VPREC mode among {ieee, full, ib, ob}", 0},
+    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
+     "select error mode among {rel, abs, all}", 0},
+    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
+     "select magnitude of the maximum absolute error", 0},
+=======
+>>>>>>> bugfix for wrongly placed copy and paste
     {key_instrument_str, KEY_INSTRUMENT, "INSTRUMENTATION", 0,
      "select VPREC instrumentation mode among {arguments, operations, full}",
      0},
@@ -1067,16 +1071,10 @@ void print_information_header(void *context) {
                 : (ctx->relErr && ctx->absErr)
                       ? VPREC_ERR_MODE_STR[vprec_err_mode_all]
                       : VPREC_ERR_MODE_STR[vprec_err_mode_rel],
-<<<<<<< HEAD
-      key_err_exp_str, (ctx->absErr_exp), key_daz_str,
-      ctx->daz ? "true" : "false", key_ftz_str, ctx->ftz ? "true" : "false",
-      key_instrument_str, VPREC_INST_MODE_STR[VPREC_INST_MODE]);
-=======
       key_err_exp_str, (ctx->absErr_exp), 
       key_daz_str, ctx->daz ? "true" : "false",
       key_ftz_str, ctx->ftz ? "true" : "false", key_instrument_str,
       VPREC_INST_MODE_STR[VPREC_INST_MODE]);
->>>>>>> work in progress on adding support for absolute error mode for vprec
 }
 
 void _interflop_finalize(void *context) {
