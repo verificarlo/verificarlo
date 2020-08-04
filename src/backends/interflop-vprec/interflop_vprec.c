@@ -337,16 +337,18 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
       (((t_context *)context)->ftz && !is_input)) {
     a = 0;
   } else {
-    if ((((t_context *)context)->relErr == true) 
-        && (((t_context *)context)->absErr == true)) {
+    if ((((t_context *)context)->relErr == true) &&
+        (((t_context *)context)->absErr == true)) {
       /* vprec error mode all */
-      if ((-1)*((t_context *)context)->absErr_exp < binary32_precision)
-        a = handle_binary32_denormal(a, emin, aexp.u32, (-1)*((t_context *)context)->absErr_exp);
+      if ((-1) * ((t_context *)context)->absErr_exp < binary32_precision)
+        a = handle_binary32_denormal(a, emin, aexp.u32,
+                                     (-1) * ((t_context *)context)->absErr_exp);
       else
         a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
     } else if (((t_context *)context)->absErr == true) {
       /* vprec error mode abs */
-      a = handle_binary32_denormal(a, emin, aexp.u32, (-1)*((t_context *)context)->absErr_exp);
+      a = handle_binary32_denormal(a, emin, aexp.u32,
+                                   (-1) * ((t_context *)context)->absErr_exp);
     }
   }
 
@@ -405,6 +407,29 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* check for overflow or underflow in target range */
   if (aexp.s64 > emax) {
     a = a * INFINITY;
+    sp_case = true;
+  }
+
+  if (aexp.s64 <= emin) {
+    if ((((t_context *)context)->relErr == true) &&
+        (((t_context *)context)->absErr == true)) {
+      /* vprec error mode all */
+      if ((-1) * ((t_context *)context)->absErr_exp < binary64_precision)
+        a = handle_binary64_denormal(a, emin, aexp.u64,
+                                     (-1) * ((t_context *)context)->absErr_exp);
+      else
+        a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
+    } else if (((t_context *)context)->absErr == true) {
+      /* vprec error mode abs */
+      a = handle_binary64_denormal(a, emin, aexp.u64,
+                                   (-1) * ((t_context *)context)->absErr_exp);
+    }
+  }
+
+  /* Special ops must be placed after denormal handling  */
+  /* If the operand raises an underflow, the operation */
+  /* has a different behavior. Example: x*Inf != 0*Inf */
+  if (sp_case) {
     return a;
   }
 
