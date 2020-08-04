@@ -100,10 +100,10 @@ static const char *VPREC_MODE_STR[] = {"ieee", "full", "ib", "ob"};
 
 /* define the available error modes */
 typedef enum {
-  mca_err_mode_rel,
-  mca_err_mode_abs,
-  mca_err_mode_all,
-  _mca_err_mode_end_
+  vprec_err_mode_rel,
+  vprec_err_mode_abs,
+  vprec_err_mode_all,
+  _vprec_err_mode_end_
 } vprec_err_mode;
 
 static const char *VPREC_ERR_MODE_STR[] = {"rel", "abs", "all"};
@@ -299,10 +299,15 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   int emax = (1 << (binary32_range - 1)) - 1;
   int emin = (emax > 1) ? 1 - emax : -1;
 
+
+
   /* in absolute error mode, the error threshold also gives the possible underflow limit */
-  if ((t_context *)context)->absErr == true) {
-    if ((t_context *)context)->absErr_exp > emin)
-      emin = t_context->absErr_exp;
+  if ((((t_context *)context)->relErr == true) 
+      && (((t_context *)context)->absErr == true)) {
+    if (((t_context *)context)->absErr_exp > emin)
+      emin = ((t_context *)context)->absErr_exp;
+  } else if (((t_context *)context)->absErr == true) {
+    emin = ((t_context *)context)->absErr_exp;
   }
 
   binary32 aexp = {.f32 = a};
@@ -320,7 +325,17 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         (((t_context *)context)->ftz && !is_input)) {
     a = 0;
   } else {
-    a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision, context);
+    if ((((t_context *)context)->relErr == true) 
+        && (((t_context *)context)->absErr == true)) {
+      /* vprec error mode all */
+      if ((-1)*((t_context *)context)->absErr_exp < binary32_precision)
+        a = handle_binary32_denormal(a, emin, aexp.u32, (-1)*((t_context *)context)->absErr_exp);
+      else
+        a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
+    } else if (((t_context *)context)->absErr == true) {
+      /* vprec error mode abs */
+      a = handle_binary32_denormal(a, emin, aexp.u32, (-1)*((t_context *)context)->absErr_exp);
+    }
   }
 
   /* Specials ops must be placed after denormal handling  */
@@ -334,7 +349,17 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   /* else, normal case: can be executed even if a
      previously rounded and truncated as denormal */
   if (binary32_precision < FLOAT_PMAN_SIZE) {
-    a = round_binary32_normal(a, binary32_precision, context);
+    if ((((t_context *)context)->relErr == true) 
+        && (((t_context *)context)->absErr == true)) {
+      /* vprec error mode all */
+      if ((-1)*((t_context *)context)->absErr_exp < binary32_precision)
+        a = round_binary32_normal(a, (-1)*((t_context *)context)->absErr_exp);
+      else
+        a = round_binary32_normal(a, binary32_precision);
+    } else if (((t_context *)context)->absErr == true) {
+      /* vprec error mode abs */
+      a = round_binary32_normal(a, (-1)*((t_context *)context)->absErr_exp);
+    }
   }
 
   return a;
@@ -355,9 +380,9 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   int emin = (emax > 1) ? 1 - emax : -1;
 
   /* in absolute error mode, the error threshold also gives the possible underflow limit */
-  if ((t_context *)context)->absErr == true) {
-    if ((t_context *)context)->absErr_exp > emin)
-      emin = t_context->absErr_exp;
+  if (((t_context *)context)->absErr == true) {
+    if (((t_context *)context)->absErr_exp > emin)
+      emin = ((t_context *)context)->absErr_exp;
   }
 
   binary64 aexp = {.f64 = a};
