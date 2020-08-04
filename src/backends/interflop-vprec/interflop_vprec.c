@@ -375,14 +375,13 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
 =======
   /* in absolute error mode, the error threshold also gives the possible underflow limit */
   if (((t_context *)context)->absErr == true) {
-<<<<<<< HEAD
-    if ((t_context *)context)->absErr_exp > emin)
-      emin = t_context->absErr_exp;
-=======
     if (((t_context *)context)->absErr_exp > emin)
       emin = ((t_context *)context)->absErr_exp;
+<<<<<<< HEAD
 >>>>>>> refining the formula; binary32, for now
 >>>>>>> refining the formula; binary32, for now
+=======
+>>>>>>> refining the formula; now also binary64
   }
 
   binary64 aexp = {.f64 = a};
