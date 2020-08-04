@@ -446,10 +446,15 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   /* here emin is the smallest exponent in the *normal* range */
   int emin = 1 - emax;
 
+
+
   /* in absolute error mode, the error threshold also gives the possible underflow limit */
-  if ((t_context *)context)->absErr == true) {
-    if ((t_context *)context)->absErr_exp > emin)
-      emin = t_context->absErr_exp;
+  if ((((t_context *)context)->relErr == true) 
+      && (((t_context *)context)->absErr == true)) {
+    if (((t_context *)context)->absErr_exp > emin)
+      emin = ((t_context *)context)->absErr_exp;
+  } else if (((t_context *)context)->absErr == true) {
+    emin = ((t_context *)context)->absErr_exp;
   }
 
   binary32 aexp = {.f32 = a};
@@ -547,9 +552,9 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   int emin = 1 - emax;
 
   /* in absolute error mode, the error threshold also gives the possible underflow limit */
-  if ((t_context *)context)->absErr == true) {
-    if ((t_context *)context)->absErr_exp > emin)
-      emin = t_context->absErr_exp;
+  if (((t_context *)context)->absErr == true) {
+    if (((t_context *)context)->absErr_exp > emin)
+      emin = ((t_context *)context)->absErr_exp;
   }
 
   binary64 aexp = {.f64 = a};
