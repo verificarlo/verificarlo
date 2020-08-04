@@ -100,9 +100,16 @@ static const char *VPREC_MODE_STR[] = {"ieee", "full", "ib", "ob"};
 
 /* define the available error modes */
 typedef enum {
+<<<<<<< HEAD
   vprec_err_mode_rel,
   vprec_err_mode_abs,
   vprec_err_mode_all
+=======
+  mca_err_mode_rel,
+  mca_err_mode_abs,
+  mca_err_mode_all,
+  _mca_err_mode_end_
+>>>>>>> work in progress on adding support for absolute error mode for vprec
 } vprec_err_mode;
 
 static const char *VPREC_ERR_MODE_STR[] = {"rel", "abs", "all"};
