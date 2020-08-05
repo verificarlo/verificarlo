@@ -440,7 +440,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     break;
   case KEY_ERR_MODE:
-    /* mca mode */
+    /* mca error mode */
     if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_rel], arg) == 0) {
       ctx->relErr = true;
       ctx->absErr = false;
