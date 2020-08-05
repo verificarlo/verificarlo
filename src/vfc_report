@@ -81,11 +81,11 @@ def AddMainChart(CallChartString, DataMain):
 
 	return CallChartString
 
-def AddCallChart(CallChartString, ChartID, RangeData, ExponentData, MantissaData, OpsDoublePrec, OpsFloatPrec):
+def AddCallArgsChart(CallChartString, ChartID, RangeData, ExponentData, MantissaData):
 	CallChartString += "\n\
-	 	window.addEventListener('resize', Draw" + ChartID + "Hist)\n\
-		google.charts.setOnLoadCallback(Draw" + ChartID + "Hist);\n\
-		function Draw" + ChartID + "Hist() {\n\
+	 	window.addEventListener('resize', Draw" + ChartID + "ArgsHist)\n\
+		google.charts.setOnLoadCallback(Draw" + ChartID + "ArgsHist);\n\
+		function Draw" + ChartID + "ArgsHist() {\n\
 		  		var data = google.visualization.arrayToDataTable([\n\
 		  			['IO','Minimum value', 'Maximum value'],\n\
 		  			" + RangeData + "]);\n\
@@ -208,8 +208,15 @@ def AddCallChart(CallChartString, ChartID, RangeData, ExponentData, MantissaData
 			    	var chart = new google.visualization.ColumnChart(element);\n\
 			      	chart.draw(view, options);}\n\
 				\n\
-		      	/* Internal Operations Double */\n\
-				\n\
+		}\n\
+		"
+	return CallChartString
+
+def AddCallOpsChart(CallChartString, ChartID, OpsDoublePrec, OpsFloatPrec):
+	CallChartString += "\n\
+	 	window.addEventListener('resize', Draw" + ChartID + "OpsHist)\n\
+		google.charts.setOnLoadCallback(Draw" + ChartID + "OpsHist);\n\
+		function Draw" + ChartID + "OpsHist() {\n\
 		  		var data = google.visualization.arrayToDataTable([\n\
 		  			['Type','Mantissa size', '', 'ExponentSize'],\n\
 		  			"+ OpsDoublePrec +"]);\n\
@@ -308,8 +315,8 @@ def AddCallChart(CallChartString, ChartID, RangeData, ExponentData, MantissaData
 			    	var chart = new google.visualization.BarChart(element);\n\
 			      	chart.draw(view, options);}\n\
 				\n\
-		  }\n\
-		  "
+		}\n\
+		"
 	return CallChartString
 
 if __name__ == "__main__":
@@ -346,20 +353,9 @@ if __name__ == "__main__":
 			}\n\
 		\n\
 			function DisplayCallInformations(ChartID){\n\
-				ArgumentsID = ChartID + \"Arguments\";\n\
-				OperationsID = ChartID + \"Operations\";\n\
+				DivID = ChartID + \"Precisions\";\n\
 		\n\
-				var to_display = document.getElementById(ArgumentsID);\n\
-				if (to_display != null){\n\
-					if(to_display.style.display != 'none') {\n\
-						to_display.style.display = 'none';\n\
-					}else{\n\
-						to_display.style.display = 'block';\n\
-					}\n\
-				}\n\
-		\n\
-				var to_display = document.getElementById(OperationsID);\n\
-		\n\
+				var to_display = document.getElementById(DivID);\n\
 				if (to_display != null){\n\
 					if(to_display.style.display != 'none') {\n\
 						to_display.style.display = 'none';\n\
@@ -370,6 +366,12 @@ if __name__ == "__main__":
 			}\n\
 		\n\
 			function HideAll(){\n\
+			    var to_hide = document.getElementsByClassName(\"Precisions\");\n\
+			    \n\
+			    for(var i = 0; i < to_hide.length; i++){\n\
+			        to_hide[i].style.display = \"none\";\n\
+			    }\n\
+		\n\
 			    var to_hide = document.getElementsByClassName(\"OperationsPrecision\");\n\
 			    \n\
 			    for(var i = 0; i < to_hide.length; i++){\n\
@@ -387,6 +389,32 @@ if __name__ == "__main__":
 			    for(var i = 0; i < to_hide.length; i++){\n\
 			        to_hide[i].style.display = \"none\";\n\
 			    }\n\
+			}\n\
+			\n\
+			function Show(PartID, ChartID){\n\
+				Parts = [ChartID + \"ArgumentsOperationsPrecision\", \n\
+						ChartID + \"ArgumentsPrecision\", \n\
+						ChartID + \"OperationsPrecision\"];\n\
+		\n\
+				for(var i = 0; i < 3; i++){\n\
+					var to_display = document.getElementById(Parts[i]);\n\
+					if (to_display != null){\n\
+						if(i != PartID) {\n\
+							to_display.style.display = 'none';\n\
+						}else{\n\
+							to_display.style.display = 'block';\n\
+						}\n\
+					}\n\
+					}\n\
+			}\n\
+		\n\
+			function popup(DivID) {\n\
+				w=window.open(\"\", DivID + \".html\",\"width=1000,height=1000\");\n\
+				\n\
+				var item = document.getElementById(DivID);\n\
+				var clone = item.cloneNode(true);\n\
+				\n\
+				w.document.body.appendChild(clone);\n\
 			}\n\
 		</script>\n\
 		\n\
@@ -414,7 +442,32 @@ if __name__ == "__main__":
 				text-decoration: none;\n\
 				color: black;\n\
 			}\n\
+			.PrecNavBar {\n\
+				display: flex;\n\
+				width: 100%;\n\
+				justify-content: space-around;\n\
+				align-items: center;\n\
+			}\n\
 		\n\
+			.InfoMessage {\n\
+				width: 100%;\n\
+				text-align: center;\n\
+			}\n\
+		\n\
+			.PrecNavBar a {\n\
+				text-decoration: none;\n\
+				background-color: #BEBEBE;\n\
+				color: black;\n\
+				width: 33%;\n\
+				text-align: center;\n\
+				padding-top: 15px;\n\
+				padding-bottom: 15px;\n\
+			}\n\
+		\n\
+			.PrecNavBar a:hover {\n\
+				color: white;\n\
+				background-color: #808080;\n\
+			}\n\
 		\n\
 		</style>\n\
 	</head>\n\
@@ -470,7 +523,7 @@ if __name__ == "__main__":
 		print("{} not found".format(Operations))
 		exit(0)
 	else:
-		DataAllOps = pd.read_csv(Operations)
+		DataOps = pd.read_csv(Operations)
 
 	if not os.path.exists(All_Args):
 		print("{} not found".format(All_Args))
@@ -539,24 +592,115 @@ if __name__ == "__main__":
 		for j in tmp_ops.index:
 			CallNb, Fline, Fname, Ffile = GetFunctionInfo(tmp_ops.at[j, 'ID'])
 
-			if Fname == SortedFunctions.at[i, 'function']:
-				ChartID = Ffile.replace('.', '_') + "_" + Fname.replace('.', '_') + "_" + str(CallNb)
+			ChartID = Ffile.replace('.', '_') + "_" + Fname.replace('.', '_') + "_" + str(CallNb)
+			RangeData = ""
+			ExponentData = ""
+			MantissaData = ""
+			OpsDoublePrec = ""
+			OpsFloatPrec = ""
+
+			FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID + "Precision\" onClick=\"DisplayCallInformations('"+ ChartID+ "'); popup('" + ChartID +  "Precisions');\" \
+					class=\"InfoLink\"><h4>Call to {Fname} in {Ffile} at line {Fline} executed {Ncalls} time(s):</h4></a>\n".format(
+				Fname = Fname.upper(),
+				Ffile = Ffile,
+				Fline = Fline,
+				Ncalls = tmp_ops.at[j, 'Ncalls'])
+
+			# Arguments and Operations
+			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "Precisions\" class=\"Precisions\">\n"
+
+			FunctionCallsStr += "\t\t\t<div class=\"PrecNavBar\">\n"
+			FunctionCallsStr += "\t\t\t<a onClick=\"Show(0, '" + ChartID + "')\" href=\"#" + ChartID +  "ArgumentsOperationsPrecision\">Arguments and Operations</a>\n"
+			FunctionCallsStr += "\t\t\t<a onClick=\"Show(1, '" + ChartID + "')\" href=\"#" + ChartID +  "ArgumentsPrecision\">Arguments Only</a>\n"
+			FunctionCallsStr += "\t\t\t<a onClick=\"Show(2, '" + ChartID + "')\" href=\"#" + ChartID +  "OperationsPrecision\">Operations Only</a>\n"
+			FunctionCallsStr += "\t\t\t</div>\n"
+
+			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "ArgumentsOperationsPrecision\" class=\"ArgumentsOperationsPrecision\">\n"
+			FunctionCallsStr += "\t\t\t<h5>Arguments and Operations</h5>\n"
+
+			ArgsOpsChartID = ChartID + "_ArgsOps";
+
+			tmp_args = DataAllArgs.copy()
+			tmp_args = tmp_args[tmp_args['ID'] == tmp_ops.at[j, 'ID']]
+			for k in tmp_args.index:
+
+				if tmp_args.at[k, 'Type'] == 0:
+					RangeData += "['{IO}',{Min}, {Max}],\n".format(
+						IO = tmp_args.at[k, 'IO'] + " - Float",
+						Min = tmp_args.at[k, 'Min'],
+						Max = tmp_args.at[k, 'Max'])
+					ExponentData += "['{IO}',{Exponent}],\n".format(
+						IO = tmp_args.at[k, 'IO'] + " - Float",
+						Exponent = tmp_args.at[k, 'Range'])
+					MantissaData += "['{IO}',{Mantissa}],\n".format(
+						IO = tmp_args.at[k, 'IO'] + " - Float",
+						Mantissa = tmp_args.at[k, 'Prec'])
+				else :
+					RangeData += "['{IO}',{Min}, {Max}],\n".format(
+						IO = tmp_args.at[k, 'IO'] + " - Double",
+						Min = tmp_args.at[k, 'Min'],
+						Max = tmp_args.at[k, 'Max'])
+					ExponentData += "['{IO}',{Exponent}],\n".format(
+						IO = tmp_args.at[k, 'IO'] + " - Double",
+						Exponent = tmp_args.at[k, 'Range'])
+					MantissaData += "['{IO}',{Mantissa}],\n".format(
+						IO = tmp_args.at[k, 'IO'] + " - Double",
+						Mantissa = tmp_args.at[k, 'Prec'],)
+			if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
+				FunctionCallsStr += "\n\
+				<div>\n\
+					<h4 style=\"text-align: center;\">Arguments Precisions</h4>				\n\
+					<div id=\"" + ArgsOpsChartID + "RangeHist\"></div>\n\
+					<div id=\"" + ArgsOpsChartID + "ExponentHist\"></div>\n\
+					<div id=\"" + ArgsOpsChartID + "MantissaHist\"></div>\n\
+				</div>\n\
+				"
+				CallChartString = AddCallArgsChart(CallChartString, ArgsOpsChartID, RangeData, ExponentData, MantissaData)
+
+			OpsFloatPrec += "['Float',{Prec32},{Fill},{Range32}],\n".format(
+				Prec32 = tmp_ops.at[j, 'Prec32'],
+				Fill = 23 - tmp_ops.at[j, 'Prec32'],
+				Range32 = tmp_ops.at[j, 'Range32'])
+
+			OpsDoublePrec += "['Double',{Prec64},{Fill},{Range64}],\n".format(
+				Prec64 = tmp_ops.at[j, 'Prec64'],
+				Fill = 52 - tmp_ops.at[j, 'Prec64'],
+				Range64 = tmp_ops.at[j, 'Range64'])
+
+			if not (tmp_ops.at[j, 'Int'] or tmp_ops.at[j, 'Lib']):
+				FunctionCallsStr += "\n\
+				<div>\n\
+				<h4 style=\"text-align: center;\">Internal Operations Precisions</h4>	\n\
+				"
+				if tmp_ops.at[j, 'Double']:
+					FunctionCallsStr += "\n\
+						<div id=\"" + ArgsOpsChartID + "DoubleHist\"></div>\n\
+					"
+				if tmp_ops.at[j, 'Float']:
+					FunctionCallsStr += "\n\
+						<div id=\"" + ArgsOpsChartID + "FloatHist\"></div>\n\
+					"
+				FunctionCallsStr += "\n\
+				</div>																	\n\
+				"
+				CallChartString = AddCallOpsChart(CallChartString, ArgsOpsChartID, OpsDoublePrec, OpsFloatPrec)
+
+			FunctionCallsStr += "</div>\n"
+
+			# Arguments Only
+			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "ArgumentsPrecision\" class=\"ArgumentsPrecision\">\n"
+			if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
+				FunctionCallsStr += "\t\t\t<h5>Arguments Only</h5>\n"
+
+				ArgsChartID = ChartID + "_Args";
 				RangeData = ""
 				ExponentData = ""
 				MantissaData = ""
-				OpsDoublePrec = ""
-				OpsFloatPrec = ""
 
-				FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID + "Arguments\" onClick=\"DisplayCallInformations('"+ ChartID+ "'); Draw_" + ChartID + "_Hist()\" \
-						class=\"InfoLink\"><h4>Call to {Fname} in {Ffile} at line {Fline} executed {Ncalls} time(s):</h4></a>\n".format(
-					Fname = Fname.upper(),
-					Ffile = Ffile,
-					Fline = Fline,
-					Ncalls = tmp_ops.at[j, 'Ncalls'])
-
-				tmp_args = DataAllArgs.copy()
+				tmp_args = DataArgs.copy()
 				tmp_args = tmp_args[tmp_args['ID'] == tmp_ops.at[j, 'ID']]
 				for k in tmp_args.index:
+
 					if tmp_args.at[k, 'Type'] == 0:
 						RangeData += "['{IO}',{Min}, {Max}],\n".format(
 							IO = tmp_args.at[k, 'IO'] + " - Float",
@@ -580,43 +724,63 @@ if __name__ == "__main__":
 							IO = tmp_args.at[k, 'IO'] + " - Double",
 							Mantissa = tmp_args.at[k, 'Prec'],)
 
+				FunctionCallsStr += "\n\
+				<div>\n\
+					<h4 style=\"text-align: center;\">Arguments Precisions</h4>	\n\
+					<div id=\"" + ArgsChartID + "RangeHist\"></div>\n\
+					<div id=\"" + ArgsChartID + "ExponentHist\"></div>\n\
+					<div id=\"" + ArgsChartID + "MantissaHist\"></div>\n\
+				</div>\n\
+				"
+				CallChartString = AddCallArgsChart(CallChartString, ArgsChartID, RangeData, ExponentData, MantissaData)
+			else:
+				FunctionCallsStr += "<p class=\"InfoMessage\">It's looks like this function don't have float or double as arguments.</p>\n"
+			FunctionCallsStr += "</div>\n"
+
+			# Operations Only
+			k = DataOps[DataOps['ID'] == tmp_ops.at[j, 'ID']].index[0]
+
+			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "OperationsPrecision\" class=\"OperationsPrecision\">\n"
+			if not (DataOps.at[k, 'Int'] or DataOps.at[k, 'Lib']):
+				FunctionCallsStr += "\t\t\t<h5>Operations Only</h5>\n"
+
+				OpsChartID = ChartID + "_Ops";
+				OpsDoublePrec = ""
+				OpsFloatPrec = ""
+
 				OpsFloatPrec += "['Float',{Prec32},{Fill},{Range32}],\n".format(
-					Prec32 = tmp_ops.at[j, 'Prec32'],
-					Fill = 23 - tmp_ops.at[j, 'Prec32'],
-					Range32 = tmp_ops.at[j, 'Range32'])
+					Prec32 = DataOps.at[k, 'Prec32'],
+					Fill = 23 - DataOps.at[k, 'Prec32'],
+					Range32 = DataOps.at[k, 'Range32'])
 
 				OpsDoublePrec += "['Double',{Prec64},{Fill},{Range64}],\n".format(
-					Prec64 = tmp_ops.at[j, 'Prec64'],
-					Fill = 52 - tmp_ops.at[j, 'Prec64'],
-					Range64 = tmp_ops.at[j, 'Range64'])
+					Prec64 = DataOps.at[k, 'Prec64'],
+					Fill = 52 - DataOps.at[k, 'Prec64'],
+					Range64 = DataOps.at[k, 'Range64'])
 
-				if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
+				FunctionCallsStr += "\n\
+				<div>\n\
+				<h4 style=\"text-align: center;\">Internal Operations Precisions</h4>\n\
+				"
+				if DataOps.at[k, 'Double']:
 					FunctionCallsStr += "\n\
-					<div id=\"" + ChartID + "Arguments\" class=\"ArgumentsPrecision\">\n\
-						<h4 style=\"text-align: center;\">Arguments Precisions</h4>				\n\
-						<div id=\"" + ChartID + "RangeHist\"></div>\n\
-						<div id=\"" + ChartID + "ExponentHist\"></div>\n\
-						<div id=\"" + ChartID + "MantissaHist\"></div>\n\
-					</div>\n\
+						<div id=\"" + OpsChartID + "DoubleHist\"></div>\n\
 					"
-				if not (tmp_ops.at[j, 'Int'] or tmp_ops.at[j, 'Lib']):
+				if DataOps.at[k, 'Float']:
 					FunctionCallsStr += "\n\
-					<div id=\"" + ChartID + "Operations\"  class=\"OperationsPrecision\">\n\
-					<h4 style=\"text-align: center;\">Internal Operations Precisions</h4>	\n\
+						<div id=\"" + OpsChartID + "FloatHist\"></div>\n\
 					"
-					if tmp_ops.at[j, 'Double']:
-						FunctionCallsStr += "\n\
-							<div id=\"" + ChartID + "DoubleHist\"></div>\n\
-						"
-					if tmp_ops.at[j, 'Float']:
-						FunctionCallsStr += "\n\
-							<div id=\"" + ChartID + "FloatHist\"></div>\n\
-						"
-					FunctionCallsStr += "\n\
-					</div>																	\n\
-						"
+				FunctionCallsStr += "\n\
+				</div>																	\n\
+				"
+				CallChartString = AddCallOpsChart(CallChartString, OpsChartID, OpsDoublePrec, OpsFloatPrec)
 
-				CallChartString = AddCallChart(CallChartString, ChartID, RangeData, ExponentData, MantissaData, OpsDoublePrec, OpsFloatPrec)
+			else:
+				FunctionCallsStr += "<p class=\"InfoMessage\">It's looks like this function have not been compiled with verificarlo and we can't access to internal operations.</p>\n"
+
+			FunctionCallsStr += "</div>\n"
+			FunctionCallsStr += "</div>\n"
+
 		FunctionCallsStr += "</div>\n"
 
 	FunctionCallsStr += "\n"
