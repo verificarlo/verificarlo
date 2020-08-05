@@ -349,20 +349,26 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 
   /* else, normal case: can be executed even if a
      previously rounded and truncated as denormal */
-  if (binary32_precision < FLOAT_PMAN_SIZE) {
-    if ((((t_context *)context)->relErr == true) &&
-        (((t_context *)context)->absErr == true)) {
-      /* vprec error mode all */
-      if ((-1) * ((t_context *)context)->absErr_exp < binary32_precision)
-        a = round_binary32_normal(a, (-1) * ((t_context *)context)->absErr_exp);
-      else
-        a = round_binary32_normal(a, binary32_precision);
-    } else if (((t_context *)context)->absErr == true) {
-      /* vprec error mode abs */
+  if ((((t_context *)context)->relErr == false) && 
+      (((t_context *)context)->absErr == true)) {
+    /* vprec error mode abs */
+    if ((-1) * ((t_context *)context)->absErr_exp < FLOAT_PMAN_SIZE) {
       a = round_binary32_normal(a, (-1) * ((t_context *)context)->absErr_exp);
     }
   } else {
-    a = round_binary32_normal(a, binary32_precision);
+    if (binary32_precision < FLOAT_PMAN_SIZE) {
+      if ((((t_context *)context)->relErr == true) &&
+          (((t_context *)context)->absErr == true)) {
+        /* vprec error mode all */
+        if ((-1) * ((t_context *)context)->absErr_exp < binary32_precision)
+          a = round_binary32_normal(a, (-1) * ((t_context *)context)->absErr_exp);
+        else
+          a = round_binary32_normal(a, binary32_precision);
+      } else {
+          /* vprec error mode rel */
+          a = round_binary32_normal(a, binary32_precision);
+      }
+    }
   }
 
   return a;
@@ -447,20 +453,26 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
 
   /* else normal case, can be executed even if a previously rounded and
    * truncated as denormal */
-  if (binary64_precision < DOUBLE_PMAN_SIZE) {
-    if ((((t_context *)context)->relErr == true) &&
-        (((t_context *)context)->absErr == true)) {
-      /* vprec error mode all */
-      if ((-1) * ((t_context *)context)->absErr_exp < binary64_precision)
-        a = round_binary64_normal(a, (-1) * ((t_context *)context)->absErr_exp);
-      else
-        a = round_binary64_normal(a, binary64_precision);
-    } else if (((t_context *)context)->absErr == true) {
-      /* vprec error mode abs */
+  if ((((t_context *)context)->relErr == false) && 
+      (((t_context *)context)->absErr == true)) {
+    /* vprec error mode abs */
+    if ((-1) * ((t_context *)context)->absErr_exp < DOUBLE_PMAN_SIZE) {
       a = round_binary64_normal(a, (-1) * ((t_context *)context)->absErr_exp);
     }
   } else {
-    a = round_binary64_normal(a, binary64_precision);
+    if (binary64_precision < DOUBLE_PMAN_SIZE) {
+      if ((((t_context *)context)->relErr == true) &&
+          (((t_context *)context)->absErr == true)) {
+        /* vprec error mode all */
+        if ((-1) * ((t_context *)context)->absErr_exp < binary64_precision)
+          a = round_binary64_normal(a, (-1) * ((t_context *)context)->absErr_exp);
+        else
+          a = round_binary64_normal(a, binary64_precision);
+      } else {
+        /* vprec error mode rel */
+        a = round_binary64_normal(a, binary64_precision);
+      }
+    }
   }
 
   return a;
