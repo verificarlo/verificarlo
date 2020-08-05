@@ -1013,10 +1013,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     if (strcasecmp(VPREC_ERR_MODE_STR[vprec_err_mode_rel], arg) == 0) {
       ctx->relErr = true;
       ctx->absErr = false;
-    } else if (strcasecmp(VPREC_ERR_MODE_STR[vprec_err_mode_rel], arg) == 0) {
+    } else if (strcasecmp(VPREC_ERR_MODE_STR[vprec_err_mode_abs], arg) == 0) {
       ctx->relErr = false;
       ctx->absErr = true;
-    } else if (strcasecmp(VPREC_ERR_MODE_STR[vprec_err_mode_rel], arg) == 0) {
+    } else if (strcasecmp(VPREC_ERR_MODE_STR[vprec_err_mode_all], arg) == 0) {
       ctx->relErr = true;
       ctx->absErr = true;
     } else {
