@@ -2,7 +2,6 @@
 import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
-from tabulate import tabulate
 import random
 import math
 import sys
@@ -15,11 +14,6 @@ from os import listdir
 vfc_profile_file = "vfc_profile.txt"
 vfc_config_file = "vfc_config.txt"
 output_dir = ["vfc_ref", "vfc_std"]
-
-N = 100
-M = 100
-C = 0.08
-
 
 def set_environment_variable(envVar, value, env):
 	#replace current value, if the environment variable already exists
@@ -123,13 +117,15 @@ def getProfile(file):
 
 		j = i + 1
 		while j < i + Ninputs + Noutputs + 1:
-			IO, Type, Prec, Range = Lines[j].split()
+			IO, Type, Prec, Range, Min, Max = Lines[j].split()
 
 			Type = int(Type)
 			Prec = int(Prec)
 			Range = int(Range)
+			Min = int(Min)
+			Max = int(Max)
 
-			functionArgs = [ID, Lib, Int, IO, Type, Prec, Range, Ncalls]
+			functionArgs = [ID, Lib, Int, IO, Type, Prec, Range, Min, Max, Ncalls]
 
 			Arguments.append(functionArgs)
 
@@ -145,14 +141,11 @@ def getProfile(file):
 	FunctionsFilter = FunctionsFilter[(FunctionsFilter['Lib'] == 0) & (FunctionsFilter['Int'] == 0)]
 
 	ArgumentsFrame =  	pd.DataFrame(Arguments, 
-						columns = [	'ID', 'Lib', 'Int', 'IO','Type','Prec','Range', 'Ncalls']) 
-
-	ArgumentsFilter = ArgumentsFrame.copy()
-	ArgumentsFilter = ArgumentsFilter[(ArgumentsFilter['Lib'] == 1) | (ArgumentsFilter['Int'] == 1)] 
+						columns = [	'ID', 'Lib', 'Int', 'IO','Type','Prec','Range', 'Min', 'Max', 'Ncalls'])
 
 	f.close()
 
-	return FunctionsFrame, FunctionsFilter.index, ArgumentsFrame, ArgumentsFilter.index
+	return FunctionsFrame, FunctionsFilter.index, ArgumentsFrame, ArgumentsFrame.index
 
 def save(Arguments, Operations, File):
 	f = open(File, 'w')
@@ -193,473 +186,181 @@ def Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Argume
 
 	return cmp(cmpPath, reference_dir, current_dir, env)
 
-
-def EnergyArgs(Arguments, ArgumentsIndex):
-	E = 0
-
-	# Arguments
-	for i in ArgumentsIndex:
-		V = 0
-		if Arguments.at[i, "Type"] == 1:
-			V = (Arguments.at[i, "Prec"] + Arguments.at[i, "Range"])/63.0
-		else:
-			V = (Arguments.at[i, "Prec"] + Arguments.at[i, "Range"])/31.0
-		E += Arguments.at[i, "Ncalls"] * V
-
-	return E
-
-
-def EnergyOps(Operations, OperationsIndex):
-	E = 0
-
-	#Operations
-	for i in OperationsIndex:
-		if Operations.at[i, "Float"] != 0:
-			V = ((Operations.at[i, "Prec32"] + Operations.at[i, "Range32"])/31.0)
-			E += V * Operations.at[i, "Ncalls"]
-		if Operations.at[i, "Double"] != 0:
-			V = ((Operations.at[i, "Prec64"] + Operations.at[i, "Range64"])/63.0)
-			E += V * Operations.at[i, "Ncalls"]
-	return E
-
-def Energy(Arguments, ArgumentsIndex, Operations, OperationsIndex):
-	return EnergyArgs(Arguments, ArgumentsIndex) +  EnergyOps(Operations, OperationsIndex)
-
-def ModifyArgs(Arguments, ArgumentsIndex):
-	Copy = Arguments.copy()
-
-	i = random.choice(ArgumentsIndex)
-
-	A = ["Prec", "Range"]
-	B = [[23, 8], [52, 11]]
-
-	j = random.randrange(0,2)
-
-	if random.randrange(0,3) == 0 and Copy.at[i, A[j]] != B[Copy["Type"][i]][j]:
-		Copy.at[i, A[j]] = random.randrange(Copy.at[i, A[j]]+1, B[Copy["Type"][i]][j]+1)
-	elif Copy.at[i, A[j]] != 1:
-		Copy.at[i, A[j]] = random.randrange(1, Copy.at[i, A[j]])
-
-	return Copy
-
-def ModifyOps(Operations, OperationsIndex):
-	Copy = Operations.copy()
-
-	i = random.choice(OperationsIndex)
-
-	A = ["Prec32", "Range32", "Prec64", "Range64"]
-	B = [23, 8, 52, 11]
-
-	j = random.randrange(0,4)
-
-	if random.randrange(0,3) == 0 and Copy.at[i, A[j]] != B[j]:
-		Copy.at[i, A[j]] = random.randrange(Copy.at[i, A[j]]+1, B[j]+1)
-	elif Copy.at[i, A[j]] != 1:
-		Copy.at[i, A[j]] = random.randrange(1, Copy.at[i, A[j]])
-	
-
-	return Copy
-
-
-def sigmoid(x, a, b, c, d):
-	return ((a - b) / (1. + np.exp(x - (c / 2)) ** d)) + b
-
-
 def search_minimum_operations(	runPath, 
-								cmpPath, 
-								reference_dir, 
-								current_dir, 
-								config_file,
-								env, 
-								Arguments, 
-								Operations,
-								index):
+					cmpPath, 
+					reference_dir, 
+					current_dir, 
+					config_file,
+					env, 
+					Arguments, 
+					Operations,
+					index):
 	
 	if Operations.at[index, 'Double']:
-		l , r = 1 , Operations.at[index, 'Prec64']
+		Operations.at[index, 'Prec64'] = 1
 
-		flag = 1
-		while flag:
-			p = math.floor((r + l) / 2)
-			Operations.at[index, 'Prec64'] = p
-			#print(l, p, r)
-			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-				if l >= r:
-					flag = 0
-					break 
-				r = p
-			else:
-				l = p+1
+		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+			l , r = 1 , 52
+			flag = 1
+			while flag:
+				p = math.floor((r + l) / 2)
+				Operations.at[index, 'Prec64'] = p
+				#print(l, p, r)
+				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+					if l >= r:
+						flag = 0
+						break 
+					r = p
+				else:
+					l = p+1
 
-		l , r = 1 , Operations.at[index, 'Range64']
+		Operations.at[index, 'Range64'] = 1
 
-		flag = 1
-		while flag:
-			p = math.floor((r + l) / 2)
-			Operations.at[index, 'Range64'] = p
-			#print(l, p, r)
-			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-				if l >= r:
-					flag = 0
-					break
-				r = p
-			else:
-				l = p+1
+		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+			l , r = 1 , 11
+			flag = 1
+			while flag:
+				p = math.floor((r + l) / 2)
+				Operations.at[index, 'Range64'] = p
+				#print(l, p, r)
+				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+					if l >= r:
+						flag = 0
+						break
+					r = p
+				else:
+					l = p+1
 	else:
 		Operations.at[index, 'Prec64'] = 1
 		Operations.at[index, 'Range64'] = 1
 
 
 	if Operations.at[index, 'Float']:
-		l , r = 1 , Operations.at[index, 'Prec32']
+		Operations.at[index, 'Prec32'] = 1
 
-		flag = 1
-		while flag:
-			p = math.floor((r + l) / 2)
-			Operations.at[index, 'Prec32'] = p
-			#print(l, p, r)
-			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-				if l >= r:
-					flag = 0
-					break 
-				r = p
-			else:
-				l = p+1
+		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+			l , r = 1 , 23
+			flag = 1
+			while flag:
+				p = math.floor((r + l) / 2)
+				Operations.at[index, 'Prec32'] = p
+				#print(l, p, r)
+				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+					if l >= r:
+						flag = 0
+						break 
+					r = p
+				else:
+					l = p+1
 
 
-		l , r = 1 , Operations.at[index, 'Range32']
 
-		flag = 1
-		while flag:
-			p = math.floor((r + l) / 2)
-			Operations.at[index, 'Range32'] = p
-			#print(l, p, r) 
-			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-				if l >= r:
-					flag = 0
-					break
-				r = p
-			else:
-				l = p+1
+		Operations.at[index, 'Range32'] = 1
+
+		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+			l , r = 1 , 8
+			flag = 1
+
+			while flag:
+				p = math.floor((r + l) / 2)
+				Operations.at[index, 'Range32'] = p
+				#print(l, p, r) 
+				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+					if l >= r:
+						flag = 0
+						break
+					r = p
+				else:
+					l = p+1
 	else:
 		Operations.at[index, 'Prec32'] = 1
 		Operations.at[index, 'Range32'] = 1
 
 def search_minimum_arguments(	runPath, 
-								cmpPath, 
-								reference_dir, 
-								current_dir, 
-								config_file,
-								env, 
-								Arguments, 
-								Operations,
-								index):
+					cmpPath, 
+					reference_dir, 
+					current_dir, 
+					config_file,
+					env, 
+					Arguments, 
+					Operations,
+					index):
 
 	if Arguments.at[index, 'Type'] == 0:
-		l , r = 1 , Arguments.at[index, 'Prec']
+		Arguments.at[index, 'Prec'] = 1
 
-		flag = 1
-		while flag:
-			p = math.floor((r + l) / 2)
-			Arguments.at[index, 'Prec'] = p
-			#print(l, p, r)
-			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-				if l >= r:
-					flag = 0
-					break 
-				r = p
-			else:
-				l = p+1
+		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+			l , r = 1 , 23
+			flag = 1
+			while flag:
+				p = math.floor((r + l) / 2)
+				Arguments.at[index, 'Prec'] = p
+				#print(l, p, r)
+				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+					if l >= r:
+						flag = 0
+						break 
+					r = p
+				else:
+					l = p+1
 
-		l , r = 1 , Arguments.at[index, 'Range']
-		flag = 1
 
-		while flag:
-			p = math.floor((r + l) / 2)
-			Arguments.at[index, 'Range'] = p
-			#print(l, p, r) 
-			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-				if l >= r:
-					flag = 0
-					break
-				r = p
-			else:
-				l = p+1
+
+		Arguments.at[index, 'Range'] = 1
+
+		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+			l , r = 1 , 8
+			flag = 1
+
+			while flag:
+				p = math.floor((r + l) / 2)
+				Arguments.at[index, 'Range'] = p
+				#print(l, p, r) 
+				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+					if l >= r:
+						flag = 0
+						break
+					r = p
+				else:
+					l = p+1
 
 	elif Arguments.at[index, 'Type'] == 1:
-		l , r = 1 , Arguments.at[index, 'Prec']
+		Arguments.at[index, 'Prec'] = 1
 
-		flag = 1
-		while flag:
-			p = math.floor((r + l) / 2)
-			Arguments.at[index, 'Prec'] = p
-			#print(l, p, r)
-			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-				if l >= r:
-					flag = 0
-					break 
-				r = p
-			else:
-				l = p+1
+		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+			l , r = 1 , 52
+			flag = 1
+			while flag:
+				p = math.floor((r + l) / 2)
+				Arguments.at[index, 'Prec'] = p
+				#print(l, p, r)
+				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+					if l >= r:
+						flag = 0
+						break 
+					r = p
+				else:
+					l = p+1
 
-		l , r = 1 , Arguments.at[index, 'Range']
+		Arguments.at[index, 'Range'] = 1
 
-		flag = 1
-		while flag:
-			p = math.floor((r + l) / 2)
-			Arguments.at[index, 'Range'] = p
-			#print(l, p, r)
-			if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-				if l >= r:
-					flag = 0
-					break
-				r = p
-			else:
-				l = p+1
-
-def DICH_Arguments(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
-	print("-------------- Dich Arguments --------------")
-	ArgumentsFrameCopy = ArgumentsFrame.copy()
-	cpt = 1
-	for i in ArgumentsIndex:
-		print(cpt, "/", len(ArgumentsIndex))
-		search_minimum_arguments(	runPath, 
-									cmpPath, 
-									reference_dir, 
-									current_dir,
-									config_file,
-									env, 
-									ArgumentsFrameCopy,
-									FunctionsFrame,
-									i)
-		cpt += 1
-
-	return ArgumentsFrameCopy
-
-def DICH_Operations(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
-	# Operations
-	print("-------------- Dich Operations --------------")
-	FunctionsFrameCopy = FunctionsFrame.copy()
-	cpt = 1
-	for i in FunctionsIndex:
-		print(cpt, "/", len(FunctionsIndex))
-		search_minimum_operations(	runPath, 
-									cmpPath, 
-									reference_dir, 
-									current_dir,
-									config_file,
-									env, 
-									ArgumentsFrame,
-									FunctionsFrameCopy,
-									i)
-		cpt += 1
-
-	return FunctionsFrameCopy
-
-def DICH_All(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
-	print("-------------- Dich All --------------")
-	ArgumentsFrameCopy = ArgumentsFrame.copy()
-	FunctionsFrameCopy = FunctionsFrame.copy()
-	cpt = 1
-	for i in range(len(FunctionsFrameCopy.index)):
-		print(cpt, "/", len(FunctionsFrameCopy.index))
-		if i in FunctionsIndex:
-			search_minimum_operations(	runPath, 
-										cmpPath, 
-										reference_dir, 
-										current_dir,
-										config_file,
-										env, 
-										ArgumentsFrameCopy,
-										FunctionsFrameCopy,
-										i)
-		else:
-			tmp = ArgumentsFrameCopy[(ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
-			for j in tmp.index:
-				search_minimum_arguments(	runPath, 
-											cmpPath, 
-											reference_dir, 
-											current_dir,
-											config_file,
-											env, 
-											ArgumentsFrameCopy,
-											FunctionsFrameCopy,
-											j)
-
-		cpt += 1
-
-	return ArgumentsFrameCopy, FunctionsFrameCopy
-
-
-def SA_Arguments(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
-	print("-------------- SA Arguments --------------")
-	SA_Data = []
-
-	# set backend
-	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --mode=full --prec-input-file={} --instrument=arguments".format(config_file), env)
-
-	S = ArgumentsFrame.copy()
-	E = EnergyArgs(S, ArgumentsIndex)
-	P = 1
-	Step = M/N
-
-	i = 0
-	cpt = 0
-	while i < M:
-		T = sigmoid(i, 1.0, 0.0, M, C)
-		# modify state
-		Stmp = ModifyArgs(S, ArgumentsIndex)
-
-		# compute state energy
-		Etmp = EnergyArgs(Stmp, ArgumentsIndex)
-
-		# test state
-		Flag = Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Stmp, FunctionsFrame)
-
-		# choose if test if accepted
-		if Flag:
-			DeltaE = (E - Etmp)
-			if DeltaE >= 0:
-				S, E = Stmp, Etmp
-			else:
-				try:
-					P = T - ((abs(DeltaE)/abs(E)) * 50)
-					if P < 0:
-						P = 0
-				except OverflowError:
-					P = 0
-				if random.uniform(0, 1) < P:
-					S, E = Stmp, Etmp
-			if cpt % (N/100) == 0:
-				print("Arguments \t-> {}/{}".format(cpt, N, round(T,2), round(E,2)))
-			i = i + Step
-			cpt = cpt + 1
-
-		SA_Data.append([P, E, T])
-
-	S = DICH_Arguments(runPath, cmpPath, reference_dir, current_dir, config_file, env, S, ArgumentsIndex, FunctionsFrame, FunctionsIndex)
-
-	S.to_csv("vfc_exp_data/ArgumentsResults.csv")
-
-	SA_DataFrame = pd.DataFrame(SA_Data, columns=['Probabilty', 'Energy', 'Temperature'])
-
-	SA_DataFrame.to_csv("vfc_exp_data/vfc_args_only.csv")
-
-
-def SA_Operations(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
-	print("-------------- SA Operations --------------")
-	SA_Data = []
-
-	# set backend
-	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --mode=full --prec-input-file={} --instrument=operations".format(config_file), env)
-
-	S = FunctionsFrame.copy()
-	E = EnergyOps(S, FunctionsIndex)
-	P = 1
-	Step = M/N
-	
-	i = 0
-	cpt = 0
-	while i < M:
-		T = sigmoid(i, 1.0, 0.0, M, C)
-		# modify state
-		Stmp = ModifyOps(S, FunctionsIndex)
-
-		# compute state energy
-		Etmp = EnergyOps(Stmp, FunctionsIndex)
-
-		# test state
-		Flag = Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, Stmp)
-
-		# choose if test if accepted
-		if Flag:
-			DeltaE = (E - Etmp)
-			if DeltaE >= 0:
-				S, E = Stmp, Etmp
-			else:
-				try:
-					P = T - ((abs(DeltaE)/abs(E)) * 50)
-					if P < 0:
-						P = 0
-				except OverflowError:
-					P = 0
-				if random.uniform(0, 1) < P:
-					S, E = Stmp, Etmp
-			if cpt % (N/100) == 0:
-				print("Operations \t-> {}/{}".format(cpt, N, round(T,2), round(E,2)))
-			i = i + Step
-			cpt = cpt + 1
-		
-	SA_Data.append([P, E, T])
-
-	S = DICH_Operations(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, S, FunctionsIndex)
-
-	S.to_csv("vfc_exp_data/OperationsResults.csv")
-
-	SA_DataFrame = pd.DataFrame(SA_Data, columns=['Probabilty', 'Energy', 'Temperature'])
-
-	SA_DataFrame.to_csv("vfc_exp_data/vfc_ops_only.csv")
-
-def SA_All(runPath, cmpPath, reference_dir, current_dir, config_file, env, ArgumentsFrame, ArgumentsIndex, FunctionsFrame, FunctionsIndex):
-	print("-------------- SA All --------------")
-	SA_Data = []
-
-	# set backend
-	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --mode=full --prec-input-file={} --instrument=all".format(config_file), env)
-
-	S = [ArgumentsFrame.copy(), FunctionsFrame.copy()]
-	E = Energy(S[0], ArgumentsIndex, S[1], FunctionsIndex)
-	P = 1
-	Step = M/N
-	
-	i = 0
-	cpt = 0
-	while i < M:
-		T = sigmoid(i, 1.0, 0.0, M, C)
-		# modify state
-		Stmp = [S[0], S[1]]
-		if random.choice([0, 1]):
-			Stmp[0] = ModifyArgs(S[0], ArgumentsIndex)
-		else:
-			Stmp[1] = ModifyOps(S[1], FunctionsIndex)
-
-		# compute state energy
-		Etmp = Energy(Stmp[0], ArgumentsIndex, Stmp[1], FunctionsIndex)
-
-		# test state
-		Flag = Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Stmp[0], Stmp[1])
-
-		# choose if test if accepted
-		if Flag:
-			DeltaE = (E - Etmp)
-			if DeltaE >= 0:
-				S, E = Stmp, Etmp
-			else:
-				try:
-					P = T - ((abs(DeltaE)/abs(E)) * 50)
-					if P < 0:
-						P = 0
-				except OverflowError:
-					P = 0
-				if random.uniform(0, 1) < P:
-					S, E = Stmp, Etmp
-			if cpt % (N/100) == 0:
-				print("All \t\t-> {}/{}".format(cpt, N, round(T,2), round(E,2)))
-			i = i + Step
-			cpt = cpt + 1
-
-	SA_Data.append([P, E, T])
-
-	S[0], S[1] = DICH_All(runPath, cmpPath, reference_dir, current_dir, config_file, env, S[0], ArgumentsIndex, S[1], FunctionsIndex)
-
-	S[0].to_csv("vfc_exp_data/BothArgsResults.csv")
-	S[1].to_csv("vfc_exp_data/BothOpsResults.csv")
-
-	SA_DataFrame = pd.DataFrame(SA_Data, columns=['Probabilty', 'Energy', 'Temperature'])
-
-	SA_DataFrame.to_csv("vfc_exp_data/vfc_args_ops.csv")
+		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+			l , r = 1 , 11
+			flag = 1
+			while flag:
+				p = math.floor((r + l) / 2)
+				Arguments.at[index, 'Range'] = p
+				#print(l, p, r)
+				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
+					if l >= r:
+						flag = 0
+						break
+					r = p
+				else:
+					l = p+1
 
 if __name__ == "__main__":
+
 	if len(sys.argv) < 3:
 		print("explore.py [exrun] [excmp]")
 		exit()
@@ -713,35 +414,84 @@ if __name__ == "__main__":
 	# get dataset
 	FunctionsFrame, FunctionsIndex, ArgumentsFrame, ArgumentsIndex = getProfile(vfc_profile_file)
 
-	SA_Arguments(	runPath, 
-					cmpPath, 
-					output_dir[0], 
-					output_dir[1],
-					vfc_config_file,
-					env, 
-					ArgumentsFrame.copy(),
-					ArgumentsIndex,
-					FunctionsFrame,
-					FunctionsIndex)
+	# set backend
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --mode=full --instrument=operations".format(vfc_config_file), env)
 
-	SA_Operations(	runPath, 
-					cmpPath, 
-					output_dir[0], 
-					output_dir[1],
-					vfc_config_file,
-					env, 
-					ArgumentsFrame,
-					ArgumentsIndex,
-					FunctionsFrame.copy(),
-					FunctionsIndex)
+	# Operations
+	print("-------------- Operations --------------")
+	FunctionsFrameCopy = FunctionsFrame.copy()
+	cpt = 1
+	for i in FunctionsIndex:
+		print(cpt, "/", len(FunctionsIndex))
+		search_minimum_operations(	runPath, 
+									cmpPath, 
+									output_dir[0], 
+									output_dir[1],
+									vfc_config_file,
+									env, 
+									ArgumentsFrame,
+									FunctionsFrameCopy,
+									i)
+		cpt += 1
 
-	SA_All(	runPath, 
-			cmpPath, 
-			output_dir[0], 
-			output_dir[1],
-			vfc_config_file,
-			env, 
-			ArgumentsFrame.copy(),
-			ArgumentsIndex,
-			FunctionsFrame.copy(),
-			FunctionsIndex)
+	FunctionsFrameCopy.to_csv("vfc_exp_data/OperationsResults.csv")
+
+	# set backend
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --mode=full --instrument=arguments".format(vfc_config_file), env)
+
+	# Arguments
+	print("-------------- Arguments --------------")
+	ArgumentsFrameCopy = ArgumentsFrame.copy()
+	cpt = 1
+	for i in ArgumentsIndex:
+		print(cpt, "/", len(ArgumentsIndex))
+		search_minimum_arguments(	runPath, 
+									cmpPath, 
+									output_dir[0], 
+									output_dir[1],
+									vfc_config_file,
+									env, 
+									ArgumentsFrameCopy,
+									FunctionsFrame,
+									i)
+		cpt += 1
+
+	ArgumentsFrameCopy.to_csv("vfc_exp_data/ArgumentsResults.csv")
+
+	# set backend
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --mode=full --instrument=all".format(vfc_config_file), env)
+
+	# All
+	print("-------------- All --------------")
+	ArgumentsFrameCopy = ArgumentsFrame.copy()
+	FunctionsFrameCopy = FunctionsFrame.copy()
+	cpt = 1
+	for i in range(len(FunctionsFrameCopy.index)):
+		print(cpt, "/", len(FunctionsFrameCopy.index))
+		if i in FunctionsIndex:
+			search_minimum_operations(	runPath, 
+										cmpPath, 
+										output_dir[0], 
+										output_dir[1],
+										vfc_config_file,
+										env, 
+										ArgumentsFrameCopy,
+										FunctionsFrameCopy,
+										i)
+		else:
+			tmp = ArgumentsFrameCopy[(ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
+			for j in tmp.index:
+				search_minimum_arguments(	runPath, 
+											cmpPath, 
+											output_dir[0], 
+											output_dir[1],
+											vfc_config_file,
+											env, 
+											ArgumentsFrameCopy,
+											FunctionsFrameCopy,
+											j)
+
+		cpt += 1
+
+	ArgumentsFrameCopy.to_csv("vfc_exp_data/BothArgsResults.csv")
+	FunctionsFrameCopy.to_csv("vfc_exp_data/BothOpsResults.csv")

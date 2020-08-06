@@ -2,7 +2,6 @@
 import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
-from tabulate import tabulate
 import random
 import math
 import sys
@@ -24,7 +23,7 @@ def GetFunctionInfo(FunctionID):
 
 def AddMainChart(CallChartString, DataMain):
 	CallChartString += "\n\
-			window.addEventListener('resize', DrawMainHist)\n\
+			window.addEventListener('resize', DrawMainHist);\n\
 		    google.charts.setOnLoadCallback(DrawMainHist);\n\
 				\n\
 		    function DrawMainHist() {\n\
@@ -81,32 +80,24 @@ def AddMainChart(CallChartString, DataMain):
 
 	return CallChartString
 
-def AddCallArgsChart(CallChartString, ChartID, RangeData, ExponentData, MantissaData):
+def AddCallArgsChart(CallChartString, ChartID, DivID, RangeData, ExponentData, MantissaData):
 	CallChartString += "\n\
-	 	window.addEventListener('resize', Draw" + ChartID + "ArgsHist)\n\
-		google.charts.setOnLoadCallback(Draw" + ChartID + "ArgsHist);\n\
-		function Draw" + ChartID + "ArgsHist() {\n\
+		google.charts.setOnLoadCallback(function (){\n\
+			$(\"#Link_" + ChartID +  "_Precisions\").one('mouseover', function (){ \n\
+			 	window.addEventListener('resize', Draw_" + DivID + "_ArgsHist);\n\
+				Draw_" + DivID + "_ArgsHist();\n\
+			});\n\
+		});\n\
+		function Draw_" + DivID + "_ArgsHist() {\n\
 		  		var data = google.visualization.arrayToDataTable([\n\
-		  			['IO','Minimum value', 'Maximum value'],\n\
-		  			" + RangeData + "]);\n\
+		  			['Argument Type', 'Range of values (log2)', '', '', ''],\n\
+		  			" + RangeData + "], false);\n\
 				\n\
 		      	var view = new google.visualization.DataView(data);\n\
 				\n\
-		      	view.setColumns([0, \n\
-		      		1,\n\
-		      		{calc: \"stringify\",\n\
-					sourceColumn: 1,\n\
-					type: \"string\",\n\
-					role: \"annotation\"},\n\
-		      		2,\n\
-		      		{calc: \"stringify\",\n\
-					sourceColumn: 2,\n\
-					type: \"string\",\n\
-					role: \"annotation\"}\n\
-				]);\n\
-				\n\
 		      	var options = {\n\
-		        	title: \"Inputs/Ouptuts minimum and maximum values\",\n\
+		        	title: \"Inputs/Ouptuts arguments range of values (pow2)\",\n\
+		        	legend: 'value interval',\n\
 		        	annotations: {\n\
 						textStyle: {\n\
 							color: 'black',\n\
@@ -121,12 +112,12 @@ def AddCallArgsChart(CallChartString, ChartID, RangeData, ExponentData, Mantissa
 					hAxis: {\n\
 						 textPosition: 'none',\n\
 					},\n\
-					colors: ['#d5dc1a','#BCC213'],\n\
+					colors: ['#d5dc1a'],\n\
 		      	};\n\
 				\n\
-				var element = document.getElementById(\"" + ChartID + "RangeHist\");\n\
+				var element = document.getElementById(\"" + DivID + "RangeHist\");\n\
 				if (element != null){\n\
-			    	var chart = new google.visualization.ColumnChart(element);\n\
+			    	var chart = new google.visualization.CandlestickChart(element);\n\
 			      	chart.draw(view, options);}\n\
 				\n\
 		  		var data = google.visualization.arrayToDataTable([\n\
@@ -165,7 +156,7 @@ def AddCallArgsChart(CallChartString, ChartID, RangeData, ExponentData, Mantissa
 					colors: ['#0F5C9B'],\n\
 		      	};\n\
 				\n\
-				var element = document.getElementById(\""+ ChartID + "ExponentHist\");\n\
+				var element = document.getElementById(\""+ DivID + "ExponentHist\");\n\
 				if (element != null){\n\
 			    	var chart = new google.visualization.ColumnChart(element);\n\
 			      	chart.draw(view, options);}\n\
@@ -203,7 +194,7 @@ def AddCallArgsChart(CallChartString, ChartID, RangeData, ExponentData, Mantissa
 					colors: ['#9B0500'],\n\
 		      	};\n\
 				\n\
-				var element = document.getElementById(\""+ ChartID + "MantissaHist\");\n\
+				var element = document.getElementById(\""+ DivID + "MantissaHist\");\n\
 				if (element != null){\n\
 			    	var chart = new google.visualization.ColumnChart(element);\n\
 			      	chart.draw(view, options);}\n\
@@ -212,11 +203,15 @@ def AddCallArgsChart(CallChartString, ChartID, RangeData, ExponentData, Mantissa
 		"
 	return CallChartString
 
-def AddCallOpsChart(CallChartString, ChartID, OpsDoublePrec, OpsFloatPrec):
+def AddCallOpsChart(CallChartString, ChartID, DivID, OpsDoublePrec, OpsFloatPrec):
 	CallChartString += "\n\
-	 	window.addEventListener('resize', Draw" + ChartID + "OpsHist)\n\
-		google.charts.setOnLoadCallback(Draw" + ChartID + "OpsHist);\n\
-		function Draw" + ChartID + "OpsHist() {\n\
+		google.charts.setOnLoadCallback(function (){\n\
+			$(\"#Link_" + ChartID +  "_Precisions\").one('mouseover', function (){ \n\
+			 	window.addEventListener('resize', Draw_" + DivID + "_OpsHist);\n\
+				Draw_" + DivID + "_OpsHist();\n\
+			});\n\
+		});\n\
+		function Draw_" + DivID + "_OpsHist() {\n\
 		  		var data = google.visualization.arrayToDataTable([\n\
 		  			['Type','Mantissa size', '', 'ExponentSize'],\n\
 		  			"+ OpsDoublePrec +"]);\n\
@@ -260,7 +255,7 @@ def AddCallOpsChart(CallChartString, ChartID, OpsDoublePrec, OpsFloatPrec):
 					colors: ['#9B0500','transparent','#0F5C9B'],\n\
 		      	};\n\
 				\n\
-				var element = document.getElementById(\""+ ChartID + "DoubleHist\");\n\
+				var element = document.getElementById(\""+ DivID + "DoubleHist\");\n\
 				if (element != null){\n\
 			    	var chart = new google.visualization.BarChart(element);\n\
 			      	chart.draw(view, options);}\n\
@@ -310,7 +305,7 @@ def AddCallOpsChart(CallChartString, ChartID, OpsDoublePrec, OpsFloatPrec):
 					colors: ['#9B0500','transparent','#0F5C9B'],\n\
 		      	};\n\
 				\n\
-				var element = document.getElementById(\""+ ChartID + "FloatHist\");\n\
+				var element = document.getElementById(\""+ DivID + "FloatHist\");\n\
 				if (element != null){\n\
 			    	var chart = new google.visualization.BarChart(element);\n\
 			      	chart.draw(view, options);}\n\
@@ -330,6 +325,7 @@ if __name__ == "__main__":
 		<title>Precision Exploration Report</title>\n\
 		\n\
 		<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>\n\
+		  <script src=\"https://code.jquery.com/jquery-3.5.0.js\"></script>\n\
 		\n\
 		<script>\n\
 			google.charts.load(\"current\", {packages:['corechart']});\n\
@@ -372,53 +368,30 @@ if __name__ == "__main__":
 			        to_hide[i].style.display = \"none\";\n\
 			    }\n\
 		\n\
-			    var to_hide = document.getElementsByClassName(\"OperationsPrecision\");\n\
-			    \n\
-			    for(var i = 0; i < to_hide.length; i++){\n\
-			        to_hide[i].style.display = \"none\";\n\
-			    }\n\
-		\n\
-			    var to_hide = document.getElementsByClassName(\"ArgumentsPrecision\");\n\
-			    \n\
-			    for(var i = 0; i < to_hide.length; i++){\n\
-			        to_hide[i].style.display = \"none\";\n\
-			    }\n\
-		\n\
 			    var to_hide = document.getElementsByClassName(\"FunctionInformations\");\n\
 			    \n\
 			    for(var i = 0; i < to_hide.length; i++){\n\
 			        to_hide[i].style.display = \"none\";\n\
 			    }\n\
 			}\n\
-			\n\
-			function Show(PartID, ChartID){\n\
-				Parts = [ChartID + \"ArgumentsOperationsPrecision\", \n\
-						ChartID + \"ArgumentsPrecision\", \n\
-						ChartID + \"OperationsPrecision\"];\n\
 		\n\
-				for(var i = 0; i < 3; i++){\n\
-					var to_display = document.getElementById(Parts[i]);\n\
-					if (to_display != null){\n\
-						if(i != PartID) {\n\
-							to_display.style.display = 'none';\n\
-						}else{\n\
-							to_display.style.display = 'block';\n\
-						}\n\
-					}\n\
-					}\n\
-			}\n\
-		\n\
-			function popup(DivID) {\n\
-				w=window.open(\"\", DivID + \".html\",\"width=1000,height=1000\");\n\
+			function Popup(DivID){\n\
+				w=open(\"\",'popup','scrollbars=no,resizable=yes');\n\
 				\n\
-				var item = document.getElementById(DivID);\n\
-				var clone = item.cloneNode(true);\n\
+				var style = document.getElementById(\"MainStyle\");\n\
+				var clone = style.cloneNode(true);\n\
+				w.document.head.appendChild(clone);\n\
 				\n\
+				var charts = document.getElementById(DivID);\n\
+				var clone = charts.cloneNode(true);\n\
 				w.document.body.appendChild(clone);\n\
+				charts.style.display= \"none\";\n\
+				\n\
 			}\n\
+		\n\
 		</script>\n\
 		\n\
-		<style>\n\
+		<style ID=\"MainStyle\">\n\
 			body {\n\
 				font-family: arial;\n\
 				max-width: 1400px;\n\
@@ -599,8 +572,8 @@ if __name__ == "__main__":
 			OpsDoublePrec = ""
 			OpsFloatPrec = ""
 
-			FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID + "Precision\" onClick=\"DisplayCallInformations('"+ ChartID+ "'); popup('" + ChartID +  "Precisions');\" \
-					class=\"InfoLink\"><h4>Call to {Fname} in {Ffile} at line {Fline} executed {Ncalls} time(s):</h4></a>\n".format(
+			FunctionCallsStr += "\t\t\t<a ID=\"Link_" + ChartID +  "_Precisions\" href=\"#" + ChartID + "Precision\" onclick=\"DisplayCallInformations('"+ ChartID+ "'); \
+							Popup(\'" + ChartID +  "Precisions\');\" class=\"InfoLink\"><h4>Call to {Fname} in {Ffile} at line {Fline} executed {Ncalls} time(s):</h4></a>\n".format(
 				Fname = Fname.upper(),
 				Ffile = Ffile,
 				Fline = Fline,
@@ -610,9 +583,9 @@ if __name__ == "__main__":
 			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "Precisions\" class=\"Precisions\">\n"
 
 			FunctionCallsStr += "\t\t\t<div class=\"PrecNavBar\">\n"
-			FunctionCallsStr += "\t\t\t<a onClick=\"Show(0, '" + ChartID + "')\" href=\"#" + ChartID +  "ArgumentsOperationsPrecision\">Arguments and Operations</a>\n"
-			FunctionCallsStr += "\t\t\t<a onClick=\"Show(1, '" + ChartID + "')\" href=\"#" + ChartID +  "ArgumentsPrecision\">Arguments Only</a>\n"
-			FunctionCallsStr += "\t\t\t<a onClick=\"Show(2, '" + ChartID + "')\" href=\"#" + ChartID +  "OperationsPrecision\">Operations Only</a>\n"
+			FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID +  "ArgumentsOperationsPrecision\">Arguments and Operations</a>\n"
+			FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID +  "ArgumentsPrecision\">Arguments Only</a>\n"
+			FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID +  "OperationsPrecision\">Operations Only</a>\n"
 			FunctionCallsStr += "\t\t\t</div>\n"
 
 			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "ArgumentsOperationsPrecision\" class=\"ArgumentsOperationsPrecision\">\n"
@@ -625,10 +598,10 @@ if __name__ == "__main__":
 			for k in tmp_args.index:
 
 				if tmp_args.at[k, 'Type'] == 0:
-					RangeData += "['{IO}',{Min}, {Max}],\n".format(
+					RangeData += "['{IO}',{Min},{Min},{Max},{Max}],\n".format(
 						IO = tmp_args.at[k, 'IO'] + " - Float",
-						Min = tmp_args.at[k, 'Min'],
-						Max = tmp_args.at[k, 'Max'])
+						Min = tmp_args.at[k, 'Min'] if tmp_args.at[k, 'Min'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Min'])),
+						Max = tmp_args.at[k, 'Max'] if tmp_args.at[k, 'Max'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Max'])))
 					ExponentData += "['{IO}',{Exponent}],\n".format(
 						IO = tmp_args.at[k, 'IO'] + " - Float",
 						Exponent = tmp_args.at[k, 'Range'])
@@ -636,10 +609,10 @@ if __name__ == "__main__":
 						IO = tmp_args.at[k, 'IO'] + " - Float",
 						Mantissa = tmp_args.at[k, 'Prec'])
 				else :
-					RangeData += "['{IO}',{Min}, {Max}],\n".format(
+					RangeData += "['{IO}',{Min},{Min},{Max},{Max}],\n".format(
 						IO = tmp_args.at[k, 'IO'] + " - Double",
-						Min = tmp_args.at[k, 'Min'],
-						Max = tmp_args.at[k, 'Max'])
+						Min = tmp_args.at[k, 'Min'] if tmp_args.at[k, 'Min'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Min'])),
+						Max = tmp_args.at[k, 'Max'] if tmp_args.at[k, 'Max'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Max'])))
 					ExponentData += "['{IO}',{Exponent}],\n".format(
 						IO = tmp_args.at[k, 'IO'] + " - Double",
 						Exponent = tmp_args.at[k, 'Range'])
@@ -655,7 +628,7 @@ if __name__ == "__main__":
 					<div id=\"" + ArgsOpsChartID + "MantissaHist\"></div>\n\
 				</div>\n\
 				"
-				CallChartString = AddCallArgsChart(CallChartString, ArgsOpsChartID, RangeData, ExponentData, MantissaData)
+				CallChartString = AddCallArgsChart(CallChartString, ChartID, ArgsOpsChartID, RangeData, ExponentData, MantissaData)
 
 			OpsFloatPrec += "['Float',{Prec32},{Fill},{Range32}],\n".format(
 				Prec32 = tmp_ops.at[j, 'Prec32'],
@@ -683,7 +656,7 @@ if __name__ == "__main__":
 				FunctionCallsStr += "\n\
 				</div>																	\n\
 				"
-				CallChartString = AddCallOpsChart(CallChartString, ArgsOpsChartID, OpsDoublePrec, OpsFloatPrec)
+				CallChartString = AddCallOpsChart(CallChartString, ChartID, ArgsOpsChartID, OpsDoublePrec, OpsFloatPrec)
 
 			FunctionCallsStr += "</div>\n"
 
@@ -702,10 +675,10 @@ if __name__ == "__main__":
 				for k in tmp_args.index:
 
 					if tmp_args.at[k, 'Type'] == 0:
-						RangeData += "['{IO}',{Min}, {Max}],\n".format(
+						RangeData += "['{IO}',{Min},{Min},{Max},{Max}],\n".format(
 							IO = tmp_args.at[k, 'IO'] + " - Float",
-							Min = tmp_args.at[k, 'Min'],
-							Max = tmp_args.at[k, 'Max'])
+							Min = tmp_args.at[k, 'Min'] if tmp_args.at[k, 'Min'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Min'])),
+							Max = tmp_args.at[k, 'Max'] if tmp_args.at[k, 'Max'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Max'])))
 						ExponentData += "['{IO}',{Exponent}],\n".format(
 							IO = tmp_args.at[k, 'IO'] + " - Float",
 							Exponent = tmp_args.at[k, 'Range'])
@@ -713,10 +686,10 @@ if __name__ == "__main__":
 							IO = tmp_args.at[k, 'IO'] + " - Float",
 							Mantissa = tmp_args.at[k, 'Prec'])
 					else :
-						RangeData += "['{IO}',{Min}, {Max}],\n".format(
+						RangeData += "['{IO}',{Min},{Min},{Max},{Max}],\n".format(
 							IO = tmp_args.at[k, 'IO'] + " - Double",
-							Min = tmp_args.at[k, 'Min'],
-							Max = tmp_args.at[k, 'Max'])
+							Min = tmp_args.at[k, 'Min'] if tmp_args.at[k, 'Min'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Min'])),
+							Max = tmp_args.at[k, 'Max'] if tmp_args.at[k, 'Max'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Max'])))
 						ExponentData += "['{IO}',{Exponent}],\n".format(
 							IO = tmp_args.at[k, 'IO'] + " - Double",
 							Exponent = tmp_args.at[k, 'Range'])
@@ -732,8 +705,9 @@ if __name__ == "__main__":
 					<div id=\"" + ArgsChartID + "MantissaHist\"></div>\n\
 				</div>\n\
 				"
-				CallChartString = AddCallArgsChart(CallChartString, ArgsChartID, RangeData, ExponentData, MantissaData)
+				CallChartString = AddCallArgsChart(CallChartString, ChartID, ArgsChartID, RangeData, ExponentData, MantissaData)
 			else:
+				FunctionCallsStr += "\t\t\t<h5>Arguments Only</h5>\n"
 				FunctionCallsStr += "<p class=\"InfoMessage\">It's looks like this function don't have float or double as arguments.</p>\n"
 			FunctionCallsStr += "</div>\n"
 
@@ -773,9 +747,10 @@ if __name__ == "__main__":
 				FunctionCallsStr += "\n\
 				</div>																	\n\
 				"
-				CallChartString = AddCallOpsChart(CallChartString, OpsChartID, OpsDoublePrec, OpsFloatPrec)
+				CallChartString = AddCallOpsChart(CallChartString, ChartID, OpsChartID, OpsDoublePrec, OpsFloatPrec)
 
 			else:
+				FunctionCallsStr += "\t\t\t<h5>Operations Only</h5>\n"
 				FunctionCallsStr += "<p class=\"InfoMessage\">It's looks like this function have not been compiled with verificarlo and we can't access to internal operations.</p>\n"
 
 			FunctionCallsStr += "</div>\n"
