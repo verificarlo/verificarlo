@@ -289,10 +289,9 @@ void _set_vprec_inst_mode(vprec_inst_mode mode) {
 
 // Round the float with the given precision
 static float _vprec_round_binary32(float a, char is_input, void *context,
-                                   int binary32_range, 
-                                   int binary32_precision) {
+                                   int binary32_range, int binary32_precision) {
   t_context *currentContext = (t_context *)context;
-  
+
   /* test if a is special cases */
   if (!isfinite(a)) {
     return a;
