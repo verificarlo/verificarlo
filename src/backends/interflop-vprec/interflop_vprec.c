@@ -333,22 +333,20 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     sp_case = true;
   }
 
-  if ((((t_context *)context)->daz && is_input) ||
-      (((t_context *)context)->ftz && !is_input)) {
+  if ((currentContext->daz && is_input) || (currentContext->ftz && !is_input)) {
     a = 0;
   } else {
-    if ((((t_context *)context)->relErr == true) &&
-        (((t_context *)context)->absErr == true)) {
+    if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
       /* vprec error mode all */
-      if ((-1) * ((t_context *)context)->absErr_exp < binary32_precision)
+      if ((-1) * currentContext->absErr_exp < binary32_precision)
         a = handle_binary32_denormal(a, emin, aexp.u32,
-                                     (-1) * ((t_context *)context)->absErr_exp);
+                                     (-1) * currentContext->absErr_exp);
       else
         a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
-    } else if (((t_context *)context)->absErr == true) {
+    } else if (currentContext->absErr == true) {
       /* vprec error mode abs */
       a = handle_binary32_denormal(a, emin, aexp.u32,
-                                   (-1) * ((t_context *)context)->absErr_exp);
+                                   (-1) * currentContext->absErr_exp);
     }
   }
 
@@ -404,25 +402,34 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   aexp.s64 =
       ((DOUBLE_GET_EXP & aexp.u64) >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
 
-  /* check for overflow or underflow in target range */
+  /* check for overflow in target range */
+  bool sp_case = false;
   if (aexp.s64 > emax) {
     a = a * INFINITY;
     sp_case = true;
   }
 
+  /* check for underflow in target range */
   if (aexp.s64 <= emin) {
-    if ((((t_context *)context)->relErr == true) &&
-        (((t_context *)context)->absErr == true)) {
-      /* vprec error mode all */
-      if ((-1) * ((t_context *)context)->absErr_exp < binary64_precision)
+    if ((currentContext->daz && is_input) ||
+        (currentContext->ftz && !is_input)) {
+      a = 0;
+    } else {
+      if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+        /* vprec error mode all */
+        if ((-1) * currentContext->absErr_exp < binary64_precision)
+          a = handle_binary64_denormal(a, emin, aexp.u64,
+                                      (-1) * currentContext->absErr_exp);
+        else
+          a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
+      } else if (currentContext->absErr == true) {
+        /* vprec error mode abs */
         a = handle_binary64_denormal(a, emin, aexp.u64,
-                                     (-1) * ((t_context *)context)->absErr_exp);
-      else
+                                    (-1) * currentContext->absErr_exp);
+      } else {
+        /* vprec error mode rel */
         a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
-    } else if (((t_context *)context)->absErr == true) {
-      /* vprec error mode abs */
-      a = handle_binary64_denormal(a, emin, aexp.u64,
-                                   (-1) * ((t_context *)context)->absErr_exp);
+      }
     }
   }
 
