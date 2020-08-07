@@ -303,6 +303,8 @@ void _set_vprec_inst_mode(vprec_inst_mode mode) {
 // Round the float with the given precision
 static float _vprec_round_binary32(float a, char is_input, void *context,
                                    int binary32_range, int binary32_precision) {
+  t_context *currentContext = (t_context *)context;
+  
   if (!isfinite(a)) {
     return a;
   }
@@ -315,12 +317,11 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 
   /* in absolute error mode, the error threshold also gives the possible
    * underflow limit */
-  if ((((t_context *)context)->relErr == true) &&
-      (((t_context *)context)->absErr == true)) {
-    if (((t_context *)context)->absErr_exp > emin)
-      emin = ((t_context *)context)->absErr_exp;
-  } else if (((t_context *)context)->absErr == true) {
-    emin = ((t_context *)context)->absErr_exp;
+  if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+    if (currentContext->absErr_exp > emin)
+      emin = currentContext->absErr_exp;
+  } else if (currentContext->absErr == true) {
+    emin = currentContext->absErr_exp;
   }
 
   binary32 aexp = {.f32 = a};
@@ -350,6 +351,8 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 static double _vprec_round_binary64(double a, char is_input, void *context,
                                     int binary64_range,
                                     int binary64_precision) {
+  t_context *currentContext = (t_context *)context;
+
   /* test if a or b are special cases */
   if (!isfinite(a)) {
     return a;
@@ -363,12 +366,11 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
 
   /* in absolute error mode, the error threshold also gives the possible
    * underflow limit */
-  if ((((t_context *)context)->relErr == true) &&
-      (((t_context *)context)->absErr == true)) {
-    if (((t_context *)context)->absErr_exp > emin)
-      emin = ((t_context *)context)->absErr_exp;
-  } else if (((t_context *)context)->absErr == true) {
-    emin = ((t_context *)context)->absErr_exp;
+  if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+    if (currentContext->absErr_exp > emin)
+      emin = currentContext->absErr_exp;
+  } else if (currentContext->absErr == true) {
+    emin = currentContext->absErr_exp;
   }
 
   binary64 aexp = {.f64 = a};
