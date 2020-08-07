@@ -432,8 +432,7 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
 
 // Round the float with the given precision
 static float _vprec_round_binary32(float a, char is_input, void *context,
-                                   int binary32_range, 
-                                   int binary32_precision) {
+                                   int binary32_range, int binary32_precision) {
   t_context *currentContext = (t_context *)context;
 
   /* test if 'a' is a special case */
