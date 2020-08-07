@@ -289,9 +289,11 @@ void _set_vprec_inst_mode(vprec_inst_mode mode) {
 
 // Round the float with the given precision
 static float _vprec_round_binary32(float a, char is_input, void *context,
-                                   int binary32_range, int binary32_precision) {
+                                   int binary32_range, 
+                                   int binary32_precision) {
   t_context *currentContext = (t_context *)context;
   
+  /* test if a is special cases */
   if (!isfinite(a)) {
     return a;
   }
@@ -314,54 +316,65 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   binary32 aexp = {.f32 = a};
   aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP;
 
-  /* check for overflow or underflow in target range */
+  /* check for overflow in target range */
+  bool sp_case = false;
   if (aexp.s32 > emax) {
     a = a * INFINITY;
     sp_case = true;
   }
 
-  if ((currentContext->daz && is_input) || (currentContext->ftz && !is_input)) {
-    a = 0;
-  } else {
-    if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
-      /* vprec error mode all */
-      if ((-1) * currentContext->absErr_exp < binary32_precision)
+  /* check for underflow in target range */
+  if (aexp.s32 <= emin) {
+    if ((currentContext->daz && is_input) || 
+        (currentContext->ftz && !is_input)) {
+      a = 0;
+    } else {
+      if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+        /* vprec error mode all */
+        if ((-1) * currentContext->absErr_exp < binary32_precision)
+          a = handle_binary32_denormal(a, emin, aexp.u32,
+                                      (-1) * currentContext->absErr_exp);
+        else
+          a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
+      } else if (currentContext->absErr == true) {
+        /* vprec error mode abs */
         a = handle_binary32_denormal(a, emin, aexp.u32,
-                                     (-1) * currentContext->absErr_exp);
-      else
+                                    (-1) * currentContext->absErr_exp);
+      } else {
+        /* vprec error mode rel */
         a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
-    } else if (currentContext->absErr == true) {
-      /* vprec error mode abs */
-      a = handle_binary32_denormal(a, emin, aexp.u32,
-                                   (-1) * currentContext->absErr_exp);
+      }
     }
   }
 
   /* Specials ops must be placed after denormal handling  */
   /* If one of the operand raises an underflow, the operation */
   /* has a different behavior. Example: x*Inf != 0*Inf */
-
   if (sp_case) {
     return a;
   }
 
   /* else, normal case: can be executed even if a
      previously rounded and truncated as denormal */
-  if ((currentContext->relErr == false) && 
-      (currentContext->absErr == true)) {
+  if ((currentContext->relErr == false) && (currentContext->absErr == true)) {
     /* vprec error mode abs */
-    if ((-1) * currentContext->absErr_exp < FLOAT_PMAN_SIZE) {
-      a = round_binary32_normal(a, (-1) * currentContext->absErr_exp);
+    int expDiff = aexp.s32 - currentContext->absErr_exp;
+    // if ((-1) * currentContext->absErr_exp < FLOAT_PMAN_SIZE) {
+    if (expDiff < FLOAT_PMAN_SIZE) {
+      a = round_binary32_normal(a, expDiff);
     }
   } else {
-    if (binary32_precision < FLOAT_PMAN_SIZE) {
-      if ((currentContext->relErr == true) &&
-          (currentContext->absErr == true)) {
+    int expDiff = aexp.s32 - currentContext->absErr_exp;
+    // if (binary32_precision < FLOAT_PMAN_SIZE) {
+    if ((binary32_precision < FLOAT_PMAN_SIZE) || (expDiff < FLOAT_PMAN_SIZE)) {
+      if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
         /* vprec error mode all */
-        if ((-1) * currentContext->absErr_exp < binary32_precision)
-          a = round_binary32_normal(a, (-1) * currentContext->absErr_exp);
-        else
+        // if ((-1) * currentContext->absErr_exp < binary32_precision)
+        if (expDiff < binary32_precision)
+          a = round_binary32_normal(a, expDiff);
+        else {
           a = round_binary32_normal(a, binary32_precision);
+        }
       } else {
           /* vprec error mode rel */
           a = round_binary32_normal(a, binary32_precision);
@@ -378,7 +391,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
                                     int binary64_precision) {
   t_context *currentContext = (t_context *)context;
 
-  /* test if a or b are special cases */
+  /* test if a is special cases */
   if (!isfinite(a)) {
     return a;
   }
