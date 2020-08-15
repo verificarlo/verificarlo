@@ -57,6 +57,7 @@ typedef enum {
   KEY_RANGE_B64,
   KEY_INPUT_FILE,
   KEY_OUTPUT_FILE,
+  KEY_LOG_FILE,
   KEY_MODE = 'm',
   KEY_INSTRUMENT = 'i',
   KEY_DAZ = 'd',
@@ -69,6 +70,7 @@ static const char key_range_b32_str[] = "range-binary32";
 static const char key_range_b64_str[] = "range-binary64";
 static const char key_input_file_str[] = "prec-input-file";
 static const char key_output_file_str[] = "prec-output-file";
+static const char key_log_file_str[] = "prec-log-file";
 static const char key_mode_str[] = "mode";
 static const char key_instrument_str[] = "instrument";
 static const char key_daz_str[] = "daz";
@@ -149,7 +151,9 @@ typedef enum {
 
 static const char *vprec_input_file = NULL;
 static const char *vprec_output_file = NULL;
+static FILE *vprec_log_file = NULL;
 static vprec_inst_mode VPREC_INST_MODE = VPREC_INST_MODE_DEFAULT;
+static size_t vprec_log_depth = 0;
 
 /* instrumentation mode's names */
 static const char *VPREC_INST_MODE_STR[] = {"arguments", "operations", "all",
@@ -231,6 +235,14 @@ void _set_vprec_input_file(const char *input_file) {
 
 void _set_vprec_output_file(const char *output_file) {
   vprec_output_file = output_file;
+}
+
+void _set_vprec_log_file(const char *log_file) {
+  vprec_log_file = fopen(log_file, "w");
+
+  if (vprec_log_file == NULL) {
+    logger_error("Log file can't be written");
+  }
 }
 
 void _set_vprec_inst_mode(vprec_inst_mode mode) {
@@ -551,6 +563,15 @@ void _vprec_read_hasmap(FILE *fin) {
   }
 }
 
+#define _vprec_print_log(_vprec_depth, _vprec_str, ...)                        \
+  ({                                                                           \
+    if (vprec_log_file != NULL) {                                              \
+      for (int _vprec_d = 0; _vprec_d < _vprec_depth; _vprec_d++)              \
+        fprintf(vprec_log_file, "\t");                                         \
+      fprintf(vprec_log_file, _vprec_str, ##__VA_ARGS__);                      \
+    }                                                                          \
+  })
+
 void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
                                int nb_args, va_list ap) {
   interflop_function_info_t *function_info = stack->array[stack->top];
@@ -603,6 +624,20 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
   // treatment of arguments
   int new_flag = (function_inst->input_args == NULL && nb_args > 0);
 
+  // print function info in log
+  _vprec_print_log(vprec_log_depth, "\n");
+  _vprec_print_log(vprec_log_depth, "enter in %s\t%d\t%d\t%d\t%d\n",
+                   function_inst->id, function_inst->OpsPrec64,
+                   function_inst->OpsRange64, function_inst->OpsPrec32,
+                   function_inst->OpsRange32);
+
+  /*
+  if (vprec_log_file != NULL)
+    fprintf(vprec_log_file, "enter in %s\t%d\t%d\t%d\t%d\n", function_inst->id,
+  function_inst->OpsPrec64, function_inst->OpsRange64, function_inst->OpsPrec32,
+  function_inst->OpsRange32);
+  */
+
   if (new_flag) {
     function_inst->input_args =
         malloc(sizeof(_vprec_argument_data_t) * nb_args);
@@ -620,6 +655,16 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
     if (type == FDOUBLE) {
       double *value = va_arg(ap, double *);
+
+      _vprec_print_log(vprec_log_depth, " - %s\tinput\tdouble\t%la\t->\t",
+                       function_inst->id, *value);
+
+      /*
+      if (vprec_log_file != NULL)
+        fprintf(vprec_log_file, " %s\tinput\tdouble\t%la\t->\t",
+      function_inst->id, *value);
+      */
+
       if (new_flag) {
         // initialize arguments data
         function_inst->input_args[i].data_type = FDOUBLE;
@@ -641,8 +686,28 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
               ? round(*value)
               : function_inst->input_args[i].max_range;
 
+      _vprec_print_log(vprec_log_depth, "%la\t(%d, %d)\n", *value,
+                       function_inst->input_args[i].mantissa_length,
+                       function_inst->input_args[i].exponent_length);
+
+      /*
+      if (vprec_log_file != NULL)
+        fprintf(vprec_log_file, "%la\t(%d,%d)\n", *value,
+          function_inst->input_args[i].mantissa_length,
+      function_inst->input_args[i].exponent_length);
+      */
     } else if (type == FFLOAT) {
       float *value = va_arg(ap, float *);
+
+      _vprec_print_log(vprec_log_depth, " - %s\tinput\tfloat\t%a\t->\t",
+                       function_inst->id, *value);
+
+      /*
+      if (vprec_log_file != NULL)
+        fprintf(vprec_log_file, "\t%s\tinput\tfloat\t%a\t->\t",
+      function_inst->id, *value);
+      */
+
       if (new_flag) {
         // initialize arguments data
         function_inst->input_args[i].data_type = FFLOAT;
@@ -663,13 +728,30 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
           (roundf(*value) > function_inst->input_args[i].max_range || new_flag)
               ? roundf(*value)
               : function_inst->input_args[i].max_range;
+
+      _vprec_print_log(vprec_log_depth, "%a\t(%d, %d)\n", *value,
+                       function_inst->input_args[i].mantissa_length,
+                       function_inst->input_args[i].exponent_length);
+
+      /*
+      if (vprec_log_file != NULL)
+        fprintf(vprec_log_file, "%a\t(%d, %d)\n", *value,
+          function_inst->input_args[i].mantissa_length,
+      function_inst->input_args[i].exponent_length);
+      */
     }
   }
+
+  // increment depth
+  vprec_log_depth++;
 }
 
 void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
                               int nb_args, va_list ap) {
   interflop_function_info_t *function_info = stack->array[stack->top];
+
+  // decrement depth
+  vprec_log_depth--;
 
   if (function_info == NULL)
     logger_error("Call stack error \n");
@@ -699,6 +781,18 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
   // treatment of arguments
   int new_flag = (function_inst->output_args == NULL && nb_args > 0);
 
+  // print function info in log
+  _vprec_print_log(vprec_log_depth, "exit of %s\t%d\t%d\t%d\t%d\n",
+                   function_inst->id, function_inst->OpsPrec64,
+                   function_inst->OpsRange64, function_inst->OpsPrec32,
+                   function_inst->OpsRange32);
+  /*
+  if (vprec_log_file != NULL)
+    fprintf(vprec_log_file, "exit of %s\t%d\t%d\t%d\t%d\n", function_inst->id,
+  function_inst->OpsPrec64, function_inst->OpsRange64, function_inst->OpsPrec32,
+  function_inst->OpsRange32);
+  */
+
   if (new_flag) {
     function_inst->output_args =
         malloc(sizeof(_vprec_argument_data_t) * nb_args);
@@ -715,6 +809,16 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
 
     if (type == FDOUBLE) {
       double *value = va_arg(ap, double *);
+
+      _vprec_print_log(vprec_log_depth, " - %s\toutput\tdouble\t%la\t->\t",
+                       function_inst->id, *value);
+
+      /*
+      if (vprec_log_file != NULL)
+        fprintf(vprec_log_file, "\t%s\toutput\tdouble\t%la\t->\t",
+      function_inst->id, *value);
+      */
+
       if (new_flag) {
         // initialize arguments data
         function_inst->output_args[i].data_type = FDOUBLE;
@@ -735,8 +839,30 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
           (round(*value) > function_inst->output_args[i].max_range || new_flag)
               ? round(*value)
               : function_inst->output_args[i].max_range;
+
+      _vprec_print_log(vprec_log_depth, "%la\t(%d,%d)\n", *value,
+                       function_inst->output_args[i].mantissa_length,
+                       function_inst->output_args[i].exponent_length);
+
+      /*
+      if (vprec_log_file != NULL)
+        fprintf(vprec_log_file, "%la\t(%d,%d)\n", *value,
+          function_inst->output_args[i].mantissa_length,
+      function_inst->output_args[i].exponent_length);
+      */
+
     } else if (type == FFLOAT) {
       float *value = va_arg(ap, float *);
+
+      _vprec_print_log(vprec_log_depth, " - %s\toutput\float\t%a\t->\t",
+                       function_inst->id, *value);
+
+      /*
+      if (vprec_log_file != NULL)
+        fprintf(vprec_log_file, "\t%s\toutput\float\t%a\t->\t",
+      function_inst->id, *value);
+      */
+
       if (new_flag) {
         // initialize arguments data
         function_inst->output_args[i].data_type = FFLOAT;
@@ -757,8 +883,20 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
           (roundf(*value) > function_inst->output_args[i].max_range || new_flag)
               ? roundf(*value)
               : function_inst->output_args[i].max_range;
+
+      _vprec_print_log(vprec_log_depth, "%a\t(%d, %d)\n", *value,
+                       function_inst->output_args[i].mantissa_length,
+                       function_inst->output_args[i].exponent_length);
+
+      /*
+      if (vprec_log_file != NULL)
+        fprintf(vprec_log_file, "%a\t(%d, %d)\n", *value,
+          function_inst->output_args[i].mantissa_length,
+      function_inst->output_args[i].exponent_length);
+      */
     }
   }
+  _vprec_print_log(vprec_log_depth, "\n");
 }
 
 /************************* FPHOOKS FUNCTIONS *************************
@@ -817,6 +955,8 @@ static struct argp_option options[] = {
      "input file with the precision configuration to use", 0},
     {key_output_file_str, KEY_OUTPUT_FILE, "OUTPUT", 0,
      "output file where the precision profile is written", 0},
+    {key_log_file_str, KEY_LOG_FILE, "LOG", 0,
+     "log file where input/output informations are written", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
      "select VPREC mode among {ieee, full, ib, ob}", 0},
     {key_instrument_str, KEY_INSTRUMENT, "INSTRUMENTATION", 0,
@@ -904,6 +1044,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_OUTPUT_FILE:
     /* output file */
     _set_vprec_output_file(arg);
+    break;
+  case KEY_LOG_FILE:
+    /* log file */
+    _set_vprec_log_file(arg);
     break;
   case KEY_MODE:
     /* mode */
@@ -1001,6 +1145,12 @@ void _interflop_finalize(void *context) {
       logger_error("Output file can't be written");
     }
   }
+
+  /* close log file */
+  if (vprec_log_file != NULL) {
+    fclose(vprec_log_file);
+  }
+
   /* free vprec_function_map */
   vfc_hashmap_free(_vprec_func_map);
 

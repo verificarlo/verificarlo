@@ -83,7 +83,8 @@ def AddMainChart(CallChartString, DataMain):
 def AddCallArgsChart(CallChartString, ChartID, DivID, RangeData, ExponentData, MantissaData):
 	CallChartString += "\n\
 		google.charts.setOnLoadCallback(function (){\n\
-			$(\"#Link_" + ChartID +  "_Precisions\").one('mouseover', function (){ \n\
+			$(\"#Link_" + ChartID +  "_Precisions\").one('click', async function (){ \n\
+				await new Promise(r => setTimeout(r, 225));\n\
 			 	window.addEventListener('resize', Draw_" + DivID + "_ArgsHist);\n\
 				Draw_" + DivID + "_ArgsHist();\n\
 			});\n\
@@ -206,7 +207,8 @@ def AddCallArgsChart(CallChartString, ChartID, DivID, RangeData, ExponentData, M
 def AddCallOpsChart(CallChartString, ChartID, DivID, OpsDoublePrec, OpsFloatPrec):
 	CallChartString += "\n\
 		google.charts.setOnLoadCallback(function (){\n\
-			$(\"#Link_" + ChartID +  "_Precisions\").one('mouseover', function (){ \n\
+			$(\"#Link_" + ChartID +  "_Precisions\").one('click', async function (){ \n\
+				await new Promise(r => setTimeout(r, 225));\n\
 			 	window.addEventListener('resize', Draw_" + DivID + "_OpsHist);\n\
 				Draw_" + DivID + "_OpsHist();\n\
 			});\n\
@@ -348,17 +350,26 @@ if __name__ == "__main__":
 				actualFunction = ID;\n\
 			}\n\
 		\n\
-			function DisplayCallInformations(ChartID){\n\
-				DivID = ChartID + \"Precisions\";\n\
+			var prevent = false;\n\
+			timer = 0;\n\
+			var delay = 200;\n\
 		\n\
-				var to_display = document.getElementById(DivID);\n\
-				if (to_display != null){\n\
-					if(to_display.style.display != 'none') {\n\
-						to_display.style.display = 'none';\n\
-					}else{\n\
-						to_display.style.display = 'block';\n\
+			function DisplayCallInformations(ChartID){\n\
+				timer = setTimeout(function() {\n\
+					if (!prevent) {\n\
+						DivID = ChartID + \"_Precisions\";\n\
+						\n\
+						var to_display = document.getElementById(DivID);\n\
+						if (to_display != null){\n\
+							if(to_display.style.display != 'none') {\n\
+								to_display.style.display = 'none';\n\
+							}else{\n\
+								to_display.style.display = 'block';\n\
+							}\n\
+						}\n\
 					}\n\
-				}\n\
+					prevent = false;\n\
+				}, delay);\n\
 			}\n\
 		\n\
 			function HideAll(){\n\
@@ -376,16 +387,22 @@ if __name__ == "__main__":
 			}\n\
 		\n\
 			function Popup(DivID){\n\
+				clearTimeout(timer);\n\
+				prevent = true;\n\
 				w=open(\"\",'popup','scrollbars=no,resizable=yes');\n\
 				\n\
 				var style = document.getElementById(\"MainStyle\");\n\
 				var clone = style.cloneNode(true);\n\
 				w.document.head.appendChild(clone);\n\
 				\n\
+				var title = document.getElementById('Title_' + DivID);\n\
+				var clone = title.cloneNode(true);\n\
+				w.document.body.appendChild(clone);\n\
+				\n\
 				var charts = document.getElementById(DivID);\n\
 				var clone = charts.cloneNode(true);\n\
 				w.document.body.appendChild(clone);\n\
-				charts.style.display= \"none\";\n\
+				charts.style.display = \"none\";\n\
 				\n\
 			}\n\
 		\n\
@@ -440,6 +457,12 @@ if __name__ == "__main__":
 			.PrecNavBar a:hover {\n\
 				color: white;\n\
 				background-color: #808080;\n\
+			}\n\
+		\n\
+			.PrecisionPartTitle {\n\
+				width: 100%;\n\
+				text-align: center;\n\
+				text-decoration: underline;\n\
 			}\n\
 		\n\
 		</style>\n\
@@ -572,15 +595,15 @@ if __name__ == "__main__":
 			OpsDoublePrec = ""
 			OpsFloatPrec = ""
 
-			FunctionCallsStr += "\t\t\t<a ID=\"Link_" + ChartID +  "_Precisions\" href=\"#" + ChartID + "Precision\" onclick=\"DisplayCallInformations('"+ ChartID+ "'); \
-							Popup(\'" + ChartID +  "Precisions\');\" class=\"InfoLink\"><h4>Call to {Fname} in {Ffile} at line {Fline} executed {Ncalls} time(s):</h4></a>\n".format(
+			FunctionCallsStr += "\t\t\t<a ID=\"Link_" + ChartID +  "_Precisions\" href=\"#" + ChartID + "Precision\" onclick=\"DisplayCallInformations('"+ ChartID+ "');\" \
+			ondblclick=\"Popup(\'" + ChartID +  "_Precisions\');\" class=\"InfoLink\"><h4 ID=\"Title_" + ChartID +  "_Precisions\">Call to {Fname} in {Ffile} at line {Fline} executed {Ncalls} time(s):</h4></a>\n".format(
 				Fname = Fname.upper(),
 				Ffile = Ffile,
 				Fline = Fline,
 				Ncalls = tmp_ops.at[j, 'Ncalls'])
 
 			# Arguments and Operations
-			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "Precisions\" class=\"Precisions\">\n"
+			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "_Precisions\" class=\"Precisions\">\n"
 
 			FunctionCallsStr += "\t\t\t<div class=\"PrecNavBar\">\n"
 			FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID +  "ArgumentsOperationsPrecision\">Arguments and Operations</a>\n"
@@ -589,7 +612,7 @@ if __name__ == "__main__":
 			FunctionCallsStr += "\t\t\t</div>\n"
 
 			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "ArgumentsOperationsPrecision\" class=\"ArgumentsOperationsPrecision\">\n"
-			FunctionCallsStr += "\t\t\t<h5>Arguments and Operations</h5>\n"
+			FunctionCallsStr += "\t\t\t<h3 class=\"PrecisionPartTitle\">Arguments and Operations</h3>\n"
 
 			ArgsOpsChartID = ChartID + "_ArgsOps";
 
@@ -663,7 +686,7 @@ if __name__ == "__main__":
 			# Arguments Only
 			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "ArgumentsPrecision\" class=\"ArgumentsPrecision\">\n"
 			if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
-				FunctionCallsStr += "\t\t\t<h5>Arguments Only</h5>\n"
+				FunctionCallsStr += "\t\t\t<h3 class=\"PrecisionPartTitle\">Arguments Only</h3>\n"
 
 				ArgsChartID = ChartID + "_Args";
 				RangeData = ""
@@ -716,7 +739,7 @@ if __name__ == "__main__":
 
 			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "OperationsPrecision\" class=\"OperationsPrecision\">\n"
 			if not (DataOps.at[k, 'Int'] or DataOps.at[k, 'Lib']):
-				FunctionCallsStr += "\t\t\t<h5>Operations Only</h5>\n"
+				FunctionCallsStr += "\t\t\t<h3 class=\"PrecisionPartTitle\">Operations Only</h3>\n"
 
 				OpsChartID = ChartID + "_Ops";
 				OpsDoublePrec = ""
@@ -750,7 +773,7 @@ if __name__ == "__main__":
 				CallChartString = AddCallOpsChart(CallChartString, ChartID, OpsChartID, OpsDoublePrec, OpsFloatPrec)
 
 			else:
-				FunctionCallsStr += "\t\t\t<h5>Operations Only</h5>\n"
+				FunctionCallsStr += "\t\t\t<h3 class=\"PrecisionPartTitle\">Operations Only</h3>\n"
 				FunctionCallsStr += "<p class=\"InfoMessage\">It's looks like this function have not been compiled with verificarlo and we can't access to internal operations.</p>\n"
 
 			FunctionCallsStr += "</div>\n"
