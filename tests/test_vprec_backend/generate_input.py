@@ -21,6 +21,6 @@ def print_random_fp(n, r, output_filename):
 if "__main__" == __name__:
 
     n = int(sys.argv[1])
-    r = int(sys.argv[1])
+    r = int(sys.argv[2])
 
     print_random_fp(n, r, output_filename)
