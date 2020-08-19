@@ -465,26 +465,26 @@ set_vprec_func_precision(_vprec_func_precision_t type,
                          _vprec_func_precision_t range,
                          _vprec_func_precision_t precision) {
   if (type >= FTYPES_END) {
-    logger_error("given types is not managed by function instrumentation: %hd",
+    logger_error("given type is not managed by function instrumentation: %hd",
                  type);
   }
   if ((range > VPREC_RANGE_BINARY32_MAX || range < VPREC_RANGE_BINARY32_MIN) &&
       type == FFLOAT) {
-    logger_error("invalid range for binary 32: %hd", range);
+    logger_error("invalid range for binary32: %hd", range);
   }
   if ((precision > VPREC_PRECISION_BINARY32_MAX ||
        precision < VPREC_PRECISION_BINARY32_MIN) &&
       type == FFLOAT) {
-    logger_error("invalid precision for binary 32: %hd", precision);
+    logger_error("invalid precision for binary32: %hd", precision);
   }
   if ((range > VPREC_RANGE_BINARY64_MAX || range < VPREC_RANGE_BINARY64_MIN) &&
       type == FDOUBLE) {
-    logger_error("invalid range for binary 64: %hd", range);
+    logger_error("invalid range for binary64: %hd", range);
   }
   if ((precision > VPREC_PRECISION_BINARY64_MAX ||
        precision < VPREC_PRECISION_BINARY64_MIN) &&
       type == FDOUBLE) {
-    logger_error("invalid precision for binary 64: %hd", precision);
+    logger_error("invalid precision for binary64: %hd", precision);
   }
   _vprec_func_precision_t prec = (type << 12) | (range << 6) | precision;
   return prec;
@@ -501,11 +501,11 @@ typedef struct _vprec_inst_function {
   _vprec_func_precision_t *input_arguments;
   // precisions for floating point ouput arguments
   _vprec_func_precision_t *output_arguments;
-  // number of floating point input arguments
+  // number of floating-point input arguments
   int nb_input_args;
-  // number of floating point output arguments
+  // number of floating-point output arguments
   int nb_output_args;
-  // number of call for this call site
+  // number of calls for this call site
   int n_calls;
 } _vprec_inst_function_t;
 
@@ -554,10 +554,10 @@ void _vprec_read_hasmap(FILE *fin) {
     }
 
     // insert in the hashmap
-    _vprec_inst_function_t *adress = malloc(sizeof(_vprec_inst_function_t));
-    (*adress) = function;
+    _vprec_inst_function_t *address = malloc(sizeof(_vprec_inst_function_t));
+    (*address) = function;
     vfc_hashmap_insert(_vprec_func_map, vfc_hashmap_str_function(function.id),
-                       adress);
+                       address);
   }
 }
 
@@ -609,9 +609,8 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
     // initialize the structure
     strcpy(function_inst->id, function_info->id);
-    function_inst->precision_binary64 =
-        set_vprec_func_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT,
-                                 VPREC_PRECISION_BINARY64_DEFAULT);
+    function_inst->precision_binary64 = set_vprec_func_precision(
+        FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT, VPREC_PRECISION_BINARY64_DEFAULT);
     function_inst->precision_binary32 = set_vprec_func_precision(
         FFLOAT, VPREC_RANGE_BINARY32_DEFAULT, VPREC_PRECISION_BINARY32_DEFAULT);
     function_inst->nb_input_args = 0;
@@ -631,8 +630,8 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
   // set precision with custom values depending on the mode
   if (!function_info->isLibraryFunction &&
-      !function_info->isIntrinsicFunction && VPREC_INST_MODE != vprecinst_arg &&
-      VPREC_INST_MODE != vprecinst_none) {
+      !function_info->isIntrinsicFunction &&
+      VPREC_INST_MODE != vprecinst_arg && VPREC_INST_MODE != vprecinst_none) {
     _set_vprec_precision_binary64(
         get_vprec_func_precision_mantissa(function_inst->precision_binary64));
     _set_vprec_range_binary64(
