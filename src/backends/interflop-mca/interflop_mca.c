@@ -231,6 +231,7 @@ static __float128 _noise_binary128(const int exp) {
       return;                                                                  \
     } else {                                                                   \
       if (((t_context *)CTX)->relErr) {                                        \
+        const int32_t e_a = GET_EXP_FLT(*X);                                   \
         const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
         const typeof(*X) noise_rel = _NOISE(*X, e_n_rel);                      \
         *X = *X + noise_rel;                                                   \
