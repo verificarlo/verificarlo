@@ -331,13 +331,13 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         /* vprec error mode all */
         if ((-1) * currentContext->absErr_exp < binary32_precision)
           a = handle_binary32_denormal(a, emin, aexp.u32,
-                                       (-1) * currentContext->absErr_exp);
+                                       abs(currentContext->absErr_exp));
         else
           a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
       } else if (currentContext->absErr == true) {
         /* vprec error mode abs */
         a = handle_binary32_denormal(a, emin, aexp.u32,
-                                     (-1) * currentContext->absErr_exp);
+                                     abs(currentContext->absErr_exp));
       } else {
         /* vprec error mode rel */
         a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
@@ -458,13 +458,13 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         /* vprec error mode all */
         if ((-1) * currentContext->absErr_exp < binary64_precision)
           a = handle_binary64_denormal(a, emin, aexp.u64,
-                                       (-1) * currentContext->absErr_exp);
+                                       abs(currentContext->absErr_exp));
         else
           a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
       } else if (currentContext->absErr == true) {
         /* vprec error mode abs */
         a = handle_binary64_denormal(a, emin, aexp.u64,
-                                     (-1) * currentContext->absErr_exp);
+                                     abs(currentContext->absErr_exp));
       } else {
         /* vprec error mode rel */
         a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
@@ -736,9 +736,8 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
     // initialize the structure
     strcpy(function_inst->id, function_info->id);
-    function_inst->precision_binary64 =
-        set_vprec_func_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT,
-                                 VPREC_PRECISION_BINARY64_DEFAULT);
+    function_inst->precision_binary64 = set_vprec_func_precision(
+        FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT, VPREC_PRECISION_BINARY64_DEFAULT);
     function_inst->precision_binary32 = set_vprec_func_precision(
         FFLOAT, VPREC_RANGE_BINARY32_DEFAULT, VPREC_PRECISION_BINARY32_DEFAULT);
     function_inst->nb_input_args = 0;
@@ -758,8 +757,8 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
   // set precision with custom values depending on the mode
   if (!function_info->isLibraryFunction &&
-      !function_info->isIntrinsicFunction && VPREC_INST_MODE != vprecinst_arg &&
-      VPREC_INST_MODE != vprecinst_none) {
+      !function_info->isIntrinsicFunction &&
+      VPREC_INST_MODE != vprecinst_arg && VPREC_INST_MODE != vprecinst_none) {
     _set_vprec_precision_binary64(
         get_vprec_func_precision_mantissa(function_inst->precision_binary64));
     _set_vprec_range_binary64(
