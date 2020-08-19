@@ -230,11 +230,11 @@ static __float128 _noise_binary128(const int exp) {
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
     } else {                                                                   \
-      const int32_t e_a = GET_EXP_FLT(*X);                                     \
       /* const int32_t e_n = e_a - (VIRTUAL_PRECISION - 1); */                 \
       /* const typeof(*X) noise = _NOISE(*X, e_n); */                          \
       /* *X = *X + noise;  */                                                  \
       if (((t_context *)CTX)->relErr) {                                        \
+        const int32_t e_a = GET_EXP_FLT(*X);                                   \
         const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
         const typeof(*X) noise_rel = _NOISE(*X, e_n_rel);                      \
         *X = *X + noise_rel;                                                   \
