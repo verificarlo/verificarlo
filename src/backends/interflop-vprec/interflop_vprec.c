@@ -105,8 +105,7 @@ static const char *VPREC_MODE_STR[] = {"ieee", "full", "ib", "ob"};
 typedef enum {
   vprec_err_mode_rel,
   vprec_err_mode_abs,
-  vprec_err_mode_all,
-  _vprec_err_mode_end_
+  vprec_err_mode_all
 } vprec_err_mode;
 
 static const char *VPREC_ERR_MODE_STR[] = {"rel", "abs", "all"};
