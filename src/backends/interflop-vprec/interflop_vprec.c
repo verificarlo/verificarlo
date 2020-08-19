@@ -736,10 +736,11 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
     // initialize the structure
     strcpy(function_inst->id, function_info->id);
-    function_inst->precision_binary64 = set_vprec_func_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT, 
-                                                                 VPREC_PRECISION_BINARY64_DEFAULT);
-    function_inst->precision_binary32 = set_vprec_func_precision(FFLOAT, VPREC_RANGE_BINARY32_DEFAULT, 
-                                                                 VPREC_PRECISION_BINARY32_DEFAULT);
+    function_inst->precision_binary64 =
+        set_vprec_func_precision(FDOUBLE, VPREC_RANGE_BINARY64_DEFAULT,
+                                 VPREC_PRECISION_BINARY64_DEFAULT);
+    function_inst->precision_binary32 = set_vprec_func_precision(
+        FFLOAT, VPREC_RANGE_BINARY32_DEFAULT, VPREC_PRECISION_BINARY32_DEFAULT);
     function_inst->nb_input_args = 0;
     function_inst->nb_output_args = 0;
     function_inst->input_arguments = NULL;
@@ -757,7 +758,7 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
   // set precision with custom values depending on the mode
   if (!function_info->isLibraryFunction &&
-      !function_info->isIntrinsicFunction && VPREC_INST_MODE != vprecinst_arg && 
+      !function_info->isIntrinsicFunction && VPREC_INST_MODE != vprecinst_arg &&
       VPREC_INST_MODE != vprecinst_none) {
     _set_vprec_precision_binary64(
         get_vprec_func_precision_mantissa(function_inst->precision_binary64));
