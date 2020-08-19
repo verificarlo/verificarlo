@@ -475,13 +475,13 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         /* vprec error mode all */
         if ((-1) * currentContext->absErr_exp < binary32_precision)
           a = handle_binary32_denormal(a, emin, aexp.u32,
-                                       (-1) * currentContext->absErr_exp);
+                                       abs(currentContext->absErr_exp));
         else
           a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
       } else if (currentContext->absErr == true) {
         /* vprec error mode abs */
         a = handle_binary32_denormal(a, emin, aexp.u32,
-                                     (-1) * currentContext->absErr_exp);
+                                     abs(currentContext->absErr_exp));
       } else {
         /* vprec error mode rel */
         a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
@@ -635,13 +635,13 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         /* vprec error mode all */
         if ((-1) * currentContext->absErr_exp < binary64_precision)
           a = handle_binary64_denormal(a, emin, aexp.u64,
-                                       (-1) * currentContext->absErr_exp);
+                                       abs(currentContext->absErr_exp));
         else
           a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
       } else if (currentContext->absErr == true) {
         /* vprec error mode abs */
         a = handle_binary64_denormal(a, emin, aexp.u64,
-                                     (-1) * currentContext->absErr_exp);
+                                     abs(currentContext->absErr_exp));
       } else {
         /* vprec error mode rel */
         a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
@@ -1432,14 +1432,6 @@ static struct argp_option options[] = {
      "select error mode among {rel, abs, all}", 0},
     {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
      "select magnitude of the maximum absolute error", 0},
-<<<<<<< HEAD
-     "select VPREC mode among {ieee, full, ib, ob}", 0},
-    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
-     "select error mode among {rel, abs, all}", 0},
-    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
-     "select magnitude of the maximum absolute error", 0},
-=======
->>>>>>> bugfix for wrongly placed copy and paste
     {key_instrument_str, KEY_INSTRUMENT, "INSTRUMENTATION", 0,
      "select VPREC instrumentation mode among {arguments, operations, full}",
      0},
