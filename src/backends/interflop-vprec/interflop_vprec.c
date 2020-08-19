@@ -584,10 +584,10 @@ void _vprec_read_hasmap(FILE *fin) {
     }
 
     // insert in the hashmap
-    _vprec_inst_function_t *adress = malloc(sizeof(_vprec_inst_function_t));
-    (*adress) = function;
+    _vprec_inst_function_t *address = malloc(sizeof(_vprec_inst_function_t));
+    (*address) = function;
     vfc_hashmap_insert(_vprec_func_map, vfc_hashmap_str_function(function.id),
-                       adress);
+                       address);
   }
 }
 
