@@ -4,11 +4,12 @@ import os
 import math
 import sys
 
-exit_at_error = False
+exit_at_error = True
 
 PRECISION="VERIFICARLO_PRECISION"
 mpfr_file="mpfr.txt"
 vprec_file="vprec.txt"
+input_file="input.txt"
 
 def get_var_env_int(env):
 
@@ -21,8 +22,16 @@ def get_var_env_int(env):
 
 def parse_file(filename):
     fi = open(filename, "r")
-    fp_list = []
+    fp_list = [] 
     return [float.fromhex(line) for line in fi]
+
+def parse_file2(filename):
+    fi = open(filename, "r")
+    input_list= []
+    input_list =[list(line.split(' ')) for line in fi] 
+    input_list
+    return input_list
+
 
 def get_relative_error(mpfr, vprec):
 
@@ -57,8 +66,8 @@ def are_equal(mpfr, vprec):
     else:
         return mpfr == vprec
 
-def compute_err(precision, mpfr_list, vprec_list):
-    for mpfr,vprec in zip(mpfr_list,vprec_list):
+def compute_err(precision, mpfr_list, vprec_list, input_list):
+    for mpfr,vprec,input_ab in zip(mpfr_list,vprec_list,input_list):
         print("Compare MPFR,VPREC:{mpfr} {vprec}".format(mpfr=mpfr,vprec=vprec))
         relative_error = get_relative_error(mpfr, vprec)
         s = get_significant_digits(relative_error)
@@ -75,7 +84,9 @@ def compute_err(precision, mpfr_list, vprec_list):
                 p=vprec_precision,
                 op=op))
 
-            sys.stderr.write("Relative error too high: mpfr={mpfr} vprec={vprec} error={err} ({el} b=2)\n".format(
+            sys.stderr.write("Relative error too high: a={input_a} b={input_b} mpfr={mpfr} vprec={vprec} error={err} ({el} b=2)\n".format(
+                input_a=input_ab[0],
+                input_b=input_ab[1],
                 mpfr=mpfr,
                 vprec=vprec,
                 err=relative_error,
@@ -90,7 +101,7 @@ if "__main__" == __name__:
     precision = get_var_env_int(PRECISION)
     mpfr_list = parse_file(mpfr_file)
     vprec_list = parse_file(vprec_file)
-
-    compute_err(precision, mpfr_list, vprec_list)
+    input_list = parse_file2(input_file)
+    compute_err(precision, mpfr_list, vprec_list, input_list)
 
     exit(0)
