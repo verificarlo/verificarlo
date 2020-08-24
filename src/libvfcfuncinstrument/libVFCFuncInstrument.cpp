@@ -50,12 +50,44 @@
 #include <utility>
 #include <vector>
 
+#if LLVM_VERSION_MAJOR < 5
+#define CREATE_CALL3(func, op1, op2, op3)                                      \
+  (Builder.CreateCall(func, {op1, op2, op3}, ""))
+#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
+#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
+#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
+  M.getOrInsertFunction(name, res, __VA_ARGS__, (Type *)NULL)
+#define SET_CALLING_CONV(func, conv) func->setCallingConv(conv)
+typedef llvm::Constant *_LLVMFunctionType;
+typedef llvm::Function *_LLVMFunction;
+#elif LLVM_VERSION_MAJOR < 9
+#define CREATE_CALL3(func, op1, op2, op3)                                      \
+  (Builder.CreateCall(func, {op1, op2, op3}, ""))
+#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
+#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
+#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
+  M.getOrInsertFunction(name, res, __VA_ARGS__)
+#define SET_CALLING_CONV(func, conv) func->setCallingConv(conv)
+typedef llvm::Constant *_LLVMFunctionType;
+typedef llvm::Function *_LLVMFunction;
+#else
+#define CREATE_CALL3(func, op1, op2, op3)                                      \
+  (Builder.CreateCall(func, {op1, op2, op3}, ""))
+#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
+#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
+#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
+  M.getOrInsertFunction(name, res, __VA_ARGS__)
+#define SET_CALLING_CONV(func, conv) func->setCallingConv(conv)
+typedef llvm::FunctionCallee _LLVMFunctionType;
+typedef llvm::FunctionCallee _LLVMFunction;
+#endif
+
 using namespace llvm;
 
 namespace {
 
-static Function *func_enter;
-static Function *func_exit;
+static _LLVMFunction func_enter;
+static _LLVMFunction func_exit;
 
 // Enumeration of managed types
 enum Ftypes { FLOAT, DOUBLE };
@@ -286,20 +318,32 @@ struct VfclibFunc : public ModulePass {
         Type::getInt8Ty(M.getContext()),    Type::getInt32Ty(M.getContext())};
 
     // void vfc_enter_function (char*, char, char, char, char, int, ...)
-    Constant *func = M.getOrInsertFunction(
+    _LLVMFunctionType func = M.getOrInsertFunction(
         "vfc_enter_function",
         FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true));
 
-    func_enter = cast<Function>(func);
+#if LLVM_VERSION_MAJOR >= 9
+    func_enter = cast<_LLVMFunction>(func);
+    Function *tmp_func = dyn_cast<Function>(func_enter.getCallee());
+    tmp_func->setCallingConv(CallingConv::C);
+#else
+    func_enter = dyn_cast<Function>(func);
     func_enter->setCallingConv(CallingConv::C);
+#endif
 
     // void vfc_exit_function (char*, char, char, char, char, int, ...)
     func = M.getOrInsertFunction(
         "vfc_exit_function",
         FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true));
 
+#if LLVM_VERSION_MAJOR >= 9
+    func_exit = cast<_LLVMFunction>(func);
+    tmp_func = dyn_cast<Function>(func_exit.getCallee());
+    tmp_func->setCallingConv(CallingConv::C);
+#else
     func_exit = cast<Function>(func);
     func_exit->setCallingConv(CallingConv::C);
+#endif
 
     /*************************************************************************
      *                             Main special case                         *
@@ -419,10 +463,13 @@ struct VfclibFunc : public ModulePass {
                 CallTypes.push_back(cast<Value>(it)->getType());
               }
 
-              Constant *c = M.getOrInsertFunction(
+              _LLVMFunctionType c = M.getOrInsertFunction(
                   NewName, FunctionType::get(ReturnTy, CallTypes, false));
+#if LLVM_VERSION_MAJOR >= 9
+              Function *hook_func = cast<Function>(c.getCallee());
+#else
               Function *hook_func = cast<Function>(c);
-
+#endif
               hook_func->setAttributes(f->getAttributes());
               hook_func->setCallingConv(f->getCallingConv());
 
