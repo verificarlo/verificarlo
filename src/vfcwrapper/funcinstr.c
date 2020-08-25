@@ -56,7 +56,7 @@ void _vfc_func_table_print(FILE *f) {
         get_value_at(_vfc_func_map->items, ii) != 0) {
       interflop_function_info_t *function =
           (interflop_function_info_t *)get_value_at(_vfc_func_map->items, ii);
-      fprintf(f, "%s\t%hd\t%hd\t%zu\t%zu\n", function->id,
+      fprintf(f, "%s\t%hd\t%hd\t%hu\t%hu\n", function->id,
               function->isLibraryFunction, function->isIntrinsicFunction,
               function->useFloat, function->useDouble);
     }

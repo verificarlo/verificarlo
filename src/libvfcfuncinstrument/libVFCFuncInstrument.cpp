@@ -286,19 +286,16 @@ struct VfclibFunc : public ModulePass {
         Type::getInt8Ty(M.getContext()),    Type::getInt32Ty(M.getContext())};
 
     // void vfc_enter_function (char*, char, char, char, char, int, ...)
-    Constant *func = M.getOrInsertFunction(
-        "vfc_enter_function",
-        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true));
-
-    func_enter = cast<Function>(func);
+    func_enter = Function::Create(
+        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true),
+        Function::ExternalLinkage, "vfc_enter_function", M);
     func_enter->setCallingConv(CallingConv::C);
 
     // void vfc_exit_function (char*, char, char, char, char, int, ...)
-    func = M.getOrInsertFunction(
-        "vfc_exit_function",
-        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true));
+    func_exit = Function::Create(
+        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true),
+        Function::ExternalLinkage, "vfc_exit_function", M);
 
-    func_exit = cast<Function>(func);
     func_exit->setCallingConv(CallingConv::C);
 
     /*************************************************************************
@@ -419,9 +416,9 @@ struct VfclibFunc : public ModulePass {
                 CallTypes.push_back(cast<Value>(it)->getType());
               }
 
-              Constant *c = M.getOrInsertFunction(
-                  NewName, FunctionType::get(ReturnTy, CallTypes, false));
-              Function *hook_func = cast<Function>(c);
+              Function *hook_func = Function::Create(
+                  FunctionType::get(ReturnTy, CallTypes, false),
+                  Function::ExternalLinkage, NewName, M);
 
               hook_func->setAttributes(f->getAttributes());
               hook_func->setCallingConv(f->getCallingConv());
