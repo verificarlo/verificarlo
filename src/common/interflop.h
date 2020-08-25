@@ -31,10 +31,10 @@ typedef struct interflop_function_info {
   short isLibraryFunction;
   // Indicate if the function is intrinsic
   short isIntrinsicFunction;
-  // Counter of Floating Point instruction
-  size_t useFloat;
-  // Counter of Floating Point instruction
-  size_t useDouble;
+  // Indicate if the function use double
+  short useFloat;
+  // Indicate if the function use float
+  short useDouble;
 } interflop_function_info_t;
 
 /* Verificarlo call stack */
