@@ -9,7 +9,200 @@ import struct
 import shlex
 import os.path
 import subprocess
+import mplfinance
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
+from mplfinance.original_flavor import candlestick_ohlc
 from os import listdir
+
+DaraDir = "vfc_exp_data/"
+ImgDir = DaraDir + "img/"
+Arguments = DaraDir + "ArgumentsResults.csv"
+Operations = DaraDir + "OperationsResults.csv"
+ArgumentsAll = DaraDir + "BothArgsResults.csv"
+OperationsAll = DaraDir + "BothOpsResults.csv"
+Report_File = DaraDir + "vfc_precexp_report.html"
+
+ReportString = "\n\
+<!DOCTYPE html>\n\
+<html>\n\
+	<!-- HEAD -->\n\
+	<head>\n\
+		<meta charset=\"utf-8\" />\n\
+		<title>Precision Exploration Report</title>\n\
+		\n\
+		<script ID=\"scriptHeader\" type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>\n\
+		  <script src=\"https://code.jquery.com/jquery-3.5.0.js\"></script>\n\
+		<script ID=\"scriptBody\">\n\
+			google.charts.load(\"current\", {packages:['corechart']});\n\
+		\n\
+			/* Chart script */\n\
+		\n\
+			google.charts.setOnLoadCallback(HideAll);\n\
+		\n\
+			actualFunction = \"\";\n\
+		\n\
+			function DisplayFunctionInformations(ID){\n\
+				if(actualFunction != \"\") {\n\
+					var to_hide = document.getElementById(actualFunction);\n\
+				 	to_hide.style.display = 'none';\n\
+				}\n\
+		\n\
+				var to_display = document.getElementById(ID);\n\
+				to_display.style.display = 'block';\n\
+		\n\
+				actualFunction = ID;\n\
+			}\n\
+		\n\
+			function DisplayCallInformations(ChartID){\n\
+				DivID = ChartID + \"_Precisions\";\n\
+				\n\
+				var to_display = document.getElementById(DivID);\n\
+				if (to_display != null){\n\
+					if(to_display.style.display != 'none'){\n\
+						to_display.style.display = 'none';\n\
+					}else{\n\
+						to_display.style.display = 'flex';\n\
+						to_display.style.justifyContent = 'space-around';\n\
+					}\n\
+				}\n\
+			}\n\
+		\n\
+			function HideAll(){\n\
+			    var to_hide = document.getElementsByClassName(\"Precisions\");\n\
+			    \n\
+			    for(var i = 0; i < to_hide.length; i++){\n\
+			        to_hide[i].style.display = \"none\";\n\
+			    }\n\
+		\n\
+			    var to_hide = document.getElementsByClassName(\"FunctionInformations\");\n\
+			    \n\
+			    for(var i = 0; i < to_hide.length; i++){\n\
+			        to_hide[i].style.display = \"none\";\n\
+			    }\n\
+			}\n\
+		\n\
+		</script>\n\
+		\n\
+		<style ID=\"MainStyle\">\n\
+			body {\n\
+				font-family: arial;\n\
+				max-width: 1400px;\n\
+				margin: auto;\n\
+			}\n\
+		\n\
+			p {\n\
+				text-align: justify;\n\
+			}\n\
+		\n\
+			h1 {\n\
+				text-align: center;\n\
+			}\n\
+		\n\
+			.CallLink {\n\
+				text-decoration: none;\n\
+				color: black;\n\
+			}\n\
+		\n\
+			.InfoLink {\n\
+				text-decoration: none;\n\
+				color: black;\n\
+			}\n\
+		\n\
+			.PrecNavBar {\n\
+				display: flex;\n\
+				width: 100%;\n\
+				justify-content: space-around;\n\
+				align-items: center;\n\
+			}\n\
+		\n\
+			.InfoMessage {\n\
+				width: 100%;\n\
+				text-align: center;\n\
+			}\n\
+		\n\
+			.actif_link {\n\
+				text-decoration: none;\n\
+				background-color: #BEBEBE;\n\
+				color: black;\n\
+				text-align: center;\n\
+				padding-top: 15px;\n\
+				padding-bottom: 15px;\n\
+			}\n\
+		\n\
+			.actif_link:hover {\n\
+				color: white;\n\
+				background-color: #808080;\n\
+			}\n\
+			.inactif_link {\n\
+				text-decoration: none;\n\
+				background-color: rgba(255,0,0,0.7);\n\
+				color: black;\n\
+				text-align: center;\n\
+				padding-top: 15px;\n\
+				padding-bottom: 15px;\n\
+			}\n\
+		\n\
+			.inactif_link {\n\
+				background-color: rgba(255,0,0,0.5);\n\
+			}\n\
+		\n\
+			.two_link {\n\
+				width: 30%; \n\
+				border: solid black;\n\
+				display: flex;\n\
+			}\n\
+			.graph {\n\
+				width: 90%;\n\
+			}\n\
+			.ArgumentsOperationsPrecision {\n\
+				display: flex;\n\
+				flex-direction: column;\n\
+				align-items: center;\n\
+			}\n\
+			.ArgumentsPrecision {\n\
+				display: flex;\n\
+				flex-direction: column;\n\
+				align-items: center;\n\
+			}\n\
+			.OperationsPrecision {\n\
+				display: flex;\n\
+				flex-direction: column;\n\
+				align-items: center;\n\
+			}\n\
+		\n\
+		</style>\n\
+	</head>\n\
+		\n\
+	<!-- BODY -->\n\
+	<body>\n\
+		\n\
+		<h1 id=\"Home\">Precision Exploration Report</h1>\n\
+		\n\
+		<h2 id=\"Introduction\"> Introduction</h2>\n\
+		\n\
+		<p>\n\
+			The role of this report is to present results of the precision exploration script of verificarlo. The given result is not the optimal precision configuration and is obtained by a simple dichotomic search. The internal operations, precision is given exclusively for functions compiled with verificarlo, input(s) and output(s) precision is given for every called function.\n\
+		</p>\n\
+		\n\
+		<h2 id=\"Functions\"> Functions</h2>\n\
+		\n\
+		<p>\n\
+			This graph presents called functions which use float or double, they are sorted by number of calls and you can access to precision results for a function by clicking on the desired label.\n\
+		</p>\n\
+		\n\
+		<div id=\"MainHist\"></div>\n\
+		\n\
+		<h2 id=\"Calls\"> Functions Call Site</h2>\n\
+		\n\
+		<p>\n\
+			When a function is selected, a list with call sites of the selected function appear. You can hide or show precision information for a call site by clicking on the desired item in the list. If the function has not been compiled with verficarlo, internal operations precision are not accessible. If a function doesn't have double or float arguments, arguments precision will not be accessible too. \n\
+		</p>\n\
+		\n\
+		<!-- Function Calls -->\n\
+		\n\
+	</body>\n\
+</html>"
 
 def GetFunctionInfo(FunctionID):
 	CallNb = int(FunctionID[FunctionID.rfind('_')+1:])
@@ -19,6 +212,7 @@ def GetFunctionInfo(FunctionID):
 	Fname = FunctionID[FunctionID.rfind('/')+1:]
 	FunctionID = FunctionID[:FunctionID.rfind('/')]
 	Ffile = FunctionID[FunctionID.rfind('/')+1:]
+	
 	return CallNb, Fline, Fname, Ffile
 
 def AddMainChart(CallChartString, DataMain):
@@ -80,434 +274,101 @@ def AddMainChart(CallChartString, DataMain):
 
 	return CallChartString
 
-def AddCallArgsChart(CallChartString, ChartID, DivID, RangeData, ExponentData, MantissaData):
-	CallChartString += "\n\
-		google.charts.setOnLoadCallback(function (){\n\
-			$(\"#Link_" + ChartID +  "_Precisions\").one('click', async function (){ \n\
-				await new Promise(r => setTimeout(r, 225));\n\
-			 	window.addEventListener('resize', Draw_" + DivID + "_ArgsHist);\n\
-				Draw_" + DivID + "_ArgsHist();\n\
-			});\n\
-		});\n\
-		function Draw_" + DivID + "_ArgsHist() {\n\
-		  		var data = google.visualization.arrayToDataTable([\n\
-		  			['Argument Type', 'Range of values (log2)', '', '', ''],\n\
-		  			" + RangeData + "], false);\n\
-				\n\
-		      	var view = new google.visualization.DataView(data);\n\
-				\n\
-		      	var options = {\n\
-		        	title: \"Inputs/Ouptuts arguments range of values (pow2)\",\n\
-		        	legend: 'value interval',\n\
-		        	annotations: {\n\
-						textStyle: {\n\
-							color: 'black',\n\
-							fontSize: 15,\n\
-							auraColor: 'transparent',\n\
-						},\n\
-						stem: { length: 0 }, \n\
-						alwaysOutside: true,\n\
-					},\n\
-					chartArea: {width: \"50%\", left: \"25%\"},\n\
-					height: 150,\n\
-					hAxis: {\n\
-						 textPosition: 'none',\n\
-					},\n\
-					colors: ['#d5dc1a'],\n\
-		      	};\n\
-				\n\
-				var element = document.getElementById(\"" + DivID + "RangeHist\");\n\
-				if (element != null){\n\
-			    	var chart = new google.visualization.CandlestickChart(element);\n\
-			      	chart.draw(view, options);}\n\
-				\n\
-		  		var data = google.visualization.arrayToDataTable([\n\
-		  			['IO','Exponent size'],\n\
-		  			" + ExponentData + "]);\n\
-				\n\
-		      	var view = new google.visualization.DataView(data);\n\
-				\n\
-		      	view.setColumns([0, \n\
-		      		1,\n\
-		      		{calc: \"stringify\",\n\
-					sourceColumn: 1,\n\
-					type: \"string\",\n\
-					role: \"annotation\"}\n\
-				]);\n\
-				\n\
-		      	var options = {\n\
-		        	title: \"Inputs/Ouptuts minmum and maximum eponent size\",\n\
-		        	annotations: {\n\
-						textStyle: {\n\
-							color: 'black',\n\
-							fontSize: 15,\n\
-							auraColor: 'transparent',\n\
-						},\n\
-						stem: { length: 0 }, \n\
-						alwaysOutside: true,\n\
-					},\n\
-					chartArea: {width: \"50%\", left: \"25%\"},\n\
-					height: 150,\n\
-					vAxis: { \n\
-						viewWindow: { min: 0 , max: 14 }, \n\
-					},\n\
-					hAxis: {\n\
-						 textPosition: 'none',\n\
-					},\n\
-					colors: ['#0F5C9B'],\n\
-		      	};\n\
-				\n\
-				var element = document.getElementById(\""+ DivID + "ExponentHist\");\n\
-				if (element != null){\n\
-			    	var chart = new google.visualization.ColumnChart(element);\n\
-			      	chart.draw(view, options);}\n\
-				\n\
-		  		var data = google.visualization.arrayToDataTable([\n\
-		  			['IO','Mantissa size'],\n\
-		  			" + MantissaData + "]);\n\
-				\n\
-		      	var view = new google.visualization.DataView(data);\n\
-				\n\
-		      	view.setColumns([0, \n\
-		      		1,\n\
-		      		{calc: \"stringify\",\n\
-					sourceColumn: 1,\n\
-					type: \"string\",\n\
-					role: \"annotation\"}\n\
-				]);\n\
-				\n\
-		      	var options = {\n\
-		        	title: \"Inputs/Ouptuts minmum and maximum mantissa size\",\n\
-		        	annotations: {\n\
-						textStyle: {\n\
-							color: 'black',\n\
-							fontSize: 15,\n\
-							auraColor: 'transparent',\n\
-						},\n\
-						stem: { length: 0 }, \n\
-						alwaysOutside: true,\n\
-					},\n\
-					chartArea: {width: \"50%\", left: \"25%\"},\n\
-					height: 300,\n\
-					vAxis: { \n\
-						viewWindow: { min: 0 , max: 54 }, \n\
-					},\n\
-					colors: ['#9B0500'],\n\
-		      	};\n\
-				\n\
-				var element = document.getElementById(\""+ DivID + "MantissaHist\");\n\
-				if (element != null){\n\
-			    	var chart = new google.visualization.ColumnChart(element);\n\
-			      	chart.draw(view, options);}\n\
-				\n\
-		}\n\
-		"
-	return CallChartString
+def PlotArgs(Data, ImgID, Title):
+	fig = plt.figure(1, figsize=(13, 13))
 
-def AddCallOpsChart(CallChartString, ChartID, DivID, OpsDoublePrec, OpsFloatPrec):
-	CallChartString += "\n\
-		google.charts.setOnLoadCallback(function (){\n\
-			$(\"#Link_" + ChartID +  "_Precisions\").one('click', async function (){ \n\
-				await new Promise(r => setTimeout(r, 225));\n\
-			 	window.addEventListener('resize', Draw_" + DivID + "_OpsHist);\n\
-				Draw_" + DivID + "_OpsHist();\n\
-			});\n\
-		});\n\
-		function Draw_" + DivID + "_OpsHist() {\n\
-		  		var data = google.visualization.arrayToDataTable([\n\
-		  			['Type','Mantissa size', '', 'ExponentSize'],\n\
-		  			"+ OpsDoublePrec +"]);\n\
-				\n\
-		      	var view = new google.visualization.DataView(data);\n\
-				\n\
-		      	view.setColumns([0, \n\
-		      		1,\n\
-		      		{calc: \"stringify\",\n\
-					sourceColumn: 1,\n\
-					type: \"string\",\n\
-					role: \"annotation\"},\n\
-					2,\n\
-					3,\n\
-					{calc: \"stringify\",\n\
-					sourceColumn: 3,\n\
-					type: \"string\",\n\
-					role: \"annotation\"},\n\
-				]);\n\
-				\n\
-		      	var options = {\n\
-		        	title: \"Precison for internal operations in double precision\",\n\
-		        	annotations: {\n\
-						textStyle: {\n\
-							color: 'black',\n\
-							fontSize: 15,\n\
-							auraColor: 'transparent',\n\
-						},\n\
-						stem: { length: 2 , color: 'transparent'}, \n\
-						alwaysOutside: true,\n\
-					},\n\
-					chartArea: {width: \"50%\", left: \"25%\"},\n\
-					height: 150,\n\
-					hAxis: { \n\
-						viewWindow: { min: 0 , max: 66 }, \n\
-					},\n\
-					vAxis: {\n\
-						 textPosition: 'none',\n\
-					},\n\
-					isStacked: true,\n\
-					colors: ['#9B0500','transparent','#0F5C9B'],\n\
-		      	};\n\
-				\n\
-				var element = document.getElementById(\""+ DivID + "DoubleHist\");\n\
-				if (element != null){\n\
-			    	var chart = new google.visualization.BarChart(element);\n\
-			      	chart.draw(view, options);}\n\
-				\n\
-		      	/* Internal Operations Float */\n\
-				\n\
-	  			var data = google.visualization.arrayToDataTable([\n\
-		  			['Type','Mantissa size', '', 'ExponentSize'],\n\
-		  			" + OpsFloatPrec + "]);\n\
-				\n\
-		      	var view = new google.visualization.DataView(data);\n\
-				\n\
-		      	view.setColumns([0, \n\
-		      		1,\n\
-		      		{calc: \"stringify\",\n\
-					sourceColumn: 1,\n\
-					type: \"string\",\n\
-					role: \"annotation\"},\n\
-					2,\n\
-					3,\n\
-					{calc: \"stringify\",\n\
-					sourceColumn: 3,\n\
-					type: \"string\",\n\
-					role: \"annotation\"},\n\
-				]);\n\
-				\n\
-		      	var options = {\n\
-		        	title: \"Precison for internal operations in simple precision\",\n\
-		        	annotations: {\n\
-						textStyle: {\n\
-							color: 'black',\n\
-							fontSize: 15,\n\
-							auraColor: 'transparent',\n\
-						},\n\
-						stem: { length: 2, color: 'transparent' }, \n\
-						alwaysOutside: true,\n\
-					},\n\
-					chartArea: {width: \"50%\", left: \"25%\"},\n\
-					height: 150,\n\
-					hAxis: { \n\
-						viewWindow: { min: 0 , max: 66 }, \n\
-					},\n\
-					vAxis: {\n\
-						 textPosition: 'none',\n\
-					},\n\
-					isStacked: true,\n\
-					colors: ['#9B0500','transparent','#0F5C9B'],\n\
-		      	};\n\
-				\n\
-				var element = document.getElementById(\""+ DivID + "FloatHist\");\n\
-				if (element != null){\n\
-			    	var chart = new google.visualization.BarChart(element);\n\
-			      	chart.draw(view, options);}\n\
-				\n\
-		}\n\
-		"
-	return CallChartString
+	ax1, ax2, ax3 = fig.subplots(3, 1, sharex=True)
+
+	Data['Min'] = Data['Min'].astype(float)
+	Data['Max'] = Data['Max'].astype(float)
+
+	xtick = []
+	range_list = []
+	prec_list = []
+	j = 0
+	for i in Data.index:
+		ax1.text(j, Data.at[i, 'Min'], str(Data.at[i, 'Min']), horizontalalignment='center', verticalalignment='top')
+		ax1.text(j, Data.at[i, 'Max'], str(Data.at[i, 'Max']), horizontalalignment='center', verticalalignment='bottom')
+		if Data.at[i, 'Type'] == 0:
+			xtick.append(Data.at[i, 'IO'] + " Float")
+		else:
+			xtick.append(Data.at[i, 'IO'] + " Double")
+
+		range_list.append(Data.at[i, 'Range'])
+		ax2.text(j, Data.at[i, 'Range'] + 0.1, str(Data.at[i, 'Range']), horizontalalignment='center', verticalalignment='bottom')
+		
+		prec_list.append(Data.at[i, 'Prec'])
+		ax3.text(j, Data.at[i, 'Prec'] + 0.7, str(Data.at[i, 'Prec']), horizontalalignment='center', verticalalignment='bottom')
+
+		j = j + 1
+
+	ax1.vlines(range(0,len(Data.index)), Data[['Min']].values, Data[['Max']].values, linewidths= 72 / len(Data.index), color='green', alpha=0.5)
+	ax1.set_xlim(-0.50, len(Data.index) - 0.50)
+	ax1.set_ylim(ax1.get_ylim()[0] - abs(ax1.get_ylim()[0]), ax1.get_ylim()[1] + ax1.get_ylim()[1])
+	ax1.set_yscale('symlog', base=2)
+	ax1.set_title("Value intervals of input/output arguments")
+	ax1.set_ylabel("Value intervals in log2")
+
+	ax2.bar(range(0,len(Data.index)), range_list, width=0.2, color='blue', alpha=0.5)
+	ax2.set_ylim(0, 11 + 1)
+	ax2.set_title("Exponent length")
+	ax2.set_ylabel("Exponent length in bit")
+
+	ax3.bar(range(0,len(Data.index)), prec_list, width=0.2, color='red', alpha=0.5)
+	ax3.set_ylim(0, 52 + 5)
+	ax3.set_title("Mantissa length")
+	ax3.set_ylabel("Mantissa length in bit")
+
+	fig.suptitle(Title, fontsize=17)
+	plt.xticks(range(0,len(Data.index)), xtick, rotation='vertical')
+	plt.gcf().subplots_adjust(bottom=0.15)
+
+	plt.savefig(ImgDir + ImgID + ".png", format='png')
+	plt.clf()
+
+
+def PlotOps(Data, ImgID, Title):
+	fig = plt.figure(2, figsize=(13, 4))
+
+	ax1 = fig.subplots()
+
+	ax1.set_xlim(0, 65)
+
+	Yindex = []
+	Ylabel = []
+
+	if Data['Float']:
+		ax1.hlines([0,0], [0,23], [Data['Prec32'], 23 + Data['Range32']], color=['red','blue'], alpha=0.5, linewidths= 36) 
+		ax1.text(Data['Prec32'], 0, str(Data['Prec32']), horizontalalignment='right', verticalalignment='center', fontsize=14)
+		ax1.text(23 + Data['Range32'], 0, str(Data['Range32']), horizontalalignment='right', verticalalignment='center', fontsize=14)
+		Yindex.append(0)
+		Ylabel.append('Float')
+
+	if Data['Double']:
+		ax1.hlines([1,1], [0,52], [Data['Prec64'], 52 + Data['Range64']], color=['red','blue'], alpha=0.5, linewidths= 36)
+		ax1.text(Data['Prec64'], 1, str(Data['Prec64']), horizontalalignment='right', verticalalignment='center', fontsize=14)
+		ax1.text(52 + Data['Range64'], 1, str(Data['Range64']), horizontalalignment='right', verticalalignment='center', fontsize=14)
+		Yindex.append(1)
+		Ylabel.append('Double')
+
+	ax1.set_ylim(ax1.get_ylim()[0] - 0.25 * len(Yindex), ax1.get_ylim()[1] + 0.25 * len(Yindex))
+	plt.yticks(Yindex, Ylabel)
+
+	ax1.set_title("Internal Operations Precision")
+
+	legend = [	Line2D([0], [0], color='red', alpha=0.5 , lw=4, label='Mantissa Length (bit)'),
+				Line2D([0], [0], color='blue', alpha=0.5 , lw=4, label='Exponent Length (bit)')]
+
+	ax1.legend(handles=legend, loc='lower right')
+
+	plt.gcf().subplots_adjust(top=0.8)
+	fig.suptitle(Title, fontsize=17)
+	plt.savefig(ImgDir + ImgID + ".png", format='png')
+	plt.clf()
+	
+
 
 if __name__ == "__main__":
-
-	ReportString = "\n\
-<!DOCTYPE html>\n\
-<html>\n\
-	<!-- HEAD -->\n\
-	<head>\n\
-		<meta charset=\"utf-8\" />\n\
-		<title>Precision Exploration Report</title>\n\
-		\n\
-		<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>\n\
-		  <script src=\"https://code.jquery.com/jquery-3.5.0.js\"></script>\n\
-		\n\
-		<script>\n\
-			google.charts.load(\"current\", {packages:['corechart']});\n\
-		\n\
-			/* Chart script */\n\
-		\n\
-			google.charts.setOnLoadCallback(HideAll);\n\
-		\n\
-			actualFunction = \"\";\n\
-		\n\
-			function DisplayFunctionInformations(ID){\n\
-				if(actualFunction != \"\") {\n\
-					var to_hide = document.getElementById(actualFunction);\n\
-				 	to_hide.style.display = 'none';\n\
-				}\n\
-		\n\
-				var to_display = document.getElementById(ID);\n\
-				to_display.style.display = 'block';\n\
-		\n\
-				actualFunction = ID;\n\
-			}\n\
-		\n\
-			var prevent = false;\n\
-			timer = 0;\n\
-			var delay = 200;\n\
-		\n\
-			function DisplayCallInformations(ChartID){\n\
-				timer = setTimeout(function() {\n\
-					if (!prevent) {\n\
-						DivID = ChartID + \"_Precisions\";\n\
-						\n\
-						var to_display = document.getElementById(DivID);\n\
-						if (to_display != null){\n\
-							if(to_display.style.display != 'none') {\n\
-								to_display.style.display = 'none';\n\
-							}else{\n\
-								to_display.style.display = 'block';\n\
-							}\n\
-						}\n\
-					}\n\
-					prevent = false;\n\
-				}, delay);\n\
-			}\n\
-		\n\
-			function HideAll(){\n\
-			    var to_hide = document.getElementsByClassName(\"Precisions\");\n\
-			    \n\
-			    for(var i = 0; i < to_hide.length; i++){\n\
-			        to_hide[i].style.display = \"none\";\n\
-			    }\n\
-		\n\
-			    var to_hide = document.getElementsByClassName(\"FunctionInformations\");\n\
-			    \n\
-			    for(var i = 0; i < to_hide.length; i++){\n\
-			        to_hide[i].style.display = \"none\";\n\
-			    }\n\
-			}\n\
-		\n\
-			function Popup(DivID){\n\
-				clearTimeout(timer);\n\
-				prevent = true;\n\
-				w=open(\"\",'popup','scrollbars=no,resizable=yes');\n\
-				\n\
-				var style = document.getElementById(\"MainStyle\");\n\
-				var clone = style.cloneNode(true);\n\
-				w.document.head.appendChild(clone);\n\
-				\n\
-				var title = document.getElementById('Title_' + DivID);\n\
-				var clone = title.cloneNode(true);\n\
-				w.document.body.appendChild(clone);\n\
-				\n\
-				var charts = document.getElementById(DivID);\n\
-				var clone = charts.cloneNode(true);\n\
-				w.document.body.appendChild(clone);\n\
-				charts.style.display = \"none\";\n\
-				\n\
-			}\n\
-		\n\
-		</script>\n\
-		\n\
-		<style ID=\"MainStyle\">\n\
-			body {\n\
-				font-family: arial;\n\
-				max-width: 1400px;\n\
-				margin: auto;\n\
-			}\n\
-		\n\
-			p {\n\
-				text-align: justify;\n\
-			}\n\
-		\n\
-			h1 {\n\
-				text-align: center;\n\
-			}\n\
-		\n\
-			.CallLink {\n\
-				text-decoration: none;\n\
-				color: black;\n\
-			}\n\
-		\n\
-			.InfoLink {\n\
-				text-decoration: none;\n\
-				color: black;\n\
-			}\n\
-			.PrecNavBar {\n\
-				display: flex;\n\
-				width: 100%;\n\
-				justify-content: space-around;\n\
-				align-items: center;\n\
-			}\n\
-		\n\
-			.InfoMessage {\n\
-				width: 100%;\n\
-				text-align: center;\n\
-			}\n\
-		\n\
-			.PrecNavBar a {\n\
-				text-decoration: none;\n\
-				background-color: #BEBEBE;\n\
-				color: black;\n\
-				width: 33%;\n\
-				text-align: center;\n\
-				padding-top: 15px;\n\
-				padding-bottom: 15px;\n\
-			}\n\
-		\n\
-			.PrecNavBar a:hover {\n\
-				color: white;\n\
-				background-color: #808080;\n\
-			}\n\
-		\n\
-			.PrecisionPartTitle {\n\
-				width: 100%;\n\
-				text-align: center;\n\
-				text-decoration: underline;\n\
-			}\n\
-		\n\
-		</style>\n\
-	</head>\n\
-		\n\
-	<!-- BODY -->\n\
-	<body>\n\
-		\n\
-		<h1 id=\"Home\">Precision Exploration Report</h1>\n\
-		\n\
-		<h2 id=\"Introduction\"> Introduction</h2>\n\
-		\n\
-		<p>\n\
-			The role of this report is to present results of the precision exploration script of verificarlo. The given result is not the optimal precision configuration and is obtained by a simple dichotomic search. The internal operations, precision is given exclusively for functions compiled with verificarlo, input(s) and output(s) precision is given for every called function.\n\
-		</p>\n\
-		\n\
-		<h2 id=\"Functions\"> Functions</h2>\n\
-		\n\
-		<p>\n\
-			This graph presents called functions which use float or double, they are sorted by number of calls and you can access to precision results for a function by clicking on the desired label.\n\
-		</p>\n\
-		\n\
-		<div id=\"MainHist\"></div>\n\
-		\n\
-		<h2 id=\"Calls\"> Functions Call Site</h2>\n\
-		\n\
-		<p>\n\
-			When a function is selected, a list with call sites of the selected function appear. You can hide or show precision information for a call site by clicking on the desired item in the list. If the function has not been compiled with verficarlo, internal operations precision are not accessible. If a function doesn't have double or float arguments, arguments precision will not be accessible too. \n\
-		</p>\n\
-		\n\
-		<!-- Function Calls -->\n\
-		\n\
-	</body>\n\
-</html>\n\
-	"
-
-	DaraDir = "vfc_exp_data/"
-	Arguments = DaraDir + "ArgumentsResults.csv"
-	Operations = DaraDir + "OperationsResults.csv"
-	All_Args = DaraDir + "BothArgsResults.csv"
-	All_Ops = DaraDir + "BothOpsResults.csv"
-	SA_Args_svg = DaraDir + "vfc_args_only.svg"
-	SA_Ops_svg = DaraDir + "vfc_ops_only.svg"
-	SA_All_svg = DaraDir + "vfc_args_ops.svg"
-	Report_File = DaraDir + "vfc_precexp_report.html"
 	
 	if not os.path.exists(Arguments):
 		print("{} not found".format(Arguments))
@@ -521,31 +382,24 @@ if __name__ == "__main__":
 	else:
 		DataOps = pd.read_csv(Operations)
 
-	if not os.path.exists(All_Args):
-		print("{} not found".format(All_Args))
+	if not os.path.exists(ArgumentsAll):
+		print("{} not found".format(ArgumentsAll))
 		exit(0)
 	else:
-		DataAllArgs = pd.read_csv(All_Args)
+		DataAllArgs = pd.read_csv(ArgumentsAll)
 
-	if not os.path.exists(All_Ops):
-		print("{} not found".format(All_Ops))
+	if not os.path.exists(OperationsAll):
+		print("{} not found".format(OperationsAll))
 		exit(0)
 	else:
-		DataAllOps = pd.read_csv(All_Ops)
-
-	if not os.path.exists(SA_Args_svg):
-		print("{} not found".format(SA_Args_svg))
-		exit(0)
-
-	if not os.path.exists(SA_Ops_svg):
-		print("{} not found".format(SA_Ops_svg))
-		exit(0)
-
-	if not os.path.exists(SA_All_svg):
-		print("{} not found".format(SA_All_svg))
-		exit(0)
+		DataAllOps = pd.read_csv(OperationsAll)
+	if not os.path.isdir(ImgDir):
+		os.mkdir(ImgDir)
 
 	CallChartString = ""
+	FunctionCallsStr = ""
+
+
 
 	################ Functions List ################
 
@@ -575,8 +429,6 @@ if __name__ == "__main__":
 
 	################ Function Calls ################
 
-	FunctionCallsStr = ""
-
 	for i in SortedFunctions.index:
 		FunctionCallsStr += "<div ID=\"{Function}\" class=\"FunctionInformations\">\n".format(
 			Function = SortedFunctions.at[i, 'function'].upper())
@@ -595,198 +447,74 @@ if __name__ == "__main__":
 			OpsDoublePrec = ""
 			OpsFloatPrec = ""
 
-			FunctionCallsStr += "\t\t\t<a ID=\"Link_" + ChartID +  "_Precisions\" href=\"#" + ChartID + "Precision\" onclick=\"DisplayCallInformations('"+ ChartID+ "');\" \
-			ondblclick=\"Popup(\'" + ChartID +  "_Precisions\');\" class=\"InfoLink\"><h4 ID=\"Title_" + ChartID +  "_Precisions\">Call to {Fname} in {Ffile} at line {Fline} executed {Ncalls} time(s):</h4></a>\n".format(
+			FunctionCallsStr += "\t\t\t<a ID=\"Link_" + ChartID +  "_Precisions\" href=\"#" + ChartID + "_Precisions\" onclick=\"DisplayCallInformations('" + ChartID + "');\" \
+								 class=\"InfoLink\"><h4 ID=\"Title_" + ChartID +  "_Precisions\">Call to {Fname} in {Ffile} at line {Fline} executed {Ncalls} time(s):</h4></a>\n".format(
 				Fname = Fname.upper(),
 				Ffile = Ffile,
 				Fline = Fline,
 				Ncalls = tmp_ops.at[j, 'Ncalls'])
 
-			# Arguments and Operations
-			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "_Precisions\" class=\"Precisions\">\n"
 
-			FunctionCallsStr += "\t\t\t<div class=\"PrecNavBar\">\n"
-			FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID +  "ArgumentsOperationsPrecision\">Arguments and Operations</a>\n"
-			FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID +  "ArgumentsPrecision\">Arguments Only</a>\n"
-			FunctionCallsStr += "\t\t\t<a href=\"#" + ChartID +  "OperationsPrecision\">Operations Only</a>\n"
-			FunctionCallsStr += "\t\t\t</div>\n"
+			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "_Precisions\" class=\"PrecNavBar, Precisions\">\n"
 
-			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "ArgumentsOperationsPrecision\" class=\"ArgumentsOperationsPrecision\">\n"
-			FunctionCallsStr += "\t\t\t<h3 class=\"PrecisionPartTitle\">Arguments and Operations</h3>\n"
-
-			ArgsOpsChartID = ChartID + "_ArgsOps";
-
-			tmp_args = DataAllArgs.copy()
-			tmp_args = tmp_args[tmp_args['ID'] == tmp_ops.at[j, 'ID']]
-			for k in tmp_args.index:
-
-				if tmp_args.at[k, 'Type'] == 0:
-					RangeData += "['{IO}',{Min},{Min},{Max},{Max}],\n".format(
-						IO = tmp_args.at[k, 'IO'] + " - Float",
-						Min = tmp_args.at[k, 'Min'] if tmp_args.at[k, 'Min'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Min'])),
-						Max = tmp_args.at[k, 'Max'] if tmp_args.at[k, 'Max'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Max'])))
-					ExponentData += "['{IO}',{Exponent}],\n".format(
-						IO = tmp_args.at[k, 'IO'] + " - Float",
-						Exponent = tmp_args.at[k, 'Range'])
-					MantissaData += "['{IO}',{Mantissa}],\n".format(
-						IO = tmp_args.at[k, 'IO'] + " - Float",
-						Mantissa = tmp_args.at[k, 'Prec'])
-				else :
-					RangeData += "['{IO}',{Min},{Min},{Max},{Max}],\n".format(
-						IO = tmp_args.at[k, 'IO'] + " - Double",
-						Min = tmp_args.at[k, 'Min'] if tmp_args.at[k, 'Min'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Min'])),
-						Max = tmp_args.at[k, 'Max'] if tmp_args.at[k, 'Max'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Max'])))
-					ExponentData += "['{IO}',{Exponent}],\n".format(
-						IO = tmp_args.at[k, 'IO'] + " - Double",
-						Exponent = tmp_args.at[k, 'Range'])
-					MantissaData += "['{IO}',{Mantissa}],\n".format(
-						IO = tmp_args.at[k, 'IO'] + " - Double",
-						Mantissa = tmp_args.at[k, 'Prec'],)
-			if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
-				FunctionCallsStr += "\n\
-				<div>\n\
-					<h4 style=\"text-align: center;\">Arguments Precisions</h4>				\n\
-					<div id=\"" + ArgsOpsChartID + "RangeHist\"></div>\n\
-					<div id=\"" + ArgsOpsChartID + "ExponentHist\"></div>\n\
-					<div id=\"" + ArgsOpsChartID + "MantissaHist\"></div>\n\
-				</div>\n\
-				"
-				CallChartString = AddCallArgsChart(CallChartString, ChartID, ArgsOpsChartID, RangeData, ExponentData, MantissaData)
-
-			OpsFloatPrec += "['Float',{Prec32},{Fill},{Range32}],\n".format(
-				Prec32 = tmp_ops.at[j, 'Prec32'],
-				Fill = 23 - tmp_ops.at[j, 'Prec32'],
-				Range32 = tmp_ops.at[j, 'Range32'])
-
-			OpsDoublePrec += "['Double',{Prec64},{Fill},{Range64}],\n".format(
-				Prec64 = tmp_ops.at[j, 'Prec64'],
-				Fill = 52 - tmp_ops.at[j, 'Prec64'],
-				Range64 = tmp_ops.at[j, 'Range64'])
-
-			if not (tmp_ops.at[j, 'Int'] or tmp_ops.at[j, 'Lib']):
-				FunctionCallsStr += "\n\
-				<div>\n\
-				<h4 style=\"text-align: center;\">Internal Operations Precisions</h4>	\n\
-				"
-				if tmp_ops.at[j, 'Double']:
-					FunctionCallsStr += "\n\
-						<div id=\"" + ArgsOpsChartID + "DoubleHist\"></div>\n\
-					"
-				if tmp_ops.at[j, 'Float']:
-					FunctionCallsStr += "\n\
-						<div id=\"" + ArgsOpsChartID + "FloatHist\"></div>\n\
-					"
-				FunctionCallsStr += "\n\
-				</div>																	\n\
-				"
-				CallChartString = AddCallOpsChart(CallChartString, ChartID, ArgsOpsChartID, OpsDoublePrec, OpsFloatPrec)
-
-			FunctionCallsStr += "</div>\n"
-
-			# Arguments Only
-			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "ArgumentsPrecision\" class=\"ArgumentsPrecision\">\n"
-			if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
-				FunctionCallsStr += "\t\t\t<h3 class=\"PrecisionPartTitle\">Arguments Only</h3>\n"
-
-				ArgsChartID = ChartID + "_Args";
-				RangeData = ""
-				ExponentData = ""
-				MantissaData = ""
-
-				tmp_args = DataArgs.copy()
-				tmp_args = tmp_args[tmp_args['ID'] == tmp_ops.at[j, 'ID']]
-				for k in tmp_args.index:
-
-					if tmp_args.at[k, 'Type'] == 0:
-						RangeData += "['{IO}',{Min},{Min},{Max},{Max}],\n".format(
-							IO = tmp_args.at[k, 'IO'] + " - Float",
-							Min = tmp_args.at[k, 'Min'] if tmp_args.at[k, 'Min'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Min'])),
-							Max = tmp_args.at[k, 'Max'] if tmp_args.at[k, 'Max'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Max'])))
-						ExponentData += "['{IO}',{Exponent}],\n".format(
-							IO = tmp_args.at[k, 'IO'] + " - Float",
-							Exponent = tmp_args.at[k, 'Range'])
-						MantissaData += "['{IO}',{Mantissa}],\n".format(
-							IO = tmp_args.at[k, 'IO'] + " - Float",
-							Mantissa = tmp_args.at[k, 'Prec'])
-					else :
-						RangeData += "['{IO}',{Min},{Min},{Max},{Max}],\n".format(
-							IO = tmp_args.at[k, 'IO'] + " - Double",
-							Min = tmp_args.at[k, 'Min'] if tmp_args.at[k, 'Min'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Min'])),
-							Max = tmp_args.at[k, 'Max'] if tmp_args.at[k, 'Max'] >= 0 else -math.log2(abs(tmp_args.at[k, 'Max'])))
-						ExponentData += "['{IO}',{Exponent}],\n".format(
-							IO = tmp_args.at[k, 'IO'] + " - Double",
-							Exponent = tmp_args.at[k, 'Range'])
-						MantissaData += "['{IO}',{Mantissa}],\n".format(
-							IO = tmp_args.at[k, 'IO'] + " - Double",
-							Mantissa = tmp_args.at[k, 'Prec'],)
-
-				FunctionCallsStr += "\n\
-				<div>\n\
-					<h4 style=\"text-align: center;\">Arguments Precisions</h4>	\n\
-					<div id=\"" + ArgsChartID + "RangeHist\"></div>\n\
-					<div id=\"" + ArgsChartID + "ExponentHist\"></div>\n\
-					<div id=\"" + ArgsChartID + "MantissaHist\"></div>\n\
-				</div>\n\
-				"
-				CallChartString = AddCallArgsChart(CallChartString, ChartID, ArgsChartID, RangeData, ExponentData, MantissaData)
-			else:
-				FunctionCallsStr += "\t\t\t<h5>Arguments Only</h5>\n"
-				FunctionCallsStr += "<p class=\"InfoMessage\">It's looks like this function don't have float or double as arguments.</p>\n"
-			FunctionCallsStr += "</div>\n"
-
-			# Operations Only
 			k = DataOps[DataOps['ID'] == tmp_ops.at[j, 'ID']].index[0]
 
-			FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID +  "OperationsPrecision\" class=\"OperationsPrecision\">\n"
-			if not (DataOps.at[k, 'Int'] or DataOps.at[k, 'Lib']):
-				FunctionCallsStr += "\t\t\t<h3 class=\"PrecisionPartTitle\">Operations Only</h3>\n"
+			# Arguments and Operations
+			tmp_args = DataAllArgs.copy()
+			tmp_args = tmp_args[tmp_args['ID'] == tmp_ops.at[j, 'ID']]
 
-				OpsChartID = ChartID + "_Ops";
-				OpsDoublePrec = ""
-				OpsFloatPrec = ""
+			ArgsOpsChartID = ChartID + "_Args";
+			
+			FunctionCallsStr += "\t\t\t<div class=\"two_link\">\n"
 
-				OpsFloatPrec += "['Float',{Prec32},{Fill},{Range32}],\n".format(
-					Prec32 = DataOps.at[k, 'Prec32'],
-					Fill = 23 - DataOps.at[k, 'Prec32'],
-					Range32 = DataOps.at[k, 'Range32'])
-
-				OpsDoublePrec += "['Double',{Prec64},{Fill},{Range64}],\n".format(
-					Prec64 = DataOps.at[k, 'Prec64'],
-					Fill = 52 - DataOps.at[k, 'Prec64'],
-					Range64 = DataOps.at[k, 'Range64'])
-
-				FunctionCallsStr += "\n\
-				<div>\n\
-				<h4 style=\"text-align: center;\">Internal Operations Precisions</h4>\n\
-				"
-				if DataOps.at[k, 'Double']:
-					FunctionCallsStr += "\n\
-						<div id=\"" + OpsChartID + "DoubleHist\"></div>\n\
-					"
-				if DataOps.at[k, 'Float']:
-					FunctionCallsStr += "\n\
-						<div id=\"" + OpsChartID + "FloatHist\"></div>\n\
-					"
-				FunctionCallsStr += "\n\
-				</div>																	\n\
-				"
-				CallChartString = AddCallOpsChart(CallChartString, ChartID, OpsChartID, OpsDoublePrec, OpsFloatPrec)
-
+			if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
+				PlotArgs(tmp_args, ArgsOpsChartID, "Arguments percisions for " + Fname.upper() + " at line " + str(Fline) + " of " + Ffile + " after arguments and operations research")
+				FunctionCallsStr += "\t\t\t<a style=\"width:50%;\" class=\"actif_link\" onclick=\"open('img/" + ArgsOpsChartID + ".png', \'\','scrollbars=no,resizable=yes');\">Arguments</a>\n"
 			else:
-				FunctionCallsStr += "\t\t\t<h3 class=\"PrecisionPartTitle\">Operations Only</h3>\n"
-				FunctionCallsStr += "<p class=\"InfoMessage\">It's looks like this function have not been compiled with verificarlo and we can't access to internal operations.</p>\n"
+				FunctionCallsStr += "\t\t\t<a style=\"width:50%;\" class=\"inactif_link\">Arguments</a>\n"
 
-			FunctionCallsStr += "</div>\n"
-			FunctionCallsStr += "</div>\n"
+			ArgsOpsChartID = ChartID + "_Ops";
 
+			if not (DataOps.at[k, 'Int'] or DataOps.at[k, 'Lib']):
+				PlotOps(tmp_ops.iloc[j], ArgsOpsChartID, "Operations percision for " + Fname.upper() + " at line " + str(Fline) + " of " + Ffile + " after arguments and operations research")
+				FunctionCallsStr += "\t\t\t<a style=\"width:50%;\" class=\"actif_link\" onclick=\"open('img/" + ArgsOpsChartID + ".png', \'\','scrollbars=no,resizable=yes');\">Operations</a>\n"
+			else:
+				FunctionCallsStr += "\t\t\t<a style=\"width:50%;\" class=\"inactif_link\">Operations</a>\n"
+
+			FunctionCallsStr += "\t\t\t</div>\n"
+
+			# Arguments Only
+			ArgsChartID = ChartID + "_ArgsOnly";
+
+			tmp_args = DataArgs.copy()
+			tmp_args = tmp_args[tmp_args['ID'] == tmp_ops.at[j, 'ID']]
+
+			if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
+				PlotArgs(tmp_args, ArgsChartID, "Arguments percisions for " + Fname.upper() + " at line " + str(Fline) + " of " + Ffile + " after arguments only research")
+				FunctionCallsStr += "\t\t\t<a style=\"width:30%; border: solid black;\" class=\"actif_link\" onclick=\"open('img/" + ArgsChartID + ".png', \'\','scrollbars=no,resizable=yes');\">Arguments Only</a>\n"
+			else:
+				FunctionCallsStr += "\t\t\t<a style=\"width:30%; border: solid black;\" class=\"inactif_link\">Arguments Only</a>\n"
+
+
+			# Operations Only
+			OpsChartID = ChartID + "_OpsOnly";
+
+			if not (DataOps.at[k, 'Int'] or DataOps.at[k, 'Lib']):
+				PlotOps(tmp_ops.iloc[j], OpsChartID, "Operations percision for " + Fname.upper() + " at line " + str(Fline) + " of " + Ffile + " after operations only research")
+				FunctionCallsStr += "\t\t\t<a style=\"width:30%; border: solid black;\" class=\"actif_link\" onclick=\"open('img/" + OpsChartID + ".png', \'\','scrollbars=no,resizable=yes');\">Operations Only</a>\n"
+			else:
+				FunctionCallsStr += "\t\t\t<a style=\"width:30%; border: solid black;\" class=\"inactif_link\">Operations Only</a>\n"
+			
+			FunctionCallsStr += "\t\t\t</div>\n"
+		
 		FunctionCallsStr += "</div>\n"
 
 	FunctionCallsStr += "\n"
-	
+
 	ReportString = ReportString.replace('\t\t<!-- Function Calls -->', FunctionCallsStr)
 	ReportString = ReportString.replace('\t\t\t/* Chart script */', CallChartString)
 
-	ReportFile = open("report.html", "w")
+	ReportFile = open(Report_File, "w")
 
 	ReportString = ReportFile.write(ReportString)
 

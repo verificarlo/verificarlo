@@ -631,13 +631,6 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
                    function_inst->OpsRange64, function_inst->OpsPrec32,
                    function_inst->OpsRange32);
 
-  /*
-  if (vprec_log_file != NULL)
-    fprintf(vprec_log_file, "enter in %s\t%d\t%d\t%d\t%d\n", function_inst->id,
-  function_inst->OpsPrec64, function_inst->OpsRange64, function_inst->OpsPrec32,
-  function_inst->OpsRange32);
-  */
-
   if (new_flag) {
     function_inst->input_args =
         malloc(sizeof(_vprec_argument_data_t) * nb_args);
@@ -658,12 +651,6 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
       _vprec_print_log(vprec_log_depth, " - %s\tinput\tdouble\t%la\t->\t",
                        function_inst->id, *value);
-
-      /*
-      if (vprec_log_file != NULL)
-        fprintf(vprec_log_file, " %s\tinput\tdouble\t%la\t->\t",
-      function_inst->id, *value);
-      */
 
       if (new_flag) {
         // initialize arguments data
@@ -690,23 +677,11 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
                        function_inst->input_args[i].mantissa_length,
                        function_inst->input_args[i].exponent_length);
 
-      /*
-      if (vprec_log_file != NULL)
-        fprintf(vprec_log_file, "%la\t(%d,%d)\n", *value,
-          function_inst->input_args[i].mantissa_length,
-      function_inst->input_args[i].exponent_length);
-      */
     } else if (type == FFLOAT) {
       float *value = va_arg(ap, float *);
 
       _vprec_print_log(vprec_log_depth, " - %s\tinput\tfloat\t%a\t->\t",
                        function_inst->id, *value);
-
-      /*
-      if (vprec_log_file != NULL)
-        fprintf(vprec_log_file, "\t%s\tinput\tfloat\t%a\t->\t",
-      function_inst->id, *value);
-      */
 
       if (new_flag) {
         // initialize arguments data
@@ -732,13 +707,6 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
       _vprec_print_log(vprec_log_depth, "%a\t(%d, %d)\n", *value,
                        function_inst->input_args[i].mantissa_length,
                        function_inst->input_args[i].exponent_length);
-
-      /*
-      if (vprec_log_file != NULL)
-        fprintf(vprec_log_file, "%a\t(%d, %d)\n", *value,
-          function_inst->input_args[i].mantissa_length,
-      function_inst->input_args[i].exponent_length);
-      */
     }
   }
 
@@ -786,12 +754,6 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
                    function_inst->id, function_inst->OpsPrec64,
                    function_inst->OpsRange64, function_inst->OpsPrec32,
                    function_inst->OpsRange32);
-  /*
-  if (vprec_log_file != NULL)
-    fprintf(vprec_log_file, "exit of %s\t%d\t%d\t%d\t%d\n", function_inst->id,
-  function_inst->OpsPrec64, function_inst->OpsRange64, function_inst->OpsPrec32,
-  function_inst->OpsRange32);
-  */
 
   if (new_flag) {
     function_inst->output_args =
@@ -812,12 +774,6 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
 
       _vprec_print_log(vprec_log_depth, " - %s\toutput\tdouble\t%la\t->\t",
                        function_inst->id, *value);
-
-      /*
-      if (vprec_log_file != NULL)
-        fprintf(vprec_log_file, "\t%s\toutput\tdouble\t%la\t->\t",
-      function_inst->id, *value);
-      */
 
       if (new_flag) {
         // initialize arguments data
@@ -844,24 +800,11 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
                        function_inst->output_args[i].mantissa_length,
                        function_inst->output_args[i].exponent_length);
 
-      /*
-      if (vprec_log_file != NULL)
-        fprintf(vprec_log_file, "%la\t(%d,%d)\n", *value,
-          function_inst->output_args[i].mantissa_length,
-      function_inst->output_args[i].exponent_length);
-      */
-
     } else if (type == FFLOAT) {
       float *value = va_arg(ap, float *);
 
       _vprec_print_log(vprec_log_depth, " - %s\toutput\float\t%a\t->\t",
                        function_inst->id, *value);
-
-      /*
-      if (vprec_log_file != NULL)
-        fprintf(vprec_log_file, "\t%s\toutput\float\t%a\t->\t",
-      function_inst->id, *value);
-      */
 
       if (new_flag) {
         // initialize arguments data
@@ -887,13 +830,6 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
       _vprec_print_log(vprec_log_depth, "%a\t(%d, %d)\n", *value,
                        function_inst->output_args[i].mantissa_length,
                        function_inst->output_args[i].exponent_length);
-
-      /*
-      if (vprec_log_file != NULL)
-        fprintf(vprec_log_file, "%a\t(%d, %d)\n", *value,
-          function_inst->output_args[i].mantissa_length,
-      function_inst->output_args[i].exponent_length);
-      */
     }
   }
   _vprec_print_log(vprec_log_depth, "\n");
