@@ -62,8 +62,8 @@ def close_tmp_files():
         try:
             tmp.close()
         except FileNotFoundError:
-            continue        
-    
+            continue
+
 def fail(msg):
     close_tmp_files()
     print(sys.argv[0] + ': ' + msg, file=sys.stderr)
@@ -153,7 +153,7 @@ def linker_mode(sources, options, output, args):
     f.close()
 
 
-# Do not instrument 
+# Do not instrument
 def compile_only(sources, options, output, args):
     compiler = linkers[args.linker]
     sources = ' '.join(sources)
@@ -162,8 +162,8 @@ def compile_only(sources, options, output, args):
         sources=sources,
         options=options,
         output=output))
-    
-def get_filename(prefix, suffix, args):    
+
+def get_tmp_filename(prefix, suffix, args):
     if args.save_temps:
         tmp = tempfile.NamedTemporaryFile(mode='w+b',
                                            prefix=prefix + '.',
@@ -171,7 +171,7 @@ def get_filename(prefix, suffix, args):
                                            dir=os.getcwd(),
                                            delete=False)
     else:
-        prefix = prefix.replace(os.path.sep,'_') + '.'
+        prefix = prefix.replace(os.path.sep,'#') + '.'
         tmp = tempfile.NamedTemporaryFile(mode='w+b',
                                           prefix=prefix,
                                           suffix=suffix)
@@ -181,8 +181,8 @@ def get_filename(prefix, suffix, args):
 def compiler_mode(sources, options, output, args):
     for source in sources:
         basename = os.path.splitext(source)[0]
-        ir = get_filename(basename,'.1.ll',args)
-        ins = get_filename(basename,'.2.ll',args)
+        ir = get_tmp_filename(basename,'.1.ll',args)
+        ins = get_tmp_filename(basename,'.2.ll',args)
 
         compiler = linkers[args.linker]
 
@@ -192,10 +192,10 @@ def compiler_mode(sources, options, output, args):
             if not output:
                 basename_output = '-o ' + basename + '.o'
             else:
-                basename_output = output                
+                basename_output = output
             compile_only([source], ' -c ' + options, basename_output, args)
             continue
-        
+
         # Compile to ir (fortran uses flang, c uses clang)
         shell('{compiler} -c -S {debug} {source} -emit-llvm {options} -o {ir}'.format(
             compiler=compiler,
@@ -232,7 +232,7 @@ def compiler_mode(sources, options, output, args):
                 ins=ins.name
                 ))
             ir = ins
-            ins = get_filename(basename,'.3.ll',args)
+            ins = get_tmp_filename(basename,'.3.ll',args)
 
         # Apply MCA instrumentation pass
         shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {extra_args} {selectfunction} {ir} -o {ins}'.format(
@@ -248,7 +248,7 @@ def compiler_mode(sources, options, output, args):
             basename_output = '-o ' + basename + '.o'
         else:
             basename_output = output
-            
+
         # Produce object file
         shell('{compiler} -c {output} {ins} {options}'.format(
             compiler=compiler,

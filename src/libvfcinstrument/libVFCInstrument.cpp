@@ -40,20 +40,7 @@
 #include <sstream>
 #include <utility>
 
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 6
-#define CREATE_CALL3(func, op1, op2, op3)                                      \
-  (Builder.CreateCall3(func, op1, op2, op3, ""))
-#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall2(func, op1, op2, ""))
-#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(i, p))
-/* This function must be used with at least one variadic argument otherwise */
-/* it will fails when compiling since it will expand as
- * M.getOrInsertFunction(name,res,,(Type*)NULL) */
-/* It could be fixed when __VA_OPT__ will be available (see
- * https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html)*/
-#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
-  M.getOrInsertFunction(name, res, __VA_ARGS__, (Type *)NULL)
-typedef llvm::Constant *_LLVMFunctionType;
-#elif LLVM_VERSION_MAJOR < 5
+#if LLVM_VERSION_MAJOR < 5
 #define CREATE_CALL3(func, op1, op2, op3)                                      \
   (Builder.CreateCall(func, {op1, op2, op3}, ""))
 #define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
@@ -116,6 +103,10 @@ enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_IGNORE };
 
 std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
 
+// Separtors for the module name
+const char path_separator = '/';
+const char relative_path_separator = '#';
+
 struct VfclibInst : public ModulePass {
   static char ID;
 
@@ -139,9 +130,10 @@ struct VfclibInst : public ModulePass {
   StringRef getModuleName(Module &M) {
     const std::string &sourceFilename = M.getModuleIdentifier();
     /* Split the path with the separator */
-    std::vector<std::string> tokensDir = split(sourceFilename, '/');
+    std::vector<std::string> tokensDir = split(sourceFilename, path_separator);
     /* Split the module name with the relative path separator */
-    std::vector<std::string> tokensTmp = split(tokensDir.back(), '#');
+    std::vector<std::string> tokensTmp =
+        split(tokensDir.back(), relative_path_separator);
     /* Split the module name with the . */
     std::vector<std::string> tokens = split(tokensTmp.back(), '.');
     /* Drop the .ll */

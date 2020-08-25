@@ -50,44 +50,12 @@
 #include <utility>
 #include <vector>
 
-#if LLVM_VERSION_MAJOR < 5
-#define CREATE_CALL3(func, op1, op2, op3)                                      \
-  (Builder.CreateCall(func, {op1, op2, op3}, ""))
-#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
-#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
-#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
-  M.getOrInsertFunction(name, res, __VA_ARGS__, (Type *)NULL)
-#define SET_CALLING_CONV(func, conv) func->setCallingConv(conv)
-typedef llvm::Constant *_LLVMFunctionType;
-typedef llvm::Function *_LLVMFunction;
-#elif LLVM_VERSION_MAJOR < 9
-#define CREATE_CALL3(func, op1, op2, op3)                                      \
-  (Builder.CreateCall(func, {op1, op2, op3}, ""))
-#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
-#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
-#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
-  M.getOrInsertFunction(name, res, __VA_ARGS__)
-#define SET_CALLING_CONV(func, conv) func->setCallingConv(conv)
-typedef llvm::Constant *_LLVMFunctionType;
-typedef llvm::Function *_LLVMFunction;
-#else
-#define CREATE_CALL3(func, op1, op2, op3)                                      \
-  (Builder.CreateCall(func, {op1, op2, op3}, ""))
-#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
-#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
-#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
-  M.getOrInsertFunction(name, res, __VA_ARGS__)
-#define SET_CALLING_CONV(func, conv) func->setCallingConv(conv)
-typedef llvm::FunctionCallee _LLVMFunctionType;
-typedef llvm::FunctionCallee _LLVMFunction;
-#endif
-
 using namespace llvm;
 
 namespace {
 
-static _LLVMFunction func_enter;
-static _LLVMFunction func_exit;
+static Function *func_enter;
+static Function *func_exit;
 
 // Enumeration of managed types
 enum Ftypes { FLOAT, DOUBLE };
@@ -293,8 +261,7 @@ struct VfclibFunc : public ModulePass {
   VfclibFunc() : ModulePass(ID) { inst_cpt = 1; }
 
   virtual bool runOnModule(Module &M) {
-    const TargetLibraryInfo *TLI =
-        &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
+    TargetLibraryInfoWrapperPass TLIWP;
 
     Types2val[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 0);
     Types2val[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 1);
@@ -317,33 +284,19 @@ struct VfclibFunc : public ModulePass {
         Type::getInt8Ty(M.getContext()),    Type::getInt8Ty(M.getContext()),
         Type::getInt8Ty(M.getContext()),    Type::getInt32Ty(M.getContext())};
 
-    // void vfc_enter_function (char*, char, char, char, char, int, ...)
-    _LLVMFunctionType func = M.getOrInsertFunction(
-        "vfc_enter_function",
-        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true));
+    // Signature of enter_function and exit_function
+    FunctionType *FunTy =
+        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true);
 
-#if LLVM_VERSION_MAJOR >= 9
-    func_enter = cast<_LLVMFunction>(func);
-    Function *tmp_func = dyn_cast<Function>(func_enter.getCallee());
-    tmp_func->setCallingConv(CallingConv::C);
-#else
-    func_enter = dyn_cast<Function>(func);
+    // void vfc_enter_function (char*, char, char, char, char, int, ...)
+    func_enter = Function::Create(FunTy, Function::ExternalLinkage,
+                                  "vfc_enter_function", &M);
     func_enter->setCallingConv(CallingConv::C);
-#endif
 
     // void vfc_exit_function (char*, char, char, char, char, int, ...)
-    func = M.getOrInsertFunction(
-        "vfc_exit_function",
-        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true));
-
-#if LLVM_VERSION_MAJOR >= 9
-    func_exit = cast<_LLVMFunction>(func);
-    tmp_func = dyn_cast<Function>(func_exit.getCallee());
-    tmp_func->setCallingConv(CallingConv::C);
-#else
-    func_exit = cast<Function>(func);
+    func_exit = Function::Create(FunTy, Function::ExternalLinkage,
+                                 "vfc_exit_function", &M);
     func_exit->setCallingConv(CallingConv::C);
-#endif
 
     /*************************************************************************
      *                             Main special case                         *
@@ -428,7 +381,12 @@ struct VfclibFunc : public ModulePass {
 
             // Test if f is a library function //
             LibFunc libfunc;
-            bool is_from_library = TLI->getLibFunc(f->getName(), libfunc);
+#if LLVM_VERSION_MAJOR >= 10
+            const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
+#else
+            const TargetLibraryInfo &TLI = TLIWP.getTLI();
+#endif
+            bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
 
             // Test if f is instrinsic //
             bool is_intrinsic = f->isIntrinsic();
@@ -463,13 +421,11 @@ struct VfclibFunc : public ModulePass {
                 CallTypes.push_back(cast<Value>(it)->getType());
               }
 
-              _LLVMFunctionType c = M.getOrInsertFunction(
-                  NewName, FunctionType::get(ReturnTy, CallTypes, false));
-#if LLVM_VERSION_MAJOR >= 9
-              Function *hook_func = cast<Function>(c.getCallee());
-#else
-              Function *hook_func = cast<Function>(c);
-#endif
+              FunctionType *HookFunTy =
+                  FunctionType::get(ReturnTy, CallTypes, false);
+              Function *hook_func = Function::Create(
+                  HookFunTy, Function::ExternalLinkage, NewName, &M);
+
               hook_func->setAttributes(f->getAttributes());
               hook_func->setCallingConv(f->getCallingConv());
 
