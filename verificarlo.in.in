@@ -125,6 +125,8 @@ def linker_mode(sources, options, output, args):
     extra_args = "-static " if args.static else "-fPIC "
     extra_args += "-DINST_FCMP " if args.inst_fcmp else ""
     extra_args += "-DDDEBUG " if args.ddebug else ""
+    extra_args += "-DINST_FUNC " if args.inst_func else ""
+    
     shell('{clang} -c -O3 -Wno-varargs {extra_args} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
         extra_args=extra_args,

@@ -186,7 +186,9 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
   vfc_hashmap_destroy(dd_must_instrument);
 #endif
 
+#ifdef INST_FUNC
   vfc_quit_func_inst();
+#endif
 }
 
 /* Checks that a least one of the loaded backend implements the chosen
@@ -224,8 +226,10 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   }
 
   /* Initialize instumentation */
+#ifdef INST_FUNC
   vfc_init_func_inst();
-
+#endif
+  
   /* Initialize the logger */
   logger_init();
 
