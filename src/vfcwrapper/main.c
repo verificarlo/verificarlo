@@ -229,7 +229,7 @@ __attribute__((constructor(0))) static void vfc_init(void) {
 #ifdef INST_FUNC
   vfc_init_func_inst();
 #endif
-  
+
   /* Initialize the logger */
   logger_init();
 
