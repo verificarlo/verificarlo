@@ -17,7 +17,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 # Check for specific compilers
 AC_PROG_CC([gcc])
-GCC_VERSION=`$CC --version | head -n1 | cut -d' ' -f4`
+GCC_VERSION=`$CC --version | head -n1 | awk '{print $NF;}'`
 AC_MSG_CHECKING([for gcc version])
 AC_DEFINE_UNQUOTED([GCC_VERSION],[$GCC_VERSION],[The gcc version])
 AC_MSG_RESULT([$GCC_VERSION])
