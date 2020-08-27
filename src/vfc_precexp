@@ -51,9 +51,10 @@ def shell(cmd, newEnv):
 	for cmdEntry in cmdSplit:
 		cmdNew = cmdNew + " " + cmdEntry.strip()
 
-	proc = subprocess.Popen(cmdNew.split(), stdout=subprocess.PIPE, 
+	proc = subprocess.Popen(cmdNew.split(), 
+							stdout=subprocess.PIPE, 
 							#stderr=subprocess.PIPE, 
-							universal_newlines=True, env=env)
+							env=env)
 
 	try:
 		proc.communicate(timeout = 5) # This could change
@@ -445,18 +446,22 @@ if __name__ == "__main__":
 	# Arguments
 	print("-------------- Arguments --------------")
 	ArgumentsFrameCopy = ArgumentsFrame.copy()
+	FunctionsFrameCopy = FunctionsFrame.copy()
 	cpt = 1
-	for i in ArgumentsIndex:
-		print(cpt, "/", len(ArgumentsIndex))
-		search_minimum_arguments(	runPath, 
-									cmpPath, 
-									output_dir[0], 
-									output_dir[1],
-									vfc_config_file,
-									env, 
-									ArgumentsFrameCopy,
-									FunctionsFrame,
-									i)
+	for i in range(len(FunctionsFrameCopy.index)):
+		tmp = ArgumentsFrameCopy[(ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
+		for j in tmp.index:
+			print(cpt, "/", len(ArgumentsFrameCopy.index))
+			search_minimum_arguments(	runPath, 
+										cmpPath, 
+										output_dir[0], 
+										output_dir[1],
+										vfc_config_file,
+										env, 
+										ArgumentsFrameCopy,
+										FunctionsFrameCopy,
+										j)
+
 		cpt += 1
 
 	ArgumentsFrameCopy.to_csv("vfc_exp_data/ArgumentsResults.csv")

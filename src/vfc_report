@@ -9,10 +9,8 @@ import struct
 import shlex
 import os.path
 import subprocess
-import mplfinance
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
-from mplfinance.original_flavor import candlestick_ohlc
 from os import listdir
 
 DaraDir = "vfc_exp_data/"

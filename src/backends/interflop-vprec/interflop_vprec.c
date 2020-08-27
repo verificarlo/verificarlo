@@ -665,12 +665,12 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
             function_inst->input_args[i].mantissa_length);
       }
       function_inst->input_args[i].min_range =
-          (round(*value) < function_inst->input_args[i].min_range || new_flag)
-              ? round(*value)
+          (floor(*value) < function_inst->input_args[i].min_range || new_flag)
+              ? floor(*value)
               : function_inst->input_args[i].min_range;
       function_inst->input_args[i].max_range =
-          (round(*value) > function_inst->input_args[i].max_range || new_flag)
-              ? round(*value)
+          (ceil(*value) > function_inst->input_args[i].max_range || new_flag)
+              ? ceil(*value)
               : function_inst->input_args[i].max_range;
 
       _vprec_print_log(vprec_log_depth, "%la\t(%d, %d)\n", *value,
@@ -696,12 +696,12 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
             function_inst->input_args[i].mantissa_length);
       }
       function_inst->input_args[i].min_range =
-          (roundf(*value) < function_inst->input_args[i].min_range || new_flag)
-              ? roundf(*value)
+          (floorf(*value) < function_inst->input_args[i].min_range || new_flag)
+              ? floorf(*value)
               : function_inst->input_args[i].min_range;
       function_inst->input_args[i].max_range =
-          (roundf(*value) > function_inst->input_args[i].max_range || new_flag)
-              ? roundf(*value)
+          (ceilf(*value) > function_inst->input_args[i].max_range || new_flag)
+              ? ceilf(*value)
               : function_inst->input_args[i].max_range;
 
       _vprec_print_log(vprec_log_depth, "%a\t(%d, %d)\n", *value,
@@ -788,12 +788,12 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
             function_inst->output_args[i].mantissa_length);
       }
       function_inst->output_args[i].min_range =
-          (round(*value) < function_inst->output_args[i].min_range || new_flag)
-              ? round(*value)
+          (floor(*value) < function_inst->output_args[i].min_range || new_flag)
+              ? floor(*value)
               : function_inst->output_args[i].min_range;
       function_inst->output_args[i].max_range =
-          (round(*value) > function_inst->output_args[i].max_range || new_flag)
-              ? round(*value)
+          (ceil(*value) > function_inst->output_args[i].max_range || new_flag)
+              ? ceil(*value)
               : function_inst->output_args[i].max_range;
 
       _vprec_print_log(vprec_log_depth, "%la\t(%d,%d)\n", *value,
@@ -819,12 +819,12 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
             function_inst->output_args[i].mantissa_length);
       }
       function_inst->output_args[i].min_range =
-          (roundf(*value) < function_inst->output_args[i].min_range || new_flag)
-              ? roundf(*value)
+          (floorf(*value) < function_inst->output_args[i].min_range || new_flag)
+              ? floorf(*value)
               : function_inst->output_args[i].min_range;
       function_inst->output_args[i].max_range =
-          (roundf(*value) > function_inst->output_args[i].max_range || new_flag)
-              ? roundf(*value)
+          (ceilf(*value) > function_inst->output_args[i].max_range || new_flag)
+              ? ceilf(*value)
               : function_inst->output_args[i].max_range;
 
       _vprec_print_log(vprec_log_depth, "%a\t(%d, %d)\n", *value,
