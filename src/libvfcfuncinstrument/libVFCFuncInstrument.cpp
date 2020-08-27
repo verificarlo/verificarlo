@@ -261,8 +261,7 @@ struct VfclibFunc : public ModulePass {
   VfclibFunc() : ModulePass(ID) { inst_cpt = 1; }
 
   virtual bool runOnModule(Module &M) {
-    const TargetLibraryInfo *TLI =
-        &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
+    TargetLibraryInfoWrapperPass TLIWP;
 
     Types2val[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 0);
     Types2val[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 1);
@@ -379,9 +378,15 @@ struct VfclibFunc : public ModulePass {
             std::string FunctionName = File + "/" + Name + "_" + Line + "_" +
                                        std::to_string(++inst_cpt);
 
-            // Test if f is a library function //
+// Test if f is a library function //
+#if LLVM_VERSION_MAJOR >= 10
+            const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
+#else
+            const TargetLibraryInfo &TLI = TLIWP.getTLI();
+#endif
+
             LibFunc libfunc;
-            bool is_from_library = TLI->getLibFunc(f->getName(), libfunc);
+            bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
 
             // Test if f is instrinsic //
             bool is_intrinsic = f->isIntrinsic();

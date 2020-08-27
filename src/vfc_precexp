@@ -9,6 +9,7 @@ import struct
 import shlex
 import os.path
 import subprocess
+import signal
 from os import listdir
 
 vfc_profile_file = "vfc_profile.txt"
@@ -55,9 +56,10 @@ def shell(cmd, newEnv):
 							universal_newlines=True, env=env)
 
 	try:
-		proc.communicate(timeout = 5)
+		proc.communicate(timeout = 5) # This could change
 	except subprocess.TimeoutExpired:
-		proc.kill()
+		os.kill(proc.pid, signal.SIGINT)
+		os.kill(proc.pid + 1, signal.SIGINT) # :(
 		return 1
 
 	proc.wait()
@@ -479,18 +481,18 @@ if __name__ == "__main__":
 										ArgumentsFrameCopy,
 										FunctionsFrameCopy,
 										i)
-		else:
-			tmp = ArgumentsFrameCopy[(ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
-			for j in tmp.index:
-				search_minimum_arguments(	runPath, 
-											cmpPath, 
-											output_dir[0], 
-											output_dir[1],
-											vfc_config_file,
-											env, 
-											ArgumentsFrameCopy,
-											FunctionsFrameCopy,
-											j)
+		
+		tmp = ArgumentsFrameCopy[(ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
+		for j in tmp.index:
+			search_minimum_arguments(	runPath, 
+										cmpPath, 
+										output_dir[0], 
+										output_dir[1],
+										vfc_config_file,
+										env, 
+										ArgumentsFrameCopy,
+										FunctionsFrameCopy,
+										j)
 
 		cpt += 1
 
