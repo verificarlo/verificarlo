@@ -126,7 +126,7 @@ def linker_mode(sources, options, output, args):
     extra_args += "-DINST_FCMP " if args.inst_fcmp else ""
     extra_args += "-DDDEBUG " if args.ddebug else ""
     extra_args += "-DINST_FUNC " if args.inst_func else ""
-    
+
     shell('{clang} -c -O3 -Wno-varargs {extra_args} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
         extra_args=extra_args,
@@ -166,17 +166,11 @@ def compile_only(sources, options, output, args):
         output=output))
 
 def get_tmp_filename(prefix, suffix, args):
-    if args.save_temps:
-        tmp = tempfile.NamedTemporaryFile(mode='w+b',
-                                           prefix=prefix + '.',
-                                           suffix=suffix,
-                                           dir=os.getcwd(),
-                                           delete=False)
-    else:
-        prefix = prefix.replace(os.path.sep,'#') + '.'
-        tmp = tempfile.NamedTemporaryFile(mode='w+b',
-                                          prefix=prefix,
-                                          suffix=suffix)
+    abs_prefix = os.path.abspath(prefix) + '.'
+    tmp = tempfile.NamedTemporaryFile(mode='w+b',
+                                      prefix=abs_prefix,
+                                      suffix=suffix,
+                                      delete=not args.save_temps)
     temp_files_set.add(tmp)
     return tmp
 

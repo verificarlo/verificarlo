@@ -33,6 +33,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include "llvm/Support/Path.h"
 
 #include <cxxabi.h>
 #include <fstream>
@@ -127,36 +128,52 @@ struct VfclibInst : public ModulePass {
     return tokens;
   }
 
-  StringRef getModuleName(Module &M) {
-    const std::string &sourceFilename = M.getModuleIdentifier();
-    /* Split the path with the separator */
-    std::vector<std::string> tokensDir = split(sourceFilename, path_separator);
-    /* Split the module name with the relative path separator */
-    std::vector<std::string> tokensTmp =
-        split(tokensDir.back(), relative_path_separator);
+  std::string getModuleName(Module &M, const bool with_path = false) {
+
+    std::string mod_name = "";
+
+    const std::string &moduleID = M.getModuleIdentifier();
+    const std::string &sourceFilename = M.getSourceFileName();
+
+    bool is_absolute_path = sys::path::is_absolute(moduleID);
+
+    std::string path = sys::path::parent_path(moduleID);
+    /* Return the filename without the extension */
+    std::string filename = sys::path::stem(moduleID);
+
     /* Split the module name with the . */
-    std::vector<std::string> tokens = split(tokensTmp.back(), '.');
-    /* Drop the .ll */
-    tokens.pop_back();
+    std::vector<std::string> tokens = split(filename, '.');
     /* Drop the .1 */
     tokens.pop_back();
     /* Drop the .<tmp> extension */
     tokens.pop_back();
-    return tokens.back();
+
+    /* Concat the remaining tokens */
+    if (with_path && is_absolute_path) {
+      mod_name = path + path_separator + tokens[0];
+    } else {
+      mod_name = tokens[0];
+    }
+
+    /* Remove the first token, already in mod_name */
+    tokens.erase(tokens.begin());
+    for (auto token : tokens)
+      mod_name += "." + token;
+
+    return mod_name;
   }
 
-  // Demangling function
-  std::string demangle(std::string src) {
-    int status = 0;
-    char *demangled_name = NULL;
-    if ((demangled_name = abi::__cxa_demangle(src.c_str(), 0, 0, &status))) {
-      src = demangled_name;
-      std::size_t first = src.find("(");
-      src = src.substr(0, first);
-    }
-    free(demangled_name);
+  // taken from
+  // https://stackoverflow.com/questions/281818/unmangling-the-result-of-stdtype-infoname
+  std::string demangle(const std::string &name) {
 
-    return src;
+    const char *name_c_str = name.c_str();
+    int status = -4; // some arbitrary value to eliminate the compiler warning
+
+    // enable c++11 by passing the flag -std=c++11 to g++
+    std::unique_ptr<char, void (*)(void *)> res{
+        abi::__cxa_demangle(name_c_str, NULL, NULL, &status), std::free};
+    return (status == 0) ? res.get() : name;
   }
 
   void parseFunctionSetFile(Module &M, cl::opt<std::string> &fileName,
@@ -177,10 +194,12 @@ struct VfclibInst : public ModulePass {
     int lineno = 0;
     std::string line;
     // drop the .1.ll suffix in the module name
-    StringRef mod_name = getModuleName(M);
+    std::string mod_name = getModuleName(M, false);
+    std::string full_path_mod_name = getModuleName(M, true);
     while (std::getline(loopstream, line)) {
       lineno++;
       StringRef l = StringRef(line);
+
       // Ignore empty or commented lines
       if (l.startswith("#") || l.trim() == "") {
         continue;
@@ -192,8 +211,12 @@ struct VfclibInst : public ModulePass {
                << lineno << "\n";
         report_fatal_error("libVFCInstrument fatal error");
       } else {
-        if (p.first.trim().equals(mod_name) || p.first.trim().equals("*")) {
-          FunctionSet.insert(p.second.trim());
+        const std::string &mod = p.first.trim();
+        const std::string &fun = p.second.trim();
+
+        if (mod == "*" or mod == mod_name or
+            (sys::path::has_root_path(mod) and mod == full_path_mod_name)) {
+          FunctionSet.insert(fun);
         }
       }
     }
@@ -217,16 +240,19 @@ struct VfclibInst : public ModulePass {
     // Find the list of functions to instrument
     std::vector<Function *> functions;
     for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
+
+      const std::string &name = F->getName();
+
       // White-list
       if (IncludedFunctionSet.find("*") != IncludedFunctionSet.end() ||
-          IncludedFunctionSet.find(F->getName()) != IncludedFunctionSet.end()) {
+          IncludedFunctionSet.find(name) != IncludedFunctionSet.end()) {
         functions.push_back(&*F);
         continue;
       }
 
       // Black-list
       if (ExcludedFunctionSet.find("*") != ExcludedFunctionSet.end() ||
-          ExcludedFunctionSet.find(F->getName()) != ExcludedFunctionSet.end()) {
+          ExcludedFunctionSet.find(name) != ExcludedFunctionSet.end()) {
         continue;
       }
 
