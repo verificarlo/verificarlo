@@ -117,3 +117,12 @@ for TYPE in "${float_type_list[@]}"; do
 done
 
 cat log.error
+
+if [ -s "log.error" ] 
+	then
+		echo "Test failed"
+		exit 1
+	else
+		echo "Test suceed"
+		exit 0
+fi

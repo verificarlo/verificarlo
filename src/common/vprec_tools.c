@@ -5,7 +5,8 @@
  *  Copyright (c) 2015                                                       *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *     CMLA, Ecole Normale Superieure de Cachan                              *
- *  Copyright (c) 2019                                                       *
+ *  Copyright (c) 2019-2020						     *
+ *     Verificarlo contributors                                              *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *                                                                           *
  *  Verificarlo is free software: you can redistribute it and/or modify      *
@@ -33,7 +34,7 @@ inline float round_binary32_denormal(float x, int emin, int xexp,
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
   /* position to the end of the target prec-1 */
-  const uint32_t target_position = FLOAT_PMAN_SIZE - precision - 1;
+  const int32_t target_position = FLOAT_PMAN_SIZE - precision - 1;
 
   /*precision loss due to denormalizqation*/
   const uint32_t precision_loss = emin - xexp;
@@ -81,7 +82,7 @@ inline double round_binary64_denormal(double x, int emin, int xexp,
   /* build 1/2 ulp and add it before truncation for faithfull rounding */
 
   /* position to the end of the target prec-1 */
-  const uint64_t target_position = DOUBLE_PMAN_SIZE - precision - 1;
+  const int64_t target_position = DOUBLE_PMAN_SIZE - precision - 1;
 
   /*precision loss due to denormalization*/
   const uint64_t precision_loss = emin - xexp;
