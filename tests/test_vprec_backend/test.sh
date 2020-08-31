@@ -25,7 +25,7 @@ case $usecase in
 	PRECISION_STEP=10
 	;;
     full)
-	RANGE_MIN=1
+	RANGE_MIN=2
 	RANGE_STEP=1
 	PRECISION_MIN=1
 	PRECISION_STEP=1
@@ -46,4 +46,5 @@ esac
 
 
 ./generic_test.sh ${usecase} ${RANGE_MIN} ${RANGE_STEP} ${PRECISION_MIN} ${PRECISION_STEP}
-  
+
+exit $?
