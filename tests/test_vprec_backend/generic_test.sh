@@ -98,7 +98,7 @@ for TYPE in "${float_type_list[@]}"; do
 	    echo "Range: ${RANGE}"
 	    export VERIFICARLO_VPREC_RANGE=$RANGE
 
-	    ./generate_input.py 5 $RANGE
+	    ./generate_input.py 10 $RANGE
 
 	    for OP in "${operation_list[@]}"; do 
 		echo "OP: ${OP}"
