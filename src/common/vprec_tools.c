@@ -41,7 +41,7 @@ inline float round_binary32_denormal(float x, int emin, int xexp,
   b32_x.f32 = x + half_ulp.f32;
 
   /*precision loss due to denormalizqation*/
-  const uint32_t precision_loss = emin - (b32_x.ieee.exponent - FLOAT_EXP_COMP);
+  const int32_t precision_loss = emin - (b32_x.ieee.exponent-FLOAT_EXP_COMP);
 
   /* truncate the trailing bits */
   const uint32_t mask_denormal =
@@ -88,7 +88,7 @@ inline double round_binary64_denormal(double x, int emin, int xexp,
   b64x.f64 = x + half_ulp.f64;
 
   /*precision loss due to denormalization*/
-  const uint64_t precision_loss = emin - (b64x.ieee.exponent - DOUBLE_EXP_COMP);
+  const int64_t precision_loss = emin - (b64x.ieee.exponent - DOUBLE_EXP_COMP);
 
   /* truncate the trailing bits */
   const uint64_t mask_denormal =
