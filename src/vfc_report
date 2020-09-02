@@ -289,8 +289,13 @@ def PlotArgs(Data, ImgID, Title):
 		ax1.text(j, Data.at[i, 'Max'], str(Data.at[i, 'Max']), horizontalalignment='center', verticalalignment='bottom')
 		if Data.at[i, 'Type'] == 0:
 			xtick.append(Data.at[i, 'IO'] + " Float")
-		else:
+		elif Data.at[i, 'Type'] == 1:
 			xtick.append(Data.at[i, 'IO'] + " Double")
+		elif Data.at[i, 'Type'] == 2:
+			xtick.append(Data.at[i, 'IO'] + " Float Ptr")
+		else:
+			xtick.append(Data.at[i, 'IO'] + " Double Ptr")
+		
 
 		range_list.append(Data.at[i, 'Range'])
 		ax2.text(j, Data.at[i, 'Range'] + 0.1, str(Data.at[i, 'Range']), horizontalalignment='center', verticalalignment='bottom')

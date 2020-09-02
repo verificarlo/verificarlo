@@ -22,7 +22,7 @@ enum FCMP_PREDICATE {
 };
 
 /* Enumeration of types managed by function instrumentation */
-enum FTYPES { FFLOAT, FDOUBLE, FTYPES_END };
+enum FTYPES { FFLOAT, FDOUBLE, FFLOAT_PTR, FDOUBLE_PTR, FTYPES_END };
 
 typedef struct interflop_function_info {
   // Indicate the identifier of the function

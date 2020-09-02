@@ -139,7 +139,7 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
     va_list ap;
     // n is the number of arguments intercepted, each argument
     // is represented by a type ID and a pointer
-    va_start(ap, n * 2);
+    va_start(ap, n * 3);
 
     for (int i = 0; i < loaded_backends; i++)
       if (backends[i].interflop_enter_function)
@@ -158,7 +158,7 @@ void vfc_exit_function(char *func_name, char isLibraryFunction,
     va_list ap;
     // n is the number of arguments intercepted, each argument
     // is represented by a type ID and a pointer
-    va_start(ap, n * 2);
+    va_start(ap, n * 3);
 
     for (int i = 0; i < loaded_backends; i++)
       if (backends[i].interflop_exit_function)

@@ -58,10 +58,10 @@ static Function *func_enter;
 static Function *func_exit;
 
 // Enumeration of managed types
-enum Ftypes { FLOAT, DOUBLE };
+enum Ftypes { FLOAT, DOUBLE, FLOAT_PTR, DOUBLE_PTR };
 
 // Array of values
-Value *Types2val[] = {NULL, NULL};
+Value *Types2val[] = {NULL, NULL, NULL, NULL};
 
 // Demangling function
 std::string demangle(std::string src) {
@@ -85,6 +85,8 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
   Type *ReturnTy;
   Type *FloatTy = Type::getFloatTy(M.getContext());
   Type *DoubleTy = Type::getDoubleTy(M.getContext());
+  Type *FloatPtrTy = Type::getFloatPtrTy(M.getContext());
+  Type *DoublePtrTy = Type::getDoublePtrTy(M.getContext());
 
   if (f) {
     ReturnTy = f->getReturnType();
@@ -123,22 +125,79 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
   } else if (call != NULL) {
     // Loop over arguments types
     for (auto it = call->op_begin(); it < call->op_end() - 1; it++) {
-      if ((*it)->getType() == FloatTy)
+      if ((*it)->getType() == FloatTy || (*it)->getType() == FloatPtrTy)
         (*use_float) = true;
-      if ((*it)->getType() == DoubleTy)
+      if ((*it)->getType() == DoubleTy || (*it)->getType() == DoublePtrTy)
         (*use_double) = true;
     }
   }
 }
 
+unsigned int getSizeOf(Value *V, const Function *F) {
+
+  for (auto &Args : F->args()) {
+    if (&Args == V) {
+      for (const auto &U : F->users()) {
+        if (const CallInst *call = cast<CallInst>(U)) {
+          Value *to_search = call->getOperand(Args.getArgNo());
+
+          return getSizeOf(to_search, call->getParent()->getParent());
+        }
+      }
+    }
+  }
+
+  for (auto &BB : (*F)) {
+    for (auto &I : BB) {
+      if (&I == V) {
+        if (const AllocaInst *Alloca = dyn_cast<AllocaInst>(&I)) {
+          if (Alloca->getAllocatedType()->isArrayTy() ||
+              Alloca->getAllocatedType()->isVectorTy()) {
+            return Alloca->getAllocatedType()->getArrayNumElements();
+          } else {
+            return 1;
+          }
+        } else if (const GetElementPtrInst *GEP =
+                       dyn_cast<GetElementPtrInst>(&I)) {
+          Value *to_search = GEP->getOperand(0);
+          return getSizeOf(to_search, F);
+        }
+      }
+    }
+  }
+
+  return 0;
+}
+
 void InstrumentFunction(std::vector<Value *> MetaData,
                         Function *CurrentFunction, Function *HookedFunction,
-                        const CallInst *call, BasicBlock *B) {
+                        const CallInst *call, BasicBlock *B, Module &M) {
   IRBuilder<> Builder(B);
 
-  // Step 1: add space on the heap for poiters
+  // Step 1: add space on the heap for pointers
+  size_t output_cpt = 0;
+  std::vector<Value *> OutputAlloca;
+
+  if (HookedFunction->getReturnType() == Builder.getDoubleTy()) {
+    OutputAlloca.push_back(
+        Builder.CreateAlloca(Builder.getDoubleTy(), nullptr));
+    output_cpt++;
+  } else if (HookedFunction->getReturnType() == Builder.getFloatTy()) {
+    OutputAlloca.push_back(Builder.CreateAlloca(Builder.getFloatTy(), nullptr));
+    output_cpt++;
+  } else if (HookedFunction->getReturnType() ==
+                 Type::getFloatPtrTy(M.getContext()) &&
+             call) {
+    output_cpt++;
+  } else if (HookedFunction->getReturnType() ==
+                 Type::getDoublePtrTy(M.getContext()) &&
+             call) {
+    output_cpt++;
+  }
+
   size_t input_cpt = 0;
   std::vector<Value *> InputAlloca;
+
   for (auto &args : CurrentFunction->args()) {
     if (args.getType() == Builder.getDoubleTy()) {
       InputAlloca.push_back(
@@ -148,38 +207,51 @@ void InstrumentFunction(std::vector<Value *> MetaData,
       InputAlloca.push_back(
           Builder.CreateAlloca(Builder.getFloatTy(), nullptr));
       input_cpt++;
+    } else if (args.getType() == Type::getFloatPtrTy(M.getContext()) && call) {
+      input_cpt++;
+      output_cpt++;
+    } else if (args.getType() == Type::getDoublePtrTy(M.getContext()) && call) {
+      input_cpt++;
+      output_cpt++;
     }
   }
 
   std::vector<Value *> InputMetaData = MetaData;
   InputMetaData.push_back(ConstantInt::get(Builder.getInt32Ty(), input_cpt));
 
-  size_t output_cpt = 0;
-  std::vector<Value *> OutputAlloca;
-  if (HookedFunction->getReturnType() == Builder.getDoubleTy()) {
-    OutputAlloca.push_back(
-        Builder.CreateAlloca(Builder.getDoubleTy(), nullptr));
-    output_cpt++;
-  } else if (HookedFunction->getReturnType() == Builder.getFloatTy()) {
-    OutputAlloca.push_back(Builder.CreateAlloca(Builder.getFloatTy(), nullptr));
-    output_cpt++;
-  }
-
   std::vector<Value *> OutputMetaData = MetaData;
   OutputMetaData.push_back(ConstantInt::get(Builder.getInt32Ty(), output_cpt));
 
   // Step 2: store values
   std::vector<Value *> EnterArgs = InputMetaData;
-  size_t index = 0;
+  size_t input_index = 0;
   for (auto &args : CurrentFunction->args()) {
     if (args.getType() == Builder.getDoubleTy()) {
       EnterArgs.push_back(Types2val[DOUBLE]);
-      EnterArgs.push_back(InputAlloca[index]);
-      Builder.CreateStore(&args, InputAlloca[index++]);
+      EnterArgs.push_back(
+          ConstantInt::get(Type::getInt32Ty(M.getContext()), 1));
+      EnterArgs.push_back(InputAlloca[input_index]);
+      Builder.CreateStore(&args, InputAlloca[input_index++]);
     } else if (args.getType() == Builder.getFloatTy()) {
       EnterArgs.push_back(Types2val[FLOAT]);
-      EnterArgs.push_back(InputAlloca[index]);
-      Builder.CreateStore(&args, InputAlloca[index++]);
+      EnterArgs.push_back(
+          ConstantInt::get(Type::getInt32Ty(M.getContext()), 1));
+      EnterArgs.push_back(InputAlloca[input_index]);
+      Builder.CreateStore(&args, InputAlloca[input_index++]);
+    } else if (args.getType() == Type::getFloatPtrTy(M.getContext()) && call) {
+      EnterArgs.push_back(Types2val[FLOAT_PTR]);
+      EnterArgs.push_back(
+          ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                           getSizeOf(call->getOperand(args.getArgNo()),
+                                     call->getParent()->getParent())));
+      EnterArgs.push_back(&args);
+    } else if (args.getType() == Type::getDoublePtrTy(M.getContext()) && call) {
+      EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+      EnterArgs.push_back(
+          ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                           getSizeOf(call->getOperand(args.getArgNo()),
+                                     call->getParent()->getParent())));
+      EnterArgs.push_back(&args);
     }
   }
 
@@ -188,14 +260,14 @@ void InstrumentFunction(std::vector<Value *> MetaData,
 
   // Step 4: load modified values
   std::vector<Value *> FunctionArgs;
-  index = 0;
+  input_index = 0;
   for (auto &args : CurrentFunction->args()) {
     if (args.getType() == Builder.getDoubleTy()) {
-      FunctionArgs.push_back(
-          Builder.CreateLoad(Builder.getDoubleTy(), InputAlloca[index++]));
+      FunctionArgs.push_back(Builder.CreateLoad(Builder.getDoubleTy(),
+                                                InputAlloca[input_index++]));
     } else if (args.getType() == Builder.getFloatTy()) {
       FunctionArgs.push_back(
-          Builder.CreateLoad(Builder.getFloatTy(), InputAlloca[index++]));
+          Builder.CreateLoad(Builder.getFloatTy(), InputAlloca[input_index++]));
     } else {
       FunctionArgs.push_back(&args);
     }
@@ -221,12 +293,53 @@ void InstrumentFunction(std::vector<Value *> MetaData,
   std::vector<Value *> ExitArgs = OutputMetaData;
   if (ret->getType() == Builder.getDoubleTy()) {
     ExitArgs.push_back(Types2val[DOUBLE]);
+    ExitArgs.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()), 1));
     ExitArgs.push_back(OutputAlloca[0]);
     Builder.CreateStore(ret, OutputAlloca[0]);
   } else if (ret->getType() == Builder.getFloatTy()) {
     ExitArgs.push_back(Types2val[FLOAT]);
+    ExitArgs.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()), 1));
     ExitArgs.push_back(OutputAlloca[0]);
     Builder.CreateStore(ret, OutputAlloca[0]);
+  } else if (HookedFunction->getReturnType() ==
+                 Type::getFloatPtrTy(M.getContext()) &&
+             call) {
+    ExitArgs.push_back(Types2val[FLOAT_PTR]);
+    ExitArgs.push_back(
+        ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                         getSizeOf(ret, call->getParent()->getParent())));
+    ExitArgs.push_back(ret);
+  } else if (HookedFunction->getReturnType() ==
+                 Type::getDoublePtrTy(M.getContext()) &&
+             call) {
+    ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+    ExitArgs.push_back(
+        ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                         getSizeOf(ret, call->getParent()->getParent())));
+    ExitArgs.push_back(ret);
+  }
+
+  input_index = 0;
+  for (auto &args : CurrentFunction->args()) {
+    if (args.getType() == Builder.getDoubleTy()) {
+      input_index++;
+    } else if (args.getType() == Builder.getFloatTy()) {
+      input_index++;
+    } else if (args.getType() == Type::getFloatPtrTy(M.getContext()) && call) {
+      ExitArgs.push_back(Types2val[FLOAT_PTR]);
+      ExitArgs.push_back(
+          ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                           getSizeOf(call->getOperand(args.getArgNo()),
+                                     call->getParent()->getParent())));
+      ExitArgs.push_back(&args);
+    } else if (args.getType() == Type::getDoublePtrTy(M.getContext()) && call) {
+      ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+      ExitArgs.push_back(
+          ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                           getSizeOf(call->getOperand(args.getArgNo()),
+                                     call->getParent()->getParent())));
+      ExitArgs.push_back(&args);
+    }
   }
 
   // Step 7: call vfc_exit
@@ -265,6 +378,8 @@ struct VfclibFunc : public ModulePass {
 
     Types2val[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 0);
     Types2val[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 1);
+    Types2val[2] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 2);
+    Types2val[3] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 3);
 
     /*************************************************************************
      *                  Get original functions's names                       *
@@ -346,7 +461,7 @@ struct VfclibFunc : public ModulePass {
 
       Clone->setName(NewName);
 
-      InstrumentFunction(MetaData, Main, Clone, NULL, block);
+      InstrumentFunction(MetaData, Main, Clone, NULL, block, M);
 
       OriginalFunctions.push_back(Clone);
     }
@@ -396,46 +511,48 @@ struct VfclibFunc : public ModulePass {
             haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
                                         &use_float, &use_double, M);
 
-            if (!(is_intrinsic && (!use_float && !use_double))) {
-              // Create function ID
-              Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
-
-              // Constants creation
-              Constant *isLibraryFunction = ConstantInt::get(
-                  Type::getInt8Ty(M.getContext()), is_from_library);
-              Constant *isInstrinsicFunction = ConstantInt::get(
-                  Type::getInt8Ty(M.getContext()), is_intrinsic);
-              Constant *haveFloat =
-                  ConstantInt::get(Type::getInt8Ty(M.getContext()), use_float);
-              Constant *haveDouble =
-                  ConstantInt::get(Type::getInt8Ty(M.getContext()), use_double);
-
-              // Enter function arguments
-              std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
-                                            isInstrinsicFunction, haveFloat,
-                                            haveDouble};
-
-              Type *ReturnTy = f->getReturnType();
-              std::vector<Type *> CallTypes;
-              for (auto it = pi->op_begin(); it < pi->op_end() - 1; it++) {
-                CallTypes.push_back(cast<Value>(it)->getType());
-              }
-
-              Function *hook_func = Function::Create(
-                  FunctionType::get(ReturnTy, CallTypes, false),
-                  Function::ExternalLinkage, NewName, &M);
-
-              hook_func->setAttributes(f->getAttributes());
-              hook_func->setCallingConv(f->getCallingConv());
-
-              BasicBlock *block =
-                  BasicBlock::Create(M.getContext(), "block", hook_func);
-
-              InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
-                                 block);
-
-              cast<CallInst>(pi)->setCalledFunction(hook_func);
+            if (is_intrinsic && !(use_float || use_double)) {
+              continue;
             }
+
+            // Create function ID
+            Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
+
+            // Constants creation
+            Constant *isLibraryFunction = ConstantInt::get(
+                Type::getInt8Ty(M.getContext()), is_from_library);
+            Constant *isInstrinsicFunction =
+                ConstantInt::get(Type::getInt8Ty(M.getContext()), is_intrinsic);
+            Constant *haveFloat =
+                ConstantInt::get(Type::getInt8Ty(M.getContext()), use_float);
+            Constant *haveDouble =
+                ConstantInt::get(Type::getInt8Ty(M.getContext()), use_double);
+
+            // Enter function arguments
+            std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
+                                          isInstrinsicFunction, haveFloat,
+                                          haveDouble};
+
+            Type *ReturnTy = f->getReturnType();
+            std::vector<Type *> CallTypes;
+            for (auto it = pi->op_begin(); it < pi->op_end() - 1; it++) {
+              CallTypes.push_back(cast<Value>(it)->getType());
+            }
+
+            Function *hook_func =
+                Function::Create(FunctionType::get(ReturnTy, CallTypes, false),
+                                 Function::ExternalLinkage, NewName, &M);
+
+            hook_func->setAttributes(f->getAttributes());
+            hook_func->setCallingConv(f->getCallingConv());
+
+            BasicBlock *block =
+                BasicBlock::Create(M.getContext(), "block", hook_func);
+
+            InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
+                               block, M);
+
+            cast<CallInst>(pi)->setCalledFunction(hook_func);
           }
         }
       }
@@ -443,7 +560,7 @@ struct VfclibFunc : public ModulePass {
 
     return true;
   }
-};
+}; // namespace
 
 } // namespace
 

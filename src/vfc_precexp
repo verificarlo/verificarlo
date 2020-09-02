@@ -56,13 +56,6 @@ def shell(cmd, newEnv):
 							#stderr=subprocess.PIPE, 
 							env=env)
 
-	try:
-		proc.communicate(timeout = 5) # This could change
-	except subprocess.TimeoutExpired:
-		os.kill(proc.pid, signal.SIGINT)
-		os.kill(proc.pid + 1, signal.SIGINT) # :(
-		return 1
-
 	proc.wait()
 
 	return proc.returncode
@@ -139,13 +132,13 @@ def getProfile(file):
 
 	FunctionsFrame = 	pd.DataFrame(Functions, 
 						columns = [	'ID', 'Lib','Int','Float','Double','Prec64',
-						'Range64','Prec32','Range32','Ninputs','Noutputs','Ncalls']) 
+						'Range64','Prec32','Range32','Ninputs','Noutputs','Ncalls']).sort_values(['Ncalls', 'ID'], ascending=False).reset_index(drop=True)
 
 	FunctionsFilter = FunctionsFrame.copy()
 	FunctionsFilter = FunctionsFilter[(FunctionsFilter['Lib'] == 0) & (FunctionsFilter['Int'] == 0)]
 
 	ArgumentsFrame =  	pd.DataFrame(Arguments, 
-						columns = [	'ID', 'Lib', 'Int', 'IO','Type','Prec','Range', 'Min', 'Max', 'Ncalls'])
+						columns = [	'ID', 'Lib', 'Int', 'IO','Type','Prec','Range', 'Min', 'Max', 'Ncalls']).sort_values(['Ncalls', 'ID'], ascending=False).reset_index(drop=True)
 
 	f.close()
 
@@ -218,10 +211,10 @@ def search_minimum_operations(	runPath,
 				else:
 					l = p+1
 
-		Operations.at[index, 'Range64'] = 1
+		Operations.at[index, 'Range64'] = 2
 
 		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-			l , r = 1 , 11
+			l , r = 2 , 11
 			flag = 1
 			while flag:
 				p = math.floor((r + l) / 2)
@@ -236,7 +229,7 @@ def search_minimum_operations(	runPath,
 					l = p+1
 	else:
 		Operations.at[index, 'Prec64'] = 1
-		Operations.at[index, 'Range64'] = 1
+		Operations.at[index, 'Range64'] = 2
 
 
 	if Operations.at[index, 'Float']:
@@ -259,10 +252,10 @@ def search_minimum_operations(	runPath,
 
 
 
-		Operations.at[index, 'Range32'] = 1
+		Operations.at[index, 'Range32'] = 2
 
 		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-			l , r = 1 , 8
+			l , r = 2 , 8
 			flag = 1
 
 			while flag:
@@ -290,7 +283,7 @@ def search_minimum_arguments(	runPath,
 					Operations,
 					index):
 
-	if Arguments.at[index, 'Type'] == 0:
+	if Arguments.at[index, 'Type'] == 0 or Arguments.at[index, 'Type'] == 2:
 		Arguments.at[index, 'Prec'] = 1
 
 		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
@@ -310,10 +303,10 @@ def search_minimum_arguments(	runPath,
 
 
 
-		Arguments.at[index, 'Range'] = 1
+		Arguments.at[index, 'Range'] = 2
 
 		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-			l , r = 1 , 8
+			l , r = 2 , 8
 			flag = 1
 
 			while flag:
@@ -328,7 +321,7 @@ def search_minimum_arguments(	runPath,
 				else:
 					l = p+1
 
-	elif Arguments.at[index, 'Type'] == 1:
+	elif Arguments.at[index, 'Type'] == 1 or Arguments.at[index, 'Type'] == 3:
 		Arguments.at[index, 'Prec'] = 1
 
 		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
@@ -346,10 +339,10 @@ def search_minimum_arguments(	runPath,
 				else:
 					l = p+1
 
-		Arguments.at[index, 'Range'] = 1
+		Arguments.at[index, 'Range'] = 2
 
 		if not Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
-			l , r = 1 , 11
+			l , r = 2 , 11
 			flag = 1
 			while flag:
 				p = math.floor((r + l) / 2)
@@ -462,7 +455,7 @@ if __name__ == "__main__":
 										FunctionsFrameCopy,
 										j)
 
-		cpt += 1
+			cpt += 1
 
 	ArgumentsFrameCopy.to_csv("vfc_exp_data/ArgumentsResults.csv")
 
