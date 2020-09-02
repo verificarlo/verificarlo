@@ -35,19 +35,18 @@ inline float round_binary32_denormal(float x, int emin, int xexp,
 
   binary32 half_ulp;
   half_ulp.ieee.sign = x < 0;
-  half_ulp.ieee.exponent = FLOAT_EXP_COMP + (emin-precision);
+  half_ulp.ieee.exponent = FLOAT_EXP_COMP + (emin - precision);
   half_ulp.ieee.mantissa = 0;
 
   binary32 b32_x;
   b32_x.f32 = x + half_ulp.f32;
 
   /*precision loss due to denormalizqation*/
-  const int32_t precision_loss = emin - (b32_x.ieee.exponent-FLOAT_EXP_COMP);
+  const int32_t precision_loss = emin - (b32_x.ieee.exponent - FLOAT_EXP_COMP);
 
   /* truncate the trailing bits */
   const uint32_t mask_denormal =
-      0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision + precision_loss +1);
-
+      0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision + precision_loss + 1);
 
   b32_x.u32 &= mask_denormal;
 
@@ -82,7 +81,7 @@ inline double round_binary64_denormal(double x, int emin, int xexp,
   /* build 1/2 ulp and add it before truncation for faithfull rounding */
   binary64 half_ulp;
   half_ulp.ieee.sign = x < 0;
-  half_ulp.ieee.exponent = DOUBLE_EXP_COMP + (emin-precision);
+  half_ulp.ieee.exponent = DOUBLE_EXP_COMP + (emin - precision);
   half_ulp.ieee.mantissa = 0;
 
   binary64 b64_x;
@@ -93,8 +92,7 @@ inline double round_binary64_denormal(double x, int emin, int xexp,
 
   /* truncate the trailing bits */
   const uint64_t mask_denormal =
-      0xFFFFFFFFFFFFFFFF << (DOUBLE_PMAN_SIZE - precision + precision_loss +1);
-
+      0xFFFFFFFFFFFFFFFF << (DOUBLE_PMAN_SIZE - precision + precision_loss + 1);
 
   b64_x.u64 &= mask_denormal;
 
