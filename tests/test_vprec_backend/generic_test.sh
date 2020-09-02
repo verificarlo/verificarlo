@@ -31,7 +31,7 @@ float_type_list=("float" "double")
 
 # Modes list
 if [ $USECASE = "fast" ]; then
-    modes_list=("OB")
+    modes_list=("FULL")
 else
     modes_list=("IB" "OB" "FULL")
 fi
