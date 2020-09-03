@@ -47,18 +47,27 @@ opt = llvm_bindir + '/opt'
 FORTRAN_EXTENSIONS = [".f", ".f90", ".f77"]
 C_EXTENSIONS = [".c"]
 CXX_EXTENSIONS = ['.cc', '.cp', '.cpp', '.cxx', 'c++']
+ASSEMBLY_EXTENSIONS = [ '.s' ]
 linkers = {'clang':clang, 'flang':flang, 'clang++':clangxx}
 default_linker = 'clang'
+temp_files_set = set()
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
     def _get_option_tuples(self, option_string):
         return []
 
+def close_tmp_files():
+    for tmp in temp_files_set:
+        try:
+            tmp.close()
+        except FileNotFoundError:
+            continue
+
 def fail(msg):
+    close_tmp_files()
     print(sys.argv[0] + ': ' + msg, file=sys.stderr)
     sys.exit(1)
-
 
 def is_fortran(name):
     return os.path.splitext(name)[1].lower() in FORTRAN_EXTENSIONS
@@ -70,6 +79,10 @@ def is_c(name):
 
 def is_cpp(name):
     return os.path.splitext(name)[1].lower() in CXX_EXTENSIONS
+
+
+def is_assembly(name):
+    return os.path.splitext(name)[1].lower() in ASSEMBLY_EXTENSIONS
 
 
 def shell_escape(argument):
@@ -91,6 +104,8 @@ def parse_extra_args(args):
             sources.append(a)
         elif is_cpp(a):
             sources.append(a)
+        elif is_assembly(a):
+            sources.append(a)
         else:
             options.append(shell_escape(a))
 
@@ -110,6 +125,8 @@ def linker_mode(sources, options, output, args):
     extra_args = "-static " if args.static else "-fPIC "
     extra_args += "-DINST_FCMP " if args.inst_fcmp else ""
     extra_args += "-DDDEBUG " if args.ddebug else ""
+    extra_args += "-DINST_FUNC " if args.inst_func else ""
+
     shell('{clang} -c -O3 -Wno-varargs {extra_args} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
         clang=clang,
         extra_args=extra_args,
@@ -138,16 +155,42 @@ def linker_mode(sources, options, output, args):
     f.close()
 
 
+# Do not instrument
+def compile_only(sources, options, output, args):
+    compiler = linkers[args.linker]
+    sources = ' '.join(sources)
+    shell('{compiler} {sources} {options} {output}'.format(
+        compiler=compiler,
+        sources=sources,
+        options=options,
+        output=output))
+
+def get_tmp_filename(prefix, suffix, args):
+    abs_prefix = os.path.abspath(prefix) + '.'
+    tmp = tempfile.NamedTemporaryFile(mode='w+b',
+                                      prefix=abs_prefix,
+                                      suffix=suffix,
+                                      delete=not args.save_temps)
+    temp_files_set.add(tmp)
+    return tmp
+
 def compiler_mode(sources, options, output, args):
     for source in sources:
         basename = os.path.splitext(source)[0]
-        ir = basename + '.1.ll'
-        func = basename + '.2.ll'
-        ins = basename + '.2.ll'
+        ir = get_tmp_filename(basename,'.1.ll',args)
+        ins = get_tmp_filename(basename,'.2.ll',args)
 
         compiler = linkers[args.linker]
 
         debug = '-g' if args.inst_func else ''
+
+        if is_assembly(source):
+            if not output:
+                basename_output = '-o ' + basename + '.o'
+            else:
+                basename_output = output
+            compile_only([source], ' -c ' + options, basename_output, args)
+            continue
 
         # Compile to ir (fortran uses flang, c uses clang)
         shell('{compiler} -c -S {debug} {source} -emit-llvm {options} -o {ir}'.format(
@@ -155,7 +198,7 @@ def compiler_mode(sources, options, output, args):
             debug=debug,
             source=source,
             options=options,
-            ir=ir))
+            ir=ir.name))
 
         selectfunction = ""
         if args.function:
@@ -178,14 +221,14 @@ def compiler_mode(sources, options, output, args):
 
         if args.inst_func:
             # Apply function's instrumentation pass
-            shell('{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir} -o {func}'.format(
+            shell('{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir} -o {ins}'.format(
                 opt=opt,
                 libvfcfuncinstrument=libvfcfuncinstrument,
-                ir=ir,
-                func=func
+                ir=ir.name,
+                ins=ins.name
                 ))
-            ir = basename + '.2.ll'
-            ins = basename + '.3.ll'
+            ir = ins
+            ins = get_tmp_filename(basename,'.3.ll',args)
 
         # Apply MCA instrumentation pass
         shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {extra_args} {selectfunction} {ir} -o {ins}'.format(
@@ -193,22 +236,26 @@ def compiler_mode(sources, options, output, args):
             libvfcinstrument=libvfcinstrument,
             selectfunction=selectfunction,
             extra_args=extra_args,
-            ir=ir,
-            ins=ins
+            ir=ir.name,
+            ins=ins.name
             ))
 
         if not output:
-            output = '-o ' + basename + '.o'
+            basename_output = '-o ' + basename + '.o'
+        else:
+            basename_output = output
 
         # Produce object file
         shell('{compiler} -c {output} {ins} {options}'.format(
             compiler=compiler,
-            output=output,
-            ins=ins,
+            output=basename_output,
+            ins=ins.name,
             options=options))
 
 if __name__ == "__main__":
     parser = NoPrefixParser(description='Compiles a program replacing floating point operation with calls to the mcalib (Montecarlo Arithmetic).')
+    parser.add_argument('-E', action='store_true', help='only run the preprocessor')
+    parser.add_argument('-S', action='store_true', help='only run preprocess and compilation steps')
     parser.add_argument('-c', action='store_true', help='only run preprocess, compile, and assemble steps')
     parser.add_argument('-o', metavar='file', help='write output to <file>')
     parser.add_argument('--ddebug', action='store_true', help='enable delta-debug mode')
@@ -220,6 +267,7 @@ if __name__ == "__main__":
     parser.add_argument('--inst-fcmp', action='store_true', help='instrument floating point comparisons')
     parser.add_argument('--inst-func', action='store_true', help='instrument functions')
     parser.add_argument('--show-cmd', action='store_true', help='show internal commands')
+    parser.add_argument('--save-temps', action='store_true', help='save intermediate files')
     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
     parser.add_argument('--linker', choices=linkers.keys(), default=default_linker, help="linker to use, {dl} by default".format(dl=default_linker))
 
@@ -228,7 +276,7 @@ if __name__ == "__main__":
     sources, llvm_options = parse_extra_args(other)
 
     # check input files
-    if len(sources) > 1 and args.o:
+    if (args.E or args.S or args.c) and len(sources) > 1 and args.o:
         fail('cannot specify -o when generating multiple output files')
 
     # check mutually excluding args
@@ -236,7 +284,14 @@ if __name__ == "__main__":
         fail('Cannot use --function and --include-file/--exclude-file together')
 
     output = "-o " + args.o if args.o else ""
-    if args.c:
+
+    if args.E:
+        llvm_options += ' -E '
+        compile_only(sources, llvm_options, output, args)
+    elif args.S:
+        llvm_options += ' -S '
+        compile_only(sources, llvm_options, output, args)
+    elif args.c:
         if len(sources) == 0:
             fail('no input files')
         compiler_mode(sources, llvm_options, output, args)
