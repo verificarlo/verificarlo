@@ -31,27 +31,17 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
+#include <cxxabi.h>
 #include <fstream>
 #include <set>
+#include <sstream>
 #include <utility>
 
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 6
-#define CREATE_CALL3(func, op1, op2, op3)                                      \
-  (Builder.CreateCall3(func, op1, op2, op3, ""))
-#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall2(func, op1, op2, ""))
-#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(i, p))
-/* This function must be used with at least one variadic argument otherwise */
-/* it will fails when compiling since it will expand as
- * M.getOrInsertFunction(name,res,,(Type*)NULL) */
-/* It could be fixed when __VA_OPT__ will be available (see
- * https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html)*/
-#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
-  M.getOrInsertFunction(name, res, __VA_ARGS__, (Type *)NULL)
-typedef llvm::Constant *_LLVMFunctionType;
-#elif LLVM_VERSION_MAJOR < 5
+#if LLVM_VERSION_MAJOR < 5
 #define CREATE_CALL3(func, op1, op2, op3)                                      \
   (Builder.CreateCall(func, {op1, op2, op3}, ""))
 #define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
@@ -114,6 +104,10 @@ enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_IGNORE };
 
 std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
 
+// Separtors for the module name
+const char path_separator = '/';
+const char relative_path_separator = '#';
+
 struct VfclibInst : public ModulePass {
   static char ID;
 
@@ -121,6 +115,66 @@ struct VfclibInst : public ModulePass {
   std::set<std::string> ExcludedFunctionSet;
 
   VfclibInst() : ModulePass(ID) {}
+
+  // Taken from
+  // https://www.fluentcpp.com/2017/04/21/how-to-split-a-string-in-c/
+  std::vector<std::string> split(const std::string &s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter)) {
+      tokens.push_back(token);
+    }
+    return tokens;
+  }
+
+  std::string getModuleName(Module &M, const bool with_path = false) {
+
+    std::string mod_name = "";
+
+    const std::string &moduleID = M.getModuleIdentifier();
+    const std::string &sourceFilename = M.getSourceFileName();
+
+    bool is_absolute_path = sys::path::is_absolute(moduleID);
+
+    std::string path = sys::path::parent_path(moduleID);
+    /* Return the filename without the extension */
+    std::string filename = sys::path::stem(moduleID);
+
+    /* Split the module name with the . */
+    std::vector<std::string> tokens = split(filename, '.');
+    /* Drop the .1 */
+    tokens.pop_back();
+    /* Drop the .<tmp> extension */
+    tokens.pop_back();
+
+    /* Concat the remaining tokens */
+    if (with_path && is_absolute_path) {
+      mod_name = path + path_separator + tokens[0];
+    } else {
+      mod_name = tokens[0];
+    }
+
+    /* Remove the first token, already in mod_name */
+    tokens.erase(tokens.begin());
+    for (auto token : tokens)
+      mod_name += "." + token;
+
+    return mod_name;
+  }
+
+  // taken from
+  // https://stackoverflow.com/questions/281818/unmangling-the-result-of-stdtype-infoname
+  std::string demangle(const std::string &name) {
+
+    const char *name_c_str = name.c_str();
+    int status = -4; // some arbitrary value to eliminate the compiler warning
+
+    // enable c++11 by passing the flag -std=c++11 to g++
+    std::unique_ptr<char, void (*)(void *)> res{
+        abi::__cxa_demangle(name_c_str, NULL, NULL, &status), std::free};
+    return (status == 0) ? res.get() : name;
+  }
 
   void parseFunctionSetFile(Module &M, cl::opt<std::string> &fileName,
                             std::set<std::string> &FunctionSet) {
@@ -140,10 +194,12 @@ struct VfclibInst : public ModulePass {
     int lineno = 0;
     std::string line;
     // drop the .1.ll suffix in the module name
-    StringRef mod_name = StringRef(M.getModuleIdentifier()).drop_back(5);
+    std::string mod_name = getModuleName(M, false);
+    std::string full_path_mod_name = getModuleName(M, true);
     while (std::getline(loopstream, line)) {
       lineno++;
       StringRef l = StringRef(line);
+
       // Ignore empty or commented lines
       if (l.startswith("#") || l.trim() == "") {
         continue;
@@ -155,8 +211,12 @@ struct VfclibInst : public ModulePass {
                << lineno << "\n";
         report_fatal_error("libVFCInstrument fatal error");
       } else {
-        if (p.first.trim().equals(mod_name) || p.first.trim().equals("*")) {
-          FunctionSet.insert(p.second.trim());
+        const std::string &mod = p.first.trim();
+        const std::string &fun = p.second.trim();
+
+        if (mod == "*" or mod == mod_name or
+            (sys::path::has_root_path(mod) and mod == full_path_mod_name)) {
+          FunctionSet.insert(fun);
         }
       }
     }
@@ -180,16 +240,19 @@ struct VfclibInst : public ModulePass {
     // Find the list of functions to instrument
     std::vector<Function *> functions;
     for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
+
+      const std::string &name = F->getName();
+
       // White-list
       if (IncludedFunctionSet.find("*") != IncludedFunctionSet.end() ||
-          IncludedFunctionSet.find(F->getName()) != IncludedFunctionSet.end()) {
+          IncludedFunctionSet.find(name) != IncludedFunctionSet.end()) {
         functions.push_back(&*F);
         continue;
       }
 
       // Black-list
       if (ExcludedFunctionSet.find("*") != ExcludedFunctionSet.end() ||
-          ExcludedFunctionSet.find(F->getName()) != ExcludedFunctionSet.end()) {
+          ExcludedFunctionSet.find(name) != ExcludedFunctionSet.end()) {
         continue;
       }
 
@@ -214,7 +277,7 @@ struct VfclibInst : public ModulePass {
   bool runOnFunction(Module &M, Function &F) {
     if (VfclibInstVerbose) {
       errs() << "In Function: ";
-      errs().write_escaped(F.getName()) << '\n';
+      errs().write_escaped(demangle(F.getName())) << '\n';
     }
 
     bool modified = false;

@@ -21,7 +21,7 @@ did_instrument() {
 }
 
 echo "SUBTEST 1: Check that --function works"
-verificarlo-c --verbose -c --function f1 a.c 2> a
+verificarlo-c --save-temps --verbose -c --function f1 a.c 2> a
 did_instrument f1 a
 did_not_instrument f2 a
 
