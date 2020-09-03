@@ -28,8 +28,7 @@
 #include "float_const.h"
 #include "float_struct.h"
 
-inline float round_binary32_denormal(float x, int emin, int xexp,
-                                     int precision) {
+inline float round_binary32_denormal(float x, int emin, int precision) {
 
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
@@ -75,8 +74,7 @@ inline float round_binary32_normal(float x, int precision) {
   return b32x.f32;
 }
 
-inline double round_binary64_denormal(double x, int emin, int xexp,
-                                      int precision) {
+inline double round_binary64_denormal(double x, int emin, int precision) {
 
   /* build 1/2 ulp and add it before truncation for faithfull rounding */
   binary64 half_ulp;
@@ -121,28 +119,29 @@ inline double round_binary64_normal(double x, int precision) {
   return b64x.f64;
 }
 
-inline float handle_binary32_denormal(float x, int emin, int xexp,
-                                      int precision) {
+inline float handle_binary32_denormal(float x, int emin, int precision) {
+
+  binary32 b32_x = {.f32 = x};
   /* underflow */
-  if (xexp < (emin - precision)) {
+  if ((b32_x.ieee.exponent - FLOAT_EXP_COMP) < (emin - precision)) {
     /* multiply by 0 a to keep the sign */
     return x * 0;
   }
   /* denormal */
   else if (precision <= FLOAT_PMAN_SIZE) {
-    return round_binary32_denormal(x, emin, xexp, precision);
+    return round_binary32_denormal(x, emin, precision);
   }
 }
 
-inline double handle_binary64_denormal(double x, int emin, int xexp,
-                                       int precision) {
+inline double handle_binary64_denormal(double x, int emin, int precision) {
+  binary64 b64_x = {.f64 = x};
   /* underflow */
-  if (xexp < (emin - precision)) {
+  if ((b64_x.ieee.exponent - DOUBLE_EXP_COMP) < (emin - precision)) {
     /* multiply by a 0 to keep the sign */
     return x * 0;
   }
   /* denormal */
   else if (precision <= DOUBLE_PMAN_SIZE) {
-    return round_binary64_denormal(x, emin, xexp, precision);
+    return round_binary64_denormal(x, emin, precision);
   }
 }

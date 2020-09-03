@@ -280,7 +280,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   /* round to zero or set to infinity if underflow or overflow compare to
    * VPRECLIB_BINARY32_RANGE */
   int emax = (1 << (binary32_range - 1)) - 1;
-  int emin = (emax > 1) ? 1 - emax : -1;
+  int emin = 1 - emax;
 
   binary32 aexp = {.f32 = a};
 
@@ -298,13 +298,14 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         (((t_context *)context)->ftz && !is_input)) {
       a = 0;
     } else {
-      a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
+      a = handle_binary32_denormal(a, emin, binary32_precision);
     }
   }
 
   /* Specials ops must be placed after denormal handling  */
   /* If one of the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
+  /* has a di(b32_x.ieee.exponent - SINGLE_EXP_COMP)fferent behavior. Example:
+   * x*Inf != 0*Inf */
 
   if (sp_case) {
     return a;
@@ -331,7 +332,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* round to zero or set to infinity if underflow or overflow compare to
    * VPRECLIB_BINARY64_RANGE */
   int emax = (1 << (binary64_range - 1)) - 1;
-  //minimum range is 2
+  // minimum range is 2
   int emin = 1 - emax;
 
   binary64 aexp = {.f64 = a};
@@ -350,7 +351,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         (((t_context *)context)->ftz && !is_input)) {
       a = 0;
     } else {
-      a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
+      a = handle_binary64_denormal(a, emin, binary64_precision);
     }
   }
 
