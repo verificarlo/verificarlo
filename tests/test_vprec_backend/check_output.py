@@ -50,7 +50,16 @@ def get_relative_error(mpfr, vprec):
     elif vprec == 0.0:
         return abs(mpfr)
     else:
-        return abs((mpfr-vprec)/mpfr)
+        err=abs((mpfr-vprec)/mpfr)
+
+    if math.isnan(err):
+        print("Computed relative error is NaN")
+        exit(1)
+    elif math.isinf(err):
+        print("Computed relative error is Inf")
+        exit(1)
+    else:
+        return err
 
 def get_significant_digits(relative_error):
     # Special case when mpfr == vprec

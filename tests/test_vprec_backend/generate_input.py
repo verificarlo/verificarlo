@@ -12,19 +12,20 @@ def print_random_fp(n, r, output_filename):
     reminder=max(0,n-3*n_s) 
     #cannot exceed float exponent because of numpy random uniform
     #furthermore we are generating float which means when testing double that the mantissa will have zero's after bit 23, which is not great to test rounding...
-    emax = min(2**(r-1)-1,127)
+    emax = 2**(r-1)-1.0
+    #emax = min(2**(r-1)-1,127)
     #any number in the representable range
-    rand_fp_array_1 = np.random.uniform(low=-2**(emax)+1,high=2**(emax)-1, size=n_s+reminder)
-    rand_fp_array_2 = np.random.uniform(low=-2**(emax)+1,high=2**(emax)-1, size=n_s+reminder)
+    rand_fp_array_1 = np.random.default_rng().uniform(low=-2**(emax-1),high=2**(emax-1), size=n_s+reminder)
+    rand_fp_array_2 = np.random.default_rng().uniform(low=-2**(emax-1),high=2**(emax-1), size=n_s+reminder)
 
     #add small numbers with negative exponent
-    rand_small_fp_array_1 = np.random.uniform(low=-1,high=1, size=n_s)
-    rand_small_fp_array_2 = np.random.uniform(low=-1,high=1, size=n_s)
+    rand_small_fp_array_1 = np.random.default_rng().uniform(low=-1,high=1, size=n_s)
+    rand_small_fp_array_2 = np.random.default_rng().uniform(low=-1,high=1, size=n_s)
     
     #add denormals
-    emin=1-emax;
-    rand_sub_fp_array_1 = np.random.uniform(low=-2**(emin),high=2**(emin), size=n_s)
-    rand_sub_fp_array_2 = np.random.uniform(low=-2**(emin),high=2**(emin), size=n_s)
+    emin=1.0-emax;
+    rand_sub_fp_array_1 = np.random.default_rng().uniform(low=-2**(emin),high=2**(emin), size=n_s)
+    rand_sub_fp_array_2 = np.random.default_rng().uniform(low=-2**(emin),high=2**(emin), size=n_s)
     
     fo = open(output_filename, "w")
 
@@ -41,5 +42,4 @@ if "__main__" == __name__:
 
     n = int(sys.argv[1])
     r = int(sys.argv[2])
-
     print_random_fp(n, r, output_filename)
