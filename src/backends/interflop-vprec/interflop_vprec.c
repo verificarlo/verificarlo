@@ -304,7 +304,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 
   /* Specials ops must be placed after denormal handling  */
   /* If one of the operand raises an underflow, the operation */
-  /* has a di(b32_x.ieee.exponent - SINGLE_EXP_COMP)fferent behavior. Example:
+  /* has a different behavior. Example:
    * x*Inf != 0*Inf */
 
   if (sp_case) {
