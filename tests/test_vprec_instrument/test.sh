@@ -16,22 +16,22 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test_mantissa.c/powf_64_27	1	0	1	0	$i	11	23	$i	2	1	1
-input:	0	23	8	0	0
-input:	0	23	8	1	1
-output:	0	23	8	0	0
-test_mantissa.c/Fdouble_84_47	0	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11	0	0
-input:	1	$i	11	0	0
-output:	1	$i	11	0	0
-test_mantissa.c/Ffloat_85_49	0	0	1	0	$i	11	23	8	2	1	1
-input:	0	23	8	0	0
-input:	0	23	8	0	0
-output:	0	23	8	0	0
-test_mantissa.c/pow_47_10	1	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11	0	0
-input:	1	$i	11	1	1
-output:	1	$i	11	0	0" > config.txt
+"test_mantissa.c/Ffloat/powf/64/27	1	0	1	0	$i	11	23	$i	2	1	1
+input:	parameter_1	0	23	8	0	0
+input:	parameter_2	0	23	8	1	1
+output:	return_value	0	23	8	0	0
+test_mantissa.c/main/Fdouble/84/47	0	0	0	1	$i	11	23	8	2	1	1
+input:	parameter_1	1	$i	11	0	0
+input:	parameter_2	1	$i	11	0	0
+output:	return_value	1	$i	11	0	0
+test_mantissa.c/main/Ffloat/85/49	0	0	1	0	$i	11	23	8	2	1	1
+input:	parameter_1	0	23	8	0	0
+input:	parameter_2	0	23	8	0	0
+output:	return_value	0	23	8	0	0
+test_mantissa.c/Fdouble/pow/47/10	1	0	0	1	$i	11	23	8	2	1	1
+input:	parameter_1	1	$i	11	0	0
+input:	parameter_2	1	$i	11	1	1
+output:	return_value	1	$i	11	0	0" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ib"
 	./test_mantissa $i 23 >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ob"
@@ -42,22 +42,22 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test_mantissa.c/powf_64_27	1	0	1	0	52	11	$i	8	2	1	1
-input:	0	$i	8	0	0
-input:	0	$i	8	1	1
-output:	0	$i	8	0	0
-test_mantissa.c/Fdouble_84_47	0	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11	0	0
-input:	1	52	11	0	0
-output:	1	52	11	0	0
-test_mantissa.c/Ffloat_85_49	0	0	1	0	52	11	$i	8	2	1	1
-input:	0	$i	8	0	0
-input:	0	$i	8	0	0
-output:	0	$i	8	0	0
-test_mantissa.c/pow_47_10	1	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11	0	0
-input:	1	52	11	1	1
-output:	1	52	11	0	0" > config.txt
+"test_mantissa.c/Ffloat/powf/64/27	1	0	1	0	52	11	$i	8	2	1	1
+input:	parameter_1	0	$i	8	0	0
+input:	parameter_2	0	$i	8	1	1
+output:	return_value	0	$i	8	0	0
+test_mantissa.c/main/Fdouble/84/47	0	0	0	1	52	11	$i	8	2	1	1
+input:	parameter_1	1	52	11	0	0
+input:	parameter_2	1	52	11	0	0
+output:	return_value	1	52	11	0	0
+test_mantissa.c/main/Ffloat/85/49	0	0	1	0	52	11	$i	8	2	1	1
+input:	parameter_1	0	$i	8	0	0
+input:	parameter_2	0	$i	8	0	0
+output:	return_value	0	$i	8	0	0
+test_mantissa.c/Fdouble/pow/47/10	1	0	0	1	52	11	$i	8	2	1	1
+input:	parameter_1	1	52	11	0	0
+input:	parameter_2	1	52	11	1	1
+output:	return_value	1	52	11	0	0" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ib"
 	./test_mantissa 52 $i >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ob"
@@ -72,22 +72,22 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test_mantissa.c/powf_64_27	1	0	1	0	$i	11	23	8	2	1	1
-input:	0	23	8	0	0
-input:	0	23	8	1	1
-output:	0	23	8	0	0
-test_mantissa.c/Fdouble_84_47	0	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11	0	0
-input:	1	$i	11	0	0
-output:	1	$i	11	0	0
-test_mantissa.c/Ffloat_85_49	0	0	1	0	$i	11	23	8	2	1	1
-input:	0	23	8	0	0
-input:	0	23	8	0	0
-output:	0	23	8	0	0
-test_mantissa.c/pow_47_10	1	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11	0	0
-input:	1	$i	11	1	1
-output:	1	$i	11	0	0" > config.txt
+"test_mantissa.c/Ffloat/powf/64/27	1	0	1	0	$i	11	23	8	2	1	1
+input:	parameter_1	0	23	8	0	0
+input:	parameter_2	0	23	8	1	1
+output:	return_value	0	23	8	0	0
+test_mantissa.c/main/Fdouble/84/47	0	0	0	1	$i	11	23	8	2	1	1
+input:	parameter_1	1	$i	11	0	0
+input:	parameter_2	1	$i	11	0	0
+output:	return_value	1	$i	11	0	0
+test_mantissa.c/main/Ffloat/85/49	0	0	1	0	$i	11	23	8	2	1	1
+input:	parameter_1	0	23	8	0	0
+input:	parameter_2	0	23	8	0	0
+output:	return_value	0	23	8	0	0
+test_mantissa.c/Fdouble/pow/47/10	1	0	0	1	$i	11	23	8	2	1	1
+input:	parameter_1	1	$i	11	0	0
+input:	parameter_2	1	$i	11	1	1
+output:	return_value	1	$i	11	0	0" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ib"
 	./test_mantissa $i 23 >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ob"
@@ -98,22 +98,22 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test_mantissa.c/powf_64_27	1	0	1	0	52	11	$i	8	2	1	1
-input:	0	$i	8	0	0
-input:	0	$i	8	1	1
-output:	0	$i	8	0	0
-test_mantissa.c/Fdouble_84_47	0	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11	0	0
-input:	1	52	11	0	0
-output:	1	52	11	0	0
-test_mantissa.c/Ffloat_85_49	0	0	1	0	52	11	$i	8	2	1	1
-input:	0	$i	8	0	0
-input:	0	$i	8	0	0
-output:	0	$i	8	0	0
-test_mantissa.c/pow_47_10	1	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11	0	0
-input:	1	52	11	1	1
-output:	1	52	11	0	0" > config.txt
+"test_mantissa.c/Ffloat/powf/64/27	1	0	1	0	52	11	$i	8	2	1	1
+input:	parameter_1	0	$i	8	0	0
+input:	parameter_2	0	$i	8	1	1
+output:	return_value	0	$i	8	0	0
+test_mantissa.c/main/Fdouble/84/47	0	0	0	1	52	11	$i	8	2	1	1
+input:	parameter_1	1	52	11	0	0
+input:	parameter_2	1	52	11	0	0
+output:	return_value	1	52	11	0	0
+test_mantissa.c/main/Ffloat/85/49	0	0	1	0	52	11	$i	8	2	1	1
+input:	parameter_1	0	$i	8	0	0
+input:	parameter_2	0	$i	8	0	0
+output:	return_value	0	$i	8	0	0
+test_mantissa.c/Fdouble/pow/47/10	1	0	0	1	52	11	$i	8	2	1	1
+input:	parameter_1	1	52	11	0	0
+input:	parameter_2	1	52	11	1	1
+output:	return_value	1	52	11	0	0" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ib"
 	./test_mantissa 52 $i >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ob"
@@ -128,22 +128,22 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test_mantissa.c/powf_64_27	1	0	1	0	$i	11	23	8	2	1	1
-input:	0	23	8	0	0
-input:	0	23	8	1	1
-output:	0	23	8	0	0
-test_mantissa.c/Fdouble_84_47	0	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11	0	0
-input:	1	$i	11	0	0
-output:	1	$i	11	0	0
-test_mantissa.c/Ffloat_85_49	0	0	1	0	$i	11	23	8	2	1	1
-input:	0	23	8	0	0
-input:	0	23	8	0	0
-output:	0	23	8	0	0
-test_mantissa.c/pow_47_10	1	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11	0	0
-input:	1	$i	11	1	1
-output:	1	$i	11	0	0" > config.txt
+"test_mantissa.c/Ffloat/powf/64/27	1	0	1	0	$i	11	23	8	2	1	1
+input:	parameter_1	0	23	8	0	0
+input:	parameter_2	0	23	8	1	1
+output:	return_value	0	23	8	0	0
+test_mantissa.c/main/Fdouble/84/47	0	0	0	1	$i	11	23	8	2	1	1
+input:	parameter_1	1	$i	11	0	0
+input:	parameter_2	1	$i	11	0	0
+output:	return_value	1	$i	11	0	0
+test_mantissa.c/main/Ffloat/85/49	0	0	1	0	$i	11	23	8	2	1	1
+input:	parameter_1	0	23	8	0	0
+input:	parameter_2	0	23	8	0	0
+output:	return_value	0	23	8	0	0
+test_mantissa.c/Fdouble/pow/47/10	1	0	0	1	$i	11	23	8	2	1	1
+input:	parameter_1	1	$i	11	0	0
+input:	parameter_2	1	$i	11	1	1
+output:	return_value	1	$i	11	0	0" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ib"
 	./test_mantissa $i 23 >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ob"
@@ -154,22 +154,22 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test_mantissa.c/powf_64_27	1	0	1	0	52	11	$i	8	2	1	1
-input:	0	$i	8	0	0
-input:	0	$i	8	1	1
-output:	0	$i	8	0	0
-test_mantissa.c/Fdouble_84_47	0	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11	0	0
-input:	1	52	11	0	0
-output:	1	52	11	0	0
-test_mantissa.c/Ffloat_85_49	0	0	1	0	52	11	$i	8	2	1	1
-input:	0	$i	8	0	0
-input:	0	$i	8	0	0
-output:	0	$i	8	0	0
-test_mantissa.c/pow_47_10	1	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11	0	0
-input:	1	52	11	1	1
-output:	1	52	11	0	0" > config.txt
+"test_mantissa.c/Ffloat/powf/64/27	1	0	1	0	52	11	$i	8	2	1	1
+input:	parameter_1	0	$i	8	0	0
+input:	parameter_2	0	$i	8	1	1
+output:	return_value	0	$i	8	0	0
+test_mantissa.c/main/Fdouble/84/47	0	0	0	1	52	11	$i	8	2	1	1
+input:	parameter_1	1	52	11	0	0
+input:	parameter_2	1	52	11	0	0
+output:	return_value	1	52	11	0	0
+test_mantissa.c/main/Ffloat/85/49	0	0	1	0	52	11	$i	8	2	1	1
+input:	parameter_1	0	$i	8	0	0
+input:	parameter_2	0	$i	8	0	0
+output:	return_value	0	$i	8	0	0
+test_mantissa.c/Fdouble/pow/47/10	1	0	0	1	52	11	$i	8	2	1	1
+input:	parameter_1	1	52	11	0	0
+input:	parameter_2	1	52	11	1	1
+output:	return_value	1	52	11	0	0" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ib"
 	./test_mantissa 52 $i >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ob"
@@ -184,22 +184,22 @@ echo "Double: " >> output.txt
 
 for i in 1 26 52; do
 	echo \
-"test_mantissa.c/powf_64_27	1	0	1	0	$i	11	23	8	2	1	1
-input:	0	23	8	0	0
-input:	0	23	8	1	1
-output:	0	23	8	0	0
-test_mantissa.c/Fdouble_84_47	0	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11	0	0
-input:	1	$i	11	0	0
-output:	1	$i	11	0	0
-test_mantissa.c/Ffloat_85_49	0	0	1	0	$i	11	23	8	2	1	1
-input:	0	23	8	0	0
-input:	0	23	8	0	0
-output:	0	23	8	0	0
-test_mantissa.c/pow_47_10	1	0	0	1	$i	11	23	8	2	1	1
-input:	1	$i	11	0	0
-input:	1	$i	11	1	1
-output:	1	$i	11	0	0" > config.txt
+"test_mantissa.c/Ffloat/powf/64/27	1	0	1	0	$i	11	23	8	2	1	1
+input:	parameter_1	0	23	8	0	0
+input:	parameter_2	0	23	8	1	1
+output:	return_value	0	23	8	0	0
+test_mantissa.c/main/Fdouble/84/47	0	0	0	1	$i	11	23	8	2	1	1
+input:	parameter_1	1	$i	11	0	0
+input:	parameter_2	1	$i	11	0	0
+output:	return_value	1	$i	11	0	0
+test_mantissa.c/main/Ffloat/85/49	0	0	1	0	$i	11	23	8	2	1	1
+input:	parameter_1	0	23	8	0	0
+input:	parameter_2	0	23	8	0	0
+output:	return_value	0	23	8	0	0
+test_mantissa.c/Fdouble/pow/47/10	1	0	0	1	$i	11	23	8	2	1	1
+input:	parameter_1	1	$i	11	0	0
+input:	parameter_2	1	$i	11	1	1
+output:	return_value	1	$i	11	0	0" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ib"
 	./test_mantissa $i 23 >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ob"
@@ -210,22 +210,22 @@ echo "Float: " >> output.txt
 
 for i in 1 11 23; do
 	echo \
-"test_mantissa.c/powf_64_27	1	0	1	0	52	11	$i	8	2	1	1
-input:	0	$i	8	0	0
-input:	0	$i	8	1	1
-output:	0	$i	8	0	0
-test_mantissa.c/Fdouble_84_47	0	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11	0	0
-input:	1	52	11	0	0
-output:	1	52	11	0	0
-test_mantissa.c/Ffloat_85_49	0	0	1	0	52	11	$i	8	2	1	1
-input:	0	$i	8	0	0
-input:	0	$i	8	0	0
-output:	0	$i	8	0	0
-test_mantissa.c/pow_47_10	1	0	0	1	52	11	$i	8	2	1	1
-input:	1	52	11	0	0
-input:	1	52	11	1	1
-output:	1	52	11	0	0" > config.txt
+"test_mantissa.c/Ffloat/powf/64/27	1	0	1	0	52	11	$i	8	2	1	1
+input:	parameter_1	0	$i	8	0	0
+input:	parameter_2	0	$i	8	1	1
+output:	return_value	0	$i	8	0	0
+test_mantissa.c/main/Fdouble/84/47	0	0	0	1	52	11	$i	8	2	1	1
+input:	parameter_1	1	52	11	0	0
+input:	parameter_2	1	52	11	0	0
+output:	return_value	1	52	11	0	0
+test_mantissa.c/main/Ffloat/85/49	0	0	1	0	52	11	$i	8	2	1	1
+input:	parameter_1	0	$i	8	0	0
+input:	parameter_2	0	$i	8	0	0
+output:	return_value	0	$i	8	0	0
+test_mantissa.c/Fdouble/pow/47/10	1	0	0	1	52	11	$i	8	2	1	1
+input:	parameter_1	1	52	11	0	0
+input:	parameter_2	1	52	11	1	1
+output:	return_value	1	52	11	0	0" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ib"
 	./test_mantissa 52 $i >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ob"
@@ -247,12 +247,12 @@ echo "Double: " >> output.txt
 
 for i in 11 10; do
 	echo \
-"test_exponent.c/Ffloat_67_28	0	0	1	1	52	$i	23	8	1	1	1
-input:	0	23	8	1	1
-output:	0	23	8	1	1
-test_exponent.c/Fdouble_71_31	0	0	1	1	52	$i	23	8	1	1	1
-input:	1	52	$i	1	1
-output:	1	52	$i	1	1" > config.txt
+"test_exponent.c/main/Ffloat/67/28	0	0	1	1	52	$i	23	8	1	1	1
+input:	parameter_1	0	23	8	1	1
+output:	return_value	0	23	8	1	1
+test_exponent.c/main/Fdouble/71/31	0	0	1	1	52	$i	23	8	1	1	
+input:	parameter_1	52	$i	1	1
+output:	return_value	1	52	$i	1	1" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ib"
 	./test_exponent >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ob"
@@ -263,12 +263,12 @@ echo "Float: " >> output.txt
 
 for i in 8 7; do
 	echo \
-"test_exponent.c/Ffloat_67_28	0	0	1	1	52	11	23	$i	1	1	1
-input:	0	23	$i	1	1
-output:	0	23	$i	1	1
-test_exponent.c/Fdouble_71_31	0	0	1	1	52	11	23	$i	1	1	1
-input:	1	52	11	1	1
-output:	1	52	11	1	1" > config.txt
+"test_exponent.c/main/Ffloat/67/28	0	0	1	1	52	11	23	$i	1	1	1
+input:	parameter_1	0	23	$i	1	1
+output:	return_value	0	23	$i	1	1
+test_exponent.c/main/Fdouble/71/31	0	0	1	1	52	11	23	$i	1	1	1
+input:	parameter_1	1	52	11	1	1
+output:	return_value	1	52	11	1	1" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ib"
 	./test_exponent >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ob"
@@ -283,12 +283,12 @@ echo "Double: " >> output.txt
 
 for i in 11 10; do
 	echo \
-"test_exponent.c/Ffloat_67_28	0	0	1	1	52	$i	23	8	1	1	1
-input:	0	23	8	1	1
-output:	0	23	8	1	1
-test_exponent.c/Fdouble_71_31	0	0	1	1	52	$i	23	8	1	1	1
-input:	1	52	$i	1	1
-output:	1	52	$i	1	1" > config.txt
+"test_exponent.c/main/Ffloat/67/28	0	0	1	1	52	$i	23	8	1	1	1
+input:	parameter_1	0	23	8	1	1
+output:	return_value	0	23	8	1	1
+test_exponent.c/main/Fdouble/71/31	0	0	1	1	52	$i	23	8	1	1	1
+input:	parameter_1	1	52	$i	1	1
+output:	return_value	1	52	$i	1	1" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ib"
 	./test_exponent >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ob"
@@ -299,12 +299,12 @@ echo "Float: " >> output.txt
 
 for i in 8 7; do
 	echo \
-"test_exponent.c/Ffloat_67_28	0	0	1	1	52	11	23	$i	1	1	1
-input:	0	23	$i	1	1
-output:	0	23	$i	1	1
-test_exponent.c/Fdouble_71_31	0	0	1	1	52	11	23	$i	1	1	1
-input:	1	52	11	1	1
-output:	1	52	11	1	1" > config.txt
+"test_exponent.c/main/Ffloat/67/28	0	0	1	1	52	11	23	$i	1	1	1
+input:	parameter_1	0	23	$i	1	1
+output:	return_value	0	23	$i	1	1
+test_exponent.c/main/Fdouble/71/31	0	0	1	1	52	11	23	$i	1	1	1
+input:	parameter_1	1	52	11	1	1
+output:	return_value	1	52	11	1	1" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ib"
 	./test_exponent >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ob"
@@ -319,12 +319,12 @@ echo "Double: " >> output.txt
 
 for i in 11 10; do
 	echo \
-"test_exponent.c/Ffloat_67_28	0	0	1	1	52	$i	23	8	1	1	1
-input:	0	23	8	1	1
-output:	0	23	8	1	1
-test_exponent.c/Fdouble_71_31	0	0	1	1	52	$i	23	8	1	1	1
-input:	1	52	$i	1	1
-output:	1	52	$i	1	1" > config.txt
+"test_exponent.c/main/Ffloat/67/28	0	0	1	1	52	$i	23	8	1	1	1
+input:	parameter_1	0	23	8	1	1
+output:	return_value	0	23	8	1	1
+test_exponent.c/main/Fdouble/71/31	0	0	1	1	52	$i	23	8	1	1	1
+input:	parameter_1	1	52	$i	1	1
+output:	return_value	1	52	$i	1	1" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ib"
 	./test_exponent >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ob"
@@ -335,12 +335,12 @@ echo "Float: " >> output.txt
 
 for i in 8 7; do
 	echo \
-"test_exponent.c/Ffloat_67_28	0	0	1	1	52	11	23	$i	1	1	1
-input:	0	23	$i	1	1
-output:	0	23	$i	1	1
-test_exponent.c/Fdouble_71_31	0	0	1	1	52	11	23	$i	1	1	1
-input:	1	52	11	1	1
-output:	1	52	11	1	1" > config.txt
+"test_exponent.c/main/Ffloat/67/28	0	0	1	1	52	11	23	$i	1	1	1
+input:	parameter_1	0	23	$i	1	1
+output:	return_value	0	23	$i	1	1
+test_exponent.c/main/Fdouble/71/31	0	0	1	1	52	11	23	$i	1	1	1
+input:	parameter_1	1	52	11	1	1
+output:	return_value	1	52	11	1	1" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ib"
 	./test_exponent >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ob"
@@ -355,12 +355,12 @@ echo "Double: " >> output.txt
 
 for i in 11 10; do
 	echo \
-"test_exponent.c/Ffloat_67_28	0	0	1	1	52	$i	23	8	1	1	1
-input:	0	23	8	1	1
-output:	0	23	8	1	1
-test_exponent.c/Fdouble_71_31	0	0	1	1	52	$i	23	8	1	1	1
-input:	1	52	$i	1	1
-output:	1	52	$i	1	1" > config.txt
+"test_exponent.c/main/Ffloat/67/28	0	0	1	1	52	$i	23	8	1	1	1
+input:	parameter_1	0	23	8	1	1
+output:	return_value	0	23	8	1	1
+test_exponent.c/main/Fdouble/71/31	0	0	1	1	52	$i	23	8	1	1	1
+input:	parameter_1	1	52	$i	1	1
+output:	return_value	1	52	$i	1	1" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ib"
 	./test_exponent >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ob"
@@ -371,12 +371,12 @@ echo "Float: " >> output.txt
 
 for i in 8 7; do
 	echo \
-"test_exponent.c/Ffloat_67_28	0	0	1	1	52	11	23	$i	1	1	1
-input:	0	23	$i	1	1
-output:	0	23	$i	1	1
-test_exponent.c/Fdouble_71_31	0	0	1	1	52	11	23	$i	1	1	1
-input:	1	52	11	1	1
-output:	1	52	11	1	1" > config.txt
+"test_exponent.c/main/Ffloat/67/28	0	0	1	1	52	11	23	$i	1	1	1
+input:	parameter_1	0	23	$i	1	1
+output:	return_value	0	23	$i	1	1
+test_exponent.c/main/Fdouble/71/31	0	0	1	1	52	11	23	$i	1	1	1
+input:	parameter_1	1	52	11	1	1
+output:	return_value	1	52	11	1	1" > config.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ib"
 	./test_exponent >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ob"

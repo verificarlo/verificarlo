@@ -203,11 +203,13 @@ ReportString = "\n\
 </html>"
 
 def GetFunctionInfo(FunctionID):
-	CallNb = int(FunctionID[FunctionID.rfind('_')+1:])
-	FunctionID = FunctionID[:FunctionID.rfind('_')]
-	Fline = int(FunctionID[FunctionID.rfind('_')+1:])
-	FunctionID = FunctionID[:FunctionID.rfind('_')]
+	CallNb = int(FunctionID[FunctionID.rfind('/')+1:])
+	FunctionID = FunctionID[:FunctionID.rfind('/')]
+	Fline = int(FunctionID[FunctionID.rfind('/')+1:])
+	FunctionID = FunctionID[:FunctionID.rfind('/')]
 	Fname = FunctionID[FunctionID.rfind('/')+1:]
+	FunctionID = FunctionID[:FunctionID.rfind('/')]
+	ParentName = FunctionID[FunctionID.rfind('/')+1:]
 	FunctionID = FunctionID[:FunctionID.rfind('/')]
 	Ffile = FunctionID[FunctionID.rfind('/')+1:]
 	
@@ -288,13 +290,13 @@ def PlotArgs(Data, ImgID, Title):
 		ax1.text(j, Data.at[i, 'Min'], str(Data.at[i, 'Min']), horizontalalignment='center', verticalalignment='top')
 		ax1.text(j, Data.at[i, 'Max'], str(Data.at[i, 'Max']), horizontalalignment='center', verticalalignment='bottom')
 		if Data.at[i, 'Type'] == 0:
-			xtick.append(Data.at[i, 'IO'] + " Float")
+			xtick.append(Data.at[i, 'IO'] + " Float " + Data.at[i, 'ArgID'])
 		elif Data.at[i, 'Type'] == 1:
-			xtick.append(Data.at[i, 'IO'] + " Double")
+			xtick.append(Data.at[i, 'IO'] + " Double " + Data.at[i, 'ArgID'])
 		elif Data.at[i, 'Type'] == 2:
-			xtick.append(Data.at[i, 'IO'] + " Float Ptr")
+			xtick.append(Data.at[i, 'IO'] + " Float ptr " + Data.at[i, 'ArgID'])
 		else:
-			xtick.append(Data.at[i, 'IO'] + " Double Ptr")
+			xtick.append(Data.at[i, 'IO'] + " Double ptr " + Data.at[i, 'ArgID'])
 		
 
 		range_list.append(Data.at[i, 'Range'])
@@ -324,7 +326,7 @@ def PlotArgs(Data, ImgID, Title):
 
 	fig.suptitle(Title, fontsize=17)
 	plt.xticks(range(0,len(Data.index)), xtick, rotation='vertical')
-	plt.gcf().subplots_adjust(bottom=0.15)
+	plt.gcf().subplots_adjust(bottom=0.20)
 
 	plt.savefig(ImgDir + ImgID + ".png", format='png')
 	plt.clf()

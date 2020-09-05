@@ -93,7 +93,7 @@ def getProfile(file):
 	i = 0
 	while i < len(Lines):
 		ID, Lib, Int, Float, Double, Prec64, Range64, \
-		Prec32, Range32, Ninputs, Noutputs, Ncalls = Lines[i].split()
+		Prec32, Range32, Ninputs, Noutputs, Ncalls = Lines[i].split(sep="\t")
 
 		Lib = int(Lib)
 		Int = int(Int)
@@ -114,7 +114,7 @@ def getProfile(file):
 
 		j = i + 1
 		while j < i + Ninputs + Noutputs + 1:
-			IO, Type, Prec, Range, Min, Max = Lines[j].split()
+			IO, ArgID, Type, Prec, Range, Min, Max = Lines[j].split()
 
 			Type = int(Type)
 			Prec = int(Prec)
@@ -122,7 +122,7 @@ def getProfile(file):
 			Min = int(Min)
 			Max = int(Max)
 
-			functionArgs = [ID, Lib, Int, IO, Type, Prec, Range, Min, Max, Ncalls]
+			functionArgs = [ID, ArgID, Lib, Int, IO, Type, Prec, Range, Min, Max, Ncalls]
 
 			Arguments.append(functionArgs)
 
@@ -138,7 +138,7 @@ def getProfile(file):
 	FunctionsFilter = FunctionsFilter[(FunctionsFilter['Lib'] == 0) & (FunctionsFilter['Int'] == 0)]
 
 	ArgumentsFrame =  	pd.DataFrame(Arguments, 
-						columns = [	'ID', 'Lib', 'Int', 'IO','Type','Prec','Range', 'Min', 'Max', 'Ncalls']).sort_values(['Ncalls', 'ID'], ascending=False).reset_index(drop=True)
+						columns = [	'ID', 'ArgID', 'Lib', 'Int', 'IO','Type','Prec','Range', 'Min', 'Max', 'Ncalls']).sort_values(['Ncalls', 'ID'], ascending=False).reset_index(drop=True)
 
 	f.close()
 
@@ -166,8 +166,9 @@ def save(Arguments, Operations, File):
 
 		j = arg_index
 		while j < arg_index + Operations.at[i, "Ninputs"] + Operations.at[i, "Noutputs"]:
-			f.write("{IO}\t{Type}\t{Prec}\t{Range}\n".format(
+			f.write("{IO}\t{ArgID}\t{Type}\t{Prec}\t{Range}\n".format(
 					IO = Arguments.at[j, 'IO'],
+					ArgID = Arguments.at[j, 'ArgID'],
 					Type = Arguments.at[j, 'Type'],
 					Prec = Arguments.at[j, 'Prec'],
 					Range = Arguments.at[j, 'Range']))
@@ -412,7 +413,7 @@ if __name__ == "__main__":
 	FunctionsFrame, FunctionsIndex, ArgumentsFrame, ArgumentsIndex = getProfile(vfc_profile_file)
 
 	# set backend
-	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --mode=full --instrument=operations".format(vfc_config_file), env)
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --daz --ftz --mode=full --instrument=operations".format(vfc_config_file), env)
 
 	# Operations
 	print("-------------- Operations --------------")
@@ -434,7 +435,7 @@ if __name__ == "__main__":
 	FunctionsFrameCopy.to_csv("vfc_exp_data/OperationsResults.csv")
 
 	# set backend
-	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --mode=full --instrument=arguments".format(vfc_config_file), env)
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --daz --ftz --mode=full --instrument=arguments".format(vfc_config_file), env)
 
 	# Arguments
 	print("-------------- Arguments --------------")
@@ -460,7 +461,7 @@ if __name__ == "__main__":
 	ArgumentsFrameCopy.to_csv("vfc_exp_data/ArgumentsResults.csv")
 
 	# set backend
-	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --mode=full --instrument=all".format(vfc_config_file), env)
+	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --daz --ftz --mode=full --instrument=all".format(vfc_config_file), env)
 
 	# All
 	print("-------------- All --------------")

@@ -436,6 +436,8 @@ static inline double _vprec_binary64_binary_op(double a, double b,
 vfc_hashmap_t _vprec_func_map;
 
 typedef struct _vprec_argument_data {
+  // Identifier of the argument
+  char arg_id[100];
   // Data type of the argument 0 is float and 1 is double
   short data_type;
   // Minimum rounded value of the argument
@@ -494,7 +496,8 @@ void _vprec_write_hasmap(FILE *fout) {
               function->nb_input_args, function->nb_output_args,
               function->n_calls);
       for (int i = 0; i < function->nb_input_args; i++) {
-        fprintf(fout, "input:\t%hd\t%d\t%d\t%d\t%d\n",
+        fprintf(fout, "input:\t%s\t%hd\t%d\t%d\t%d\t%d\n",
+                function->input_args[i].arg_id,
                 function->input_args[i].data_type,
                 function->input_args[i].mantissa_length,
                 function->input_args[i].exponent_length,
@@ -502,7 +505,8 @@ void _vprec_write_hasmap(FILE *fout) {
                 function->input_args[i].max_range);
       }
       for (int i = 0; i < function->nb_output_args; i++) {
-        fprintf(fout, "output:\t%hd\t%d\t%d\t%d\t%d\n",
+        fprintf(fout, "output:\t%s\t%hd\t%d\t%d\t%d\t%d\n",
+                function->output_args[i].arg_id,
                 function->output_args[i].data_type,
                 function->output_args[i].mantissa_length,
                 function->output_args[i].exponent_length,
@@ -534,7 +538,8 @@ void _vprec_read_hasmap(FILE *fin) {
 
     // get input arguments precision
     for (int i = 0; i < function.nb_input_args; i++) {
-      if (!fscanf(fin, "input:\t%hd\t%d\t%d\t%d\t%d\n",
+      if (!fscanf(fin, "input:\t%s\t%hd\t%d\t%d\t%d\t%d\n",
+                  function.input_args[i].arg_id,
                   &function.input_args[i].data_type,
                   &function.input_args[i].mantissa_length,
                   &function.input_args[i].exponent_length,
@@ -546,7 +551,8 @@ void _vprec_read_hasmap(FILE *fin) {
 
     // get output arguments precision
     for (int i = 0; i < function.nb_output_args; i++) {
-      if (!fscanf(fin, "output:\t%hd\t%d\t%d\t%d\t%d\n",
+      if (!fscanf(fin, "output:\t%s\t%hd\t%d\t%d\t%d\t%d\n",
+                  function.output_args[i].arg_id,
                   &function.output_args[i].data_type,
                   &function.output_args[i].mantissa_length,
                   &function.output_args[i].exponent_length,
@@ -646,17 +652,19 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
   for (int i = 0; i < nb_args; i++) {
     int type = va_arg(ap, int);
+    char *arg_id = va_arg(ap, char *);
     unsigned int size = va_arg(ap, unsigned int);
 
     if (type == FDOUBLE) {
       double *value = va_arg(ap, double *);
 
-      _vprec_print_log(vprec_log_depth, " - %s\tinput\tdouble\t%la\t->\t",
-                       function_inst->id, *value);
+      _vprec_print_log(vprec_log_depth, " - %s\tinput\tdouble\t%s\t%la\t->\t",
+                       function_inst->id, arg_id, *value);
 
       if (new_flag) {
         // initialize arguments data
         function_inst->input_args[i].data_type = type;
+        strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
         function_inst->input_args[i].exponent_length =
             VPREC_RANGE_BINARY64_DEFAULT;
         function_inst->input_args[i].mantissa_length =
@@ -689,12 +697,13 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
     } else if (type == FFLOAT) {
       float *value = va_arg(ap, float *);
 
-      _vprec_print_log(vprec_log_depth, " - %s\tinput\tfloat\t%a\t->\t",
-                       function_inst->id, *value);
+      _vprec_print_log(vprec_log_depth, " - %s\tinput\tfloat\t%s\t%a\t->\t",
+                       function_inst->id, arg_id, *value);
 
       if (new_flag) {
         // initialize arguments data
         function_inst->input_args[i].data_type = type;
+        strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
         function_inst->input_args[i].exponent_length =
             VPREC_RANGE_BINARY32_DEFAULT;
         function_inst->input_args[i].mantissa_length =
@@ -727,18 +736,19 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
       for (unsigned int j = 0; j < size; j++, value++) {
         if (value == NULL) {
           _vprec_print_log(vprec_log_depth,
-                           " - %s\tinput[%u]\tdouble_ptr\tNULL\t->\tNULL\n",
-                           function_inst->id, j);
+                           " - %s\tinput[%u]\tdouble_ptr\t%s\tNULL\t->\tNULL\n",
+                           function_inst->id, j, arg_id);
           continue;
         }
 
         _vprec_print_log(vprec_log_depth,
-                         " - %s\tinput[%u]\tdouble_ptr\t%la\t->\t",
-                         function_inst->id, j, *value);
+                         " - %s\tinput[%u]\tdouble_ptr\t%s\t%la\t->\t",
+                         function_inst->id, j, arg_id, *value);
 
         if (new_flag) {
           // initialize arguments data
           function_inst->input_args[i].data_type = type;
+          strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
           function_inst->input_args[i].exponent_length =
               VPREC_RANGE_BINARY64_DEFAULT;
           function_inst->input_args[i].mantissa_length =
@@ -773,18 +783,19 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
       for (unsigned int j = 0; j < size; j++, value++) {
         if (value == NULL) {
           _vprec_print_log(vprec_log_depth,
-                           " - %s\tinput[%u]\tfloat_ptr\tNULL\t->\tNULL\n",
-                           function_inst->id, j);
+                           " - %s\tinput[%u]\tfloat_ptr\t%s\tNULL\t->\tNULL\n",
+                           function_inst->id, j, arg_id);
           continue;
         }
 
         _vprec_print_log(vprec_log_depth,
-                         " - %s\tinput[%u]\tfloat_ptr\t%a\t->\t",
-                         function_inst->id, j, *value);
+                         " - %s\tinput[%u]\tfloat_ptr\t%s\t%a\t->\t",
+                         function_inst->id, j, arg_id, *value);
 
         if (new_flag) {
           // initialize arguments data
           function_inst->input_args[i].data_type = type;
+          strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
           function_inst->input_args[i].exponent_length =
               VPREC_RANGE_BINARY32_DEFAULT;
           function_inst->input_args[i].mantissa_length =
@@ -875,17 +886,19 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
 
   for (int i = 0; i < nb_args; i++) {
     int type = va_arg(ap, int);
+    char *arg_id = va_arg(ap, char *);
     unsigned int size = va_arg(ap, unsigned int);
 
     if (type == FDOUBLE) {
       double *value = va_arg(ap, double *);
 
-      _vprec_print_log(vprec_log_depth, " - %s\toutput\tdouble\t%la\t->\t",
-                       function_inst->id, *value);
+      _vprec_print_log(vprec_log_depth, " - %s\toutput\tdouble\t%s\t%la\t->\t",
+                       function_inst->id, arg_id, *value);
 
       if (new_flag) {
         // initialize arguments data
         function_inst->output_args[i].data_type = type;
+        strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
         function_inst->output_args[i].exponent_length =
             VPREC_RANGE_BINARY64_DEFAULT;
         function_inst->output_args[i].mantissa_length =
@@ -917,12 +930,13 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
     } else if (type == FFLOAT) {
       float *value = va_arg(ap, float *);
 
-      _vprec_print_log(vprec_log_depth, " - %s\toutput\tfloat\t%a\t->\t",
-                       function_inst->id, *value);
+      _vprec_print_log(vprec_log_depth, " - %s\toutput\tfloat\t%s\t%a\t->\t",
+                       function_inst->id, arg_id, *value);
 
       if (new_flag) {
         // initialize arguments data
         function_inst->output_args[i].data_type = type;
+        strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
         function_inst->output_args[i].exponent_length =
             VPREC_RANGE_BINARY32_DEFAULT;
         function_inst->output_args[i].mantissa_length =
@@ -955,19 +969,21 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
 
       for (unsigned int j = 0; j < size; j++, value++) {
         if (value == NULL) {
-          _vprec_print_log(vprec_log_depth,
-                           " - %s\toutput[%u]\tdouble_ptr\tNULL\t->\tNULL\n",
-                           function_inst->id, j);
+          _vprec_print_log(
+              vprec_log_depth,
+              " - %s\toutput[%u]\tdouble_ptr\t%s\tNULL\t->\tNULL\n",
+              function_inst->id, j, arg_id);
           continue;
         }
 
         _vprec_print_log(vprec_log_depth,
-                         " - %s\toutput[%u]\tdouble_ptr\t%la\t->\t",
-                         function_inst->id, j, *value);
+                         " - %s\toutput[%u]\tdouble_ptr\t%s\t%la\t->\t",
+                         function_inst->id, j, arg_id, *value);
 
         if (new_flag) {
           // initialize arguments data
           function_inst->output_args[i].data_type = type;
+          strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
           function_inst->output_args[i].exponent_length =
               VPREC_RANGE_BINARY64_DEFAULT;
           function_inst->output_args[i].mantissa_length =
@@ -1003,18 +1019,19 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
       for (unsigned int j = 0; j < size; j++, value++) {
         if (value == NULL) {
           _vprec_print_log(vprec_log_depth,
-                           " - %s\toutput[%u]\tfloat_ptr\tNULL\t->\tNULL\n",
-                           function_inst->id, j);
+                           " - %s\toutput[%u]\tfloat_ptr\t%s\tNULL\t->\tNULL\n",
+                           function_inst->id, j, arg_id);
           continue;
         }
 
         _vprec_print_log(vprec_log_depth,
-                         " - %s\toutput[%u]\tfloat_ptr\t%a\t->\t",
-                         function_inst->id, j, *value);
+                         " - %s\toutput[%u]\tfloat_ptr\t%s\t%a\t->\t",
+                         function_inst->id, j, arg_id, *value);
 
         if (new_flag) {
           // initialize arguments data
           function_inst->output_args[i].data_type = type;
+          strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
           function_inst->output_args[i].exponent_length =
               VPREC_RANGE_BINARY32_DEFAULT;
           function_inst->output_args[i].mantissa_length =

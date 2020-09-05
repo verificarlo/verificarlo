@@ -63,20 +63,6 @@ enum Ftypes { FLOAT, DOUBLE, FLOAT_PTR, DOUBLE_PTR };
 // Array of values
 Value *Types2val[] = {NULL, NULL, NULL, NULL};
 
-// Demangling function
-std::string demangle(std::string src) {
-  int status = 0;
-  char *demangled_name = NULL;
-  if ((demangled_name = abi::__cxa_demangle(src.c_str(), 0, 0, &status))) {
-    src = demangled_name;
-    std::size_t first = src.find("(");
-    src = src.substr(0, first);
-  }
-  free(demangled_name);
-
-  return src;
-}
-
 // Fill use_double and use_float with true if the call_inst pi use at least
 // of the managed types
 void haveFloatingPointArithmetic(Instruction *call, Function *f,
@@ -169,6 +155,20 @@ unsigned int getSizeOf(Value *V, const Function *F) {
   return 0;
 }
 
+std::string getArgName(Function *F, unsigned int i) {
+  DISubprogram *Sub = F->getSubprogram();
+
+  if (Sub) {
+    for (const auto &Var : Sub->getVariables()) {
+      if (Var->isParameter() && (Var->getArg() - 1) == i) {
+        return Var->getName();
+      }
+    }
+  }
+
+  return "parameter_" + std::to_string(i + 1);
+}
+
 void InstrumentFunction(std::vector<Value *> MetaData,
                         Function *CurrentFunction, Function *HookedFunction,
                         const CallInst *call, BasicBlock *B, Module &M) {
@@ -228,18 +228,24 @@ void InstrumentFunction(std::vector<Value *> MetaData,
   for (auto &args : CurrentFunction->args()) {
     if (args.getType() == Builder.getDoubleTy()) {
       EnterArgs.push_back(Types2val[DOUBLE]);
+      EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+          getArgName(HookedFunction, args.getArgNo())));
       EnterArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()), 1));
       EnterArgs.push_back(InputAlloca[input_index]);
       Builder.CreateStore(&args, InputAlloca[input_index++]);
     } else if (args.getType() == Builder.getFloatTy()) {
       EnterArgs.push_back(Types2val[FLOAT]);
+      EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+          getArgName(HookedFunction, args.getArgNo())));
       EnterArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()), 1));
       EnterArgs.push_back(InputAlloca[input_index]);
       Builder.CreateStore(&args, InputAlloca[input_index++]);
     } else if (args.getType() == Type::getFloatPtrTy(M.getContext()) && call) {
       EnterArgs.push_back(Types2val[FLOAT_PTR]);
+      EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+          getArgName(HookedFunction, args.getArgNo())));
       EnterArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()),
                            getSizeOf(call->getOperand(args.getArgNo()),
@@ -247,6 +253,8 @@ void InstrumentFunction(std::vector<Value *> MetaData,
       EnterArgs.push_back(&args);
     } else if (args.getType() == Type::getDoublePtrTy(M.getContext()) && call) {
       EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+      EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+          getArgName(HookedFunction, args.getArgNo())));
       EnterArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()),
                            getSizeOf(call->getOperand(args.getArgNo()),
@@ -293,11 +301,13 @@ void InstrumentFunction(std::vector<Value *> MetaData,
   std::vector<Value *> ExitArgs = OutputMetaData;
   if (ret->getType() == Builder.getDoubleTy()) {
     ExitArgs.push_back(Types2val[DOUBLE]);
+    ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
     ExitArgs.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()), 1));
     ExitArgs.push_back(OutputAlloca[0]);
     Builder.CreateStore(ret, OutputAlloca[0]);
   } else if (ret->getType() == Builder.getFloatTy()) {
     ExitArgs.push_back(Types2val[FLOAT]);
+    ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
     ExitArgs.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()), 1));
     ExitArgs.push_back(OutputAlloca[0]);
     Builder.CreateStore(ret, OutputAlloca[0]);
@@ -305,6 +315,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
                  Type::getFloatPtrTy(M.getContext()) &&
              call) {
     ExitArgs.push_back(Types2val[FLOAT_PTR]);
+    ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
     ExitArgs.push_back(
         ConstantInt::get(Type::getInt32Ty(M.getContext()),
                          getSizeOf(ret, call->getParent()->getParent())));
@@ -313,20 +324,18 @@ void InstrumentFunction(std::vector<Value *> MetaData,
                  Type::getDoublePtrTy(M.getContext()) &&
              call) {
     ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+    ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
     ExitArgs.push_back(
         ConstantInt::get(Type::getInt32Ty(M.getContext()),
                          getSizeOf(ret, call->getParent()->getParent())));
     ExitArgs.push_back(ret);
   }
 
-  input_index = 0;
   for (auto &args : CurrentFunction->args()) {
-    if (args.getType() == Builder.getDoubleTy()) {
-      input_index++;
-    } else if (args.getType() == Builder.getFloatTy()) {
-      input_index++;
-    } else if (args.getType() == Type::getFloatPtrTy(M.getContext()) && call) {
+    if (args.getType() == Type::getFloatPtrTy(M.getContext()) && call) {
       ExitArgs.push_back(Types2val[FLOAT_PTR]);
+      ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+          getArgName(HookedFunction, args.getArgNo())));
       ExitArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()),
                            getSizeOf(call->getOperand(args.getArgNo()),
@@ -334,6 +343,8 @@ void InstrumentFunction(std::vector<Value *> MetaData,
       ExitArgs.push_back(&args);
     } else if (args.getType() == Type::getDoublePtrTy(M.getContext()) && call) {
       ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+      ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+          getArgName(HookedFunction, args.getArgNo())));
       ExitArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()),
                            getSizeOf(call->getOperand(args.getArgNo()),
@@ -425,10 +436,10 @@ struct VfclibFunc : public ModulePass {
       std::string Name = Sub->getName().str();
       std::string File = Sub->getFilename().str();
       std::string Line = std::to_string(Sub->getLine());
-      std::string NewName = "vfc_" + File + "/" + Name + "_" + Line + "_" +
+      std::string NewName = "vfc_" + File + "//" + Name + "_" + Line + "_" +
                             std::to_string(inst_cpt) + "_" + "_hook";
       std::string FunctionName =
-          File + "/" + Name + "_" + Line + "_" + std::to_string(++inst_cpt);
+          File + "//" + Name + "_" + Line + "_" + std::to_string(++inst_cpt);
 
       bool use_float, use_double;
 
@@ -470,6 +481,7 @@ struct VfclibFunc : public ModulePass {
      *                             Function calls                            *
      *************************************************************************/
     for (auto &F : OriginalFunctions) {
+      std::string Parent = F->getSubprogram()->getName().str();
       for (auto &B : (*F)) {
         IRBuilder<> Builder(&B);
 
@@ -482,16 +494,24 @@ struct VfclibFunc : public ModulePass {
 
             MDNode *N = pi->getMetadata("dbg");
             DILocation *Loc = cast<DILocation>(N);
+            DISubprogram *Sub = f->getSubprogram();
             unsigned line = Loc->getLine();
-            std::string File = Loc->getFilename().str();
-            std::string Name = demangle(f->getName().str());
-            std::string Line = std::to_string(line);
-            std::string NewName = "vfc_" + File + "/" + f->getName().str() +
-                                  "_" + Line + "_" + std::to_string(inst_cpt) +
-                                  "_" + "_hook";
+            std::string File = Loc->getFilename();
+            std::string Name;
 
-            std::string FunctionName = File + "/" + Name + "_" + Line + "_" +
-                                       std::to_string(++inst_cpt);
+            if (Sub) {
+              Name = Sub->getName().str();
+            } else {
+              Name = f->getName().str();
+            }
+
+            std::string Line = std::to_string(line);
+            std::string NewName = "vfc_" + File + "/" + Parent + "/" + Name +
+                                  "/" + Line + "/" + std::to_string(inst_cpt) +
+                                  +"_hook";
+
+            std::string FunctionName = File + "/" + Parent + "/" + Name + "/" +
+                                       Line + "/" + std::to_string(++inst_cpt);
 
 // Test if f is a library function //
 #if LLVM_VERSION_MAJOR >= 10
