@@ -423,17 +423,18 @@ struct VfclibFunc : public ModulePass {
         Type::getInt8Ty(M.getContext()),    Type::getInt8Ty(M.getContext()),
         Type::getInt8Ty(M.getContext()),    Type::getInt32Ty(M.getContext())};
 
+    // Signature of enter_function and exit_function
+    FunctionType *FunTy =
+        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true);
+
     // void vfc_enter_function (char*, char, char, char, char, int, ...)
-    func_enter = Function::Create(
-        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true),
-        Function::ExternalLinkage, "vfc_enter_function", &M);
+    func_enter = Function::Create(FunTy, Function::ExternalLinkage,
+                                  "vfc_enter_function", &M);
     func_enter->setCallingConv(CallingConv::C);
 
     // void vfc_exit_function (char*, char, char, char, char, int, ...)
-    func_exit = Function::Create(
-        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true),
-        Function::ExternalLinkage, "vfc_exit_function", &M);
-
+    func_exit = Function::Create(FunTy, Function::ExternalLinkage,
+                                 "vfc_exit_function", &M);
     func_exit->setCallingConv(CallingConv::C);
 
     /*************************************************************************
@@ -534,6 +535,7 @@ struct VfclibFunc : public ModulePass {
 #endif
 
             LibFunc libfunc;
+
             bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
 
             // Test if f is instrinsic //
@@ -572,9 +574,10 @@ struct VfclibFunc : public ModulePass {
               CallTypes.push_back(cast<Value>(it)->getType());
             }
 
-            Function *hook_func =
-                Function::Create(FunctionType::get(ReturnTy, CallTypes, false),
-                                 Function::ExternalLinkage, NewName, &M);
+            FunctionType *HookFunTy =
+                FunctionType::get(ReturnTy, CallTypes, false);
+            Function *hook_func = Function::Create(
+                HookFunTy, Function::ExternalLinkage, NewName, &M);
 
             hook_func->setAttributes(f->getAttributes());
             hook_func->setCallingConv(f->getCallingConv());

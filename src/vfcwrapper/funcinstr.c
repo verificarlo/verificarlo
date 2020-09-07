@@ -112,8 +112,9 @@ void vfc_call_stack_print(FILE *f) {
 
 // Free the call stack
 void vfc_call_stack_free() {
-  if (_vfc_call_stack.array)
+  if (_vfc_call_stack.array) {
     free(_vfc_call_stack.array);
+  }
 }
 
 /************************************************************
