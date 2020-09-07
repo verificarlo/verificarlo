@@ -215,6 +215,17 @@ def GetFunctionInfo(FunctionID):
 	
 	return CallNb, Fline, Fname, Ffile
 
+def FilterFunctions(Dataset, FunctionList):
+	for i in range(len(Dataset.index)):
+		CallNb, Fline, Fname, Ffile = GetFunctionInfo(Dataset.at[i, 'ID'])
+		if not Fname in FunctionList:
+			Dataset.drop(Dataset.index[i])
+
+	Dataset.reset_index(drop=True)
+
+	return Dataset
+
+
 def AddMainChart(CallChartString, DataMain):
 	CallChartString += "\n\
 			window.addEventListener('resize', DrawMainHist);\n\
@@ -403,8 +414,16 @@ if __name__ == "__main__":
 
 	CallChartString = ""
 	FunctionCallsStr = ""
+	FunctionList = []
 
+	if len(sys.argv) != 1:
+		for i in range(1, len(sys.argv)):
+			FunctionList.append(sys.argv[i])
 
+		DataArgs = FilterFunctions(DataArgs, FunctionList)
+		DataOps = FilterFunctions(DataOps, FunctionList)
+		DataAllOps = FilterFunctions(DataAllOps, FunctionList)
+		DataAllArgs = FilterFunctions(DataAllArgs, FunctionList)
 
 	################ Functions List ################
 

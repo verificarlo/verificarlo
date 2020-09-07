@@ -433,8 +433,10 @@ static inline double _vprec_binary64_binary_op(double a, double b,
  * called before and after the instrumented function and allow us to set
  * the desired precision or to round arguments, depending on the mode.
  *************************************************************************/
+// Hashmap for functions metadata
 vfc_hashmap_t _vprec_func_map;
 
+// Metadata of arguments
 typedef struct _vprec_argument_data {
   // Identifier of the argument
   char arg_id[100];
@@ -450,6 +452,7 @@ typedef struct _vprec_argument_data {
   int mantissa_length;
 } _vprec_argument_data_t;
 
+// Metadata of function calls
 typedef struct _vprec_inst_function {
   // Id of the function
   char id[500];
@@ -481,6 +484,7 @@ typedef struct _vprec_inst_function {
   int n_calls;
 } _vprec_inst_function_t;
 
+// Write the hashmap in the given file
 void _vprec_write_hasmap(FILE *fout) {
   for (int ii = 0; ii < _vprec_func_map->capacity; ii++) {
     if (get_value_at(_vprec_func_map->items, ii) != 0 &&
@@ -517,6 +521,7 @@ void _vprec_write_hasmap(FILE *fout) {
   }
 }
 
+// Read and initialize the hashmap from the given file
 void _vprec_read_hasmap(FILE *fin) {
   _vprec_inst_function_t function;
   int binary64_precision, binary64_range, binary32_precision, binary32_range,
@@ -570,6 +575,7 @@ void _vprec_read_hasmap(FILE *fin) {
   }
 }
 
+// Print str in vprec_lof_file with the correct offset
 #define _vprec_print_log(_vprec_depth, _vprec_str, ...)                        \
   ({                                                                           \
     if (vprec_log_file != NULL) {                                              \
@@ -579,6 +585,8 @@ void _vprec_read_hasmap(FILE *fin) {
     }                                                                          \
   })
 
+// Set precision for internal operations and round input arguments for a given
+// function call
 void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
                                int nb_args, va_list ap) {
   interflop_function_info_t *function_info = stack->array[stack->top];
@@ -638,12 +646,15 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
                    function_inst->OpsRange64, function_inst->OpsPrec32,
                    function_inst->OpsRange32);
 
+  // allocate memory for arguments
   if (new_flag) {
     function_inst->input_args =
         malloc(sizeof(_vprec_argument_data_t) * nb_args);
     function_inst->nb_input_args = nb_args;
   }
 
+  // boolean which indicates if arguments should be rounded or not depending on
+  // modes
   int mode_flag =
       (((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) &&
        ((VPREC_INST_MODE == vprecinst_all) ||
@@ -651,9 +662,25 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
        VPREC_INST_MODE != vprecinst_none);
 
   for (int i = 0; i < nb_args; i++) {
+    // get argument type, id and size
     int type = va_arg(ap, int);
     char *arg_id = va_arg(ap, char *);
     unsigned int size = va_arg(ap, unsigned int);
+
+    if (new_flag) {
+      function_inst->input_args[i].data_type = type;
+      strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
+      function_inst->input_args[i].min_range = INT_MAX;
+      function_inst->input_args[i].max_range = INT_MIN;
+      function_inst->input_args[i].exponent_length =
+          (type == FDOUBLE || type == FDOUBLE_PTR)
+              ? VPREC_RANGE_BINARY64_DEFAULT
+              : VPREC_RANGE_BINARY32_DEFAULT;
+      function_inst->input_args[i].mantissa_length =
+          (type == FDOUBLE || type == FDOUBLE_PTR)
+              ? VPREC_PRECISION_BINARY64_DEFAULT
+              : VPREC_PRECISION_BINARY32_DEFAULT;
+    }
 
     if (type == FDOUBLE) {
       double *value = va_arg(ap, double *);
@@ -661,38 +688,26 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
       _vprec_print_log(vprec_log_depth, " - %s\tinput\tdouble\t%s\t%la\t->\t",
                        function_inst->id, arg_id, *value);
 
-      if (new_flag) {
-        // initialize arguments data
-        function_inst->input_args[i].data_type = type;
-        strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
-        function_inst->input_args[i].exponent_length =
-            VPREC_RANGE_BINARY64_DEFAULT;
-        function_inst->input_args[i].mantissa_length =
-            VPREC_PRECISION_BINARY64_DEFAULT;
-        function_inst->input_args[i].min_range = INT_MAX;
-        function_inst->input_args[i].max_range = INT_MIN;
-        VPREC_PRECISION_BINARY64_DEFAULT;
-      } else if (mode_flag) {
+      if ((!new_flag) && mode_flag) {
         *value = _vprec_round_binary64(
             *value, 1, context, function_inst->input_args[i].exponent_length,
             function_inst->input_args[i].mantissa_length);
       }
 
+      if (!(isnan(*value) || isinf(*value))) {
+        function_inst->input_args[i].min_range =
+            (floor(*value) < function_inst->input_args[i].min_range || new_flag)
+                ? floor(*value)
+                : function_inst->input_args[i].min_range;
+        function_inst->input_args[i].max_range =
+            (ceil(*value) > function_inst->input_args[i].max_range || new_flag)
+                ? ceil(*value)
+                : function_inst->input_args[i].max_range;
+      }
+
       _vprec_print_log(vprec_log_depth, "%la\t(%d, %d)\n", *value,
                        function_inst->input_args[i].mantissa_length,
                        function_inst->input_args[i].exponent_length);
-
-      if (isnan(*value) || isinf(*value))
-        break;
-
-      function_inst->input_args[i].min_range =
-          (floor(*value) < function_inst->input_args[i].min_range || new_flag)
-              ? floor(*value)
-              : function_inst->input_args[i].min_range;
-      function_inst->input_args[i].max_range =
-          (ceil(*value) > function_inst->input_args[i].max_range || new_flag)
-              ? ceil(*value)
-              : function_inst->input_args[i].max_range;
 
     } else if (type == FFLOAT) {
       float *value = va_arg(ap, float *);
@@ -700,36 +715,28 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
       _vprec_print_log(vprec_log_depth, " - %s\tinput\tfloat\t%s\t%a\t->\t",
                        function_inst->id, arg_id, *value);
 
-      if (new_flag) {
-        // initialize arguments data
-        function_inst->input_args[i].data_type = type;
-        strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
-        function_inst->input_args[i].exponent_length =
-            VPREC_RANGE_BINARY32_DEFAULT;
-        function_inst->input_args[i].mantissa_length =
-            VPREC_PRECISION_BINARY32_DEFAULT;
-        function_inst->input_args[i].min_range = INT_MAX;
-        function_inst->input_args[i].max_range = INT_MIN;
-      } else if (mode_flag) {
+      if ((!new_flag) && mode_flag) {
         *value = _vprec_round_binary32(
             *value, 1, context, function_inst->input_args[i].exponent_length,
             function_inst->input_args[i].mantissa_length);
       }
+
+      if (!(isnan(*value) || isinf(*value))) {
+        function_inst->input_args[i].min_range =
+            (floorf(*value) < function_inst->input_args[i].min_range ||
+             new_flag)
+                ? floorf(*value)
+                : function_inst->input_args[i].min_range;
+        function_inst->input_args[i].max_range =
+            (ceilf(*value) > function_inst->input_args[i].max_range || new_flag)
+                ? ceilf(*value)
+                : function_inst->input_args[i].max_range;
+      }
+
       _vprec_print_log(vprec_log_depth, "%a\t(%d, %d)\n", *value,
                        function_inst->input_args[i].mantissa_length,
                        function_inst->input_args[i].exponent_length);
 
-      if (isnan(*value) || isinf(*value))
-        break;
-
-      function_inst->input_args[i].min_range =
-          (floorf(*value) < function_inst->input_args[i].min_range || new_flag)
-              ? floorf(*value)
-              : function_inst->input_args[i].min_range;
-      function_inst->input_args[i].max_range =
-          (ceilf(*value) > function_inst->input_args[i].max_range || new_flag)
-              ? ceilf(*value)
-              : function_inst->input_args[i].max_range;
     } else if (type == FDOUBLE_PTR) {
       double *value = va_arg(ap, double *);
 
@@ -745,37 +752,28 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
                          " - %s\tinput[%u]\tdouble_ptr\t%s\t%la\t->\t",
                          function_inst->id, j, arg_id, *value);
 
-        if (new_flag) {
-          // initialize arguments data
-          function_inst->input_args[i].data_type = type;
-          strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
-          function_inst->input_args[i].exponent_length =
-              VPREC_RANGE_BINARY64_DEFAULT;
-          function_inst->input_args[i].mantissa_length =
-              VPREC_PRECISION_BINARY64_DEFAULT;
-          function_inst->input_args[i].min_range = INT_MAX;
-          function_inst->input_args[i].max_range = INT_MIN;
-        } else if (mode_flag) {
+        if ((!new_flag) && mode_flag) {
           *value = _vprec_round_binary64(
               *value, 1, context, function_inst->input_args[i].exponent_length,
               function_inst->input_args[i].mantissa_length);
         }
 
+        if (!(isnan(*value) || isinf(*value))) {
+          function_inst->input_args[i].min_range =
+              (floor(*value) < function_inst->input_args[i].min_range ||
+               new_flag)
+                  ? floor(*value)
+                  : function_inst->input_args[i].min_range;
+          function_inst->input_args[i].max_range =
+              (ceil(*value) > function_inst->input_args[i].max_range ||
+               new_flag)
+                  ? ceil(*value)
+                  : function_inst->input_args[i].max_range;
+        }
+
         _vprec_print_log(vprec_log_depth, "%la\t(%d, %d)\n", *value,
                          function_inst->input_args[i].mantissa_length,
                          function_inst->input_args[i].exponent_length);
-
-        if (isnan(*value) || isinf(*value))
-          break;
-
-        function_inst->input_args[i].min_range =
-            (floor(*value) < function_inst->input_args[i].min_range || new_flag)
-                ? floor(*value)
-                : function_inst->input_args[i].min_range;
-        function_inst->input_args[i].max_range =
-            (ceil(*value) > function_inst->input_args[i].max_range || new_flag)
-                ? ceil(*value)
-                : function_inst->input_args[i].max_range;
       }
     } else if (type == FFLOAT_PTR) {
       float *value = va_arg(ap, float *);
@@ -792,38 +790,28 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
                          " - %s\tinput[%u]\tfloat_ptr\t%s\t%a\t->\t",
                          function_inst->id, j, arg_id, *value);
 
-        if (new_flag) {
-          // initialize arguments data
-          function_inst->input_args[i].data_type = type;
-          strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
-          function_inst->input_args[i].exponent_length =
-              VPREC_RANGE_BINARY32_DEFAULT;
-          function_inst->input_args[i].mantissa_length =
-              VPREC_PRECISION_BINARY32_DEFAULT;
-          function_inst->input_args[i].min_range = INT_MAX;
-          function_inst->input_args[i].max_range = INT_MIN;
-        } else if (mode_flag) {
+        if ((!new_flag) && mode_flag) {
           *value = _vprec_round_binary32(
               *value, 1, context, function_inst->input_args[i].exponent_length,
               function_inst->input_args[i].mantissa_length);
         }
 
+        if (!(isnan(*value) || isinf(*value))) {
+          function_inst->input_args[i].min_range =
+              (floorf(*value) < function_inst->input_args[i].min_range ||
+               new_flag)
+                  ? floorf(*value)
+                  : function_inst->input_args[i].min_range;
+          function_inst->input_args[i].max_range =
+              (ceilf(*value) > function_inst->input_args[i].max_range ||
+               new_flag)
+                  ? ceilf(*value)
+                  : function_inst->input_args[i].max_range;
+        }
+
         _vprec_print_log(vprec_log_depth, "%a\t(%d, %d)\n", *value,
                          function_inst->input_args[i].mantissa_length,
                          function_inst->input_args[i].exponent_length);
-
-        if (isnan(*value) || isinf(*value))
-          break;
-
-        function_inst->input_args[i].min_range =
-            (floorf(*value) < function_inst->input_args[i].min_range ||
-             new_flag)
-                ? floorf(*value)
-                : function_inst->input_args[i].min_range;
-        function_inst->input_args[i].max_range =
-            (ceilf(*value) > function_inst->input_args[i].max_range || new_flag)
-                ? ceilf(*value)
-                : function_inst->input_args[i].max_range;
       }
     }
   }
@@ -832,6 +820,8 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
   vprec_log_depth++;
 }
 
+// Set precision for internal operations and round output arguments for a given
+// function call
 void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
                               int nb_args, va_list ap) {
   interflop_function_info_t *function_info = stack->array[stack->top];
@@ -873,12 +863,15 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
                    function_inst->OpsRange64, function_inst->OpsPrec32,
                    function_inst->OpsRange32);
 
+  // allocate memory for arguments
   if (new_flag) {
     function_inst->output_args =
         malloc(sizeof(_vprec_argument_data_t) * nb_args);
     function_inst->nb_output_args = nb_args;
   }
 
+  // boolean which indicates if arguments should be rounded or not depending on
+  // modes
   int mode_flag =
       (((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) &&
        (VPREC_INST_MODE == vprecinst_all || VPREC_INST_MODE == vprecinst_arg) &&
@@ -889,81 +882,77 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
     char *arg_id = va_arg(ap, char *);
     unsigned int size = va_arg(ap, unsigned int);
 
+    if (new_flag) {
+      // initialize arguments data
+      function_inst->output_args[i].data_type = type;
+      strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
+      function_inst->output_args[i].exponent_length =
+          (type == FDOUBLE || type == FDOUBLE_PTR)
+              ? VPREC_RANGE_BINARY64_DEFAULT
+              : VPREC_RANGE_BINARY32_DEFAULT;
+      function_inst->output_args[i].mantissa_length =
+          (type == FDOUBLE || type == FDOUBLE_PTR)
+              ? VPREC_PRECISION_BINARY64_DEFAULT
+              : VPREC_PRECISION_BINARY32_DEFAULT;
+      function_inst->output_args[i].min_range = INT_MAX;
+      function_inst->output_args[i].max_range = INT_MIN;
+    }
+
     if (type == FDOUBLE) {
       double *value = va_arg(ap, double *);
 
       _vprec_print_log(vprec_log_depth, " - %s\toutput\tdouble\t%s\t%la\t->\t",
                        function_inst->id, arg_id, *value);
 
-      if (new_flag) {
-        // initialize arguments data
-        function_inst->output_args[i].data_type = type;
-        strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
-        function_inst->output_args[i].exponent_length =
-            VPREC_RANGE_BINARY64_DEFAULT;
-        function_inst->output_args[i].mantissa_length =
-            VPREC_PRECISION_BINARY64_DEFAULT;
-        function_inst->output_args[i].min_range = INT_MAX;
-        function_inst->output_args[i].max_range = INT_MIN;
-      } else if (mode_flag) {
+      if ((!new_flag) && mode_flag) {
         *value = _vprec_round_binary64(
             *value, 0, context, function_inst->output_args[i].exponent_length,
             function_inst->output_args[i].mantissa_length);
       }
 
+      if (!(isnan(*value) || isinf(*value))) {
+        function_inst->output_args[i].min_range =
+            (floor(*value) < function_inst->output_args[i].min_range ||
+             new_flag)
+                ? floor(*value)
+                : function_inst->output_args[i].min_range;
+        function_inst->output_args[i].max_range =
+            (ceil(*value) > function_inst->output_args[i].max_range || new_flag)
+                ? ceil(*value)
+                : function_inst->output_args[i].max_range;
+      }
+
       _vprec_print_log(vprec_log_depth, "%la\t(%d,%d)\n", *value,
                        function_inst->output_args[i].mantissa_length,
                        function_inst->output_args[i].exponent_length);
-
-      if (isnan(*value) || isinf(*value))
-        break;
-
-      function_inst->output_args[i].min_range =
-          (floor(*value) < function_inst->output_args[i].min_range || new_flag)
-              ? floor(*value)
-              : function_inst->output_args[i].min_range;
-      function_inst->output_args[i].max_range =
-          (ceil(*value) > function_inst->output_args[i].max_range || new_flag)
-              ? ceil(*value)
-              : function_inst->output_args[i].max_range;
-
     } else if (type == FFLOAT) {
       float *value = va_arg(ap, float *);
 
       _vprec_print_log(vprec_log_depth, " - %s\toutput\tfloat\t%s\t%a\t->\t",
                        function_inst->id, arg_id, *value);
 
-      if (new_flag) {
-        // initialize arguments data
-        function_inst->output_args[i].data_type = type;
-        strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
-        function_inst->output_args[i].exponent_length =
-            VPREC_RANGE_BINARY32_DEFAULT;
-        function_inst->output_args[i].mantissa_length =
-            VPREC_PRECISION_BINARY32_DEFAULT;
-        function_inst->output_args[i].min_range = INT_MAX;
-        function_inst->output_args[i].max_range = INT_MIN;
-      } else if (mode_flag) {
+      if ((!new_flag) && mode_flag) {
         *value = _vprec_round_binary32(
             *value, 0, context, function_inst->output_args[i].exponent_length,
             function_inst->output_args[i].mantissa_length);
       }
 
+      if (!(isnan(*value) || isinf(*value))) {
+        function_inst->output_args[i].min_range =
+            (floorf(*value) < function_inst->output_args[i].min_range ||
+             new_flag)
+                ? floorf(*value)
+                : function_inst->output_args[i].min_range;
+        function_inst->output_args[i].max_range =
+            (ceilf(*value) > function_inst->output_args[i].max_range ||
+             new_flag)
+                ? ceilf(*value)
+                : function_inst->output_args[i].max_range;
+      }
+
       _vprec_print_log(vprec_log_depth, "%a\t(%d, %d)\n", *value,
                        function_inst->output_args[i].mantissa_length,
                        function_inst->output_args[i].exponent_length);
-
-      if (isnan(*value) || isinf(*value))
-        break;
-
-      function_inst->output_args[i].min_range =
-          (floorf(*value) < function_inst->output_args[i].min_range || new_flag)
-              ? floorf(*value)
-              : function_inst->output_args[i].min_range;
-      function_inst->output_args[i].max_range =
-          (ceilf(*value) > function_inst->output_args[i].max_range || new_flag)
-              ? ceilf(*value)
-              : function_inst->output_args[i].max_range;
     } else if (type == FDOUBLE_PTR) {
       double *value = va_arg(ap, double *);
 
@@ -980,38 +969,28 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
                          " - %s\toutput[%u]\tdouble_ptr\t%s\t%la\t->\t",
                          function_inst->id, j, arg_id, *value);
 
-        if (new_flag) {
-          // initialize arguments data
-          function_inst->output_args[i].data_type = type;
-          strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
-          function_inst->output_args[i].exponent_length =
-              VPREC_RANGE_BINARY64_DEFAULT;
-          function_inst->output_args[i].mantissa_length =
-              VPREC_PRECISION_BINARY64_DEFAULT;
-          function_inst->output_args[i].min_range = INT_MAX;
-          function_inst->output_args[i].max_range = INT_MIN;
-        } else if (mode_flag) {
+        if ((!new_flag) && mode_flag) {
           *value = _vprec_round_binary64(
               *value, 0, context, function_inst->output_args[i].exponent_length,
               function_inst->output_args[i].mantissa_length);
         }
 
+        if (!(isnan(*value) || isinf(*value))) {
+          function_inst->output_args[i].min_range =
+              (floor(*value) < function_inst->output_args[i].min_range ||
+               new_flag)
+                  ? floor(*value)
+                  : function_inst->output_args[i].min_range;
+          function_inst->output_args[i].max_range =
+              (ceil(*value) > function_inst->output_args[i].max_range ||
+               new_flag)
+                  ? ceil(*value)
+                  : function_inst->output_args[i].max_range;
+        }
+
         _vprec_print_log(vprec_log_depth, "%la\t(%d,%d)\n", *value,
                          function_inst->output_args[i].mantissa_length,
                          function_inst->output_args[i].exponent_length);
-
-        if (isnan(*value) || isinf(*value))
-          break;
-
-        function_inst->output_args[i].min_range =
-            (floor(*value) < function_inst->output_args[i].min_range ||
-             new_flag)
-                ? floor(*value)
-                : function_inst->output_args[i].min_range;
-        function_inst->output_args[i].max_range =
-            (ceil(*value) > function_inst->output_args[i].max_range || new_flag)
-                ? ceil(*value)
-                : function_inst->output_args[i].max_range;
       }
     } else if (type == FFLOAT_PTR) {
       float *value = va_arg(ap, float *);
@@ -1028,39 +1007,28 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
                          " - %s\toutput[%u]\tfloat_ptr\t%s\t%a\t->\t",
                          function_inst->id, j, arg_id, *value);
 
-        if (new_flag) {
-          // initialize arguments data
-          function_inst->output_args[i].data_type = type;
-          strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
-          function_inst->output_args[i].exponent_length =
-              VPREC_RANGE_BINARY32_DEFAULT;
-          function_inst->output_args[i].mantissa_length =
-              VPREC_PRECISION_BINARY32_DEFAULT;
-          function_inst->output_args[i].min_range = 2147483647;
-          function_inst->output_args[i].max_range = -2147483648;
-        } else if (mode_flag) {
+        if ((!new_flag) && mode_flag) {
           *value = _vprec_round_binary32(
               *value, 0, context, function_inst->output_args[i].exponent_length,
               function_inst->output_args[i].mantissa_length);
         }
 
+        if (!(isnan(*value) || isinf(*value))) {
+          function_inst->output_args[i].min_range =
+              (floorf(*value) < function_inst->output_args[i].min_range ||
+               new_flag)
+                  ? floorf(*value)
+                  : function_inst->output_args[i].min_range;
+          function_inst->output_args[i].max_range =
+              (ceilf(*value) > function_inst->output_args[i].max_range ||
+               new_flag)
+                  ? ceilf(*value)
+                  : function_inst->output_args[i].max_range;
+        }
+
         _vprec_print_log(vprec_log_depth, "%a\t(%d, %d)\n", *value,
                          function_inst->output_args[i].mantissa_length,
                          function_inst->output_args[i].exponent_length);
-
-        if (isnan(*value) || isinf(*value))
-          break;
-
-        function_inst->output_args[i].min_range =
-            (floorf(*value) < function_inst->output_args[i].min_range ||
-             new_flag)
-                ? floorf(*value)
-                : function_inst->output_args[i].min_range;
-        function_inst->output_args[i].max_range =
-            (ceilf(*value) > function_inst->output_args[i].max_range ||
-             new_flag)
-                ? ceilf(*value)
-                : function_inst->output_args[i].max_range;
       }
     }
   }

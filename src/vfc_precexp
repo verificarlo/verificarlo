@@ -78,7 +78,20 @@ def cmp(script, reference_dir, current_dir, env):
 
 	return (shell(command, env) == 0)
 
-def getProfile(file):
+def getFunctionInfo(FunctionID):
+	CallNb = int(FunctionID[FunctionID.rfind('/')+1:])
+	FunctionID = FunctionID[:FunctionID.rfind('/')]
+	Fline = int(FunctionID[FunctionID.rfind('/')+1:])
+	FunctionID = FunctionID[:FunctionID.rfind('/')]
+	Fname = FunctionID[FunctionID.rfind('/')+1:]
+	FunctionID = FunctionID[:FunctionID.rfind('/')]
+	Fparent = FunctionID[FunctionID.rfind('/')+1:]
+	FunctionID = FunctionID[:FunctionID.rfind('/')]
+	Ffile = FunctionID[FunctionID.rfind('/')+1:]
+	
+	return CallNb, Fline, Fparent, Fname, Ffile
+
+def getProfile(file, function_list):
 	# get informations from profile file
 	if not os.path.isfile(file):
 		print("error profile file not found")
@@ -109,6 +122,12 @@ def getProfile(file):
 
 		thisFunction = [ ID, Lib, Int, Float, Double, Prec64, Range64, 
 						Prec32, Range32, Ninputs, Noutputs, Ncalls]
+
+		CallNb, Fline, Fparent, Fname, Ffile = getFunctionInfo(ID)
+
+		if len(function_list) != 0 and (not Fname in function_list) and (not Fparent in function_list):
+			i = i + Ninputs + Noutputs + 1
+			continue
 
 		Functions.append(thisFunction)
 
@@ -203,7 +222,6 @@ def search_minimum_operations(	runPath,
 			while flag:
 				p = math.floor((r + l) / 2)
 				Operations.at[index, 'Prec64'] = p
-				#print(l, p, r)
 				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
 					if l >= r:
 						flag = 0
@@ -220,7 +238,6 @@ def search_minimum_operations(	runPath,
 			while flag:
 				p = math.floor((r + l) / 2)
 				Operations.at[index, 'Range64'] = p
-				#print(l, p, r)
 				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
 					if l >= r:
 						flag = 0
@@ -242,7 +259,6 @@ def search_minimum_operations(	runPath,
 			while flag:
 				p = math.floor((r + l) / 2)
 				Operations.at[index, 'Prec32'] = p
-				#print(l, p, r)
 				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
 					if l >= r:
 						flag = 0
@@ -261,8 +277,7 @@ def search_minimum_operations(	runPath,
 
 			while flag:
 				p = math.floor((r + l) / 2)
-				Operations.at[index, 'Range32'] = p
-				#print(l, p, r) 
+				Operations.at[index, 'Range32'] = p 
 				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
 					if l >= r:
 						flag = 0
@@ -293,7 +308,6 @@ def search_minimum_arguments(	runPath,
 			while flag:
 				p = math.floor((r + l) / 2)
 				Arguments.at[index, 'Prec'] = p
-				#print(l, p, r)
 				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
 					if l >= r:
 						flag = 0
@@ -312,8 +326,7 @@ def search_minimum_arguments(	runPath,
 
 			while flag:
 				p = math.floor((r + l) / 2)
-				Arguments.at[index, 'Range'] = p
-				#print(l, p, r) 
+				Arguments.at[index, 'Range'] = p 
 				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
 					if l >= r:
 						flag = 0
@@ -331,7 +344,6 @@ def search_minimum_arguments(	runPath,
 			while flag:
 				p = math.floor((r + l) / 2)
 				Arguments.at[index, 'Prec'] = p
-				#print(l, p, r)
 				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
 					if l >= r:
 						flag = 0
@@ -348,7 +360,6 @@ def search_minimum_arguments(	runPath,
 			while flag:
 				p = math.floor((r + l) / 2)
 				Arguments.at[index, 'Range'] = p
-				#print(l, p, r)
 				if Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Arguments, Operations):
 					if l >= r:
 						flag = 0
@@ -360,11 +371,15 @@ def search_minimum_arguments(	runPath,
 if __name__ == "__main__":
 
 	if len(sys.argv) < 3:
-		print("explore.py [exrun] [excmp]")
+		print("explore.py [exrun] [excmp] functions ...")
 		exit()
 
 	runPath = sys.argv[1]
 	cmpPath = sys.argv[2]
+	function_list = []
+	
+	for i in range(3,len(sys.argv)):
+		function_list.append(sys.argv[i])
 
 	if not os.path.exists(runPath):
 		print("runing script not found")
@@ -410,7 +425,7 @@ if __name__ == "__main__":
 	run(runPath, output_dir[0], env)
 
 	# get dataset
-	FunctionsFrame, FunctionsIndex, ArgumentsFrame, ArgumentsIndex = getProfile(vfc_profile_file)
+	FunctionsFrame, FunctionsIndex, ArgumentsFrame, ArgumentsIndex = getProfile(vfc_profile_file, function_list)
 
 	# set backend
 	set_environment_variable("VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --daz --ftz --mode=full --instrument=operations".format(vfc_config_file), env)
@@ -442,7 +457,7 @@ if __name__ == "__main__":
 	ArgumentsFrameCopy = ArgumentsFrame.copy()
 	FunctionsFrameCopy = FunctionsFrame.copy()
 	cpt = 1
-	for i in range(len(FunctionsFrameCopy.index)):
+	for i in range(len(FunctionsFrame.index)):
 		tmp = ArgumentsFrameCopy[(ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
 		for j in tmp.index:
 			print(cpt, "/", len(ArgumentsFrameCopy.index))
@@ -470,6 +485,16 @@ if __name__ == "__main__":
 	cpt = 1
 	for i in range(len(FunctionsFrameCopy.index)):
 		print(cpt, "/", len(FunctionsFrameCopy.index))
+		for j in tmp.index:
+			search_minimum_arguments(	runPath, 
+										cmpPath, 
+										output_dir[0], 
+										output_dir[1],
+										vfc_config_file,
+										env, 
+										ArgumentsFrameCopy,
+										FunctionsFrameCopy,
+										j)
 		if i in FunctionsIndex:
 			search_minimum_operations(	runPath, 
 										cmpPath, 
@@ -482,18 +507,8 @@ if __name__ == "__main__":
 										i)
 		
 		tmp = ArgumentsFrameCopy[(ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
-		for j in tmp.index:
-			search_minimum_arguments(	runPath, 
-										cmpPath, 
-										output_dir[0], 
-										output_dir[1],
-										vfc_config_file,
-										env, 
-										ArgumentsFrameCopy,
-										FunctionsFrameCopy,
-										j)
 
 		cpt += 1
 
-	ArgumentsFrameCopy.to_csv("vfc_exp_data/BothArgsResults.csv")
-	FunctionsFrameCopy.to_csv("vfc_exp_data/BothOpsResults.csv")
+	ArgumentsFrameCopy.to_csv("vfc_exp_data/AllArgsResults.csv")
+	FunctionsFrameCopy.to_csv("vfc_exp_data/AllOpsResults.csv")

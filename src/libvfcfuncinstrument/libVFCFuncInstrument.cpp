@@ -119,8 +119,10 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
   }
 }
 
+// Search the size of the Value V which is a pointer
 unsigned int getSizeOf(Value *V, const Function *F) {
-
+  // if V is an argument of the F function, search the size of V in the parent
+  // of F
   for (auto &Args : F->args()) {
     if (&Args == V) {
       for (const auto &U : F->users()) {
@@ -133,6 +135,7 @@ unsigned int getSizeOf(Value *V, const Function *F) {
     }
   }
 
+  // search for the AllocaInst at the origin of V
   for (auto &BB : (*F)) {
     for (auto &I : BB) {
       if (&I == V) {
@@ -155,6 +158,7 @@ unsigned int getSizeOf(Value *V, const Function *F) {
   return 0;
 }
 
+// Get the Name of the given argument V
 std::string getArgName(Function *F, Value *V, unsigned int i) {
   for (auto &BB : (*F)) {
     for (auto &I : BB) {
@@ -445,10 +449,10 @@ struct VfclibFunc : public ModulePass {
       std::string Name = Sub->getName().str();
       std::string File = Sub->getFilename().str();
       std::string Line = std::to_string(Sub->getLine());
-      std::string NewName = "vfc_" + File + "//" + Name + "_" + Line + "_" +
-                            std::to_string(inst_cpt) + "_" + "_hook";
+      std::string NewName = "vfc_" + File + "//" + Name + "/" + Line + "/" +
+                            std::to_string(inst_cpt) + "_hook";
       std::string FunctionName =
-          File + "//" + Name + "_" + Line + "_" + std::to_string(++inst_cpt);
+          File + "//" + Name + "/" + Line + "/" + std::to_string(++inst_cpt);
 
       bool use_float, use_double;
 
