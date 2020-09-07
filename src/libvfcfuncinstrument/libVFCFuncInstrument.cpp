@@ -155,13 +155,22 @@ unsigned int getSizeOf(Value *V, const Function *F) {
   return 0;
 }
 
-std::string getArgName(Function *F, unsigned int i) {
-  DISubprogram *Sub = F->getSubprogram();
+std::string getArgName(Function *F, Value *V, unsigned int i) {
+  for (auto &BB : (*F)) {
+    for (auto &I : BB) {
+      if (isa<CallInst>(&I)) {
+        CallInst *Call = cast<CallInst>(&I);
 
-  if (Sub) {
-    for (const auto &Var : Sub->getVariables()) {
-      if (Var->isParameter() && (Var->getArg() - 1) == i) {
-        return Var->getName();
+        if (Call->getCalledFunction()->getName() == "llvm.dbg.declare" ||
+            Call->getCalledFunction()->getName() == "llvm.dbg.value" ||
+            Call->getCalledFunction()->getName() == "llvm.dbg.addr") {
+          DILocalVariable *Var = cast<DILocalVariable>(
+              cast<MetadataAsValue>(I.getOperand(1))->getMetadata());
+
+          if (Var->isParameter() && (Var->getArg() == i + 1)) {
+            return Var->getName().str();
+          }
+        }
       }
     }
   }
@@ -229,7 +238,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     if (args.getType() == Builder.getDoubleTy()) {
       EnterArgs.push_back(Types2val[DOUBLE]);
       EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
+          getArgName(HookedFunction, &args, args.getArgNo())));
       EnterArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()), 1));
       EnterArgs.push_back(InputAlloca[input_index]);
@@ -237,7 +246,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     } else if (args.getType() == Builder.getFloatTy()) {
       EnterArgs.push_back(Types2val[FLOAT]);
       EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
+          getArgName(HookedFunction, &args, args.getArgNo())));
       EnterArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()), 1));
       EnterArgs.push_back(InputAlloca[input_index]);
@@ -245,7 +254,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     } else if (args.getType() == Type::getFloatPtrTy(M.getContext()) && call) {
       EnterArgs.push_back(Types2val[FLOAT_PTR]);
       EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
+          getArgName(HookedFunction, &args, args.getArgNo())));
       EnterArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()),
                            getSizeOf(call->getOperand(args.getArgNo()),
@@ -254,7 +263,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     } else if (args.getType() == Type::getDoublePtrTy(M.getContext()) && call) {
       EnterArgs.push_back(Types2val[DOUBLE_PTR]);
       EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
+          getArgName(HookedFunction, &args, args.getArgNo())));
       EnterArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()),
                            getSizeOf(call->getOperand(args.getArgNo()),
@@ -335,7 +344,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     if (args.getType() == Type::getFloatPtrTy(M.getContext()) && call) {
       ExitArgs.push_back(Types2val[FLOAT_PTR]);
       ExitArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
+          getArgName(HookedFunction, &args, args.getArgNo())));
       ExitArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()),
                            getSizeOf(call->getOperand(args.getArgNo()),
@@ -344,7 +353,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     } else if (args.getType() == Type::getDoublePtrTy(M.getContext()) && call) {
       ExitArgs.push_back(Types2val[DOUBLE_PTR]);
       ExitArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
+          getArgName(HookedFunction, &args, args.getArgNo())));
       ExitArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()),
                            getSizeOf(call->getOperand(args.getArgNo()),
