@@ -17,8 +17,8 @@ DaraDir = "vfc_exp_data/"
 ImgDir = DaraDir + "img/"
 Arguments = DaraDir + "ArgumentsResults.csv"
 Operations = DaraDir + "OperationsResults.csv"
-ArgumentsAll = DaraDir + "BothArgsResults.csv"
-OperationsAll = DaraDir + "BothOpsResults.csv"
+ArgumentsAll = DaraDir + "AllArgsResults.csv"
+OperationsAll = DaraDir + "AllOpsResults.csv"
 Report_File = DaraDir + "vfc_precexp_report.html"
 
 ReportString = "\n\
@@ -209,16 +209,16 @@ def GetFunctionInfo(FunctionID):
 	FunctionID = FunctionID[:FunctionID.rfind('/')]
 	Fname = FunctionID[FunctionID.rfind('/')+1:]
 	FunctionID = FunctionID[:FunctionID.rfind('/')]
-	ParentName = FunctionID[FunctionID.rfind('/')+1:]
+	Fparent = FunctionID[FunctionID.rfind('/')+1:]
 	FunctionID = FunctionID[:FunctionID.rfind('/')]
 	Ffile = FunctionID[FunctionID.rfind('/')+1:]
 	
-	return CallNb, Fline, Fname, Ffile
+	return CallNb, Fline, Fparent, Fname, Ffile
 
 def FilterFunctions(Dataset, FunctionList):
 	for i in range(len(Dataset.index)):
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(Dataset.at[i, 'ID'])
-		if not Fname in FunctionList:
+		CallNb, Fline, Fparent, Fname, Ffile = GetFunctionInfo(Dataset.at[i, 'ID'])
+		if len(FunctionList) != 0 and (not Fname in FunctionList) and (not Fparent in FunctionList):
 			Dataset.drop(Dataset.index[i])
 
 	Dataset.reset_index(drop=True)
@@ -431,7 +431,7 @@ if __name__ == "__main__":
 	dict_index = {}
 
 	for i in DataAllOps.index:
-		CallNb, Fline, Fname, Ffile = GetFunctionInfo(DataAllOps.at[i, 'ID'])
+		CallNb, Fline, Fparent, Fname, Ffile = GetFunctionInfo(DataAllOps.at[i, 'ID'])
 
 		if Fname in dict.keys():
 			dict[Fname] += DataAllOps.at[i, 'Ncalls']
@@ -462,7 +462,7 @@ if __name__ == "__main__":
 		tmp_ops = tmp_ops.sort_values(by = 'Ncalls', ascending=False, ignore_index=True)
 
 		for j in tmp_ops.index:
-			CallNb, Fline, Fname, Ffile = GetFunctionInfo(tmp_ops.at[j, 'ID'])
+			CallNb, Fline, Fparent, Fname, Ffile = GetFunctionInfo(tmp_ops.at[j, 'ID'])
 
 			ChartID = Ffile.replace('.', '_') + "_" + Fname.replace('.', '_') + "_" + str(CallNb)
 			RangeData = ""
