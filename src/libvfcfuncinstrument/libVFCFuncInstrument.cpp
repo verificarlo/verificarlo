@@ -235,7 +235,8 @@ void InstrumentFunction(std::vector<Value *> MetaData,
   std::vector<Value *> OutputMetaData = MetaData;
   OutputMetaData.push_back(ConstantInt::get(Builder.getInt32Ty(), output_cpt));
 
-  // Step 2: store values
+  // Step 2: for each function input (arguments), add its type, size, name and
+  // address to the list of parameters sent to vfc_enter for processing.
   std::vector<Value *> EnterArgs = InputMetaData;
   size_t input_index = 0;
   for (auto &args : CurrentFunction->args()) {
@@ -310,7 +311,9 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     ret = Builder.Insert(call);
   }
 
-  // Step 6: store return value
+  // Step 6: for each function output (return value, and pointers as argument),
+  // add its type, size, name and address to the list of parameters sent to
+  // vfc_exit for processing.
   std::vector<Value *> ExitArgs = OutputMetaData;
   if (ret->getType() == Builder.getDoubleTy()) {
     ExitArgs.push_back(Types2val[DOUBLE]);
@@ -546,6 +549,8 @@ struct VfclibFunc : public ModulePass {
             haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
                                         &use_float, &use_double, M);
 
+            // If the called function is an intrinsic function that does not use
+            // float or double, do not instrument it.
             if (is_intrinsic && !(use_float || use_double)) {
               continue;
             }
@@ -574,20 +579,25 @@ struct VfclibFunc : public ModulePass {
               CallTypes.push_back(cast<Value>(it)->getType());
             }
 
+            // Create the hook function
             FunctionType *HookFunTy =
                 FunctionType::get(ReturnTy, CallTypes, false);
             Function *hook_func = Function::Create(
                 HookFunTy, Function::ExternalLinkage, NewName, &M);
 
+            // Gives to the hook function the calling convention and attributes
+            // of the original function.
             hook_func->setAttributes(f->getAttributes());
             hook_func->setCallingConv(f->getCallingConv());
 
             BasicBlock *block =
                 BasicBlock::Create(M.getContext(), "block", hook_func);
 
+            // Instrument the original function call
             InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
                                block, M);
-
+            // Replace the call to the original function by a call to the hook
+            // function
             cast<CallInst>(pi)->setCalledFunction(hook_func);
           }
         }

@@ -581,8 +581,8 @@ Where:
   - `id` is a unique integer used for identification
   - `isInt` is a boolean which indicates if the function come from an intrinsic
   - `isLib` is a boolean which indicates if the function come from a library
-  - `useFloat` is a boolean which indicates if the function use 32 bit float
-  - `useDouble` is a boolean which indicates if the function use 64 bit float
+  - `useFloat` is a boolean which indicates if the function uses 32 bit float
+  - `useDouble` is a boolean which indicates if the function uses 64 bit float
   - `precision_binary64` controls the length of the mantissa for a 64 bit float for operations inside the function
   - `range_binary64` controls the length of the exponent for a 64 bit float for operations inside the function
   - `precision_binary32` control the length of the mantissa for a 32 bit float for operations inside the function
@@ -746,7 +746,7 @@ compatible output with the union of _ddmin_ instructions.
 
 The ``vfc_precexp`` script tries to minimize the precision for each function call 
 of a code compiled with verificarlo. To use vfc_precexp, you need to compile your code
-with the ``--inst-func`` anf to write two scripts as for the delta-debug:
+with the ``--inst-func`` and to write two scripts as for the [delta-debug](#pinpointing-errors-with-delta-debug):
 
    - A first script ``exrun <output_dir>``, is responsible for running the
      program and writing its output inside the ``<output_dir>`` folder. 
