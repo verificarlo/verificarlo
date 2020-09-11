@@ -24,14 +24,11 @@
  *                                                                           *
  *****************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "vprec_tools.h"
 #include "float_const.h"
 #include "float_struct.h"
 
 inline float round_binary32_normal(float x, int precision) {
-
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
   /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other word,
@@ -53,7 +50,6 @@ inline float round_binary32_normal(float x, int precision) {
 }
 
 inline double round_binary64_normal(double x, int precision) {
-
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
   /* generate a mask to erase the last 52-VPRECLIB_PREC bits, in other word,
@@ -85,16 +81,17 @@ inline static double round_binary_denormal(double x, int emin, int precision) {
   binary128 b128_x = {.f128 = x + half_ulp.f128};
 
   /* truncate trailing bits */
-  const int32_t precision_loss = emin - (b128_x.ieee128.exponent - QUAD_EXP_COMP);
+  const int32_t precision_loss =
+      emin - (b128_x.ieee128.exponent - QUAD_EXP_COMP);
   __uint128_t mask_denormal = 0;
-  mask_denormal = ~mask_denormal << (QUAD_PMAN_SIZE - precision + precision_loss);
+  mask_denormal = ~mask_denormal
+                  << (QUAD_PMAN_SIZE - precision + precision_loss);
   b128_x.ieee128.mantissa &= mask_denormal;
 
   return b128_x.f128;
 }
 
 inline float handle_binary32_denormal(float x, int emin, int precision) {
-
   binary32 b32_x = {.f32 = x};
   /* underflow */
   if ((b32_x.ieee.exponent - FLOAT_EXP_COMP) < (emin - precision)) {

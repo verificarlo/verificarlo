@@ -22,13 +22,13 @@ def get_var_env_int(env):
 
 def parse_file(filename):
     fi = open(filename, "r")
-    fp_list = [] 
+    fp_list = []
     return [float.fromhex(line) for line in fi]
 
 def parse_file2(filename):
     fi = open(filename, "r")
     input_list= []
-    input_list =[list(line.split(' ')) for line in fi] 
+    input_list =[list(line.split(' ')) for line in fi]
     input_list
     return input_list
 
@@ -80,9 +80,20 @@ def compute_err(precision, mpfr_list, vprec_list, input_list):
         print("Compare MPFR,VPREC:{mpfr} {vprec}".format(mpfr=mpfr,vprec=vprec))
         relative_error = get_relative_error(mpfr, vprec)
         s = get_significant_digits(relative_error)
-        if math.ceil(s) < precision:
+
+        vprec_range=int(os.getenv('VERIFICARLO_VPREC_RANGE'))
+
+        emin = - (1 << (vprec_range - 1))
+        # Check for denormal case
+        if mpfr != 0 and abs(mpfr) < 2**(emin):
+            # In denormal case we acount for the precision lost
+            required_prec = precision - (emin - math.ceil(math.log(abs(mpfr),2)-1))
+        else:
+            required_prec = precision
+
+        # we add one bit to account for faithful rounding
+        if math.ceil(s) < required_prec - 1:
             float_type=os.getenv('VERIFICARLO_VPREC_TYPE')
-            vprec_range=os.getenv('VERIFICARLO_VPREC_RANGE')
             vprec_precision=os.getenv('VERIFICARLO_PRECISION')
             vprec_mode=os.getenv('VERIFICARLO_VPREC_MODE')
             op=os.getenv('VERIFICARLO_OP')

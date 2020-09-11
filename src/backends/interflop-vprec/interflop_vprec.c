@@ -284,7 +284,6 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   int emin = 1 - emax;
 
   binary32 aexp = {.f32 = a};
-
   aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP;
 
   /* check for overflow or underflow in target range */
@@ -294,7 +293,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     sp_case = true;
   }
 
-  if (aexp.s32 <= emin) {
+  if (aexp.s32 < emin) {
     if ((((t_context *)context)->daz && is_input) ||
         (((t_context *)context)->ftz && !is_input)) {
       a = 0;
@@ -347,7 +346,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     sp_case = true;
   }
 
-  if (aexp.s64 <= emin) {
+  if (aexp.s64 < emin) {
     if ((((t_context *)context)->daz && is_input) ||
         (((t_context *)context)->ftz && !is_input)) {
       a = 0;
