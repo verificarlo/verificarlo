@@ -1,4 +1,5 @@
 #!/bin/sh
+set -xe
 
 # Denormal tests for range 2, precision 3
 cat > input.txt << EOF
@@ -8,3 +9,10 @@ cat > input.txt << EOF
 EOF
 
 ./compare.sh OB 2 3 float x input.txt
+
+# Failing Normal test
+cat > input.txt << EOF
+-0x1.eee201b1c85d4p-1 0x1.22034fafd4a10p-4
+EOF
+
+./compare.sh FULL 2 23 float x input.txt

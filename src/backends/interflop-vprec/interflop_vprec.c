@@ -280,6 +280,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   /* round to zero or set to infinity if underflow or overflow compare to
    * VPRECLIB_BINARY32_RANGE */
   int emax = (1 << (binary32_range - 1)) - 1;
+  // here emin is the smallest exponent in the *normal* range
   int emin = 1 - emax;
 
   binary32 aexp = {.f32 = a};
@@ -332,7 +333,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* round to zero or set to infinity if underflow or overflow compare to
    * VPRECLIB_BINARY64_RANGE */
   int emax = (1 << (binary64_range - 1)) - 1;
-  // minimum range is 2
+  // here emin is the smallest exponent in the *normal* range
   int emin = 1 - emax;
 
   binary64 aexp = {.f64 = a};
