@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# np.random.uniform has been deprecated in favor of random.default_rng().uniform
+# starting with numpy 1.19. We are keeping the old interface to account for older
+# setups but this should be replaced at some point.
+
 import numpy as np
 import sys
 
