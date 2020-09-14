@@ -77,7 +77,8 @@ void logger_info(const char *fmt, ...);
 void logger_warning(const char *fmt, ...);
 void logger_error(const char *fmt, ...);
 
-static char *dd_filter_path = NULL;
+static char *dd_exclude_path = NULL;
+static char *dd_include_path = NULL;
 static char *dd_generate_path = NULL;
 
 /* Function instrumentation prototypes */
@@ -140,7 +141,10 @@ size_t vfc_hashmap_str_function(const char *id);
 // Free the hashmap
 void vfc_hashmap_free(vfc_hashmap_t map);
 
+/* dd_must_instrument is used to apply and generate include DD filters */
+/* dd_mustnot_instrument is used to apply exclude DD filters */
 vfc_hashmap_t dd_must_instrument;
+vfc_hashmap_t dd_mustnot_instrument;
 
 void ddebug_generate_inclusion(char *dd_generate_path, vfc_hashmap_t map) {
   int output = open(dd_generate_path, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
@@ -184,6 +188,7 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
                 dd_generate_path);
   }
   vfc_hashmap_destroy(dd_must_instrument);
+  vfc_hashmap_destroy(dd_mustnot_instrument);
 #endif
 
 #ifdef INST_FUNC
@@ -207,6 +212,29 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
                    ".\n"                                                       \
                    "Include one backend in VFC_BACKENDS that provides it");    \
   } while (0)
+
+/* vfc_read_filter_file reads an inclusion/exclusion ddebug file and returns
+ * an address map */
+static void vfc_read_filter_file(const char *dd_filter_path,
+                                 vfc_hashmap_t map) {
+  FILE *input = fopen(dd_filter_path, "r");
+  if (input) {
+    void *addr;
+    char line[2048];
+    int lineno = 0;
+    while (fgets(line, sizeof line, input)) {
+      lineno++;
+      if (sscanf(line, "%p", &addr) == 1) {
+        vfc_hashmap_insert(map, (size_t)addr + CALL_OP_SIZE,
+                           addr + CALL_OP_SIZE);
+      } else {
+        logger_error(
+            "ddebug: error parsing VFC_DDEBUG_[INCLUDE/EXCLUDE] %s at line %d",
+            dd_filter_path, lineno);
+      }
+    }
+  }
+}
 
 /* vfc_init is run when loading vfcwrapper and initializes vfc backends */
 __attribute__((constructor(0))) static void vfc_init(void) {
@@ -325,43 +353,45 @@ __attribute__((constructor(0))) static void vfc_init(void) {
 #ifdef DDEBUG
   /* Initialize ddebug */
   dd_must_instrument = vfc_hashmap_create();
-  dd_filter_path = getenv("VFC_DDEBUG_INCLUDE");
+  dd_mustnot_instrument = vfc_hashmap_create();
+  dd_exclude_path = getenv("VFC_DDEBUG_EXCLUDE");
+  dd_include_path = getenv("VFC_DDEBUG_INCLUDE");
   dd_generate_path = getenv("VFC_DDEBUG_GEN");
-  if (dd_filter_path && dd_generate_path) {
+  if (dd_include_path && dd_generate_path) {
     logger_error(
         "VFC_DDEBUG_INCLUDE and VFC_DDEBUG_GEN should not be both defined "
         "at the same time");
   }
-  FILE *input = fopen(dd_filter_path, "r");
-  if (input) {
-    void *addr;
-    char line[2048];
-    int lineno = 0;
-    while (fgets(line, sizeof line, input)) {
-      lineno++;
-      if (sscanf(line, "%p", &addr) == 1) {
-        vfc_hashmap_insert(dd_must_instrument, (size_t)addr + CALL_OP_SIZE,
-                           addr + CALL_OP_SIZE);
-      } else {
-        logger_error("ddebug: error parsing VFC_DDEBUG_INCLUDE %s at line %d",
-                     dd_filter_path, lineno);
-      }
-    }
+  if (dd_include_path) {
+    vfc_read_filter_file(dd_include_path, dd_must_instrument);
     logger_info("ddebug: only %zu addresses will be instrumented\n",
                 vfc_hashmap_num_items(dd_must_instrument));
+  }
+  if (dd_exclude_path) {
+    vfc_read_filter_file(dd_exclude_path, dd_mustnot_instrument);
+    logger_info("ddebug: %zu addresses will not be instrumented\n",
+                vfc_hashmap_num_items(dd_mustnot_instrument));
   }
 #endif
 }
 
 /* Arithmetic wrappers */
 #ifdef DDEBUG
-/* When delta-debug run flags are passed*/
+/* When delta-debug run flags are passed, check filter rules,
+ *  - exclude rules are applied first and have priority
+ * */
 #define ddebug(operator)                                                       \
   void *addr = __builtin_return_address(0);                                    \
-  if (dd_filter_path) {                                                        \
+  if (dd_exclude_path) {                                                       \
+    /* Ignore addr in exclude file */                                          \
+    if (vfc_hashmap_have(dd_mustnot_instrument, (size_t)addr)) {               \
+      return a operator b;                                                     \
+    }                                                                          \
+  }                                                                            \
+  if (dd_include_path) {                                                       \
+    /* Ignore addr not in include file */                                      \
     if (!vfc_hashmap_have(dd_must_instrument, (size_t)addr)) {                 \
       return a operator b;                                                     \
-    } else {                                                                   \
     }                                                                          \
   } else if (dd_generate_path) {                                               \
     vfc_hashmap_insert(dd_must_instrument, (size_t)addr, addr);                \

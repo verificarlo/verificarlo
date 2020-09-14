@@ -1,5 +1,6 @@
 #!/bin/bash
 
+make clean
 make dd
 
 if grep "archimedes.c:16" dd.line/rddmin-cmp/dd.line.exclude ; then
