@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 if [[ $# == 1 ]]; then
     usecase=$1
@@ -13,7 +13,7 @@ case $usecase in
 	PRECISION_STEP=20
 	N_SAMPLES=3
 	;;
-    small)	
+    small)
 	RANGE_MIN=2
 	RANGE_STEP=4
 	PRECISION_MIN=3
@@ -41,7 +41,7 @@ case $usecase in
 	RANGE_STEP=3
 	PRECISION_MIN=3
 	PRECISION_STEP=10
-	N_SAMPLES=3	
+	N_SAMPLES=3
 esac
 
 ./generic_test.sh ${usecase} ${RANGE_MIN} ${RANGE_STEP} ${PRECISION_MIN} ${PRECISION_STEP} ${N_SAMPLES}
