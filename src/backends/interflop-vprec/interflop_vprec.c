@@ -338,8 +338,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     } else {
       a = handle_binary64_denormal(a, emin, binary64_precision);
     }
-  }
-  else {
+  } else {
     a = round_binary64_normal(a, binary64_precision);
   }
 
