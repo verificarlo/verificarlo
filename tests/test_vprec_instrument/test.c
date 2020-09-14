@@ -78,8 +78,11 @@ int main(int argc, char const *argv[]) {
   int size_64 = atoi(argv[1]);
   int size_32 = atoi(argv[2]);
 
-  t_64.i = pow(2, 52 - size_64) - 1;
-  t_32.i = pow(2, 23 - size_32) - 1;
+  t_64.f = 1.0;
+  t_32.f = 1.0;
+
+  t_64.i |= (1 << (52-size_64)) - 1;
+  t_32.i |= (1 << (23-size_32)) - 1;;
 
   print_double(Fdouble(t_64.f, t_64.f));
   print_float(Ffloat(t_32.f, t_32.f));
