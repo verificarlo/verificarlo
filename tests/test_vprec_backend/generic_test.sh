@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 ##uncomment to stop on error
 #set -e
 ##uncomment to show all command executed by the script
@@ -37,7 +37,7 @@ float_type_list=("float" "double")
 
 # Modes list
 if [ $USECASE = "fast" ]; then
-    modes_list=("FULL")
+    modes_list=("OB")
 else
     modes_list=("IB" "OB" "FULL")
 fi
@@ -67,10 +67,10 @@ print_sep() {
 }
 
 compute_op() {
-    while read a b; do
-	./compute_mpfr_rounding.py $a $b $1 $2 >> mpfr.txt
-	./compute_vprec_rounding $a $b $1 >> vprec.txt
-	done < input.txt
+  while read a b; do
+    ./compute_mpfr_rounding.py $a $b $1 $2 >> mpfr.txt
+    ./compute_vprec_rounding $a $b $1 >> vprec.txt
+  done < input.txt
 }
 
 for TYPE in "${float_type_list[@]}"
@@ -101,7 +101,7 @@ do
 					compute_op $OP $TYPE
 		    			./check_output.py 2>> log.error
 				done
-	    		done
+      done
 		done
 		rm compute_vprec_rounding
 	done
@@ -109,7 +109,7 @@ done
 
 cat log.error
 
-if [ -s "log.error" ] 
+if [ -s "log.error" ]
 	then
 		echo "Test failed"
 		exit 1

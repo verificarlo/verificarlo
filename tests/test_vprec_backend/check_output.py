@@ -32,9 +32,7 @@ def parse_file2(filename):
     input_list
     return input_list
 
-
 def get_relative_error(mpfr, vprec):
-
     if math.isnan(mpfr) != math.isnan(vprec):
         print("Error NaN")
         exit(1)
@@ -85,7 +83,12 @@ def compute_err(precision, mpfr_list, vprec_list, input_list):
 
         emin = - (1 << (vprec_range - 1))
         # Check for denormal case
-        if mpfr != 0 and abs(mpfr) < 2**(emin):
+        # Since we check after computation, we have to account for operands
+        # being denormal and result being rounded to 2**(emin).
+        # WARNING: not ties to even, if the two operands have a ties-to-even problem
+        # and the result also, this check may not be enough.
+        # (In OB mode this should never happen)
+        if mpfr != 0 and abs(mpfr) <= 2**(emin):
             # In denormal case we acount for the precision lost
             required_prec = precision - (emin - math.ceil(math.log(abs(mpfr),2)-1))
         else:
