@@ -287,10 +287,9 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP;
 
   /* check for overflow or underflow in target range */
-  bool sp_case = false;
   if (aexp.s32 > emax) {
     a = a * INFINITY;
-    sp_case = true;
+    return a;
   }
 
   if (aexp.s32 < emin) {
@@ -300,20 +299,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     } else {
       a = handle_binary32_denormal(a, emin, binary32_precision);
     }
-  }
-
-  /* Specials ops must be placed after denormal handling  */
-  /* If one of the operand raises an underflow, the operation */
-  /* has a different behavior. Example:
-   * x*Inf != 0*Inf */
-
-  if (sp_case) {
-    return a;
-  }
-
-  /* else, normal case: can be executed even if a
-     previously rounded and truncated as denormal */
-  if (binary32_precision < FLOAT_PMAN_SIZE) {
+  } else {
     a = round_binary32_normal(a, binary32_precision);
   }
 
@@ -340,10 +326,9 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       ((DOUBLE_GET_EXP & aexp.u64) >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
 
   /* check for overflow or underflow in target range */
-  bool sp_case = false;
   if (aexp.s64 > emax) {
     a = a * INFINITY;
-    sp_case = true;
+    return a;
   }
 
   if (aexp.s64 < emin) {
@@ -354,17 +339,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       a = handle_binary64_denormal(a, emin, binary64_precision);
     }
   }
-
-  /* Special ops must be placed after denormal handling  */
-  /* If the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
-  if (sp_case) {
-    return a;
-  }
-
-  /* else normal case, can be executed even if a previously rounded and
-   * truncated as denormal */
-  if (binary64_precision < DOUBLE_PMAN_SIZE) {
+  else {
     a = round_binary64_normal(a, binary64_precision);
   }
 
