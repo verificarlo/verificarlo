@@ -315,7 +315,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   /* round to zero or set to infinity if underflow or overflow compared to
    * VPRECLIB_BINARY32_RANGE */
   int emax = (1 << (binary32_range - 1)) - 1;
-  // here emin is the smallest exponent in the *normal* range
+  /* here emin is the smallest exponent in the *normal* range */
   int emin = 1 - emax;
 
   /* in absolute error mode, the error threshold also gives the possible
@@ -331,10 +331,9 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP;
 
   /* check for overflow in target range */
-  bool sp_case = false;
   if (aexp.s32 > emax) {
     a = a * INFINITY;
-    sp_case = true;
+    return a;
   }
 
   /* check for underflow in target range */
@@ -347,17 +346,15 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
           (currentContext->absErr == true)) {
         /* vprec error mode all */
         if ((-1) * currentContext->absErr_exp < binary32_precision)
-          a = handle_binary32_denormal(a, emin, aexp.u32,
-                                       abs(currentContext->absErr_exp));
+          a = handle_binary32_denormal(a, emin, abs(currentContext->absErr_exp));
         else
-          a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
+          a = handle_binary32_denormal(a, emin, binary32_precision);
       } else if (currentContext->absErr == true) {
         /* vprec error mode abs */
-        a = handle_binary32_denormal(a, emin, aexp.u32,
-                                     abs(currentContext->absErr_exp));
+        a = handle_binary32_denormal(a, emin, abs(currentContext->absErr_exp));
       } else {
         /* vprec error mode rel */
-        a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
+        a = handle_binary32_denormal(a, emin, binary32_precision);
       }
     }
   }
@@ -430,17 +427,15 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
           (currentContext->absErr == true)) {
         /* vprec error mode all */
         if ((-1) * currentContext->absErr_exp < binary64_precision)
-          a = handle_binary64_denormal(a, emin, aexp.u64,
-                                       abs(currentContext->absErr_exp));
+          a = handle_binary64_denormal(a, emin, abs(currentContext->absErr_exp));
         else
-          a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
+          a = handle_binary64_denormal(a, emin, binary64_precision);
       } else if (currentContext->absErr == true) {
         /* vprec error mode abs */
-        a = handle_binary64_denormal(a, emin, aexp.u64,
-                                     abs(currentContext->absErr_exp));
+        a = handle_binary64_denormal(a, emin, abs(currentContext->absErr_exp));
       } else {
         /* vprec error mode rel */
-        a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
+        a = handle_binary64_denormal(a, emin, binary64_precision);
       }
     }
   }
