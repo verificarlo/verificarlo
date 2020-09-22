@@ -518,7 +518,6 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* check for overflow in target range */
   if (aexp.s64 > emax) {
     a = a * INFINITY;
-    sp_case = true;
   }
 
   /* check for underflow in target range */
@@ -542,6 +541,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         a = handle_binary64_denormal(a, emin, binary64_precision);
       }
     }
+<<<<<<< HEAD
   }
 
   /* Special ops must be placed after denormal handling  */
@@ -565,6 +565,37 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       else
         binary64_precision_adjusted = binary64_precision;
       a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
+=======
+  } else {
+    /* else normal case, can be executed even if a previously rounded and
+    * truncated as denormal */
+    if ((currentContext->relErr == false) && (currentContext->absErr == true)) {
+      /* vprec error mode abs */
+      int expDiff = aexp.s64 - currentContext->absErr_exp;
+      // if ((-1) * currentContext->absErr_exp < DOUBLE_PMAN_SIZE) {
+      if (expDiff < DOUBLE_PMAN_SIZE) {
+        a = round_binary64_normal(a, expDiff);
+      }
+    } else {
+      int expDiff = aexp.s64 - currentContext->absErr_exp;
+      // if (binary64_precision < DOUBLE_PMAN_SIZE) {
+      if ((binary64_precision < DOUBLE_PMAN_SIZE) ||
+          (expDiff < DOUBLE_PMAN_SIZE)) {
+        if ((currentContext->relErr == true) &&
+            (currentContext->absErr == true)) {
+          /* vprec error mode all */
+          // if ((-1) * currentContext->absErr_exp < binary64_precision) {
+          if (expDiff < binary64_precision) {
+            a = round_binary64_normal(a, expDiff);
+          } else {
+            a = round_binary64_normal(a, binary64_precision);
+          }
+        } else {
+          /* vprec error mode rel */
+          a = round_binary64_normal(a, binary64_precision);
+        }
+      }
+>>>>>>> working on resolving the rebase; _vprec_round_binary64
     }
   }
 
@@ -1306,6 +1337,14 @@ static struct argp_option options[] = {
      "select error mode among {rel, abs, all}", 0},
     {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
      "select magnitude of the maximum absolute error", 0},
+<<<<<<< HEAD
+=======
+     "select VPREC mode among {ieee, full, ib, ob}", 0},
+    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
+     "select error mode among {rel, abs, all}", 0},
+    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
+     "select magnitude of the maximum absolute error", 0},
+>>>>>>> working on resolving the rebase; _vprec_round_binary64
     {key_instrument_str, KEY_INSTRUMENT, "INSTRUMENTATION", 0,
      "select VPREC instrumentation mode among {arguments, operations, full}",
      0},
