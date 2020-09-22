@@ -346,7 +346,6 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     if ((currentContext->relErr == false) && (currentContext->absErr == true)) {
       /* vprec error mode abs */
       int expDiff = aexp.s32 - currentContext->absErr_exp;
-      // if ((-1) * currentContext->absErr_exp < FLOAT_PMAN_SIZE) {
       if (expDiff < FLOAT_PMAN_SIZE) {
         a = round_binary32_normal(a, expDiff);
       }
@@ -357,7 +356,6 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         if ((currentContext->relErr == true) &&
             (currentContext->absErr == true)) {
           /* vprec error mode all */
-          // if ((-1) * currentContext->absErr_exp < binary32_precision)
           if (expDiff < binary32_precision)
             a = round_binary32_normal(a, expDiff);
           else {
@@ -388,7 +386,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* round to zero or set to infinity if underflow or overflow compare to
    * VPRECLIB_BINARY64_RANGE */
   int emax = (1 << (binary64_range - 1)) - 1;
-  // here emin is the smallest exponent in the *normal* range
+  /* here emin is the smallest exponent in the *normal* range */
   int emin = 1 - emax;
 
 <<<<<<< HEAD
@@ -465,19 +463,16 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     if ((currentContext->relErr == false) && (currentContext->absErr == true)) {
       /* vprec error mode abs */
       int expDiff = aexp.s64 - currentContext->absErr_exp;
-      // if ((-1) * currentContext->absErr_exp < DOUBLE_PMAN_SIZE) {
       if (expDiff < DOUBLE_PMAN_SIZE) {
         a = round_binary64_normal(a, expDiff);
       }
     } else {
       int expDiff = aexp.s64 - currentContext->absErr_exp;
-      // if (binary64_precision < DOUBLE_PMAN_SIZE) {
       if ((binary64_precision < DOUBLE_PMAN_SIZE) ||
           (expDiff < DOUBLE_PMAN_SIZE)) {
         if ((currentContext->relErr == true) &&
             (currentContext->absErr == true)) {
           /* vprec error mode all */
-          // if ((-1) * currentContext->absErr_exp < binary64_precision) {
           if (expDiff < binary64_precision) {
             a = round_binary64_normal(a, expDiff);
           } else {
