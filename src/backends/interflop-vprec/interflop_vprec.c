@@ -504,15 +504,9 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
 
   /* in absolute error mode, the error threshold also gives the possible
    * underflow limit */
-  if (currentContext->absErr == true) {
-    if (currentContext->relErr == true) {
-      /* relative and absolute error mode */
-      if (currentContext->absErr_exp > emin)
-        emin = currentContext->absErr_exp;
-    } else {
-      /* absolute error mode */
+  if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+    if (currentContext->absErr_exp > emin)
       emin = currentContext->absErr_exp;
-    }
   } else if (currentContext->absErr == true) {
     emin = currentContext->absErr_exp;
   }
@@ -524,7 +518,6 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* check for overflow in target range */
   if (aexp.s64 > emax) {
     a = a * INFINITY;
-    sp_case = true;
   }
 
   /* check for underflow in target range */
@@ -1312,6 +1305,14 @@ static struct argp_option options[] = {
      "select error mode among {rel, abs, all}", 0},
     {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
      "select magnitude of the maximum absolute error", 0},
+<<<<<<< HEAD
+=======
+     "select VPREC mode among {ieee, full, ib, ob}", 0},
+    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
+     "select error mode among {rel, abs, all}", 0},
+    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
+     "select magnitude of the maximum absolute error", 0},
+>>>>>>> working on resolving the rebase; _vprec_round_binary64
     {key_instrument_str, KEY_INSTRUMENT, "INSTRUMENTATION", 0,
      "select VPREC instrumentation mode among {arguments, operations, full}",
      0},
