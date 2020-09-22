@@ -394,7 +394,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* round to zero or set to infinity if underflow or overflow compare to
    * VPRECLIB_BINARY64_RANGE */
   int emax = (1 << (binary64_range - 1)) - 1;
-  // here emin is the smallest exponent in the *normal* range
+  /* here emin is the smallest exponent in the *normal* range */
   int emin = 1 - emax;
 
   /* in absolute error mode, the error threshold also gives the possible
