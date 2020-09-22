@@ -473,7 +473,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
       if ((currentContext->relErr == true) &&
           (currentContext->absErr == true)) {
         /* vprec error mode all */
-        if ((-1) * currentContext->absErr_exp < binary32_precision)
+        if (abs(currentContext->absErr_exp) < binary32_precision)
           a = handle_binary32_denormal(a, emin, abs(currentContext->absErr_exp));
         else
           a = handle_binary32_denormal(a, emin, binary32_precision);
@@ -606,7 +606,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       if ((currentContext->relErr == true) &&
           (currentContext->absErr == true)) {
         /* vprec error mode all */
-        if ((-1) * currentContext->absErr_exp < binary64_precision)
+        if (abs(currentContext->absErr_exp) < binary64_precision)
           a = handle_binary64_denormal(a, emin, abs(currentContext->absErr_exp));
         else
           a = handle_binary64_denormal(a, emin, binary64_precision);
