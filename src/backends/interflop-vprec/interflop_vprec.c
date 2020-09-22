@@ -465,7 +465,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   }
 
   /* check for underflow in target range */
-  if (aexp.s32 <= emin) {
+  if (aexp.s32 < emin) {
     if ((currentContext->daz && is_input) ||
         (currentContext->ftz && !is_input)) {
       a = 0;
@@ -599,7 +599,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   }
 
   /* check for underflow in target range */
-  if (aexp.s64 <= emin) {
+  if (aexp.s64 < emin) {
     if ((currentContext->daz && is_input) ||
         (currentContext->ftz && !is_input)) {
       a = 0;
