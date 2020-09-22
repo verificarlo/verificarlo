@@ -400,6 +400,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       emin = currentContext->absErr_exp;
   } else if (currentContext->absErr == true) {
     emin = currentContext->absErr_exp;
+<<<<<<< HEAD
 =======
   /* in absolute error mode, the error threshold also gives the possible underflow limit */
   if (((t_context *)context)->absErr == true) {
@@ -424,6 +425,8 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   } else if (currentContext->absErr == true) {
     emin = currentContext->absErr_exp;
 >>>>>>> working on a fix for vprec absErr; better handling of the rounding limits according to absErr and binary_precision
+=======
+>>>>>>> working on resolving the rebase; _vprec_round_binary64
   }
 
   binary64 aexp = {.f64 = a};
@@ -431,10 +434,8 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       ((DOUBLE_GET_EXP & aexp.u64) >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
 
   /* check for overflow in target range */
-  bool sp_case = false;
   if (aexp.s64 > emax) {
     a = a * INFINITY;
-    sp_case = true;
   }
 
   /* check for underflow in target range */
@@ -458,41 +459,34 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         a = handle_binary64_denormal(a, emin, binary64_precision);
       }
     }
-  }
-
-  /* Special ops must be placed after denormal handling  */
-  /* If the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
-  if (sp_case) {
-    return a;
-  }
-
-  /* else normal case, can be executed even if a previously rounded and
-   * truncated as denormal */
-  if ((currentContext->relErr == false) && (currentContext->absErr == true)) {
-    /* vprec error mode abs */
-    int expDiff = aexp.s64 - currentContext->absErr_exp;
-    // if ((-1) * currentContext->absErr_exp < DOUBLE_PMAN_SIZE) {
-    if (expDiff < DOUBLE_PMAN_SIZE) {
-      a = round_binary64_normal(a, expDiff);
-    }
   } else {
-    int expDiff = aexp.s64 - currentContext->absErr_exp;
-    // if (binary64_precision < DOUBLE_PMAN_SIZE) {
-    if ((binary64_precision < DOUBLE_PMAN_SIZE) ||
-        (expDiff < DOUBLE_PMAN_SIZE)) {
-      if ((currentContext->relErr == true) &&
-          (currentContext->absErr == true)) {
-        /* vprec error mode all */
-        // if ((-1) * currentContext->absErr_exp < binary64_precision) {
-        if (expDiff < binary64_precision) {
-          a = round_binary64_normal(a, expDiff);
+    /* else normal case, can be executed even if a previously rounded and
+    * truncated as denormal */
+    if ((currentContext->relErr == false) && (currentContext->absErr == true)) {
+      /* vprec error mode abs */
+      int expDiff = aexp.s64 - currentContext->absErr_exp;
+      // if ((-1) * currentContext->absErr_exp < DOUBLE_PMAN_SIZE) {
+      if (expDiff < DOUBLE_PMAN_SIZE) {
+        a = round_binary64_normal(a, expDiff);
+      }
+    } else {
+      int expDiff = aexp.s64 - currentContext->absErr_exp;
+      // if (binary64_precision < DOUBLE_PMAN_SIZE) {
+      if ((binary64_precision < DOUBLE_PMAN_SIZE) ||
+          (expDiff < DOUBLE_PMAN_SIZE)) {
+        if ((currentContext->relErr == true) &&
+            (currentContext->absErr == true)) {
+          /* vprec error mode all */
+          // if ((-1) * currentContext->absErr_exp < binary64_precision) {
+          if (expDiff < binary64_precision) {
+            a = round_binary64_normal(a, expDiff);
+          } else {
+            a = round_binary64_normal(a, binary64_precision);
+          }
         } else {
+          /* vprec error mode rel */
           a = round_binary64_normal(a, binary64_precision);
         }
-      } else {
-        /* vprec error mode rel */
-        a = round_binary64_normal(a, binary64_precision);
       }
     }
   }
@@ -960,14 +954,11 @@ static struct argp_option options[] = {
      "select error mode among {rel, abs, all}", 0},
     {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
      "select magnitude of the maximum absolute error", 0},
-<<<<<<< HEAD
      "select VPREC mode among {ieee, full, ib, ob}", 0},
     {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
      "select error mode among {rel, abs, all}", 0},
     {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
      "select magnitude of the maximum absolute error", 0},
-=======
->>>>>>> bugfix for wrongly placed copy and paste
     {key_instrument_str, KEY_INSTRUMENT, "INSTRUMENTATION", 0,
      "select VPREC instrumentation mode among {arguments, operations, full}",
      0},
