@@ -411,10 +411,8 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       ((DOUBLE_GET_EXP & aexp.u64) >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
 
   /* check for overflow in target range */
-  bool sp_case = false;
   if (aexp.s64 > emax) {
     a = a * INFINITY;
-    sp_case = true;
   }
 
   /* check for underflow in target range */
