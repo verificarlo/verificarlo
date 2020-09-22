@@ -343,14 +343,13 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   } else {
     /* else, normal case: can be executed even if a
      previously rounded and truncated as denormal */
+    int expDiff = aexp.s32 - currentContext->absErr_exp;
     if ((currentContext->relErr == false) && (currentContext->absErr == true)) {
       /* vprec error mode abs */
-      int expDiff = aexp.s32 - currentContext->absErr_exp;
       if (expDiff < FLOAT_PMAN_SIZE) {
         a = round_binary32_normal(a, expDiff);
       }
     } else {
-      int expDiff = aexp.s32 - currentContext->absErr_exp;
       if ((binary32_precision < FLOAT_PMAN_SIZE) || (expDiff < FLOAT_PMAN_SIZE)) {
         if ((currentContext->relErr == true) &&
             (currentContext->absErr == true)) {
@@ -459,14 +458,13 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   } else {
     /* else normal case, can be executed even if a previously rounded and
     * truncated as denormal */
+    int expDiff = aexp.s64 - currentContext->absErr_exp;
     if ((currentContext->relErr == false) && (currentContext->absErr == true)) {
       /* vprec error mode abs */
-      int expDiff = aexp.s64 - currentContext->absErr_exp;
       if (expDiff < DOUBLE_PMAN_SIZE) {
         a = round_binary64_normal(a, expDiff);
       }
     } else {
-      int expDiff = aexp.s64 - currentContext->absErr_exp;
       if ((binary64_precision < DOUBLE_PMAN_SIZE) ||
           (expDiff < DOUBLE_PMAN_SIZE)) {
         if ((currentContext->relErr == true) &&
