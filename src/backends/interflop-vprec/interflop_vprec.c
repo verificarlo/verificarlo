@@ -541,7 +541,6 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         a = handle_binary64_denormal(a, emin, binary64_precision);
       }
     }
-<<<<<<< HEAD
   }
 
   /* Special ops must be placed after denormal handling  */
@@ -565,37 +564,6 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       else
         binary64_precision_adjusted = binary64_precision;
       a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
-=======
-  } else {
-    /* else normal case, can be executed even if a previously rounded and
-    * truncated as denormal */
-    if ((currentContext->relErr == false) && (currentContext->absErr == true)) {
-      /* vprec error mode abs */
-      int expDiff = aexp.s64 - currentContext->absErr_exp;
-      // if ((-1) * currentContext->absErr_exp < DOUBLE_PMAN_SIZE) {
-      if (expDiff < DOUBLE_PMAN_SIZE) {
-        a = round_binary64_normal(a, expDiff);
-      }
-    } else {
-      int expDiff = aexp.s64 - currentContext->absErr_exp;
-      // if (binary64_precision < DOUBLE_PMAN_SIZE) {
-      if ((binary64_precision < DOUBLE_PMAN_SIZE) ||
-          (expDiff < DOUBLE_PMAN_SIZE)) {
-        if ((currentContext->relErr == true) &&
-            (currentContext->absErr == true)) {
-          /* vprec error mode all */
-          // if ((-1) * currentContext->absErr_exp < binary64_precision) {
-          if (expDiff < binary64_precision) {
-            a = round_binary64_normal(a, expDiff);
-          } else {
-            a = round_binary64_normal(a, binary64_precision);
-          }
-        } else {
-          /* vprec error mode rel */
-          a = round_binary64_normal(a, binary64_precision);
-        }
-      }
->>>>>>> working on resolving the rebase; _vprec_round_binary64
     }
   }
 
