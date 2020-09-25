@@ -10,6 +10,9 @@
 
 #define DEBUG_MODE 0
 
+#define DEBUG_MODE 0
+
+
 double applyOp_double(char op, double a, double b) {
   double res = 0.0;
 
