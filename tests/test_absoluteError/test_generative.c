@@ -9,6 +9,9 @@
 #include "../../src/common/float_utils.h"
 
 
+#define DEBUG_MODE 0
+
+
 double applyOp_double(char op, double a, double b) {
   double res = 0.0;
 
@@ -68,6 +71,7 @@ int main(int argc, char const *argv[]) {
   }
 
   int ret = 0;
+  size_t i;
 
   char op = argv[1][0];
   int type = atoi(argv[2]);
@@ -77,105 +81,128 @@ int main(int argc, char const *argv[]) {
   srand(time(0));
   // srand(0);
 
-  //generate two random numbers
-  //  create the floating point numbers
-  binary32 a_b32 = {.f32 = 1.0};
-  binary32 b_b32 = {.f32 = 1.0};
-  binary64 a_b64 = {.f64 = 1.0};
-  binary64 b_b64 = {.f64 = 1.0};
+  for(i=0; i<nbTests; i++) {
+    //generate two random numbers
+    //  create the floating point numbers
+    binary32 a_b32 = {.f32 = 1.0};
+    binary32 b_b32 = {.f32 = 1.0};
+    binary64 a_b64 = {.f64 = 1.0};
+    binary64 b_b64 = {.f64 = 1.0};
 
-  //  create random mantissas for the two numbers
-  unsigned long int tmp, tmp2;
+    //  create random mantissas for the two numbers
+    unsigned long int tmp, tmp2;
 
-  //  create a
-  if(type == 0) {
-    //float
-    tmp = rand() & FLOAT_GET_PMAN;
-    a_b32.u32 += (unsigned int)tmp;
-  } else {
-    //double
-    tmp = rand() & FLOAT_GET_PMAN;
-    tmp2 = rand() & ((1 << (DOUBLE_PMAN_SIZE-FLOAT_PMAN_SIZE)) - 1);
-    a_b64.u64 += (unsigned long int)tmp;
-    a_b64.u64 += (unsigned long long int)(tmp2 << (FLOAT_PMAN_SIZE));
-  }
-  
-  //  create b
-  if(type == 0) {
-    //float
-    tmp = rand() & FLOAT_GET_PMAN;
-    b_b32.u32 += (unsigned int)tmp;
-  } else {
-    //double
-    tmp = rand() & FLOAT_GET_PMAN;
-    tmp2 = rand() & ((1 << (DOUBLE_PMAN_SIZE-FLOAT_PMAN_SIZE)) - 1);
-    b_b64.u64 += (unsigned long int)tmp;
-    b_b64.u64 += (unsigned long long int)(tmp2 << (FLOAT_PMAN_SIZE));
-  }
-
-  //apply the operation
-  binary32 res_b32;
-  binary64 res_b64;
-
-  if(type == 0) {
-    res_b32.f32 = applyOp_float(op, a_b32.f32, b_b32.f32);
-  } else {
-    res_b64.f64 = applyOp_double(op, a_b64.f64, b_b64.f64);
-  }
-
-  //check if the result is correct
-  unsigned int absErr_mask_float;
-  unsigned long long int absErr_mask_double;
-
-  if(type == 0) {
-    //adjust the mask, if the result changed exponent
-    int mask_adjust = floor(log2f(res_b32.f32));
-    absErr_mask_float = (1U << (FLOAT_PMAN_SIZE - abs(absErr_exp) - mask_adjust)) - 1;
-
-    binary32 res_b32_check = {.f32 = res_b32.f32};
-
-    binary32 res_b32_ref = {.f32 = res_b32.f32};
-    res_b32_ref.u32 = res_b32_ref.u32 & ~absErr_mask_float;
-
-    res_b32_check.u32 = res_b32_check.u32 & absErr_mask_float;
-    if(res_b32_check.u32 != 0) {
-      printf("Fail!\n");
-      ret = 1;
+    //  create a
+    if(type == 0) {
+      //float
+      tmp = rand() & FLOAT_GET_PMAN;
+      a_b32.u32 += (unsigned int)tmp;
     } else {
-      printf("Success!\n");
-      ret = 0;
+      //double
+      tmp = rand() & FLOAT_GET_PMAN;
+      tmp2 = rand() & ((1 << (DOUBLE_PMAN_SIZE-FLOAT_PMAN_SIZE)) - 1);
+      a_b64.u64 += (unsigned long int)tmp;
+      a_b64.u64 += (unsigned long long int)(tmp2 << (FLOAT_PMAN_SIZE));
     }
-    printf("\ta=%56.53f\n", a_b32.f32);
-    printf("\tb=%56.53f\n", b_b32.f32);
-    printf("\top=%c\n", op);
-    printf("\terror threshold=2^%d\n", absErr_exp);
-    printf("\tresult=%56.53f\n", res_b32.f32);
-    printf("\texpected result=%56.53f\n", res_b32_ref.f32);
-  } else {
-    //adjust the mask, if the result changed exponent
-    int mask_adjust = floor(log2(res_b64.f64));
-    absErr_mask_double = (1ULL << (DOUBLE_PMAN_SIZE - abs(absErr_exp) - mask_adjust)) - 1;
-
-    binary64 res_b64_check = {.f64 = res_b64.f64};
-
-    binary64 res_b64_ref = {.f64 = res_b64.f64};
-    res_b64_ref.u64 = res_b64_ref.u64 & ~absErr_mask_double;
-
-    res_b64_check.u64 = res_b64_check.u64 & absErr_mask_double;
-    if(res_b64_check.u64 != 0) {
-      printf("Fail!\n");
-      ret = 1;
+    
+    //  create b
+    if(type == 0) {
+      //float
+      tmp = rand() & FLOAT_GET_PMAN;
+      b_b32.u32 += (unsigned int)tmp;
     } else {
-      printf("Success!\n");
-      ret = 0;
+      //double
+      tmp = rand() & FLOAT_GET_PMAN;
+      tmp2 = rand() & ((1 << (DOUBLE_PMAN_SIZE-FLOAT_PMAN_SIZE)) - 1);
+      b_b64.u64 += (unsigned long int)tmp;
+      b_b64.u64 += (unsigned long long int)(tmp2 << (FLOAT_PMAN_SIZE));
     }
-    printf("\ta=%56.53lf\n", a_b64.f64);
-    printf("\tb=%56.53f\n", b_b64.f64);
-    printf("\top=%c\n", op);
-    printf("\terror threshold=2^%d\n", absErr_exp);
-    printf("\tresult=%56.53f\n", res_b64.f64);
-    printf("\texpected result=%56.53f\n", res_b64_ref.f64);
+
+    //apply the operation
+    binary32 res_b32;
+    binary64 res_b64;
+
+    if(type == 0) {
+      res_b32.f32 = applyOp_float(op, a_b32.f32, b_b32.f32);
+    } else {
+      res_b64.f64 = applyOp_double(op, a_b64.f64, b_b64.f64);
+    }
+
+    //check if the result is correct
+    unsigned int absErr_mask_float;
+    unsigned long long int absErr_mask_double;
+
+    if(type == 0) {
+      //adjust the mask, if the result changed exponent
+      int mask_adjust = floor(log2f(res_b32.f32));
+      absErr_mask_float = (1U << (FLOAT_PMAN_SIZE - abs(absErr_exp) - mask_adjust)) - 1;
+
+      binary32 res_b32_check = {.f32 = res_b32.f32};
+
+      binary32 res_b32_ref = {.f32 = res_b32.f32};
+      res_b32_ref.u32 = res_b32_ref.u32 & ~absErr_mask_float;
+
+      res_b32_check.u32 = res_b32_check.u32 & absErr_mask_float;
+      if(res_b32_check.u32 != 0) {
+#if DEBUG_MODE > 0 
+        printf("Fail!\n");
+#endif
+        // ret = 1;
+        ret += 1;
+      } else {
+#if DEBUG_MODE > 0 
+        printf("Success!\n");
+#endif
+        // ret = 0;
+      }
+#if DEBUG_MODE > 0 
+      printf("\ta=%56.53f\n", a_b32.f32);
+      printf("\tb=%56.53f\n", b_b32.f32);
+      printf("\top=%c\n", op);
+      printf("\terror threshold=2^%d\n", absErr_exp);
+      printf("\tresult=%56.53f\n", res_b32.f32);
+      printf("\texpected result=%56.53f\n", res_b32_ref.f32);
+#endif
+    } else {
+      //adjust the mask, if the result changed exponent
+      int mask_adjust = floor(log2(res_b64.f64));
+      absErr_mask_double = (1ULL << (DOUBLE_PMAN_SIZE - abs(absErr_exp) - mask_adjust)) - 1;
+
+      binary64 res_b64_check = {.f64 = res_b64.f64};
+
+      binary64 res_b64_ref = {.f64 = res_b64.f64};
+      res_b64_ref.u64 = res_b64_ref.u64 & ~absErr_mask_double;
+
+      res_b64_check.u64 = res_b64_check.u64 & absErr_mask_double;
+      if(res_b64_check.u64 != 0) {
+#if DEBUG_MODE > 0 
+        printf("Fail!\n");
+#endif
+        // ret = 1;
+        ret += 1;
+      } else {
+#if DEBUG_MODE > 0 
+        printf("Success!\n");
+#endif
+        ret = 0;
+      }
+#if DEBUG_MODE > 0 
+      printf("\ta=%56.53lf\n", a_b64.f64);
+      printf("\tb=%56.53f\n", b_b64.f64);
+      printf("\top=%c\n", op);
+      printf("\terror threshold=2^%d\n", absErr_exp);
+      printf("\tresult=%56.53f\n", res_b64.f64);
+      printf("\texpected result=%56.53f\n", res_b64_ref.f64);
+#endif
+    }
   }
+
+  if(ret >0)
+    printf("Fail!\n");
+  else
+    printf("Success!\n");
+  printf("\ttests failed=%d\n", ret);
+  printf("\ttests total=%d\n", nbTests);
 
   return ret;
 }
