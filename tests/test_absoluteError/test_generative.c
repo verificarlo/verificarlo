@@ -159,6 +159,7 @@ int main(int argc, char const *argv[]) {
       printf("\ta=%56.53f\n", a_b32.f32);
       printf("\tb=%56.53f\n", b_b32.f32);
       printf("\top=%c\n", op);
+      printf("\ttype=%s\n", (type == 0) ? "float" : "double");
       printf("\terror threshold=2^%d\n", absErr_exp);
       printf("\tresult=%56.53f\n", res_b32.f32);
       printf("\texpected result=%56.53f\n", res_b32_ref.f32);
@@ -190,6 +191,7 @@ int main(int argc, char const *argv[]) {
       printf("\ta=%56.53lf\n", a_b64.f64);
       printf("\tb=%56.53f\n", b_b64.f64);
       printf("\top=%c\n", op);
+      printf("\ttype=%s\n", (type == 0) ? "float" : "double");
       printf("\terror threshold=2^%d\n", absErr_exp);
       printf("\tresult=%56.53f\n", res_b64.f64);
       printf("\texpected result=%56.53f\n", res_b64_ref.f64);
