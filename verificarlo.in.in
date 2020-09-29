@@ -166,7 +166,9 @@ def compile_only(sources, options, output, args):
         output=output))
 
 def get_tmp_filename(prefix, suffix, args):
-    abs_prefix = os.path.abspath(prefix) + '.'
+    filename_ext = os.path.basename(prefix)
+    basename = os.path.splitext(filename_ext)[0]
+    abs_prefix = os.getcwd() + os.sep + basename + "."
     tmp = tempfile.NamedTemporaryFile(mode='w+b',
                                       prefix=abs_prefix,
                                       suffix=suffix,
