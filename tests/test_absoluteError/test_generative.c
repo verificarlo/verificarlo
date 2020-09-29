@@ -75,8 +75,8 @@ int main(int argc, char const *argv[]) {
   int nbTests = atoi(argv[3]);
   int absErr_exp = atoi(argv[4]);
 
-  srand(time(0));
-  // srand(0);
+  // srand(time(0));
+  srand(0);
 
   for (i = 0; i < nbTests; i++) {
     // generate two random numbers
@@ -132,13 +132,20 @@ int main(int argc, char const *argv[]) {
     if (type == 0) {
       // adjust the mask, if the result changed exponent
       int mask_adjust = floor(log2f(res_b32.f32));
-      absErr_mask_float =
-          (1U << (FLOAT_PMAN_SIZE - abs(absErr_exp) - mask_adjust)) - 1;
+      int shiftAmount;
+
+      if(abs(absErr_exp)+mask_adjust > FLOAT_PMAN_SIZE)
+        shiftAmount = 0;
+      else
+        shiftAmount = FLOAT_PMAN_SIZE - abs(absErr_exp) - mask_adjust;
+      absErr_mask_float = (1U << shiftAmount) - 1;
 
       binary32 res_b32_check = {.f32 = res_b32.f32};
 
       binary32 res_b32_ref = {.f32 = res_b32.f32};
-      res_b32_ref.u32 = res_b32_ref.u32 & ~absErr_mask_float;
+      if(shiftAmount > 0) {
+        res_b32_ref.u32 = res_b32_ref.u32 & ~absErr_mask_float;
+      }
 
       res_b32_check.u32 = res_b32_check.u32 & absErr_mask_float;
       if (res_b32_check.u32 != 0) {
@@ -165,13 +172,20 @@ int main(int argc, char const *argv[]) {
     } else {
       // adjust the mask, if the result changed exponent
       int mask_adjust = floor(log2(res_b64.f64));
-      absErr_mask_double =
-          (1ULL << (DOUBLE_PMAN_SIZE - abs(absErr_exp) - mask_adjust)) - 1;
+      int shiftAmount;
+
+      if(abs(absErr_exp)+mask_adjust > DOUBLE_PMAN_SIZE)
+        shiftAmount = 0;
+      else
+        shiftAmount = DOUBLE_PMAN_SIZE - abs(absErr_exp) - mask_adjust;
+      absErr_mask_double = (1ULL << shiftAmount) - 1;
 
       binary64 res_b64_check = {.f64 = res_b64.f64};
 
       binary64 res_b64_ref = {.f64 = res_b64.f64};
-      res_b64_ref.u64 = res_b64_ref.u64 & ~absErr_mask_double;
+      if(shiftAmount > 0) {
+        res_b64_ref.u64 = res_b64_ref.u64 & ~absErr_mask_double;
+      }
 
       res_b64_check.u64 = res_b64_check.u64 & absErr_mask_double;
       if (res_b64_check.u64 != 0) {
