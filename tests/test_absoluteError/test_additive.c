@@ -8,7 +8,7 @@
 #include "../../src/common/float_struct.h"
 #include "../../src/common/float_utils.h"
 
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 
 #define FLOAT_RANGE_LIMIT 40
 #define DOUBLE_RANGE_LIMIT 100
@@ -199,7 +199,9 @@ int main(int argc, char const *argv[]) {
       // add 2^{absErr_exp-1} to the result
       //  this should give a result that is within 2^{absErr_exp} of the result
       //  depending on the rounding mode used by vprec
-      res_b32_check.f32 = applyOp_float(op, res_b32_check.f32, absErr_max_half);
+      //FIXME: this is only testing the addition; need a test for multiplication
+      // res_b32_check.f32 = applyOp_float(op, res_b32_check.f32, absErr_max_half);
+      res_b32_check.f32 = applyOp_float('+', res_b32_check.f32, absErr_max_half);
       if (fabsf(res_b32_check.f32 - res_b32.f32) > absErr_max) {
 #if DEBUG_MODE > 0
         printf("Fail!\n");
@@ -215,8 +217,11 @@ int main(int argc, char const *argv[]) {
 
       // add 2^{absErr_exp-2} to the result
       //  this should give a result that to the original result
+      //FIXME: this is only testing the addition; need a test for multiplication
+      // res_b32_check_v2.f32 =
+      //     applyOp_float(op, res_b32_check_v2.f32, absErr_max_quarter);
       res_b32_check_v2.f32 =
-          applyOp_float(op, res_b32_check_v2.f32, absErr_max_quarter);
+          applyOp_float('+', res_b32_check_v2.f32, absErr_max_quarter);
       if ((res_b32_check_v2.f32 - res_b32.f32) != 0) {
 #if DEBUG_MODE > 0
         printf("Fail!\n");
@@ -252,8 +257,11 @@ int main(int argc, char const *argv[]) {
       // add 2^{absErr_exp-1} to the result
       //  this should give a result that is within 2^{absErr_exp} of the result
       //  depending on the rounding mode used by vprec
+      //FIXME: this is only testing the addition; need a test for multiplication
+      // res_b64_check.f64 =
+      //     applyOp_double(op, res_b64_check.f64, absErr_max_half);
       res_b64_check.f64 =
-          applyOp_double(op, res_b64_check.f64, absErr_max_half);
+          applyOp_double('+', res_b64_check.f64, absErr_max_half);
       if (fabs(res_b64_check.f64 - res_b64.f64) > absErr_max) {
 #if DEBUG_MODE > 0
         printf("Fail!\n");
@@ -269,8 +277,11 @@ int main(int argc, char const *argv[]) {
 
       // add 2^{absErr_exp-2} to the result
       //  this should give a result that to the original result
+      //FIXME: this is only testing the addition; need a test for multiplication
+      // res_b64_check_v2.f64 =
+      //     applyOp_double(op, res_b64_check_v2.f64, absErr_max_quarter);
       res_b64_check_v2.f64 =
-          applyOp_double(op, res_b64_check_v2.f64, absErr_max_quarter);
+          applyOp_double('+', res_b64_check_v2.f64, absErr_max_quarter);
       if ((res_b64_check_v2.f64 - res_b64.f64) != 0) {
 #if DEBUG_MODE > 0
         printf("Fail!\n");
