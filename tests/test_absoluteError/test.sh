@@ -46,6 +46,9 @@ case $usecase in
 esac
 
 # ./generic_test.sh ${usecase} ${RANGE_MIN} ${RANGE_STEP} ${PRECISION_MIN} ${PRECISION_STEP} ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${NB_TESTS}
-./generic_test_simple.sh ${usecase} ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${NB_TESTS}
+
+# ./generic_test_simple.sh ${usecase} ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${NB_TESTS}
+./generic_test_simple_generative.sh ${usecase} ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${NB_TESTS}
+# ./generic_test_simple_additive.sh ${usecase} ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${NB_TESTS}
 
 exit $?
