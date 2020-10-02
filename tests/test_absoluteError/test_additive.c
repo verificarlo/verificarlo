@@ -84,8 +84,9 @@ int main(int argc, char const *argv[]) {
   for (i = 0; i < nbTests; i++) {
     // generate two random numbers
     //  create the floating point numbers
-    // binary32 a_b32 = {.f32 = ((float)rand() - (float)RAND_MAX / (float)2.0)/(float)rand()};
-    // binary32 a_b32 = {.f32 = (float)rand() - (float)RAND_MAX/(float)2.0)};
+    // binary32 a_b32 = {.f32 = ((float)rand() - (float)RAND_MAX /
+    // (float)2.0)/(float)rand()}; binary32 a_b32 = {.f32 = (float)rand() -
+    // (float)RAND_MAX/(float)2.0)};
     binary32 a_b32 = {.u32 = 0};
     binary32 b_b32 = {.u32 = 0};
     // binary64 a_b64 = {.f64 = (double)rand() - (double)RAND_MAX / 2.0};
@@ -96,70 +97,84 @@ int main(int argc, char const *argv[]) {
     if (type == 0) {
       unsigned int tmp, tmp2, tmp3;
 
-      tmp  = (rand() & 1) << (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE);
-      // tmp2 = (rand()%(1U<<(FLOAT_EXP_SIZE-1)) + FLOAT_EXP_COMP) << FLOAT_PMAN_SIZE;
-      tmp2 = (rand()%FLOAT_RANGE_LIMIT + FLOAT_EXP_COMP - FLOAT_RANGE_LIMIT/2-1) << FLOAT_PMAN_SIZE;
+      tmp = (rand() & 1) << (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE);
+      // tmp2 = (rand()%(1U<<(FLOAT_EXP_SIZE-1)) + FLOAT_EXP_COMP) <<
+      // FLOAT_PMAN_SIZE;
+      tmp2 = (rand() % FLOAT_RANGE_LIMIT + FLOAT_EXP_COMP -
+              FLOAT_RANGE_LIMIT / 2 - 1)
+             << FLOAT_PMAN_SIZE;
       // tmp3 = rand()%(1U<<FLOAT_PMAN_SIZE) & ((1U << FLOAT_PMAN_SIZE) - 1);
-      tmp3 = rand()%(1U<<FLOAT_PMAN_SIZE);
+      tmp3 = rand() % (1U << FLOAT_PMAN_SIZE);
 
       a_b32.u32 = tmp + tmp2 + tmp3;
 
 #if DEBUG_MODE > 0
       printf("sign_a=%u\nexp_a=%i\nmantissa_a=%.17f\n",
-          tmp>>(FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE),
-          (int)(tmp2>>FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP,
-          1.0+((float)tmp3/(1U<<FLOAT_PMAN_SIZE))
-      );
+             tmp >> (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE),
+             (int)(tmp2 >> FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP,
+             1.0 + ((float)tmp3 / (1U << FLOAT_PMAN_SIZE)));
 #endif
 
-      tmp  = (rand() & 1) << (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE);
-      // tmp2 = (rand()%(1U<<(FLOAT_EXP_SIZE-1)) + FLOAT_EXP_COMP) << FLOAT_PMAN_SIZE;
-      tmp2 = (rand()%FLOAT_RANGE_LIMIT + FLOAT_EXP_COMP - FLOAT_RANGE_LIMIT/2-1) << FLOAT_PMAN_SIZE;
+      tmp = (rand() & 1) << (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE);
+      // tmp2 = (rand()%(1U<<(FLOAT_EXP_SIZE-1)) + FLOAT_EXP_COMP) <<
+      // FLOAT_PMAN_SIZE;
+      tmp2 = (rand() % FLOAT_RANGE_LIMIT + FLOAT_EXP_COMP -
+              FLOAT_RANGE_LIMIT / 2 - 1)
+             << FLOAT_PMAN_SIZE;
       // tmp3 = rand()%(1U<<FLOAT_PMAN_SIZE) & ((1U << FLOAT_PMAN_SIZE) - 1);
-      tmp3 = rand()%(1U<<FLOAT_PMAN_SIZE);
-      
+      tmp3 = rand() % (1U << FLOAT_PMAN_SIZE);
+
       b_b32.u32 = tmp + tmp2 + tmp3;
 
 #if DEBUG_MODE > 0
       printf("sign_b=%u\nexp_b=%i\nmantissa_b=%.17f\n",
-          tmp>>(FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE),
-          (int)(tmp2>>FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP,
-          1.0+((float)tmp3/(1U<<FLOAT_PMAN_SIZE))
-      );
+             tmp >> (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE),
+             (int)(tmp2 >> FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP,
+             1.0 + ((float)tmp3 / (1U << FLOAT_PMAN_SIZE)));
 #endif
     } else {
       unsigned long long int tmp, tmp2, tmp3;
 
-      tmp  = (unsigned long long int)(rand() & 1) << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
-      // tmp2 = (rand()%(1ULL<<(DOUBLE_EXP_SIZE-1)) + DOUBLE_EXP_COMP) << DOUBLE_PMAN_SIZE;
-      tmp2 = (unsigned long long int)(rand()%DOUBLE_RANGE_LIMIT + DOUBLE_EXP_COMP - DOUBLE_RANGE_LIMIT/2-1) << DOUBLE_PMAN_SIZE;
-      // tmp3 = rand()%(1ULL<<DOUBLE_PMAN_SIZE) & ((1ULL << DOUBLE_PMAN_SIZE) - 1);
-      tmp3 = rand()%(1ULL<<DOUBLE_PMAN_SIZE);
+      tmp = (unsigned long long int)(rand() & 1)
+            << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
+      // tmp2 = (rand()%(1ULL<<(DOUBLE_EXP_SIZE-1)) + DOUBLE_EXP_COMP) <<
+      // DOUBLE_PMAN_SIZE;
+      tmp2 =
+          (unsigned long long int)(rand() % DOUBLE_RANGE_LIMIT +
+                                   DOUBLE_EXP_COMP - DOUBLE_RANGE_LIMIT / 2 - 1)
+          << DOUBLE_PMAN_SIZE;
+      // tmp3 = rand()%(1ULL<<DOUBLE_PMAN_SIZE) & ((1ULL << DOUBLE_PMAN_SIZE) -
+      // 1);
+      tmp3 = rand() % (1ULL << DOUBLE_PMAN_SIZE);
 
       a_b64.u64 = tmp + tmp2 + tmp3;
 
 #if DEBUG_MODE > 0
-      printf("sign_a=%llu\nexp_a=%lli\nmantissa_a=%.17f\n", 
-          tmp>>(DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE), 
-          (long long int)(tmp2>>DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP, 
-          1.0+((double)tmp3/(1ULL<<DOUBLE_PMAN_SIZE))
-      );
+      printf("sign_a=%llu\nexp_a=%lli\nmantissa_a=%.17f\n",
+             tmp >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE),
+             (long long int)(tmp2 >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP,
+             1.0 + ((double)tmp3 / (1ULL << DOUBLE_PMAN_SIZE)));
 #endif
 
-      tmp  = (unsigned long long int)(rand() & 1) << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
-      // tmp2 = (rand()%(1ULL<<(DOUBLE_EXP_SIZE-1)) + DOUBLE_EXP_COMP) << DOUBLE_PMAN_SIZE;
-      tmp2 = (unsigned long long int)(rand()%DOUBLE_RANGE_LIMIT + DOUBLE_EXP_COMP - DOUBLE_RANGE_LIMIT/2-1) << DOUBLE_PMAN_SIZE;
-      // tmp3 = rand()%(1ULL<<DOUBLE_PMAN_SIZE) & ((1ULL << DOUBLE_PMAN_SIZE) - 1);
-      tmp3 = rand()%(1ULL<<DOUBLE_PMAN_SIZE);
-      
+      tmp = (unsigned long long int)(rand() & 1)
+            << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
+      // tmp2 = (rand()%(1ULL<<(DOUBLE_EXP_SIZE-1)) + DOUBLE_EXP_COMP) <<
+      // DOUBLE_PMAN_SIZE;
+      tmp2 =
+          (unsigned long long int)(rand() % DOUBLE_RANGE_LIMIT +
+                                   DOUBLE_EXP_COMP - DOUBLE_RANGE_LIMIT / 2 - 1)
+          << DOUBLE_PMAN_SIZE;
+      // tmp3 = rand()%(1ULL<<DOUBLE_PMAN_SIZE) & ((1ULL << DOUBLE_PMAN_SIZE) -
+      // 1);
+      tmp3 = rand() % (1ULL << DOUBLE_PMAN_SIZE);
+
       b_b64.u64 = tmp + tmp2 + tmp3;
 
 #if DEBUG_MODE > 0
-      printf("sign_b=%llu\nexp_b=%lli\nmantissa_b=%.17f\n", 
-          tmp>>(DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE), 
-          (long long int)(tmp2>>DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP, 
-          1.0+((double)tmp3/(1ULL<<DOUBLE_PMAN_SIZE))
-      );
+      printf("sign_b=%llu\nexp_b=%lli\nmantissa_b=%.17f\n",
+             tmp >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE),
+             (long long int)(tmp2 >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP,
+             1.0 + ((double)tmp3 / (1ULL << DOUBLE_PMAN_SIZE)));
 #endif
     }
 
