@@ -25,7 +25,7 @@ verificarlo-c --save-temps --verbose -c --function f1 a.c 2> a
 did_instrument f1 a
 did_not_instrument f2 a
 
-echo "SUBTEST 2: Check that --include (white-list only mode) works with *"
+echo "SUBTEST 2: Check that --include (include-list only mode) works with *"
 cat > include.txt <<HERE
 #this is a comment followed by a blank line
 
@@ -36,7 +36,7 @@ verificarlo-c --verbose -c --include-file include.txt a.c 2> a
 did_instrument f1 a
 did_not_instrument f2 a
 
-echo "SUBTEST 3 : more complex white-list only"
+echo "SUBTEST 3 : more complex include-list only"
 cat > include.txt <<HERE
 a f1
 b f2
@@ -48,7 +48,7 @@ did_not_instrument f2 a
 did_not_instrument f1 b
 did_instrument f2 b
 
-echo "SUBTEST 4 : black-list only"
+echo "SUBTEST 4 : exclude-list only"
 cat > exclude.txt <<HERE
 a f1
 * f2
@@ -60,7 +60,7 @@ did_not_instrument f1 a
 did_not_instrument f2 b
 did_instrument f1 b
 
-echo "SUBTEST 5 : white-list and black-list"
+echo "SUBTEST 5 : include-list and exclude-list"
 cat > include.txt <<HERE
 b f2
 HERE
