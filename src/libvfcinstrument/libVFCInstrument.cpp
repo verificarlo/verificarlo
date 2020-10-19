@@ -174,7 +174,6 @@ struct VfclibInst : public ModulePass {
     if (not sys::fs::make_absolute(path)) {
       return path.str().str();
     } else {
-      errs() << "File " << path << " does not exist\n";
       return "";
     }
   }
@@ -235,10 +234,6 @@ struct VfclibInst : public ModulePass {
         escape_regex(mod);
         escape_regex(fun);
 
-        errs() << "Module name: " << moduleName << "\n";
-        errs() << "Module regex: " << mod << "\n";
-        errs() << "Function name: " << fun << "\n";
-
         if (std::regex_match(moduleName, std::regex(mod))) {
           moduleRegex += fun + "|";
         }
@@ -250,7 +245,6 @@ struct VfclibInst : public ModulePass {
     if (not moduleRegex.empty()) {
       moduleRegex.pop_back();
     }
-    errs() << "Regex: " << moduleRegex << "\n";
     return std::regex(moduleRegex);
   }
 
@@ -267,8 +261,6 @@ struct VfclibInst : public ModulePass {
     if (not VfclibInstFunction.empty()) {
       includeFunctionRgx = std::regex(VfclibInstFunction);
       excludeFunctionRgx = std::regex(".*");
-      errs() << "Include function regex: " << VfclibInstFunction << "\n";
-      errs() << "Exclude function regex: .*\n";
     }
 
     // Find the list of functions to instrument
@@ -340,6 +332,10 @@ struct VfclibInst : public ModulePass {
         vectorName = "2x";
       } else if (size == 4) {
         vectorName = "4x";
+      } else if (size == 8) {
+        vectorName = "8x";
+      } else if (size == 16) {
+        vectorName = "16x";
       } else {
         errs() << "Unsuported vector size: " << size << "\n";
         return nullptr;
