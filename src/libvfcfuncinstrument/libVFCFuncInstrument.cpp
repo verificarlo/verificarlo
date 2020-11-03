@@ -261,8 +261,7 @@ struct VfclibFunc : public ModulePass {
   VfclibFunc() : ModulePass(ID) { inst_cpt = 1; }
 
   virtual bool runOnModule(Module &M) {
-    const TargetLibraryInfo *TLI =
-        &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
+    TargetLibraryInfoWrapperPass TLIWP;
 
     Types2val[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 0);
     Types2val[1] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 1);
@@ -285,20 +284,18 @@ struct VfclibFunc : public ModulePass {
         Type::getInt8Ty(M.getContext()),    Type::getInt8Ty(M.getContext()),
         Type::getInt8Ty(M.getContext()),    Type::getInt32Ty(M.getContext())};
 
-    // void vfc_enter_function (char*, char, char, char, char, int, ...)
-    Constant *func = M.getOrInsertFunction(
-        "vfc_enter_function",
-        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true));
+    // Signature of enter_function and exit_function
+    FunctionType *FunTy =
+        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true);
 
-    func_enter = cast<Function>(func);
+    // void vfc_enter_function (char*, char, char, char, char, int, ...)
+    func_enter = Function::Create(FunTy, Function::ExternalLinkage,
+                                  "vfc_enter_function", &M);
     func_enter->setCallingConv(CallingConv::C);
 
     // void vfc_exit_function (char*, char, char, char, char, int, ...)
-    func = M.getOrInsertFunction(
-        "vfc_exit_function",
-        FunctionType::get(Type::getVoidTy(M.getContext()), ArgTypes, true));
-
-    func_exit = cast<Function>(func);
+    func_exit = Function::Create(FunTy, Function::ExternalLinkage,
+                                 "vfc_exit_function", &M);
     func_exit->setCallingConv(CallingConv::C);
 
     /*************************************************************************
@@ -384,7 +381,12 @@ struct VfclibFunc : public ModulePass {
 
             // Test if f is a library function //
             LibFunc libfunc;
-            bool is_from_library = TLI->getLibFunc(f->getName(), libfunc);
+#if LLVM_VERSION_MAJOR >= 10
+            const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
+#else
+            const TargetLibraryInfo &TLI = TLIWP.getTLI();
+#endif
+            bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
 
             // Test if f is instrinsic //
             bool is_intrinsic = f->isIntrinsic();
@@ -419,9 +421,10 @@ struct VfclibFunc : public ModulePass {
                 CallTypes.push_back(cast<Value>(it)->getType());
               }
 
-              Constant *c = M.getOrInsertFunction(
-                  NewName, FunctionType::get(ReturnTy, CallTypes, false));
-              Function *hook_func = cast<Function>(c);
+              FunctionType *HookFunTy =
+                  FunctionType::get(ReturnTy, CallTypes, false);
+              Function *hook_func = Function::Create(
+                  HookFunTy, Function::ExternalLinkage, NewName, &M);
 
               hook_func->setAttributes(f->getAttributes());
               hook_func->setCallingConv(f->getCallingConv());

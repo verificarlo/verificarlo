@@ -31,27 +31,20 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
+#include <cxxabi.h>
 #include <fstream>
+#include <functional>
+#include <regex>
 #include <set>
+#include <sstream>
 #include <utility>
 
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 6
-#define CREATE_CALL3(func, op1, op2, op3)                                      \
-  (Builder.CreateCall3(func, op1, op2, op3, ""))
-#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall2(func, op1, op2, ""))
-#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(i, p))
-/* This function must be used with at least one variadic argument otherwise */
-/* it will fails when compiling since it will expand as
- * M.getOrInsertFunction(name,res,,(Type*)NULL) */
-/* It could be fixed when __VA_OPT__ will be available (see
- * https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html)*/
-#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
-  M.getOrInsertFunction(name, res, __VA_ARGS__, (Type *)NULL)
-typedef llvm::Constant *_LLVMFunctionType;
-#elif LLVM_VERSION_MAJOR < 5
+#if LLVM_VERSION_MAJOR < 5
 #define CREATE_CALL3(func, op1, op2, op3)                                      \
   (Builder.CreateCall(func, {op1, op2, op3}, ""))
 #define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
@@ -114,19 +107,81 @@ enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_IGNORE };
 
 std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
 
+// Separtors for the module name
+const char path_separator = '/';
+const char relative_path_separator = '#';
+
 struct VfclibInst : public ModulePass {
   static char ID;
 
-  std::set<std::string> IncludedFunctionSet;
-  std::set<std::string> ExcludedFunctionSet;
-
   VfclibInst() : ModulePass(ID) {}
 
-  void parseFunctionSetFile(Module &M, cl::opt<std::string> &fileName,
-                            std::set<std::string> &FunctionSet) {
+  // Taken from
+  // https://www.fluentcpp.com/2017/04/21/how-to-split-a-string-in-c/
+  std::vector<std::string> split(const std::string &s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter)) {
+      tokens.push_back(token);
+    }
+    return tokens;
+  }
+
+  // taken from
+  // https://stackoverflow.com/questions/281818/unmangling-the-result-of-stdtype-infoname
+  std::string demangle(const std::string &name) {
+
+    const char *name_c_str = name.c_str();
+    int status = -4; // some arbitrary value to eliminate the compiler warning
+
+    // enable c++11 by passing the flag -std=c++11 to g++
+    std::unique_ptr<char, void (*)(void *)> res{
+        abi::__cxa_demangle(name_c_str, NULL, NULL, &status), std::free};
+    return (status == 0) ? res.get() : name;
+  }
+
+  // https://thispointer.com/find-and-replace-all-occurrences-of-a-sub-string-in-c/
+  void findAndReplaceAll(std::string &data, std::string toSearch,
+                         std::string replaceStr) {
+    // Get the first occurrence
+    size_t pos = data.find(toSearch);
+    // Repeat till end is reached
+    while (pos != std::string::npos) {
+      // Replace this occurrence of Sub String
+      data.replace(pos, toSearch.size(), replaceStr);
+      // Get the next occurrence from the current position
+      pos = data.find(toSearch, pos + replaceStr.size());
+    }
+  }
+
+  void escape_regex(std::string &str) {
+    findAndReplaceAll(str, ".", "\\.");
+    // ECMAScript needs .* instead of * for matching any charactere
+    // http://www.cplusplus.com/reference/regex/ECMAScript/
+    findAndReplaceAll(str, "*", ".*");
+  }
+
+  std::string getSourceFileNameAbsPath(Module &M) {
+
+    std::string filename = M.getSourceFileName();
+    if (sys::path::is_absolute(filename))
+      return filename;
+
+    SmallString<4096> path;
+    sys::fs::current_path(path);
+    path.append("/" + filename);
+    if (not sys::fs::make_absolute(path)) {
+      return path.str().str();
+    } else {
+      return "";
+    }
+  }
+
+  std::regex parseFunctionSetFile(Module &M, cl::opt<std::string> &fileName) {
     // Skip if empty fileName
     if (fileName.empty()) {
-      return;
+      return std::regex("");
     }
 
     // Open File
@@ -139,11 +194,18 @@ struct VfclibInst : public ModulePass {
     // Parse File, if module name matches, add function to FunctionSet
     int lineno = 0;
     std::string line;
-    // drop the .1.ll suffix in the module name
-    StringRef mod_name = StringRef(M.getModuleIdentifier()).drop_back(5);
+
+    // return the absolute path of the source file
+    std::string moduleName = getSourceFileNameAbsPath(M);
+    moduleName = (moduleName.empty()) ? M.getModuleIdentifier() : moduleName;
+
+    // Regex that contains all regex for each function
+    std::string moduleRegex = "";
+
     while (std::getline(loopstream, line)) {
       lineno++;
       StringRef l = StringRef(line);
+
       // Ignore empty or commented lines
       if (l.startswith("#") || l.trim() == "") {
         continue;
@@ -155,57 +217,80 @@ struct VfclibInst : public ModulePass {
                << lineno << "\n";
         report_fatal_error("libVFCInstrument fatal error");
       } else {
-        if (p.first.trim().equals(mod_name) || p.first.trim().equals("*")) {
-          FunctionSet.insert(p.second.trim());
+        std::string mod = p.first.trim();
+        std::string fun = p.second.trim();
+
+        // If mod is not an absolute path,
+        // we search any module containing mod
+        if (sys::path::is_relative(mod)) {
+          mod = "*" + sys::path::get_separator().str() + mod;
+        }
+        // If the user does not specify extension for the module
+        // we match any extension
+        if (not sys::path::has_extension(mod)) {
+          mod += ".*";
+        }
+
+        escape_regex(mod);
+        escape_regex(fun);
+
+        if (std::regex_match(moduleName, std::regex(mod))) {
+          moduleRegex += fun + "|";
         }
       }
     }
 
     loopstream.close();
+    // Remove the extra | at the end
+    if (not moduleRegex.empty()) {
+      moduleRegex.pop_back();
+    }
+    return std::regex(moduleRegex);
   }
 
   bool runOnModule(Module &M) {
     bool modified = false;
 
     // Parse both included and excluded function set
-    parseFunctionSetFile(M, VfclibInstIncludeFile, IncludedFunctionSet);
-    parseFunctionSetFile(M, VfclibInstExcludeFile, ExcludedFunctionSet);
+    std::regex includeFunctionRgx =
+        parseFunctionSetFile(M, VfclibInstIncludeFile);
+    std::regex excludeFunctionRgx =
+        parseFunctionSetFile(M, VfclibInstExcludeFile);
 
     // Parse instrument single function option (--function)
-    if (!VfclibInstFunction.empty()) {
-      IncludedFunctionSet.insert(VfclibInstFunction);
-      ExcludedFunctionSet.insert("*");
+    if (not VfclibInstFunction.empty()) {
+      includeFunctionRgx = std::regex(VfclibInstFunction);
+      excludeFunctionRgx = std::regex(".*");
     }
 
     // Find the list of functions to instrument
     std::vector<Function *> functions;
-    for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
-      // White-list
-      if (IncludedFunctionSet.find("*") != IncludedFunctionSet.end() ||
-          IncludedFunctionSet.find(F->getName()) != IncludedFunctionSet.end()) {
-        functions.push_back(&*F);
+    for (auto &F : M.functions()) {
+
+      const std::string &name = F.getName().str();
+
+      // Included-list
+      if (std::regex_match(name, includeFunctionRgx)) {
+        functions.push_back(&F);
         continue;
       }
 
-      // Black-list
-      if (ExcludedFunctionSet.find("*") != ExcludedFunctionSet.end() ||
-          ExcludedFunctionSet.find(F->getName()) != ExcludedFunctionSet.end()) {
+      // Excluded-list
+      if (std::regex_match(name, excludeFunctionRgx)) {
         continue;
       }
 
-      // If black-list is empty and while-list is not, we are done
-      if (VfclibInstExcludeFile.empty() && !VfclibInstIncludeFile.empty()) {
+      // If excluded-list is empty and included-list is not, we are done
+      if (VfclibInstExcludeFile.empty() and not VfclibInstIncludeFile.empty()) {
         continue;
       } else {
-        // Everything else is neither white-listed or black-listed
-        functions.push_back(&*F);
+        // Everything else is neither include-listed or exclude-listed
+        functions.push_back(&F);
       }
     }
-
     // Do the instrumentation on selected functions
-    for (std::vector<Function *>::iterator F = functions.begin();
-         F != functions.end(); ++F) {
-      modified |= runOnFunction(M, **F);
+    for (auto F : functions) {
+      modified |= runOnFunction(M, *F);
     }
     // runOnModule must return true if the pass modifies the IR
     return modified;
@@ -214,7 +299,7 @@ struct VfclibInst : public ModulePass {
   bool runOnFunction(Module &M, Function &F) {
     if (VfclibInstVerbose) {
       errs() << "In Function: ";
-      errs().write_escaped(F.getName()) << '\n';
+      errs().write_escaped(demangle(F.getName())) << '\n';
     }
 
     bool modified = false;
@@ -247,6 +332,10 @@ struct VfclibInst : public ModulePass {
         vectorName = "2x";
       } else if (size == 4) {
         vectorName = "4x";
+      } else if (size == 8) {
+        vectorName = "8x";
+      } else if (size == 16) {
+        vectorName = "16x";
       } else {
         errs() << "Unsuported vector size: " << size << "\n";
         return nullptr;
@@ -338,7 +427,7 @@ struct VfclibInst : public ModulePass {
 
     return modified;
   }
-};
+}; // namespace
 } // namespace
 
 char VfclibInst::ID = 0;

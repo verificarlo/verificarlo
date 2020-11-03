@@ -228,10 +228,10 @@ output:	0	$i	8" > config.txt
 	./test 52 $i >> output.txt
 done
 
-if [ $(diff -U 0 result.txt output.txt | grep ^@ | wc -l) == 0 ]
-then 
+if [ $(diff -U 0 result.txt output.txt | wc -l) == 0 ]
+then
 	exit 0
-else 
-	echo $(diff -U 0 result.txt output.txt | grep ^@ | wc -l)
+else
+	echo $(diff -U 0 result.txt output.txt | wc -l)
 	exit 1
 fi

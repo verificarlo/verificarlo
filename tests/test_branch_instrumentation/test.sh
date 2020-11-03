@@ -1,26 +1,27 @@
 #!/bin/bash
 set -e
 
-verificarlo-c -c test.c -emit-llvm
+rm -f *.2.ll
+verificarlo-c -c test.c -emit-llvm --save-temps
 
-if grep "fcmp ogt" test.2.ll || grep "fcmp ole" test.2.ll ; then
+if grep "fcmp ogt" test.*.2.ll || grep "fcmp ole" test.*.2.ll ; then
   echo "comparison operations not instrumented"
 else
   echo "comparison operations INSTRUMENTED without --inst-fcmp"
   exit 1
 fi
 
+rm -f *.2.ll
+verificarlo-c --inst-fcmp -c test.c -emit-llvm --save-temps
 
-verificarlo-c --inst-fcmp -c test.c -emit-llvm
-
-if grep "fcmp ogt" test.2.ll || grep "fcmp ole" test.2.ll ; then
+if grep "fcmp ogt" test.*.2.ll || grep "fcmp ole" test.*.2.ll ; then
   echo "comparison operations NOT instrumented with --inst-fcmp"
   exit 1
 else
   echo "comparison operations instrumented"
 fi
 
-if grep "_4xdoublecmp" test.2.ll; then
+if grep "_4xdoublecmp" test.*.2.ll; then
   echo "vector comparison instrumented"
 else
   echo "vector comparison NOT instrumented with --inst-fcmp"

@@ -5,7 +5,8 @@
  *  Copyright (c) 2015                                                       *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *     CMLA, Ecole Normale Superieure de Cachan                              *
- *  Copyright (c) 2019                                                       *
+ *  Copyright (c) 2019-2020						     *
+ *     Verificarlo contributors                                              *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *                                                                           *
  *  Verificarlo is free software: you can redistribute it and/or modify      *
@@ -27,34 +28,7 @@
 #include "float_const.h"
 #include "float_struct.h"
 
-inline float round_binary32_denormal(float x, int emin, int xexp,
-                                     int precision) {
-
-  /* build 1/2 ulp and add it  before truncation for faithfull rounding */
-
-  /* position to the end of the target prec-1 */
-  const uint32_t target_position = FLOAT_PMAN_SIZE - precision - 1;
-
-  /*precision loss due to denormalizqation*/
-  const uint32_t precision_loss = emin - xexp;
-
-  /* truncate the trailing bits */
-  const uint32_t mask_denormal =
-      0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision + precision_loss);
-
-  binary32 b32_x = {.f32 = x};
-  b32_x.ieee.mantissa = 0;
-  binary32 half_ulp = {.f32 = x};
-  half_ulp.ieee.mantissa = 1 << (target_position + precision_loss);
-
-  b32_x.f32 = x + (half_ulp.f32 - b32_x.f32);
-  b32_x.u32 &= mask_denormal;
-
-  return b32_x.f32;
-}
-
 inline float round_binary32_normal(float x, int precision) {
-
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
   /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other word,
@@ -75,34 +49,7 @@ inline float round_binary32_normal(float x, int precision) {
   return b32x.f32;
 }
 
-inline double round_binary64_denormal(double x, int emin, int xexp,
-                                      int precision) {
-
-  /* build 1/2 ulp and add it before truncation for faithfull rounding */
-
-  /* position to the end of the target prec-1 */
-  const uint64_t target_position = DOUBLE_PMAN_SIZE - precision - 1;
-
-  /*precision loss due to denormalization*/
-  const uint64_t precision_loss = emin - xexp;
-
-  /* truncate the trailing bits */
-  const uint64_t mask_denormal =
-      0xFFFFFFFFFFFFFFFF << (DOUBLE_PMAN_SIZE - precision + precision_loss);
-
-  binary64 b64x = {.f64 = x};
-  b64x.ieee.mantissa = 0;
-  binary64 half_ulp = {.f64 = x};
-  half_ulp.ieee.mantissa = 1ULL << (target_position + precision_loss);
-
-  b64x.f64 = x + (half_ulp.f64 - b64x.f64);
-  b64x.u64 &= mask_denormal;
-
-  return b64x.f64;
-}
-
 inline double round_binary64_normal(double x, int precision) {
-
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
   /* generate a mask to erase the last 52-VPRECLIB_PREC bits, in other word,
@@ -123,28 +70,49 @@ inline double round_binary64_normal(double x, int precision) {
   return b64x.f64;
 }
 
-inline float handle_binary32_denormal(float x, int emin, int xexp,
-                                      int precision) {
+inline static double round_binary_denormal(double x, int emin, int precision) {
+  /* emin represents the lowest exponent in the normal range */
+
+  /* build 1/2 ulp and add it before truncation for faithful rounding */
+  binary128 half_ulp;
+  half_ulp.ieee128.exponent = QUAD_EXP_COMP + (emin - precision) - 1;
+  half_ulp.ieee128.sign = x < 0;
+  half_ulp.ieee128.mantissa = 0;
+  binary128 b128_x = {.f128 = x + half_ulp.f128};
+
+  /* truncate trailing bits */
+  const int32_t precision_loss =
+      emin - (b128_x.ieee128.exponent - QUAD_EXP_COMP);
+  __uint128_t mask_denormal = 0;
+  mask_denormal = ~mask_denormal
+                  << (QUAD_PMAN_SIZE - precision + precision_loss);
+  b128_x.ieee128.mantissa &= mask_denormal;
+
+  return b128_x.f128;
+}
+
+inline float handle_binary32_denormal(float x, int emin, int precision) {
+  binary32 b32_x = {.f32 = x};
   /* underflow */
-  if (xexp < (emin - precision)) {
-    /* multiply by 0 a to keep the sign */
+  if ((b32_x.ieee.exponent - FLOAT_EXP_COMP) < (emin - precision)) {
+    /* multiply by 0 to keep the sign */
     return x * 0;
   }
   /* denormal */
   else if (precision <= FLOAT_PMAN_SIZE) {
-    return round_binary32_denormal(x, emin, xexp, precision);
+    return round_binary_denormal(x, emin, precision);
   }
 }
 
-inline double handle_binary64_denormal(double x, int emin, int xexp,
-                                       int precision) {
+inline double handle_binary64_denormal(double x, int emin, int precision) {
+  binary64 b64_x = {.f64 = x};
   /* underflow */
-  if (xexp < (emin - precision)) {
-    /* multiply by a 0 to keep the sign */
+  if ((b64_x.ieee.exponent - DOUBLE_EXP_COMP) < (emin - precision)) {
+    /* multiply by 0 to keep the sign */
     return x * 0;
   }
   /* denormal */
   else if (precision <= DOUBLE_PMAN_SIZE) {
-    return round_binary64_denormal(x, emin, xexp, precision);
+    return round_binary_denormal(x, emin, precision);
   }
 }
