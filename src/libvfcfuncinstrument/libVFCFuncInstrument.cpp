@@ -364,81 +364,83 @@ struct VfclibFunc : public ModulePass {
 
           if (isa<CallInst>(pi)) {
             // collect metadata info //
-            Function *f = cast<CallInst>(pi)->getCalledFunction();
+            if (Function *f = cast<CallInst>(pi)->getCalledFunction()) {
 
-            MDNode *N = pi->getMetadata("dbg");
-            DILocation *Loc = cast<DILocation>(N);
-            unsigned line = Loc->getLine();
-            std::string File = Loc->getFilename().str();
-            std::string Name = demangle(f->getName().str());
-            std::string Line = std::to_string(line);
-            std::string NewName = "vfc_" + File + "/" + f->getName().str() +
-                                  "_" + Line + "_" + std::to_string(inst_cpt) +
-                                  "_" + "_hook";
+	      if (MDNode *N = pi->getMetadata("dbg")) {
+		DILocation *Loc = cast<DILocation>(N);
+	        unsigned line = Loc->getLine();
+		std::string File = Loc->getFilename().str();
+		std::string Name = demangle(f->getName().str());
+		std::string Line = std::to_string(line);
+		std::string NewName = "vfc_" + File + "/" + f->getName().str() +
+		                      "_" + Line + "_" + std::to_string(inst_cpt) +
+		                      "_" + "_hook";
 
-            std::string FunctionName = File + "/" + Name + "_" + Line + "_" +
-                                       std::to_string(++inst_cpt);
+		std::string FunctionName = File + "/" + Name + "_" + Line + "_" +
+		                           std::to_string(++inst_cpt);
 
-            // Test if f is a library function //
-            LibFunc libfunc;
+		// Test if f is a library function //
+		LibFunc libfunc;
 #if LLVM_VERSION_MAJOR >= 10
-            const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
+		const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
 #else
-            const TargetLibraryInfo &TLI = TLIWP.getTLI();
+		const TargetLibraryInfo &TLI = TLIWP.getTLI();
 #endif
-            bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
+		bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
 
-            // Test if f is instrinsic //
-            bool is_intrinsic = f->isIntrinsic();
+		// Test if f is instrinsic //
+		bool is_intrinsic = f->isIntrinsic();
 
-            // Test if the function use double or float
-            bool use_float, use_double;
-            haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
-                                        &use_float, &use_double, M);
+		// Test if the function use double or float
+		bool use_float, use_double;
+		haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
+                                            &use_float, &use_double, M);
 
-            if (!(is_intrinsic && (!use_float && !use_double))) {
-              // Create function ID
-              Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
+		if (!(is_intrinsic && (!use_float && !use_double))) {
+		  // Create function ID
+		  Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
 
-              // Constants creation
-              Constant *isLibraryFunction = ConstantInt::get(
-                  Type::getInt8Ty(M.getContext()), is_from_library);
-              Constant *isInstrinsicFunction = ConstantInt::get(
-                  Type::getInt8Ty(M.getContext()), is_intrinsic);
-              Constant *haveFloat =
-                  ConstantInt::get(Type::getInt8Ty(M.getContext()), use_float);
-              Constant *haveDouble =
-                  ConstantInt::get(Type::getInt8Ty(M.getContext()), use_double);
+		  // Constants creation
+		  Constant *isLibraryFunction = ConstantInt::get(
+                      Type::getInt8Ty(M.getContext()), is_from_library);
+		  Constant *isInstrinsicFunction = ConstantInt::get(
+                      Type::getInt8Ty(M.getContext()), is_intrinsic);
+		  Constant *haveFloat =
+                      ConstantInt::get(Type::getInt8Ty(M.getContext()), use_float);
+		  Constant *haveDouble =
+                      ConstantInt::get(Type::getInt8Ty(M.getContext()), use_double);
 
-              // Enter function arguments
-              std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
-                                            isInstrinsicFunction, haveFloat,
-                                            haveDouble};
+		  // Enter function arguments
+		  std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
+                                                isInstrinsicFunction, haveFloat,
+                                                haveDouble};
 
-              Type *ReturnTy = f->getReturnType();
-              std::vector<Type *> CallTypes;
-              for (auto it = pi->op_begin(); it < pi->op_end() - 1; it++) {
-                CallTypes.push_back(cast<Value>(it)->getType());
-              }
+		  Type *ReturnTy = f->getReturnType();
+		  std::vector<Type *> CallTypes;
+		  for (auto it = pi->op_begin(); it < pi->op_end() - 1; it++) {
+		    CallTypes.push_back(cast<Value>(it)->getType());
+		  }
 
-              FunctionType *HookFunTy =
-                  FunctionType::get(ReturnTy, CallTypes, false);
-              Function *hook_func = Function::Create(
-                  HookFunTy, Function::ExternalLinkage, NewName, &M);
+		  FunctionType *HookFunTy =
+                      FunctionType::get(ReturnTy, CallTypes, false);
+		  Function *hook_func = Function::Create(
+                      HookFunTy, Function::ExternalLinkage, NewName, &M);
 
-              hook_func->setAttributes(f->getAttributes());
-              hook_func->setCallingConv(f->getCallingConv());
+		  hook_func->setAttributes(f->getAttributes());
+		  hook_func->setCallingConv(f->getCallingConv());
 
-              BasicBlock *block =
-                  BasicBlock::Create(M.getContext(), "block", hook_func);
+		  BasicBlock *block =
+                      BasicBlock::Create(M.getContext(), "block", hook_func);
 
-              InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
-                                 block);
+		  InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
+				     block);
 
-              cast<CallInst>(pi)->setCalledFunction(hook_func);
-            }
-          }
-        }
+		  cast<CallInst>(pi)->setCalledFunction(hook_func);
+		}
+	      }
+	    }
+	  }
+	}
       }
     }
 
