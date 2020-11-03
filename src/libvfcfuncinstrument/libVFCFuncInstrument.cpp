@@ -493,47 +493,48 @@ struct VfclibFunc : public ModulePass {
 
           if (isa<CallInst>(pi)) {
             // collect metadata info //
-            Function *f = cast<CallInst>(pi)->getCalledFunction();
+            if (Function *f = cast<CallInst>(pi)->getCalledFunction()) {
 
-            MDNode *N = pi->getMetadata("dbg");
-            DILocation *Loc = cast<DILocation>(N);
-            DISubprogram *Sub = f->getSubprogram();
-            unsigned line = Loc->getLine();
-            std::string File = Loc->getFilename();
-            std::string Name;
+            if (MDNode *N = pi->getMetadata("dbg")) {
+              DILocation *Loc = cast<DILocation>(N);
+              DISubprogram *Sub = f->getSubprogram();
+              unsigned line = Loc->getLine();
+              std::string File = Loc->getFilename();
+              std::string Name;
 
-            if (Sub) {
-              Name = Sub->getName().str();
-            } else {
-              Name = f->getName().str();
-            }
+              if (Sub) {
+                Name = Sub->getName().str();
+              } else {
+                Name = f->getName().str();
+              }
 
-            std::string Line = std::to_string(line);
-            std::string NewName = "vfc_" + File + "/" + Parent + "/" + Name +
-                                  "/" + Line + "/" + std::to_string(inst_cpt) +
-                                  +"_hook";
+              std::string Line = std::to_string(line);
+              std::string NewName = "vfc_" + File + "/" + Parent + "/" + Name +
+                                    "/" + Line + "/" + std::to_string(inst_cpt) +
+                                    +"_hook";
 
-            std::string FunctionName = File + "/" + Parent + "/" + Name + "/" +
-                                       Line + "/" + std::to_string(++inst_cpt);
+              std::string FunctionName = File + "/" + Parent + "/" + Name + "/" +
+                                         Line + "/" + std::to_string(++inst_cpt);
 
 // Test if f is a library function //
 #if LLVM_VERSION_MAJOR >= 10
-            const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
+                const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
 #else
-            const TargetLibraryInfo &TLI = TLIWP.getTLI();
+                const TargetLibraryInfo &TLI = TLIWP.getTLI();
 #endif
 
             LibFunc libfunc;
 
-            bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
+                bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
 
-            // Test if f is instrinsic //
-            bool is_intrinsic = f->isIntrinsic();
+                // Test if f is instrinsic //
+                bool is_intrinsic = f->isIntrinsic();
 
-            // Test if the function use double or float
-            bool use_float, use_double;
-            haveFloatingPointArithmetic(pi, f, is_from_library, is_intrinsic,
-                                        &use_float, &use_double, M);
+                // Test if the function use double or float
+                bool use_float, use_double;
+                haveFloatingPointArithmetic(pi, f, is_from_library,
+                                            is_intrinsic, &use_float,
+                                            &use_double, M);
 
             // If the called function is an intrinsic function that does not use
             // float or double, do not instrument it.
@@ -587,6 +588,8 @@ struct VfclibFunc : public ModulePass {
         }
       }
     }
+}
+}
 
     return true;
   }

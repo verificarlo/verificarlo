@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#*******************************************************************************
+# *******************************************************************************
 #                                                                              *
 #  This file is part of Verificarlo.                                           *
 #                                                                              *
@@ -21,7 +21,7 @@
 #  You should have received a copy of the GNU General Public License           *
 #  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.        *
 #                                                                              *
-#*******************************************************************************
+# *******************************************************************************
 
 from __future__ import print_function
 
@@ -47,15 +47,17 @@ opt = llvm_bindir + '/opt'
 FORTRAN_EXTENSIONS = [".f", ".f90", ".f77"]
 C_EXTENSIONS = [".c"]
 CXX_EXTENSIONS = ['.cc', '.cp', '.cpp', '.cxx', 'c++']
-ASSEMBLY_EXTENSIONS = [ '.s' ]
-linkers = {'clang':clang, 'flang':flang, 'clang++':clangxx}
+ASSEMBLY_EXTENSIONS = ['.s']
+linkers = {'clang': clang, 'flang': flang, 'clang++': clangxx}
 default_linker = 'clang'
 temp_files_set = set()
+
 
 class NoPrefixParser(argparse.ArgumentParser):
     # ignore prefix autocompletion of options
     def _get_option_tuples(self, option_string):
         return []
+
 
 def close_tmp_files():
     for tmp in temp_files_set:
@@ -64,10 +66,12 @@ def close_tmp_files():
         except FileNotFoundError:
             continue
 
+
 def fail(msg):
     close_tmp_files()
     print(sys.argv[0] + ': ' + msg, file=sys.stderr)
     sys.exit(1)
+
 
 def is_fortran(name):
     return os.path.splitext(name)[1].lower() in FORTRAN_EXTENSIONS
@@ -165,8 +169,11 @@ def compile_only(sources, options, output, args):
         options=options,
         output=output))
 
+
 def get_tmp_filename(prefix, suffix, args):
-    abs_prefix = os.path.abspath(prefix) + '.'
+    filename_ext = os.path.basename(prefix)
+    basename = os.path.splitext(filename_ext)[0]
+    abs_prefix = os.getcwd() + os.sep + basename + "."
     tmp = tempfile.NamedTemporaryFile(mode='w+b',
                                       prefix=abs_prefix,
                                       suffix=suffix,
@@ -174,11 +181,12 @@ def get_tmp_filename(prefix, suffix, args):
     temp_files_set.add(tmp)
     return tmp
 
+
 def compiler_mode(sources, options, output, args):
     for source in sources:
         basename = os.path.splitext(source)[0]
-        ir = get_tmp_filename(basename,'.1.ll',args)
-        ins = get_tmp_filename(basename,'.2.ll',args)
+        ir = get_tmp_filename(basename, '.1.ll', args)
+        ins = get_tmp_filename(basename, '.2.ll', args)
 
         compiler = linkers[args.linker]
 
@@ -226,9 +234,9 @@ def compiler_mode(sources, options, output, args):
                 libvfcfuncinstrument=libvfcfuncinstrument,
                 ir=ir.name,
                 ins=ins.name
-                ))
+            ))
             ir = ins
-            ins = get_tmp_filename(basename,'.3.ll',args)
+            ins = get_tmp_filename(basename, '.3.ll', args)
 
         # Apply MCA instrumentation pass
         shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {extra_args} {selectfunction} {ir} -o {ins}'.format(
@@ -238,7 +246,7 @@ def compiler_mode(sources, options, output, args):
             extra_args=extra_args,
             ir=ir.name,
             ins=ins.name
-            ))
+        ))
 
         if not output:
             basename_output = '-o ' + basename + '.o'
@@ -252,24 +260,40 @@ def compiler_mode(sources, options, output, args):
             ins=ins.name,
             options=options))
 
+
 if __name__ == "__main__":
-    parser = NoPrefixParser(description='Compiles a program replacing floating point operation with calls to the mcalib (Montecarlo Arithmetic).')
-    parser.add_argument('-E', action='store_true', help='only run the preprocessor')
-    parser.add_argument('-S', action='store_true', help='only run preprocess and compilation steps')
-    parser.add_argument('-c', action='store_true', help='only run preprocess, compile, and assemble steps')
+    parser = NoPrefixParser(
+        description='Compiles a program replacing floating point operation with calls to the mcalib (Montecarlo Arithmetic).')
+    parser.add_argument('-E', action='store_true',
+                        help='only run the preprocessor')
+    parser.add_argument('-S', action='store_true',
+                        help='only run preprocess and compilation steps')
+    parser.add_argument('-c', action='store_true',
+                        help='only run preprocess, compile, and assemble steps')
     parser.add_argument('-o', metavar='file', help='write output to <file>')
-    parser.add_argument('--ddebug', action='store_true', help='enable delta-debug mode')
-    parser.add_argument('--function', metavar='function', help='only instrument <function>')
-    parser.add_argument('--include-file', metavar='file', help='white-list module and functions')
-    parser.add_argument('--exclude-file', metavar='file', help='black-list module and functions')
-    parser.add_argument('-static', '--static', action='store_true', help='produce a static binary')
-    parser.add_argument('--verbose', action='store_true', help='verbose output')
-    parser.add_argument('--inst-fcmp', action='store_true', help='instrument floating point comparisons')
-    parser.add_argument('--inst-func', action='store_true', help='instrument functions')
-    parser.add_argument('--show-cmd', action='store_true', help='show internal commands')
-    parser.add_argument('--save-temps', action='store_true', help='save intermediate files')
+    parser.add_argument('--ddebug', action='store_true',
+                        help='enable delta-debug mode')
+    parser.add_argument('--function', metavar='function',
+                        help='only instrument <function>')
+    parser.add_argument('--include-file', metavar='file',
+                        help='inlcude-list module and functions')
+    parser.add_argument('--exclude-file', metavar='file',
+                        help='exclude-list module and functions')
+    parser.add_argument('-static', '--static',
+                        action='store_true', help='produce a static binary')
+    parser.add_argument('--verbose', action='store_true',
+                        help='verbose output')
+    parser.add_argument('--inst-fcmp', action='store_true',
+                        help='instrument floating point comparisons')
+    parser.add_argument('--inst-func', action='store_true',
+                        help='instrument functions')
+    parser.add_argument('--show-cmd', action='store_true',
+                        help='show internal commands')
+    parser.add_argument('--save-temps', action='store_true',
+                        help='save intermediate files')
     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
-    parser.add_argument('--linker', choices=linkers.keys(), default=default_linker, help="linker to use, {dl} by default".format(dl=default_linker))
+    parser.add_argument('--linker', choices=linkers.keys(), default=default_linker,
+                        help="linker to use, {dl} by default".format(dl=default_linker))
 
     args, other = parser.parse_known_args()
 

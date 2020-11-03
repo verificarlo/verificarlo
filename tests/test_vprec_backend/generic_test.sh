@@ -1,8 +1,12 @@
 #!/bin/bash
+##uncomment to stop on error
+#set -e
+##uncomment to show all command executed by the script
+#set -x
 
-if [[ $# != 5 ]]; then
+if [[ $# != 6 ]]; then
     echo "expected 5 arguments, $# given"
-    echo "usecase range_min range_step precision_min precision_step"
+    echo "usecase range_min range_step precision_min precision_step n_samples"
     exit 1
 else
     USECASE=$1
@@ -10,11 +14,13 @@ else
     RANGE_STEP=$3
     PRECISION_MIN=$4
     PRECISION_STEP=$5
+    N_SAMPLES=$6
     echo "USECASE=${USECASE}"
     echo "RANGE_MIN=${RANGE_MIN}"
     echo "RANGE_STEP=${RANGE_STEP}"
     echo "PRECISION_MIN=${PRECISION_MIN}"
     echo "PRECISION_STEP=${PRECISION_STEP}"
+    echo "N_SAMPLES=${N_SAMPLES}"
 fi
 
 export VERIFICARLO_BACKEND=VPREC
@@ -61,59 +67,53 @@ print_sep() {
 }
 
 compute_op() {
-    rm mpfr.txt
-    rm vprec.txt
-    while read a b; do
-	./compute_mpfr_rounding.py $a $b $1 $2 >> mpfr.txt
-	./compute_vprec_rounding $a $b $1 >> vprec.txt
-    done < input.txt
+  while read a b; do
+    ./compute_mpfr_rounding.py $a $b $1 $2 >> mpfr.txt
+    ./compute_vprec_rounding $a $b $1 >> vprec.txt
+  done < input.txt
 }
 
-check_output() {
-    echo "Check output"
-    ./check_output.py 2>> log.error
-
-    if [[ $? != 0 ]]; then			
-	msg="Type: ${TYPE} Mode: ${MODE} Range: ${RANGE} OP: ${OP} Precision: ${PRECISION}"
-	print_sep "${msg}"       
-	echo "${msg}"
-	print_sep "${msg}"
-	./print_error.py input.txt mpfr.txt vprec.txt >> log.error
-    fi
-}
-
-for TYPE in "${float_type_list[@]}"; do
-    echo $LD_LIBRARY_PATH
-
-    echo "TYPE: ${TYPE}"
-    export VERIFICARLO_VPREC_TYPE=$TYPE
-    
-    verificarlo-c compute_vprec_rounding.c -DREAL=$TYPE -o compute_vprec_rounding --verbose
-
-    for MODE in "${modes_list[@]}"; do
-	echo "MODE: ${MODE}"
-	export VERIFICARLO_VPREC_MODE=$MODE
-
-	for RANGE  in `seq ${RANGE_MIN} ${RANGE_STEP} ${range_max[$TYPE]}`; do
-	    echo "Range: ${RANGE}"
-	    export VERIFICARLO_VPREC_RANGE=$RANGE
-
-	    ./generate_input.py 5 $RANGE
-
-	    for OP in "${operation_list[@]}"; do 
-		echo "OP: ${OP}"
-
-		for PRECISION in `seq ${PRECISION_MIN} ${PRECISION_STEP} ${precision_max[$TYPE]}`; do
-		    echo "Precision: ${PRECISION}"
-		    export VERIFICARLO_PRECISION=$PRECISION
-		    export VERIFICARLO_OP=$OP
-		    export VFC_BACKENDS="libinterflop_vprec.so ${precision_option[$TYPE]}=${PRECISION} ${range_option[$TYPE]}=${RANGE} --mode=${MODE}"
-		    compute_op $OP $TYPE
-		    check_output		    
+for TYPE in "${float_type_list[@]}"
+do
+	echo "TYPE: ${TYPE}"
+	export VERIFICARLO_VPREC_TYPE=$TYPE
+    	verificarlo-c compute_vprec_rounding.c -DREAL=$TYPE -o compute_vprec_rounding --verbose
+    	for MODE in "${modes_list[@]}"
+	do
+		echo "MODE: ${MODE}"
+		export VERIFICARLO_VPREC_MODE=$MODE
+		for RANGE  in `seq ${RANGE_MIN} ${RANGE_STEP} ${range_max[$TYPE]}`
+		do
+	    		echo "Range: ${RANGE}"
+	    		export VERIFICARLO_VPREC_RANGE=$RANGE
+			rm -f input.txt
+			./generate_input.py $N_SAMPLES $RANGE
+			for OP in "${operation_list[@]}"
+			do 
+				echo "OP: ${OP}"
+		    		export VERIFICARLO_OP=$OP
+				for PRECISION in `seq ${PRECISION_MIN} ${PRECISION_STEP} ${precision_max[$TYPE]}`
+				do
+		    			echo "Precision: ${PRECISION}"
+		    			export VERIFICARLO_PRECISION=$PRECISION
+		    			export VFC_BACKENDS="libinterflop_vprec.so ${precision_option[$TYPE]}=${PRECISION} ${range_option[$TYPE]}=${RANGE} --mode=${MODE}"
+		    			rm -f mpfr.txt vprec.txt
+					compute_op $OP $TYPE
+		    			./check_output.py 2>> log.error
+				done
+      done
 		done
-	    done
+		rm compute_vprec_rounding
 	done
-    done
 done
 
 cat log.error
+
+if [ -s "log.error" ]
+	then
+		echo "Test failed"
+		exit 1
+	else
+		echo "Test suceed"
+		exit 0
+fi

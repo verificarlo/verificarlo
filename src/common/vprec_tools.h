@@ -35,12 +35,10 @@
  * is set.
  *******************************************************************/
 
-float round_binary32_denormal(float x, int emin, int xexp, int precision);
 float round_binary32_normal(float x, int precision);
-float handle_binary32_denormal(float x, int emin, int xexp, int precision);
+float handle_binary32_denormal(float x, int emin, int precision);
 
 double round_binary64_normal(double x, int precision);
-double round_binary64_denormal(double x, int emin, int xexp, int precision);
-double handle_binary64_denormal(double x, int emin, int xexp, int precision);
+double handle_binary64_denormal(double x, int emin, int precision);
 
 #endif /* __VPREC_TOOLS_H__ */

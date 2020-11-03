@@ -1,8 +1,8 @@
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
-## Verificarlo v0.4.0
+## Verificarlo v0.4.1
 
-[![Build Status](https://github.com/verificarlo/verificarlo/workflows/test-docker/badge.svg?branch=master)
+![Build Status](https://github.com/verificarlo/verificarlo/workflows/test-docker/badge.svg?branch=master)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
 [![Coverity](https://scan.coverity.com/projects/19956/badge.svg)](https://scan.coverity.com/projects/verificarlo-verificarlo)
 
@@ -511,15 +511,16 @@ If you only wish to instrument a specific function in your program, use the
    $ verificarlo-c *.c -o ./program --function=specificfunction
 ```
 
-For more complex scenarios, a white-list / black-list mechanism is also
+For more complex scenarios, a included-list / excluded-list mechanism is also
 available through the options `--include-file INCLUSION-FILE` and
 `--exclude-file EXCLUSION-FILE`.
 
 `INCLUSION-FILE` and `EXCLUSION-FILE` are files specifying which modules and
 functions should be included or excluded from Verificarlo instrumentation.
 Each line has a module name followed by a function name. Both the module or
-function name can be replaced by the wildcard `*`. Empty lines or lines
-starting with `#` are ignored.
+function name can be replaced by the wildcard `*`. You can also use 
+the wildcard like a regex expression.
+Empty lines or lines starting with `#` are ignored.
 
 ```
 # include.txt
@@ -534,6 +535,12 @@ util f2
 # module3.c
 * f3
 module3 *
+
+# include.txt
+# this inclusion file will instrument any function starting by g in main.c
+# and all functions f in any module of the directory dir
+main.c g*
+dir/* * 
 ```
 
 Inclusion and exclusion files can be used together, in that case inclusion

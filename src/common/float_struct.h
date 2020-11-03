@@ -30,7 +30,7 @@ typedef union {
 #endif
   {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    unsigned negative : QUAD_SIGN_SIZE;
+    unsigned sign : QUAD_SIGN_SIZE;
     unsigned exponent : QUAD_EXP_SIZE;
     uint64_t mant_high : QUAD_HX_PMAN_SIZE;
     uint64_t mant_low : QUAD_LX_PMAN_SIZE;
@@ -38,7 +38,7 @@ typedef union {
     uint64_t mant_low : QUAD_LX_PMAN_SIZE;
     uint64_t mant_high : QUAD_HX_PMAN_SIZE;
     unsigned exponent : QUAD_EXP_SIZE;
-    unsigned negative : QUAD_SIGN_SIZE;
+    unsigned sign : QUAD_SIGN_SIZE;
 #endif
   } ieee;
 

@@ -108,7 +108,7 @@ typedef enum {
 #define VPREC_PRECISION_BINARY32_MIN 1
 #define VPREC_PRECISION_BINARY32_MAX FLOAT_PMAN_SIZE
 #define VPREC_PRECISION_BINARY32_DEFAULT FLOAT_PMAN_SIZE
-#define VPREC_RANGE_BINARY32_MIN 1
+#define VPREC_RANGE_BINARY32_MIN 2
 #define VPREC_RANGE_BINARY32_MAX FLOAT_EXP_SIZE
 #define VPREC_RANGE_BINARY32_DEFAULT FLOAT_EXP_SIZE
 
@@ -116,7 +116,7 @@ typedef enum {
 #define VPREC_PRECISION_BINARY64_MIN 1
 #define VPREC_PRECISION_BINARY64_MAX DOUBLE_PMAN_SIZE
 #define VPREC_PRECISION_BINARY64_DEFAULT DOUBLE_PMAN_SIZE
-#define VPREC_RANGE_BINARY64_MIN 1
+#define VPREC_RANGE_BINARY64_MIN 2
 #define VPREC_RANGE_BINARY64_MAX DOUBLE_EXP_SIZE
 #define VPREC_RANGE_BINARY64_DEFAULT DOUBLE_EXP_SIZE
 
@@ -293,39 +293,26 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   /* round to zero or set to infinity if underflow or overflow compare to
    * VPRECLIB_BINARY32_RANGE */
   int emax = (1 << (binary32_range - 1)) - 1;
-  int emin = (emax > 1) ? 1 - emax : -1;
+  // here emin is the smallest exponent in the *normal* range
+  int emin = 1 - emax;
 
   binary32 aexp = {.f32 = a};
-
   aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP;
 
   /* check for overflow or underflow in target range */
-  bool sp_case = false;
   if (aexp.s32 > emax) {
     a = a * INFINITY;
-    sp_case = true;
+    return a;
   }
 
-  if (aexp.s32 <= emin) {
+  if (aexp.s32 < emin) {
     if ((((t_context *)context)->daz && is_input) ||
         (((t_context *)context)->ftz && !is_input)) {
       a = 0;
     } else {
-      a = handle_binary32_denormal(a, emin, aexp.u32, binary32_precision);
+      a = handle_binary32_denormal(a, emin, binary32_precision);
     }
-  }
-
-  /* Specials ops must be placed after denormal handling  */
-  /* If one of the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
-
-  if (sp_case) {
-    return a;
-  }
-
-  /* else, normal case: can be executed even if a
-     previously rounded and truncated as denormal */
-  if (binary32_precision < FLOAT_PMAN_SIZE) {
+  } else {
     a = round_binary32_normal(a, binary32_precision);
   }
 
@@ -344,38 +331,27 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* round to zero or set to infinity if underflow or overflow compare to
    * VPRECLIB_BINARY64_RANGE */
   int emax = (1 << (binary64_range - 1)) - 1;
-  int emin = (emax > 1) ? 1 - emax : -1;
+  // here emin is the smallest exponent in the *normal* range
+  int emin = 1 - emax;
 
   binary64 aexp = {.f64 = a};
   aexp.s64 =
       ((DOUBLE_GET_EXP & aexp.u64) >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
 
   /* check for overflow or underflow in target range */
-  bool sp_case = false;
   if (aexp.s64 > emax) {
     a = a * INFINITY;
-    sp_case = true;
+    return a;
   }
 
-  if (aexp.s64 <= emin) {
+  if (aexp.s64 < emin) {
     if ((((t_context *)context)->daz && is_input) ||
         (((t_context *)context)->ftz && !is_input)) {
       a = 0;
     } else {
-      a = handle_binary64_denormal(a, emin, aexp.u64, binary64_precision);
+      a = handle_binary64_denormal(a, emin, binary64_precision);
     }
-  }
-
-  /* Special ops must be placed after denormal handling  */
-  /* If the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
-  if (sp_case) {
-    return a;
-  }
-
-  /* else normal case, can be executed even if a previously rounded and
-   * truncated as denormal */
-  if (binary64_precision < DOUBLE_PMAN_SIZE) {
+  } else {
     a = round_binary64_normal(a, binary64_precision);
   }
 
