@@ -295,15 +295,15 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   if (aexp.s32 < emin) {
     if ((((t_context *)context)->daz && is_input) ||
         (((t_context *)context)->ftz && !is_input)) {
-      a = 0;
+      return a * 0; // preserve sign
+    } else if (FP_ZERO == fpclassify(a)) {
+      return a;
     } else {
-      a = handle_binary32_denormal(a, emin, binary32_precision);
+      return handle_binary32_denormal(a, emin, binary32_precision);
     }
   } else {
-    a = round_binary32_normal(a, binary32_precision);
+    return round_binary32_normal(a, binary32_precision);
   }
-
-  return a;
 }
 
 // Round the double with the given precision
@@ -334,15 +334,15 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   if (aexp.s64 < emin) {
     if ((((t_context *)context)->daz && is_input) ||
         (((t_context *)context)->ftz && !is_input)) {
-      a = 0;
+      return a * 0; // preserve sign
+    } else if (FP_ZERO == fpclassify(a)) {
+      return a;
     } else {
-      a = handle_binary64_denormal(a, emin, binary64_precision);
+      return handle_binary64_denormal(a, emin, binary64_precision);
     }
   } else {
-    a = round_binary64_normal(a, binary64_precision);
+    return round_binary64_normal(a, binary64_precision);
   }
-
-  return a;
 }
 
 static inline float _vprec_binary32_binary_op(float a, float b,
