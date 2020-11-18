@@ -401,11 +401,15 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 
   /* in absolute error mode, the error threshold also gives the possible
    * underflow limit */
-  if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
-    if (currentContext->absErr_exp > emin)
+  if (currentContext->absErr == true) {
+    if (currentContext->relErr == true) {
+      /* relative and absolute error mode */
+      if (currentContext->absErr_exp > emin)
+        emin = currentContext->absErr_exp;
+    } else {
+      /* absolute error mode */
       emin = currentContext->absErr_exp;
-  } else if (currentContext->absErr == true) {
-    emin = currentContext->absErr_exp;
+    }
   }
 
   binary32 aexp = {.f32 = a};
@@ -419,25 +423,17 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 
   /* check for underflow in target range */
   if (aexp.s32 < emin) {
+    /* underflow case: possibly a denormal */
     if ((currentContext->daz && is_input) ||
         (currentContext->ftz && !is_input)) {
       a = 0;
     } else {
-      if ((currentContext->relErr == true) &&
-          (currentContext->absErr == true)) {
-        /* vprec error mode all */
-        if (abs(currentContext->absErr_exp) < binary32_precision)
-          a = handle_binary32_denormal(a, emin,
-                                       abs(currentContext->absErr_exp));
-        else
-          a = handle_binary32_denormal(a, emin, binary32_precision);
-      } else if (currentContext->absErr == true) {
-        /* vprec error mode abs */
-        a = handle_binary32_denormal(a, emin, abs(currentContext->absErr_exp));
-      } else {
-        /* vprec error mode rel */
-        a = handle_binary32_denormal(a, emin, binary32_precision);
-      }
+      int binary32_precision_adjusted;
+      if (currentContext->absErr == true) 
+        binary32_precision_adjusted = compute_absErr_vprec_binary32(true, context, 0, binary32_precision);
+      else
+        binary32_precision_adjusted = binary32_precision;
+      a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
     }
   }
 
