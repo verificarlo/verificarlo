@@ -271,6 +271,50 @@ void _set_vprec_inst_mode(vprec_inst_mode mode) {
   }
 }
 
+/******************** VPREC HELPER FUNCTIONS *******************
+ * The following functions are used to set virtual precision,
+ * VPREC mode of operation and instrumentation mode.
+ ***************************************************************/
+
+int compute_absErr_vprec_binary32(bool isDenormal, void *context, int expDiff, int binary32_precision) {
+  t_context *currentContext = (t_context *)context;
+
+  if (isDenormal == true) {
+    /* denormal, or underflow case */
+    if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+      /* vprec error mode all */
+      if (abs(currentContext->absErr_exp) < binary32_precision)
+        return currentContext->absErr_exp;
+      else
+        return binary32_precision;
+    } else if (currentContext->absErr == true) {
+      /* vprec error mode abs */
+      return currentContext->absErr_exp;
+    } else {
+      /* vprec error mode rel */
+      return binary32_precision;
+    }
+  } else {
+    /* normal case */
+    if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+      /* vprec error mode all */
+      if (expDiff < binary32_precision)
+        return expDiff;
+      else {
+        return binary32_precision;
+      }
+    } else if (currentContext->absErr == true) {
+      /* vprec error mode abs */
+      if (expDiff < FLOAT_PMAN_SIZE) {
+        return expDiff;
+      }
+    } else {
+      /* vprec error mode rel */
+      return binary32_precision;
+    }
+  }
+}
+
 /******************** VPREC ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the VPREC operation. Operands
  * are first correctly rounded to the target precison format if inbound
@@ -334,25 +378,17 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 
   /* check for underflow in target range */
   if (aexp.s32 < emin) {
+    /* underflow case: possibly a denormal */
     if ((currentContext->daz && is_input) ||
         (currentContext->ftz && !is_input)) {
       a = 0;
     } else {
-      if ((currentContext->relErr == true) &&
-          (currentContext->absErr == true)) {
-        /* vprec error mode all */
-        if (abs(currentContext->absErr_exp) < binary32_precision)
-          a = handle_binary32_denormal(a, emin,
-                                       abs(currentContext->absErr_exp));
-        else
-          a = handle_binary32_denormal(a, emin, binary32_precision);
-      } else if (currentContext->absErr == true) {
-        /* vprec error mode abs */
-        a = handle_binary32_denormal(a, emin, abs(currentContext->absErr_exp));
-      } else {
-        /* vprec error mode rel */
-        a = handle_binary32_denormal(a, emin, binary32_precision);
-      }
+      int binary32_precision_adjusted;
+      if (currentContext->absErr == true) 
+        binary32_precision_adjusted = compute_absErr_vprec_binary32(true, context, 0, binary32_precision);
+      else
+        binary32_precision_adjusted = binary32_precision;
+      a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
     }
   }
 
