@@ -316,6 +316,46 @@ int compute_absErr_vprec_binary32(bool isDenormal, void *context, int expDiff,
   }
 }
 
+int compute_absErr_vprec_binary64(bool isDenormal, void *context, int expDiff,
+                                  int binary64_precision) {
+  t_context *currentContext = (t_context *)context;
+
+  if (isDenormal == true) {
+    /* denormal, or underflow case */
+    if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+      /* vprec error mode all */
+      if (abs(currentContext->absErr_exp) < binary64_precision)
+        return currentContext->absErr_exp;
+      else
+        return binary64_precision;
+    } else if (currentContext->absErr == true) {
+      /* vprec error mode abs */
+      return currentContext->absErr_exp;
+    } else {
+      /* vprec error mode rel */
+      return binary64_precision;
+    }
+  } else {
+    /* normal case */
+    if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+      /* vprec error mode all */
+      if (expDiff < binary64_precision)
+        return expDiff;
+      else {
+        return binary64_precision;
+      }
+    } else if (currentContext->absErr == true) {
+      /* vprec error mode abs */
+      if (expDiff < FLOAT_PMAN_SIZE) {
+        return expDiff;
+      }
+    } else {
+      /* vprec error mode rel */
+      return binary64_precision;
+    }
+  }
+}
+
 /******************** VPREC ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the VPREC operation. Operands
  * are first correctly rounded to the target precison format if inbound
@@ -434,11 +474,15 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
 
   /* in absolute error mode, the error threshold also gives the possible
    * underflow limit */
-  if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
-    if (currentContext->absErr_exp > emin)
+  if (currentContext->absErr == true) {
+    if (currentContext->relErr == true) {
+      /* relative and absolute error mode */
+      if (currentContext->absErr_exp > emin)
+        emin = currentContext->absErr_exp;
+    } else {
+      /* absolute error mode */
       emin = currentContext->absErr_exp;
-  } else if (currentContext->absErr == true) {
-    emin = currentContext->absErr_exp;
+    }
   }
 
   binary64 aexp = {.f64 = a};
@@ -448,29 +492,23 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   /* check for overflow in target range */
   if (aexp.s64 > emax) {
     a = a * INFINITY;
+    return a;
   }
 
   /* check for underflow in target range */
   if (aexp.s64 < emin) {
+    /* underflow case: possibly a denormal */
     if ((currentContext->daz && is_input) ||
         (currentContext->ftz && !is_input)) {
       a = 0;
     } else {
-      if ((currentContext->relErr == true) &&
-          (currentContext->absErr == true)) {
-        /* vprec error mode all */
-        if (abs(currentContext->absErr_exp) < binary64_precision)
-          a = handle_binary64_denormal(a, emin,
-                                       abs(currentContext->absErr_exp));
-        else
-          a = handle_binary64_denormal(a, emin, binary64_precision);
-      } else if (currentContext->absErr == true) {
-        /* vprec error mode abs */
-        a = handle_binary64_denormal(a, emin, abs(currentContext->absErr_exp));
-      } else {
-        /* vprec error mode rel */
-        a = handle_binary64_denormal(a, emin, binary64_precision);
-      }
+      int binary64_precision_adjusted;
+      if (currentContext->absErr == true)
+        binary64_precision_adjusted =
+            compute_absErr_vprec_binary64(true, context, 0, binary64_precision);
+      else
+        binary64_precision_adjusted = binary64_precision;
+      a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
     }
   }
 
