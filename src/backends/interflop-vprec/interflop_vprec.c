@@ -276,7 +276,8 @@ void _set_vprec_inst_mode(vprec_inst_mode mode) {
  * VPREC mode of operation and instrumentation mode.
  ***************************************************************/
 
-int compute_absErr_vprec_binary32(bool isDenormal, void *context, int expDiff, int binary32_precision) {
+int compute_absErr_vprec_binary32(bool isDenormal, void *context, int expDiff,
+                                  int binary32_precision) {
   t_context *currentContext = (t_context *)context;
 
   if (isDenormal == true) {
@@ -384,8 +385,9 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
       a = 0;
     } else {
       int binary32_precision_adjusted;
-      if (currentContext->absErr == true) 
-        binary32_precision_adjusted = compute_absErr_vprec_binary32(true, context, 0, binary32_precision);
+      if (currentContext->absErr == true)
+        binary32_precision_adjusted =
+            compute_absErr_vprec_binary32(true, context, 0, binary32_precision);
       else
         binary32_precision_adjusted = binary32_precision;
       a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
