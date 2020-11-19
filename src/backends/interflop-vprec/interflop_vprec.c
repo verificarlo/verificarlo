@@ -472,8 +472,9 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
       a = 0;
     } else {
       int binary32_precision_adjusted;
-      if (currentContext->absErr == true) 
-        binary32_precision_adjusted = compute_absErr_vprec_binary32(true, context, 0, binary32_precision);
+      if (currentContext->absErr == true)
+        binary32_precision_adjusted =
+            compute_absErr_vprec_binary32(true, context, 0, binary32_precision);
       else
         binary32_precision_adjusted = binary32_precision;
       a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
