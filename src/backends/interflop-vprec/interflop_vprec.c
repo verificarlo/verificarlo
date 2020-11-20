@@ -388,7 +388,8 @@ int compute_absErr_vprec_binary64(bool isDenormal, void *context, int expDiff,
 static float _vprec_round_binary32(float a, char is_input, void *context,
                                    int binary32_range, int binary32_precision) {
   t_context *currentContext = (t_context *)context;
-  /* test if a is special cases */
+
+  /* test if 'a' is a special case */
   if (!isfinite(a)) {
     return a;
   }
@@ -489,7 +490,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
                                     int binary64_precision) {
   t_context *currentContext = (t_context *)context;
 
-  /* test if a is special cases */
+  /* test if 'a' is a special case */
   if (!isfinite(a)) {
     return a;
   }
