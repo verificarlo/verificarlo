@@ -375,6 +375,10 @@ int compute_absErr_vprec_binary64(bool isDenormal, void *context, int expDiff,
 static float _vprec_round_binary32(float a, char is_input, void *context,
                                    int binary32_range, int binary32_precision) {
   t_context *currentContext = (t_context *)context;
+<<<<<<< HEAD
+=======
+
+>>>>>>> e92cad6f246fccbc5e747387a1871735ba2426ca
   /* test if a is special cases */
   if (!isfinite(a)) {
     return a;
@@ -458,18 +462,6 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
 
   /* in absolute error mode, the error threshold also gives the possible
    * underflow limit */
-  if (currentContext->absErr == true) {
-    if (currentContext->relErr == true) {
-      /* relative and absolute error mode */
-      if (currentContext->absErr_exp > emin)
-        emin = currentContext->absErr_exp;
-    } else {
-      /* absolute error mode */
-      emin = currentContext->absErr_exp;
-    }
-  }
-    
-  /* in absolute error mode, the error threshold also gives the possible underflow limit */
   if (currentContext->absErr == true) {
     if (currentContext->relErr == true) {
       /* relative and absolute error mode */
