@@ -400,18 +400,18 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   /* here emin is the smallest exponent in the *normal* range */
   int emin = 1 - emax;
 
-  /* in absolute error mode, the error threshold also gives the possible
-   * underflow limit */
-  if (currentContext->absErr == true) {
-    if (currentContext->relErr == true) {
-      /* relative and absolute error mode */
-      if (currentContext->absErr_exp > emin)
-        emin = currentContext->absErr_exp;
-    } else {
-      /* absolute error mode */
-      emin = currentContext->absErr_exp;
-    }
-  }
+  // /* in absolute error mode, the error threshold also gives the possible
+  //  * underflow limit */
+  // if (currentContext->absErr == true) {
+  //   if (currentContext->relErr == true) {
+  //     /* relative and absolute error mode */
+  //     if (currentContext->absErr_exp > emin)
+  //       emin = currentContext->absErr_exp;
+  //   } else {
+  //     /* absolute error mode */
+  //     emin = currentContext->absErr_exp;
+  //   }
+  // }
 
   binary32 aexp = {.f32 = a};
   aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP;
@@ -429,13 +429,16 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         (currentContext->ftz && !is_input)) {
       a = 0;
     } else {
-      int binary32_precision_adjusted;
-      if (currentContext->absErr == true)
+      if (currentContext->absErr == true) {
+        /* absolute error, or absolute and relative error mode */
+        int binary32_precision_adjusted;
         binary32_precision_adjusted =
             compute_absErr_vprec_binary32(true, context, 0, binary32_precision);
-      else
-        binary32_precision_adjusted = binary32_precision;
-      a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
+        a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
+      } else {
+        /* relative error mode */
+        a = handle_binary32_denormal(a, emin, binary32_precision);
+      }
     }
   }
 
@@ -531,25 +534,41 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         (currentContext->ftz && !is_input)) {
       a = 0;
     } else {
-      int binary64_precision_adjusted;
-      if (currentContext->absErr == true)
+      if (currentContext->absErr == true) {
+        int binary64_precision_adjusted;
         binary64_precision_adjusted =
             compute_absErr_vprec_binary64(true, context, 0, binary64_precision);
-      else
-        binary64_precision_adjusted = binary64_precision;
-      a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
+        a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
+      } else {
+        a = handle_binary64_denormal(a, emin, binary64_precision);
+      }
     }
   } else {
     /* else, normal case: can be executed even if a
      previously rounded and truncated as denormal */
-    int expDiff = aexp.s64 - currentContext->absErr_exp;
-    int binary64_precision_adjusted;
-    if (currentContext->absErr == true)
+    if (currentContext->absErr == true) {
+      /* absolute error, or absolute and relative error mode */
+      int expDiff = aexp.s64 - currentContext->absErr_exp;
+      int binary64_precision_adjusted;
       binary64_precision_adjusted = compute_absErr_vprec_binary64(
           false, context, expDiff, binary64_precision);
-    else
-      binary64_precision_adjusted = binary64_precision;
-    a = round_binary64_normal(a, binary64_precision_adjusted);
+      if (expDiff < -1) {
+        /* equivalent to underflow on the precision given by the absolute error */
+        a = 0;
+      } else if (expDiff == -1) {
+        /* case when the number is just below the absolute error threshold, 
+         but will round to one ulp on the format given by the absolute error;
+         this needs to be handled separately, as round_binary32_normal cannot 
+         generate this number */
+         a = powf(2, currentContext->absErr_exp);
+      } else {
+        /* normal case for the absolute error mode */
+        a = round_binary64_normal(a, binary64_precision_adjusted);
+      }
+    } else {
+      /* relative error mode */
+      a = round_binary64_normal(a, binary64_precision);
+    }
   }
 
   /* Special ops must be placed after denormal handling  */
