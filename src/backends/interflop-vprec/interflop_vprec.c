@@ -502,13 +502,16 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         (currentContext->ftz && !is_input)) {
       a = 0;
     } else {
-      int binary32_precision_adjusted;
-      if (currentContext->absErr == true)
+      if (currentContext->absErr == true) {
+        /* absolute error, or absolute and relative error mode */
+        int binary32_precision_adjusted;
         binary32_precision_adjusted =
             compute_absErr_vprec_binary32(true, context, 0, binary32_precision);
-      else
-        binary32_precision_adjusted = binary32_precision;
-      a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
+        a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
+      } else {
+        /* relative error mode */
+        a = handle_binary32_denormal(a, emin, binary32_precision);
+      }
     }
   }
 
@@ -634,13 +637,14 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         (currentContext->ftz && !is_input)) {
       a = 0;
     } else {
-      int binary64_precision_adjusted;
-      if (currentContext->absErr == true)
+      if (currentContext->absErr == true) {
+        int binary64_precision_adjusted;
         binary64_precision_adjusted =
             compute_absErr_vprec_binary64(true, context, 0, binary64_precision);
-      else
-        binary64_precision_adjusted = binary64_precision;
-      a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
+        a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
+      } else {
+        a = handle_binary64_denormal(a, emin, binary64_precision);
+      }
     }
   }
 
