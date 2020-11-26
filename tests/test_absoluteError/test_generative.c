@@ -8,7 +8,7 @@
 #include "../../src/common/float_struct.h"
 #include "../../src/common/float_utils.h"
 
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 
 double applyOp_double(char op, double a, double b) {
   double res = 0.0;
@@ -98,7 +98,7 @@ int main(int argc, char const *argv[]) {
       // double
       tmp = rand() & FLOAT_GET_PMAN;
       tmp2 = rand() & ((1 << (DOUBLE_PMAN_SIZE - FLOAT_PMAN_SIZE)) - 1);
-      a_b64.u64 += (unsigned long int)tmp;
+      a_b64.u64 += (unsigned long long int)tmp;
       a_b64.u64 += (unsigned long long int)(tmp2 << (FLOAT_PMAN_SIZE));
     }
 
@@ -111,7 +111,7 @@ int main(int argc, char const *argv[]) {
       // double
       tmp = rand() & FLOAT_GET_PMAN;
       tmp2 = rand() & ((1 << (DOUBLE_PMAN_SIZE - FLOAT_PMAN_SIZE)) - 1);
-      b_b64.u64 += (unsigned long int)tmp;
+      b_b64.u64 += (unsigned long long int)tmp;
       b_b64.u64 += (unsigned long long int)(tmp2 << (FLOAT_PMAN_SIZE));
     }
 
@@ -141,13 +141,25 @@ int main(int argc, char const *argv[]) {
       absErr_mask_float = (1U << shiftAmount) - 1;
 
       binary32 res_b32_check = {.f32 = res_b32.f32};
-
       binary32 res_b32_ref = {.f32 = res_b32.f32};
-      if(shiftAmount > 0) {
-        res_b32_ref.u32 = res_b32_ref.u32 & ~absErr_mask_float;
+
+      if (mask_adjust >= absErr_exp) {
+        // should apply the mask to test for the correct result
+        res_b32_check.u32 = res_b32_check.u32 & absErr_mask_float;
+        if(shiftAmount > 0) {
+          res_b32_ref.u32 = res_b32_ref.u32 & ~absErr_mask_float;
+        }
+      } else {
+        // should create the correct result by hand
+        if ((mask_adjust - absErr_exp) == -1) {
+          res_b32_check.f32 = res_b32.f32 - powf(2, absErr_exp);
+          res_b32_ref.f32 = powf(2, absErr_exp);
+        } else {
+          res_b32_check.f32 = 0;
+          res_b32_ref.f32 = 0;
+        }
       }
 
-      res_b32_check.u32 = res_b32_check.u32 & absErr_mask_float;
       if (res_b32_check.u32 != 0) {
 #if DEBUG_MODE > 0
         printf("Fail!\n");
@@ -181,13 +193,25 @@ int main(int argc, char const *argv[]) {
       absErr_mask_double = (1ULL << shiftAmount) - 1;
 
       binary64 res_b64_check = {.f64 = res_b64.f64};
-
       binary64 res_b64_ref = {.f64 = res_b64.f64};
-      if(shiftAmount > 0) {
-        res_b64_ref.u64 = res_b64_ref.u64 & ~absErr_mask_double;
+
+      if (mask_adjust >= absErr_exp) {
+        // should apply the mask to test for the correct result
+        res_b64_check.u64 = res_b64_check.u64 & absErr_mask_double;
+        if(shiftAmount > 0) {
+          res_b64_ref.u64 = res_b64_ref.u64 & ~absErr_mask_double;
+        }
+      } else {
+        // should create the correct result by hand
+        if ((mask_adjust - absErr_exp) == -1) {
+          res_b64_check.f64 = res_b64.f64 - powf(2, absErr_exp);
+          res_b64_ref.f64 = powf(2, absErr_exp);
+        } else {
+          res_b64_check.f64 = 0;
+          res_b64_ref.f64 = 0;
+        }
       }
 
-      res_b64_check.u64 = res_b64_check.u64 & absErr_mask_double;
       if (res_b64_check.u64 != 0) {
 #if DEBUG_MODE > 0
         printf("Fail!\n");
