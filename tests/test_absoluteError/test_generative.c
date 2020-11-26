@@ -8,7 +8,7 @@
 #include "../../src/common/float_struct.h"
 #include "../../src/common/float_utils.h"
 
-#define DEBUG_MODE 1
+#define DEBUG_MODE 0
 
 double applyOp_double(char op, double a, double b) {
   double res = 0.0;
