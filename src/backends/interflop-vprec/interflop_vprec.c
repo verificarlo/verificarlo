@@ -444,7 +444,9 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
          but will round to one ulp on the format given by the absolute error;
          this needs to be handled separately, as round_binary32_normal cannot
          generate this number */
-        a = powf(2, currentContext->absErr_exp);
+        binary32 asgn = {.f32 = a};
+        int a_sign = 0 - (asgn.u32 >> (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE));
+        a = a_sign * exp2f(currentContext->absErr_exp);
       } else {
         /* normal case for the absolute error mode */
         a = round_binary32_normal(a, binary32_precision_adjusted);
@@ -531,7 +533,9 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
          but will round to one ulp on the format given by the absolute error;
          this needs to be handled separately, as round_binary32_normal cannot
          generate this number */
-        a = powf(2, currentContext->absErr_exp);
+        binary64 asgn = {.f64 = a};
+        int a_sign = 0 - (asgn.u64 >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
+        a = a_sign * exp2(currentContext->absErr_exp);
       } else {
         /* normal case for the absolute error mode */
         a = round_binary64_normal(a, binary64_precision_adjusted);
