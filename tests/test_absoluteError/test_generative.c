@@ -152,8 +152,8 @@ int main(int argc, char const *argv[]) {
       } else {
         // should create the correct result by hand
         if ((mask_adjust - absErr_exp) == -1) {
-          res_b32_check.f32 = res_b32.f32 - powf(2, absErr_exp);
-          res_b32_ref.f32 = powf(2, absErr_exp);
+          res_b32_check.f32 = res_b32.f32 - exp2f(absErr_exp);
+          res_b32_ref.f32 = exp2f(absErr_exp);
         } else {
           res_b32_check.f32 = 0;
           res_b32_ref.f32 = 0;
@@ -204,8 +204,8 @@ int main(int argc, char const *argv[]) {
       } else {
         // should create the correct result by hand
         if ((mask_adjust - absErr_exp) == -1) {
-          res_b64_check.f64 = res_b64.f64 - powf(2, absErr_exp);
-          res_b64_ref.f64 = powf(2, absErr_exp);
+          res_b64_check.f64 = res_b64.f64 - exp2(absErr_exp);
+          res_b64_ref.f64 = exp2(absErr_exp);
         } else {
           res_b64_check.f64 = 0;
           res_b64_ref.f64 = 0;
