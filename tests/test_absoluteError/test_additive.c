@@ -78,19 +78,14 @@ int main(int argc, char const *argv[]) {
   int nbTests = atoi(argv[3]);
   int absErr_exp = atoi(argv[4]);
 
-  srand(time(0));
-  // srand(0);
+  // srand(time(0));
+  srand(0);
 
   for (i = 0; i < nbTests; i++) {
     // generate two random numbers
     //  create the floating point numbers
-    // binary32 a_b32 = {.f32 = ((float)rand() - (float)RAND_MAX /
-    // (float)2.0)/(float)rand()}; binary32 a_b32 = {.f32 = (float)rand() -
-    // (float)RAND_MAX/(float)2.0)};
     binary32 a_b32 = {.u32 = 0};
     binary32 b_b32 = {.u32 = 0};
-    // binary64 a_b64 = {.f64 = (double)rand() - (double)RAND_MAX / 2.0};
-    // binary64 b_b64 = {.f64 = (double)rand() - (double)RAND_MAX / 2.0};
     binary64 a_b64 = {.u64 = 0};
     binary64 b_b64 = {.u64 = 0};
 
@@ -98,12 +93,9 @@ int main(int argc, char const *argv[]) {
       unsigned int tmp, tmp2, tmp3;
 
       tmp = (rand() & 1) << (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE);
-      // tmp2 = (rand()%(1U<<(FLOAT_EXP_SIZE-1)) + FLOAT_EXP_COMP) <<
-      // FLOAT_PMAN_SIZE;
       tmp2 = (rand() % FLOAT_RANGE_LIMIT + FLOAT_EXP_COMP -
               FLOAT_RANGE_LIMIT / 2 - 1)
              << FLOAT_PMAN_SIZE;
-      // tmp3 = rand()%(1U<<FLOAT_PMAN_SIZE) & ((1U << FLOAT_PMAN_SIZE) - 1);
       tmp3 = rand() % (1U << FLOAT_PMAN_SIZE);
 
       a_b32.u32 = tmp + tmp2 + tmp3;
@@ -116,12 +108,9 @@ int main(int argc, char const *argv[]) {
 #endif
 
       tmp = (rand() & 1) << (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE);
-      // tmp2 = (rand()%(1U<<(FLOAT_EXP_SIZE-1)) + FLOAT_EXP_COMP) <<
-      // FLOAT_PMAN_SIZE;
       tmp2 = (rand() % FLOAT_RANGE_LIMIT + FLOAT_EXP_COMP -
               FLOAT_RANGE_LIMIT / 2 - 1)
              << FLOAT_PMAN_SIZE;
-      // tmp3 = rand()%(1U<<FLOAT_PMAN_SIZE) & ((1U << FLOAT_PMAN_SIZE) - 1);
       tmp3 = rand() % (1U << FLOAT_PMAN_SIZE);
 
       b_b32.u32 = tmp + tmp2 + tmp3;
@@ -137,14 +126,10 @@ int main(int argc, char const *argv[]) {
 
       tmp = (unsigned long long int)(rand() & 1)
             << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
-      // tmp2 = (rand()%(1ULL<<(DOUBLE_EXP_SIZE-1)) + DOUBLE_EXP_COMP) <<
-      // DOUBLE_PMAN_SIZE;
       tmp2 =
           (unsigned long long int)(rand() % DOUBLE_RANGE_LIMIT +
                                    DOUBLE_EXP_COMP - DOUBLE_RANGE_LIMIT / 2 - 1)
           << DOUBLE_PMAN_SIZE;
-      // tmp3 = rand()%(1ULL<<DOUBLE_PMAN_SIZE) & ((1ULL << DOUBLE_PMAN_SIZE) -
-      // 1);
       tmp3 = rand() % (1ULL << DOUBLE_PMAN_SIZE);
 
       a_b64.u64 = tmp + tmp2 + tmp3;
@@ -158,14 +143,10 @@ int main(int argc, char const *argv[]) {
 
       tmp = (unsigned long long int)(rand() & 1)
             << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
-      // tmp2 = (rand()%(1ULL<<(DOUBLE_EXP_SIZE-1)) + DOUBLE_EXP_COMP) <<
-      // DOUBLE_PMAN_SIZE;
       tmp2 =
           (unsigned long long int)(rand() % DOUBLE_RANGE_LIMIT +
                                    DOUBLE_EXP_COMP - DOUBLE_RANGE_LIMIT / 2 - 1)
           << DOUBLE_PMAN_SIZE;
-      // tmp3 = rand()%(1ULL<<DOUBLE_PMAN_SIZE) & ((1ULL << DOUBLE_PMAN_SIZE) -
-      // 1);
       tmp3 = rand() % (1ULL << DOUBLE_PMAN_SIZE);
 
       b_b64.u64 = tmp + tmp2 + tmp3;
