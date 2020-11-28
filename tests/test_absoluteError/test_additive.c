@@ -197,7 +197,7 @@ int main(int argc, char const *argv[]) {
       }
 
       // add 2^{absErr_exp-2} to the result
-      //  this should give a result that to the original result
+      //  this should give a result identical to the original result
       //FIXME: this is only testing the addition; need a test for multiplication
       // res_b32_check_v2.f32 =
       //     applyOp_float(op, res_b32_check_v2.f32, absErr_max_quarter);
