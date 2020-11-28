@@ -49,6 +49,6 @@ esac
 
 # ./generic_test_simple.sh ${usecase} ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${NB_TESTS}
 ./generic_test_simple_generative.sh ${usecase} ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${NB_TESTS}
-# ./generic_test_simple_additive.sh ${usecase} ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${NB_TESTS}
+./generic_test_simple_additive.sh ${usecase} ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${NB_TESTS}
 
 exit $?
