@@ -203,18 +203,37 @@ int main(int argc, char const *argv[]) {
       //     applyOp_float(op, res_b32_check_v2.f32, absErr_max_quarter);
       res_b32_check_v2.f32 =
           applyOp_float('+', res_b32_check_v2.f32, absErr_max_quarter);
-      if ((res_b32_check_v2.f32 - res_b32.f32) != 0) {
+      // for positive numbers, the result should be identical
+      // for negative numbers, the result should be within 2^{absErr_exp} of
+      // the result
+      // this is because we use round to infinity mode in vprec absErr backend
+      if (res_b32.f32 >= 0) {
+        if ((res_b32_check_v2.f32 - res_b32.f32) != 0) {
 #if DEBUG_MODE > 0
-        printf("Fail!\n");
+          printf("Fail!\n");
 #endif
-        // ret = 1;
-        ret += 1;
+          // ret = 1;
+          ret += 1;
+        } else {
+#if DEBUG_MODE > 0
+          printf("Success!\n");
+#endif
+          // ret = 0;
+        }
       } else {
+        if (fabsf(res_b32_check_v2.f32 - res_b32.f32) > absErr_max) {
 #if DEBUG_MODE > 0
-        printf("Success!\n");
+          printf("Fail!\n");
 #endif
-        // ret = 0;
-      }
+          // ret = 1;
+          ret += 1;
+        } else {
+#if DEBUG_MODE > 0
+          printf("Success!\n");
+#endif
+          // ret = 0;
+        }
+      }      
 
 #if DEBUG_MODE > 0
       printf("\ta=%56.53f\n", a_b32.f32);
@@ -257,23 +276,42 @@ int main(int argc, char const *argv[]) {
       }
 
       // add 2^{absErr_exp-2} to the result
-      //  this should give a result that to the original result
+      //  this should give a result identical to the original result
       //FIXME: this is only testing the addition; need a test for multiplication
       // res_b64_check_v2.f64 =
       //     applyOp_double(op, res_b64_check_v2.f64, absErr_max_quarter);
       res_b64_check_v2.f64 =
           applyOp_double('+', res_b64_check_v2.f64, absErr_max_quarter);
-      if ((res_b64_check_v2.f64 - res_b64.f64) != 0) {
+      // for positive numbers, the result should be identical
+      // for negative numbers, the result should be within 2^{absErr_exp} of
+      // the result
+      // this is because we use round to infinity mode in vprec absErr backend
+      if (res_b64.f64 >= 0) {
+        if ((res_b64_check_v2.f64 - res_b64.f64) != 0) {
 #if DEBUG_MODE > 0
-        printf("Fail!\n");
+          printf("Fail!\n");
 #endif
-        // ret = 1;
-        ret += 1;
+          // ret = 1;
+          ret += 1;
+        } else {
+#if DEBUG_MODE > 0
+          printf("Success!\n");
+#endif
+          // ret = 0;
+        }
       } else {
+        if (fabs(res_b64_check_v2.f64 - res_b64.f64) > absErr_max) {
 #if DEBUG_MODE > 0
-        printf("Success!\n");
+          printf("Fail!\n");
 #endif
-        // ret = 0;
+          // ret = 1;
+          ret += 1;
+        } else {
+#if DEBUG_MODE > 0
+          printf("Success!\n");
+#endif
+          // ret = 0;
+        }
       }
 
 #if DEBUG_MODE > 0
