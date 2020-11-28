@@ -308,6 +308,8 @@ int compute_absErr_vprec_binary32(bool isDenormal, void *context, int expDiff,
       /* vprec error mode abs */
       if (expDiff < FLOAT_PMAN_SIZE) {
         return expDiff;
+      } else {
+        return FLOAT_PMAN_SIZE;
       }
     } else {
       /* vprec error mode rel */
@@ -346,8 +348,10 @@ int compute_absErr_vprec_binary64(bool isDenormal, void *context, int expDiff,
       }
     } else if (currentContext->absErr == true) {
       /* vprec error mode abs */
-      if (expDiff < FLOAT_PMAN_SIZE) {
+      if (expDiff < DOUBLE_PMAN_SIZE) {
         return expDiff;
+      } else {
+        return DOUBLE_PMAN_SIZE;
       }
     } else {
       /* vprec error mode rel */
