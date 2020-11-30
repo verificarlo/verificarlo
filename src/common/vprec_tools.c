@@ -28,8 +28,15 @@
 #include "float_const.h"
 #include "float_struct.h"
 
-add comments to warn about the usage of the rounding functions: must check the values for precision
-
+/**
+ * @brief  round the mantissa of 'x' on the precision specified by 'precision'
+ * @note  this function does not check that 'precision' is within the correct 
+ *        range; the user is responsible for ensuring that 'precision' 
+ *        satisfies this requirement
+ * @param  x: the binary32 number to round
+ * @param  precision: the new virtual precision; 0<=precision<=FLOAT_PMAN_SIZE
+ * @retval x rounded on the specified precision
+ */
 inline float round_binary32_normal(float x, int precision) {
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
@@ -51,6 +58,15 @@ inline float round_binary32_normal(float x, int precision) {
   return b32x.f32;
 }
 
+/**
+ * @brief  round the mantissa of 'x' on the precision specified by 'precision'
+ * @note  this function does not check that 'precision' is within the correct 
+ *        range; the user is responsible for ensuring that 'precision' 
+ *        satisfies this requirement
+ * @param  x: the binary64 number to round
+ * @param  precision: the new virtual precision; 0<=precision<=DOUBLE_PMAN_SIZE
+ * @retval x rounded on the specified precision
+ */
 inline double round_binary64_normal(double x, int precision) {
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
