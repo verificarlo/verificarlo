@@ -28,6 +28,8 @@
 #include "float_const.h"
 #include "float_struct.h"
 
+add comments to warn about the usage of the rounding functions: must check the values for precision
+
 inline float round_binary32_normal(float x, int precision) {
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
@@ -102,6 +104,10 @@ inline float handle_binary32_denormal(float x, int emin, int precision) {
   else if (precision <= FLOAT_PMAN_SIZE) {
     return round_binary_denormal(x, emin, precision);
   }
+  /* no rounding needed, precision is greater than the mantissa size */
+  else {
+    return x;
+  }
 }
 
 inline double handle_binary64_denormal(double x, int emin, int precision) {
@@ -114,5 +120,9 @@ inline double handle_binary64_denormal(double x, int emin, int precision) {
   /* denormal */
   else if (precision <= DOUBLE_PMAN_SIZE) {
     return round_binary_denormal(x, emin, precision);
+  }
+  /* no rounding needed, precision is greater than the mantissa size */
+  else {
+    return x;
   }
 }
