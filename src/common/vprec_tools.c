@@ -30,8 +30,8 @@
 
 /**
  * @brief  round the mantissa of 'x' on the precision specified by 'precision'
- * @note  this function does not check that 'precision' is within the correct 
- *        range; the user is responsible for ensuring that 'precision' 
+ * @note  this function does not check that 'precision' is within the correct
+ *        range; the user is responsible for ensuring that 'precision'
  *        satisfies this requirement
  * @param  x: the binary32 number to round
  * @param  precision: the new virtual precision; 0<=precision<=FLOAT_PMAN_SIZE
@@ -40,8 +40,8 @@
 inline float round_binary32_normal(float x, int precision) {
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
-  /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other word,
-     it remains VPRECLIB_PREC bit in the mantissa */
+  /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other words,
+     there remain VPRECLIB_PREC bits in the mantissa */
   const uint32_t mask = 0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision);
 
   /* position to the end of the target prec-1 */
@@ -60,8 +60,8 @@ inline float round_binary32_normal(float x, int precision) {
 
 /**
  * @brief  round the mantissa of 'x' on the precision specified by 'precision'
- * @note  this function does not check that 'precision' is within the correct 
- *        range; the user is responsible for ensuring that 'precision' 
+ * @note  this function does not check that 'precision' is within the correct
+ *        range; the user is responsible for ensuring that 'precision'
  *        satisfies this requirement
  * @param  x: the binary64 number to round
  * @param  precision: the new virtual precision; 0<=precision<=DOUBLE_PMAN_SIZE
@@ -70,8 +70,8 @@ inline float round_binary32_normal(float x, int precision) {
 inline double round_binary64_normal(double x, int precision) {
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
-  /* generate a mask to erase the last 52-VPRECLIB_PREC bits, in other word,
-     it remains VPRECLIB_PREC bit in the mantissa */
+  /* generate a mask to erase the last 52-VPRECLIB_PREC bits, in other words,
+     there remain VPRECLIB_PREC bits in the mantissa */
   const uint64_t mask = 0xFFFFFFFFFFFFFFFF << (DOUBLE_PMAN_SIZE - precision);
 
   /* position to the end of the target prec-1 */
