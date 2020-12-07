@@ -1482,6 +1482,7 @@ void init_context(t_context *ctx) {
   ctx->relErr = true;
   ctx->absErr = false;
   ctx->absErr_exp = 112;
+  ctx->absErr_exp = -DOUBLE_EXP_MIN;
   ctx->daz = false;
   ctx->ftz = false;
 }
