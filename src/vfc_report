@@ -1,0 +1,579 @@
+#!/usr/bin/env python3
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import random
+import math
+import sys
+import struct
+import shlex
+import os.path
+import subprocess
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
+from os import listdir
+
+DaraDir = "vfc_exp_data/"
+ImgDir = DaraDir + "img/"
+Arguments = DaraDir + "ArgumentsResults.csv"
+Operations = DaraDir + "OperationsResults.csv"
+ArgumentsAll = DaraDir + "AllArgsResults.csv"
+OperationsAll = DaraDir + "AllOpsResults.csv"
+Report_File = DaraDir + "vfc_precexp_report.html"
+
+ReportString = "\n\
+<!DOCTYPE html>\n\
+<html>\n\
+	<!-- HEAD -->\n\
+	<head>\n\
+		<meta charset=\"utf-8\" />\n\
+		<title>Precision Exploration Report</title>\n\
+		\n\
+		<script ID=\"scriptHeader\" type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>\n\
+		  <script src=\"https://code.jquery.com/jquery-3.5.0.js\"></script>\n\
+		<script ID=\"scriptBody\">\n\
+			google.charts.load(\"current\", {packages:['corechart']});\n\
+		\n\
+			/* Chart script */\n\
+		\n\
+			google.charts.setOnLoadCallback(HideAll);\n\
+		\n\
+			actualFunction = \"\";\n\
+		\n\
+			function DisplayFunctionInformations(ID){\n\
+				if(actualFunction != \"\") {\n\
+					var to_hide = document.getElementById(actualFunction);\n\
+				 	to_hide.style.display = 'none';\n\
+				}\n\
+		\n\
+				var to_display = document.getElementById(ID);\n\
+				to_display.style.display = 'block';\n\
+		\n\
+				actualFunction = ID;\n\
+			}\n\
+		\n\
+			function DisplayCallInformations(ChartID){\n\
+				DivID = ChartID + \"_Precisions\";\n\
+				\n\
+				var to_display = document.getElementById(DivID);\n\
+				if (to_display != null){\n\
+					if(to_display.style.display != 'none'){\n\
+						to_display.style.display = 'none';\n\
+					}else{\n\
+						to_display.style.display = 'flex';\n\
+						to_display.style.justifyContent = 'space-around';\n\
+					}\n\
+				}\n\
+			}\n\
+		\n\
+			function HideAll(){\n\
+			    var to_hide = document.getElementsByClassName(\"Precisions\");\n\
+			    \n\
+			    for(var i = 0; i < to_hide.length; i++){\n\
+			        to_hide[i].style.display = \"none\";\n\
+			    }\n\
+		\n\
+			    var to_hide = document.getElementsByClassName(\"FunctionInformations\");\n\
+			    \n\
+			    for(var i = 0; i < to_hide.length; i++){\n\
+			        to_hide[i].style.display = \"none\";\n\
+			    }\n\
+			}\n\
+		\n\
+		</script>\n\
+		\n\
+		<style ID=\"MainStyle\">\n\
+			body {\n\
+				font-family: arial;\n\
+				max-width: 1400px;\n\
+				margin: auto;\n\
+			}\n\
+		\n\
+			p {\n\
+				text-align: justify;\n\
+			}\n\
+		\n\
+			h1 {\n\
+				text-align: center;\n\
+			}\n\
+		\n\
+			.CallLink {\n\
+				text-decoration: none;\n\
+				color: black;\n\
+			}\n\
+		\n\
+			.InfoLink {\n\
+				text-decoration: none;\n\
+				color: black;\n\
+			}\n\
+		\n\
+			.PrecNavBar {\n\
+				display: flex;\n\
+				width: 100%;\n\
+				justify-content: space-around;\n\
+				align-items: center;\n\
+			}\n\
+		\n\
+			.InfoMessage {\n\
+				width: 100%;\n\
+				text-align: center;\n\
+			}\n\
+		\n\
+			.actif_link {\n\
+				text-decoration: none;\n\
+				background-color: #BEBEBE;\n\
+				color: black;\n\
+				text-align: center;\n\
+				padding-top: 15px;\n\
+				padding-bottom: 15px;\n\
+			}\n\
+		\n\
+			.actif_link:hover {\n\
+				color: white;\n\
+				background-color: #808080;\n\
+			}\n\
+			.inactif_link {\n\
+				text-decoration: none;\n\
+				background-color: rgba(255,0,0,0.7);\n\
+				color: black;\n\
+				text-align: center;\n\
+				padding-top: 15px;\n\
+				padding-bottom: 15px;\n\
+			}\n\
+		\n\
+			.inactif_link {\n\
+				background-color: rgba(255,0,0,0.5);\n\
+			}\n\
+		\n\
+			.two_link {\n\
+				width: 30%; \n\
+				border: solid black;\n\
+				display: flex;\n\
+			}\n\
+			.graph {\n\
+				width: 90%;\n\
+			}\n\
+			.ArgumentsOperationsPrecision {\n\
+				display: flex;\n\
+				flex-direction: column;\n\
+				align-items: center;\n\
+			}\n\
+			.ArgumentsPrecision {\n\
+				display: flex;\n\
+				flex-direction: column;\n\
+				align-items: center;\n\
+			}\n\
+			.OperationsPrecision {\n\
+				display: flex;\n\
+				flex-direction: column;\n\
+				align-items: center;\n\
+			}\n\
+		\n\
+		</style>\n\
+	</head>\n\
+		\n\
+	<!-- BODY -->\n\
+	<body>\n\
+		\n\
+		<h1 id=\"Home\">Precision Exploration Report</h1>\n\
+		\n\
+		<h2 id=\"Introduction\"> Introduction</h2>\n\
+		\n\
+		<p>\n\
+			The role of this report is to present results of the precision exploration script of verificarlo. The given result is not the optimal precision configuration and is obtained by a simple dichotomic search. The internal operations, precision is given exclusively for functions compiled with verificarlo, input(s) and output(s) precision is given for every called function.\n\
+		</p>\n\
+		\n\
+		<h2 id=\"Functions\"> Functions</h2>\n\
+		\n\
+		<p>\n\
+			This graph presents called functions which use float or double, they are sorted by number of calls and you can access to precision results for a function by clicking on the desired label.\n\
+		</p>\n\
+		\n\
+		<div id=\"MainHist\"></div>\n\
+		\n\
+		<h2 id=\"Calls\"> Functions Call Site</h2>\n\
+		\n\
+		<p>\n\
+			When a function is selected, a list with call sites of the selected function appear. You can hide or show precision information for a call site by clicking on the desired item in the list. If the function has not been compiled with verficarlo, internal operations precision are not accessible. If a function doesn't have double or float arguments, arguments precision will not be accessible too. \n\
+		</p>\n\
+		\n\
+		<!-- Function Calls -->\n\
+		\n\
+	</body>\n\
+</html>"
+
+
+def GetFunctionInfo(FunctionID):
+    CallNb = int(FunctionID[FunctionID.rfind('/')+1:])
+    FunctionID = FunctionID[:FunctionID.rfind('/')]
+    Fline = int(FunctionID[FunctionID.rfind('/')+1:])
+    FunctionID = FunctionID[:FunctionID.rfind('/')]
+    Fname = FunctionID[FunctionID.rfind('/')+1:]
+    FunctionID = FunctionID[:FunctionID.rfind('/')]
+    Fparent = FunctionID[FunctionID.rfind('/')+1:]
+    FunctionID = FunctionID[:FunctionID.rfind('/')]
+    Ffile = FunctionID[FunctionID.rfind('/')+1:]
+
+    return CallNb, Fline, Fparent, Fname, Ffile
+
+
+def FilterFunctions(Dataset, FunctionList):
+    for i in range(len(Dataset.index)):
+        CallNb, Fline, Fparent, Fname, Ffile = GetFunctionInfo(
+            Dataset.at[i, 'ID'])
+        if len(FunctionList) != 0 and (not Fname in FunctionList) and (not Fparent in FunctionList):
+            Dataset.drop(Dataset.index[i])
+
+    Dataset.reset_index(drop=True)
+
+    return Dataset
+
+
+def AddMainChart(CallChartString, DataMain):
+    CallChartString += "\n\
+			window.addEventListener('resize', DrawMainHist);\n\
+		    google.charts.setOnLoadCallback(DrawMainHist);\n\
+				\n\
+		    function DrawMainHist() {\n\
+		      var data = google.visualization.arrayToDataTable([\n\
+          			['Functions', 'Number of calls'],\n\
+          			" + DataMain + "]); \n\
+				\n\
+		      var view = new google.visualization.DataView(data);\n\
+		      view.setColumns([0, 1,\n\
+		      	{ 	calc: \"stringify\",\n\
+					sourceColumn: 1,\n\
+					type: \"string\",\n\
+					role: \"annotation\"}\n\
+				]);\n\
+				\n\
+		      var options = {\n\
+		        title: \"Number of calls to instrumented functions\",\n\
+		        hAxis: {\n\
+		        	textStyle: {fontSize: 15},\n\
+		        	slantedText:true,\n\
+		        	slantedTextAngle:90,\n\
+		        },\n\
+		        legend: { position: \"none\" },\n\
+		        bar: {groupWidth: 25},\n\
+		        chartArea: {top: 30, left: \"25%\", width: \"60%\", height: \"100%\"},\n\
+		        height: (data.getNumberOfRows() * 40) + 50,\n\
+				annotations: {\n\
+					textStyle: {\n\
+						color: 'black',\n\
+						fontSize: 15,\n\
+						auraColor: 'transparent',\n\
+					},\n\
+					stem: { length: 0 }, \n\
+					alwaysOutside: true,\n\
+				},\n\
+		      };\n\
+				\n\
+		    	var chart = new google.visualization.BarChart(document.getElementById(\"MainHist\"));\n\
+		      \n\
+		      	chart.draw(view, options);\n\
+				\n\
+  				google.visualization.events.addListener(chart, 'click', function(e) {\n\
+				    var selection;\n\
+				    if (e.targetID) {\n\
+				      selection = e.targetID.split('#');\n\
+				      if (selection[0].indexOf('vAxis') > -1) {\n\
+				        DisplayFunctionInformations(data.getValue(parseInt(selection[selection.length - 1]), parseInt(selection[1])));\n\
+				        location.hash = '#Calls'\n\
+				      }\n\
+				    }\n\
+  				});\n\
+		  }\n\
+	"
+
+    return CallChartString
+
+
+def PlotArgs(Data, ImgID, Title):
+    fig = plt.figure(1, figsize=(13, 13))
+
+    ax1, ax2, ax3 = fig.subplots(3, 1, sharex=True)
+
+    Data['Min'] = Data['Min'].astype(float)
+    Data['Max'] = Data['Max'].astype(float)
+
+    xtick = []
+    range_list = []
+    prec_list = []
+    j = 0
+    for i in Data.index:
+        ax1.text(j, Data.at[i, 'Min'], str(Data.at[i, 'Min']),
+                 horizontalalignment='center', verticalalignment='top')
+        ax1.text(j, Data.at[i, 'Max'], str(Data.at[i, 'Max']),
+                 horizontalalignment='center', verticalalignment='bottom')
+        if Data.at[i, 'Type'] == 0:
+            xtick.append(Data.at[i, 'IO'] + " Float " + Data.at[i, 'ArgID'])
+        elif Data.at[i, 'Type'] == 1:
+            xtick.append(Data.at[i, 'IO'] + " Double " + Data.at[i, 'ArgID'])
+        elif Data.at[i, 'Type'] == 2:
+            xtick.append(Data.at[i, 'IO'] +
+                         " Float ptr " + Data.at[i, 'ArgID'])
+        else:
+            xtick.append(Data.at[i, 'IO'] +
+                         " Double ptr " + Data.at[i, 'ArgID'])
+
+        range_list.append(Data.at[i, 'Range'])
+        ax2.text(j, Data.at[i, 'Range'] + 0.1, str(Data.at[i, 'Range']),
+                 horizontalalignment='center', verticalalignment='bottom')
+
+        prec_list.append(Data.at[i, 'Prec'])
+        ax3.text(j, Data.at[i, 'Prec'] + 0.7, str(Data.at[i, 'Prec']),
+                 horizontalalignment='center', verticalalignment='bottom')
+
+        j = j + 1
+
+    ax1.vlines(range(0, len(Data.index)), Data[['Min']].values, Data[[
+               'Max']].values, linewidths=72 / len(Data.index), color='green', alpha=0.5)
+    ax1.set_xlim(-0.50, len(Data.index) - 0.50)
+    ax1.set_ylim(ax1.get_ylim()[0] - abs(ax1.get_ylim()[0]),
+                 ax1.get_ylim()[1] + ax1.get_ylim()[1])
+    ax1.set_yscale('symlog', base=2)
+    ax1.set_title("Value intervals of input/output arguments")
+    ax1.set_ylabel("Value intervals in log2")
+
+    ax2.bar(range(0, len(Data.index)), range_list,
+            width=0.2, color='blue', alpha=0.5)
+    ax2.set_ylim(0, 11 + 1)
+    ax2.set_title("Exponent length")
+    ax2.set_ylabel("Exponent length in bit")
+
+    ax3.bar(range(0, len(Data.index)), prec_list,
+            width=0.2, color='red', alpha=0.5)
+    ax3.set_ylim(0, 52 + 5)
+    ax3.set_title("Mantissa length")
+    ax3.set_ylabel("Mantissa length in bit")
+
+    fig.suptitle(Title, fontsize=17)
+    plt.xticks(range(0, len(Data.index)), xtick, rotation='vertical')
+    plt.gcf().subplots_adjust(bottom=0.20)
+
+    plt.savefig(ImgDir + ImgID + ".png", format='png')
+    plt.clf()
+
+
+def PlotOps(Data, ImgID, Title):
+    fig = plt.figure(2, figsize=(13, 4))
+
+    ax1 = fig.subplots()
+
+    ax1.set_xlim(0, 65)
+
+    Yindex = []
+    Ylabel = []
+
+    if Data['Float']:
+        ax1.hlines([0, 0], [0, 23], [Data['Prec32'], 23 + Data['Range32']],
+                   color=['red', 'blue'], alpha=0.5, linewidths=36)
+        ax1.text(Data['Prec32'], 0, str(Data['Prec32']),
+                 horizontalalignment='right', verticalalignment='center', fontsize=14)
+        ax1.text(23 + Data['Range32'], 0, str(Data['Range32']),
+                 horizontalalignment='right', verticalalignment='center', fontsize=14)
+        Yindex.append(0)
+        Ylabel.append('Float')
+
+    if Data['Double']:
+        ax1.hlines([1, 1], [0, 52], [Data['Prec64'], 52 + Data['Range64']],
+                   color=['red', 'blue'], alpha=0.5, linewidths=36)
+        ax1.text(Data['Prec64'], 1, str(Data['Prec64']),
+                 horizontalalignment='right', verticalalignment='center', fontsize=14)
+        ax1.text(52 + Data['Range64'], 1, str(Data['Range64']),
+                 horizontalalignment='right', verticalalignment='center', fontsize=14)
+        Yindex.append(1)
+        Ylabel.append('Double')
+
+    ax1.set_ylim(ax1.get_ylim()[0] - 0.25 * len(Yindex),
+                 ax1.get_ylim()[1] + 0.25 * len(Yindex))
+    plt.yticks(Yindex, Ylabel)
+
+    ax1.set_title("Internal Operations Precision")
+
+    legend = [	Line2D([0], [0], color='red', alpha=0.5, lw=4, label='Mantissa Length (bit)'),
+               Line2D([0], [0], color='blue', alpha=0.5, lw=4, label='Exponent Length (bit)')]
+
+    ax1.legend(handles=legend, loc='lower right')
+
+    plt.gcf().subplots_adjust(top=0.8)
+    fig.suptitle(Title, fontsize=17)
+    plt.savefig(ImgDir + ImgID + ".png", format='png')
+    plt.clf()
+
+
+if __name__ == "__main__":
+
+    if not os.path.exists(Arguments):
+        print("{} not found".format(Arguments))
+        exit(0)
+    else:
+        DataArgs = pd.read_csv(Arguments)
+
+    if not os.path.exists(Operations):
+        print("{} not found".format(Operations))
+        exit(0)
+    else:
+        DataOps = pd.read_csv(Operations)
+
+    if not os.path.exists(ArgumentsAll):
+        print("{} not found".format(ArgumentsAll))
+        exit(0)
+    else:
+        DataAllArgs = pd.read_csv(ArgumentsAll)
+
+    if not os.path.exists(OperationsAll):
+        print("{} not found".format(OperationsAll))
+        exit(0)
+    else:
+        DataAllOps = pd.read_csv(OperationsAll)
+    if not os.path.isdir(ImgDir):
+        os.mkdir(ImgDir)
+
+    CallChartString = ""
+    FunctionCallsStr = ""
+    FunctionList = []
+
+    if len(sys.argv) != 1:
+        for i in range(1, len(sys.argv)):
+            FunctionList.append(sys.argv[i])
+
+        DataArgs = FilterFunctions(DataArgs, FunctionList)
+        DataOps = FilterFunctions(DataOps, FunctionList)
+        DataAllOps = FilterFunctions(DataAllOps, FunctionList)
+        DataAllArgs = FilterFunctions(DataAllArgs, FunctionList)
+
+    ################ Functions List ################
+
+    dict = {}
+    dict_index = {}
+
+    for i in DataAllOps.index:
+        CallNb, Fline, Fparent, Fname, Ffile = GetFunctionInfo(
+            DataAllOps.at[i, 'ID'])
+
+        if Fname in dict.keys():
+            dict[Fname] += DataAllOps.at[i, 'Ncalls']
+            dict_index[Fname].append(i)
+        else:
+            dict[Fname] = DataAllOps.at[i, 'Ncalls']
+            dict_index[Fname] = [i]
+
+    SortedFunctions = pd.DataFrame(dict.items(), columns=['function', 'ncalls']).sort_values(
+        by='ncalls', ascending=False, ignore_index=True)
+
+    DataMain = ""
+
+    for i in SortedFunctions.index:
+        DataMain += "['{Function}',{Ncalls}],\n".format(
+            Function=SortedFunctions.at[i, 'function'].upper(),
+            Ncalls=SortedFunctions.at[i, 'ncalls'])
+
+    CallChartString = AddMainChart(CallChartString, DataMain)
+
+    ################ Function Calls ################
+
+    for i in SortedFunctions.index:
+        FunctionCallsStr += "<div ID=\"{Function}\" class=\"FunctionInformations\">\n".format(
+            Function=SortedFunctions.at[i, 'function'].upper())
+
+        tmp_ops = DataAllOps.copy()
+        tmp_ops = tmp_ops.drop(
+            [x for x in tmp_ops.index if x not in dict_index[SortedFunctions.at[i, 'function']]])
+        tmp_ops = tmp_ops.sort_values(
+            by='Ncalls', ascending=False, ignore_index=True)
+
+        for j in tmp_ops.index:
+            CallNb, Fline, Fparent, Fname, Ffile = GetFunctionInfo(
+                tmp_ops.at[j, 'ID'])
+
+            ChartID = Ffile.replace('.', '_') + "_" + \
+                Fname.replace('.', '_') + "_" + str(CallNb)
+            RangeData = ""
+            ExponentData = ""
+            MantissaData = ""
+            OpsDoublePrec = ""
+            OpsFloatPrec = ""
+
+            FunctionCallsStr += "\t\t\t<a ID=\"Link_" + ChartID + "_Precisions\" href=\"#" + ChartID + "_Precisions\" onclick=\"DisplayCallInformations('" + ChartID + "');\" \
+								 class=\"InfoLink\"><h4 ID=\"Title_" + ChartID + "_Precisions\">Call to {Fname} in {Ffile} at line {Fline} executed {Ncalls} time(s):</h4></a>\n".format(
+                Fname=Fname.upper(),
+                Ffile=Ffile,
+                Fline=Fline,
+                Ncalls=tmp_ops.at[j, 'Ncalls'])
+
+            FunctionCallsStr += "\t\t\t<div ID=\"" + ChartID + \
+                "_Precisions\" class=\"PrecNavBar, Precisions\">\n"
+
+            k = DataOps[DataOps['ID'] == tmp_ops.at[j, 'ID']].index[0]
+
+            # Arguments and Operations
+            tmp_args = DataAllArgs.copy()
+            tmp_args = tmp_args[tmp_args['ID'] == tmp_ops.at[j, 'ID']]
+
+            ArgsOpsChartID = ChartID + "_Args"
+
+            FunctionCallsStr += "\t\t\t<div class=\"two_link\">\n"
+
+            if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
+                PlotArgs(tmp_args, ArgsOpsChartID, "Arguments percisions for " + Fname.upper() +
+                         " at line " + str(Fline) + " of " + Ffile + " after arguments and operations research")
+                FunctionCallsStr += "\t\t\t<a style=\"width:50%;\" class=\"actif_link\" onclick=\"open('img/" + \
+                    ArgsOpsChartID + ".png', \'\','scrollbars=no,resizable=yes');\">Arguments</a>\n"
+            else:
+                FunctionCallsStr += "\t\t\t<a style=\"width:50%;\" class=\"inactif_link\">Arguments</a>\n"
+
+            ArgsOpsChartID = ChartID + "_Ops"
+
+            if not (DataOps.at[k, 'Int'] or DataOps.at[k, 'Lib']):
+                PlotOps(tmp_ops.iloc[j], ArgsOpsChartID, "Operations percision for " + Fname.upper(
+                ) + " at line " + str(Fline) + " of " + Ffile + " after arguments and operations research")
+                FunctionCallsStr += "\t\t\t<a style=\"width:50%;\" class=\"actif_link\" onclick=\"open('img/" + \
+                    ArgsOpsChartID + ".png', \'\','scrollbars=no,resizable=yes');\">Operations</a>\n"
+            else:
+                FunctionCallsStr += "\t\t\t<a style=\"width:50%;\" class=\"inactif_link\">Operations</a>\n"
+
+            FunctionCallsStr += "\t\t\t</div>\n"
+
+            # Arguments Only
+            ArgsChartID = ChartID + "_ArgsOnly"
+
+            tmp_args = DataArgs.copy()
+            tmp_args = tmp_args[tmp_args['ID'] == tmp_ops.at[j, 'ID']]
+
+            if (tmp_ops.at[j, 'Ninputs'] + tmp_ops.at[j, 'Noutputs']) != 0:
+                PlotArgs(tmp_args, ArgsChartID, "Arguments percisions for " + Fname.upper() +
+                         " at line " + str(Fline) + " of " + Ffile + " after arguments only research")
+                FunctionCallsStr += "\t\t\t<a style=\"width:30%; border: solid black;\" class=\"actif_link\" onclick=\"open('img/" + \
+                    ArgsChartID + ".png', \'\','scrollbars=no,resizable=yes');\">Arguments Only</a>\n"
+            else:
+                FunctionCallsStr += "\t\t\t<a style=\"width:30%; border: solid black;\" class=\"inactif_link\">Arguments Only</a>\n"
+
+            # Operations Only
+            OpsChartID = ChartID + "_OpsOnly"
+
+            if not (DataOps.at[k, 'Int'] or DataOps.at[k, 'Lib']):
+                PlotOps(tmp_ops.iloc[j], OpsChartID, "Operations percision for " + Fname.upper(
+                ) + " at line " + str(Fline) + " of " + Ffile + " after operations only research")
+                FunctionCallsStr += "\t\t\t<a style=\"width:30%; border: solid black;\" class=\"actif_link\" onclick=\"open('img/" + \
+                    OpsChartID + ".png', \'\','scrollbars=no,resizable=yes');\">Operations Only</a>\n"
+            else:
+                FunctionCallsStr += "\t\t\t<a style=\"width:30%; border: solid black;\" class=\"inactif_link\">Operations Only</a>\n"
+
+            FunctionCallsStr += "\t\t\t</div>\n"
+
+        FunctionCallsStr += "</div>\n"
+
+    FunctionCallsStr += "\n"
+
+    ReportString = ReportString.replace(
+        '\t\t<!-- Function Calls -->', FunctionCallsStr)
+    ReportString = ReportString.replace(
+        '\t\t\t/* Chart script */', CallChartString)
+
+    ReportFile = open(Report_File, "w")
+
+    ReportString = ReportFile.write(ReportString)
+
+    ReportFile.close()

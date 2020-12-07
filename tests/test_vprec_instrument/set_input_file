@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+import sys
+import os
+
+
+if len(sys.argv) < 6:
+	print("./set_input_file [input file name] [precision mantissa double]\
+ [precision exponent double] [precision mantissa float] [precision exponent float] functions ...")
+	exit(0)
+
+# name of the input file
+InputFileName = sys.argv[1]
+
+# precision to use for the mantissa of double and corresponding field numbers
+PrecDouble = [int(sys.argv[2]), 5, 3]
+# precision to use for the exponent of double and corresponding field numbers
+RangeDouble = [int(sys.argv[3]), 6, 4]
+# precision to use for the mantissa of float and corresponding field numbers
+PrecFloat = [int(sys.argv[4]), 7, 3]
+# precision to use for the exponent of float and corresponding field numbers
+RangeFloat = [int(sys.argv[5]), 8, 4]
+# list of functions to modify
+FunctionsList = sys.argv[6:]
+
+# test if the input file exists
+if not os.path.exists(InputFileName):
+   	print("Input file not found")
+   	exit(0)
+
+f = open(InputFileName, 'r')
+
+Lines = f.readlines()
+
+CurrentFunction = ""
+ToWrite = ""
+
+for Line in Lines:
+	Fields = Line.split()
+
+	if len(Fields) == 12:
+		CurrentFunction = Fields[0].split(sep="/")[1] + "/" + Fields[0].split(sep="/")[2]
+
+		# replace the fields
+		if CurrentFunction in FunctionsList:
+			Fields[PrecDouble[1]] = str(PrecDouble[0])
+			Fields[RangeDouble[1]] = str(RangeDouble[0])
+			Fields[PrecFloat[1]] = str(PrecFloat[0])
+			Fields[RangeFloat[1]] = str(RangeFloat[0])
+	elif len(Fields) == 7:
+		if CurrentFunction in FunctionsList:
+			if Fields[2] == '0':
+				# replace the fields
+				Fields[PrecFloat[2]] = str(PrecFloat[0])
+				Fields[RangeFloat[2]] = str(RangeFloat[0])
+			elif Fields[2] == '1':
+				# replace the fields
+				Fields[PrecDouble[2]] = str(PrecDouble[0])
+				Fields[RangeDouble[2]] = str(RangeDouble[0])
+			else:
+				print("Unknow Argument type")
+				exit(0)
+
+	elif len(Fields) != 0:
+		print("Wrong input file structure")
+		exit(0)
+
+	ToWrite += "\t".join(Fields) + "\n"
+
+f.close()
+
+f = open(InputFileName, 'w')
+
+# save modifications
+f.write(ToWrite)
+
+f.close()

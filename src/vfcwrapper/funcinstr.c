@@ -56,7 +56,7 @@ void _vfc_func_table_print(FILE *f) {
         get_value_at(_vfc_func_map->items, ii) != 0) {
       interflop_function_info_t *function =
           (interflop_function_info_t *)get_value_at(_vfc_func_map->items, ii);
-      fprintf(f, "%s\t%hd\t%hd\t%hd\t%hd\n", function->id,
+      fprintf(f, "%s\t%hd\t%hd\t%hu\t%hu\n", function->id,
               function->isLibraryFunction, function->isIntrinsicFunction,
               function->useFloat, function->useDouble);
     }
@@ -123,8 +123,8 @@ void vfc_call_stack_free() {
 
 // Function called before each function's call of the code
 void vfc_enter_function(char *func_name, char isLibraryFunction,
-                        char isIntrinsicFunction, char useFloat, char useDouble,
-                        int n, ...) {
+                        char isIntrinsicFunction, size_t useFloat,
+                        size_t useDouble, int n, ...) {
   // Get a pointer to the function if she is in the table
   interflop_function_info_t *function = vfc_func_table_get(func_name);
 
@@ -136,11 +136,11 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
 
   vfc_call_stack_push(function);
 
-  if (useFloat || useDouble) {
+  if ((useFloat != 0) || (useDouble != 0)) {
     va_list ap;
     // n is the number of arguments intercepted, each argument
     // is represented by a type ID and a pointer
-    va_start(ap, n * 2);
+    va_start(ap, n * 4);
 
     for (int i = 0; i < loaded_backends; i++)
       if (backends[i].interflop_enter_function)
@@ -153,13 +153,13 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
 
 // Function called after each function's call of the code
 void vfc_exit_function(char *func_name, char isLibraryFunction,
-                       char isIntrinsicFunction, char useFloat, char useDouble,
-                       int n, ...) {
-  if (useFloat || useDouble) {
+                       char isIntrinsicFunction, size_t useFloat,
+                       size_t useDouble, int n, ...) {
+  if ((useFloat != 0) || (useDouble != 0)) {
     va_list ap;
     // n is the number of arguments intercepted, each argument
     // is represented by a type ID and a pointer
-    va_start(ap, n * 2);
+    va_start(ap, n * 4);
 
     for (int i = 0; i < loaded_backends; i++)
       if (backends[i].interflop_exit_function)
