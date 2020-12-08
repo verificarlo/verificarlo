@@ -527,7 +527,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     if (currentContext->absErr == true) {
       /* absolute error, or absolute and relative error mode */
       int expDiff = aexp.s64 - currentContext->absErr_exp;
-      
+
       if (expDiff < -1) {
         /* equivalent to underflow on the precision given by absolute error */
         a = 0;
@@ -542,7 +542,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       } else {
         /* normal case for the absolute error mode */
         int binary64_precision_adjusted = compute_absErr_vprec_binary64(
-          false, context, expDiff, binary64_precision);
+            false, context, expDiff, binary64_precision);
         a = round_binary64_normal(a, binary64_precision_adjusted);
       }
     } else {
