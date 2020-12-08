@@ -424,9 +424,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     if (currentContext->absErr == true) {
       /* absolute error, or absolute and relative error mode */
       int expDiff = aexp.s32 - currentContext->absErr_exp;
-      int binary32_precision_adjusted;
-      binary32_precision_adjusted = compute_absErr_vprec_binary32(
-          false, context, expDiff, binary32_precision);
+      
       if (expDiff < -1) {
         /* equivalent to underflow on the precision given by absolute error */
         a = 0;
@@ -440,6 +438,8 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         a = a_sign * exp2f(currentContext->absErr_exp);
       } else {
         /* normal case for the absolute error mode */
+        int binary32_precision_adjusted = compute_absErr_vprec_binary32(
+          false, context, expDiff, binary32_precision);
         a = round_binary32_normal(a, binary32_precision_adjusted);
       }
     } else {
@@ -500,9 +500,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     if (currentContext->absErr == true) {
       /* absolute error, or absolute and relative error mode */
       int expDiff = aexp.s64 - currentContext->absErr_exp;
-      int binary64_precision_adjusted;
-      binary64_precision_adjusted = compute_absErr_vprec_binary64(
-          false, context, expDiff, binary64_precision);
+      
       if (expDiff < -1) {
         /* equivalent to underflow on the precision given by absolute error */
         a = 0;
@@ -516,6 +514,8 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         a = a_sign * exp2(currentContext->absErr_exp);
       } else {
         /* normal case for the absolute error mode */
+        int binary64_precision_adjusted = compute_absErr_vprec_binary64(
+          false, context, expDiff, binary64_precision);
         a = round_binary64_normal(a, binary64_precision_adjusted);
       }
     } else {
