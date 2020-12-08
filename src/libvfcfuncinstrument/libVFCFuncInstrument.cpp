@@ -485,112 +485,113 @@ struct VfclibFunc : public ModulePass {
      *************************************************************************/
     for (auto &F : OriginalFunctions) {
       if (F->getSubprogram()) {
-	std::string Parent = F->getSubprogram()->getName().str();
-	for (auto &B : (*F)) {
-	  IRBuilder<> Builder(&B);
+        std::string Parent = F->getSubprogram()->getName().str();
+        for (auto &B : (*F)) {
+          IRBuilder<> Builder(&B);
 
-	  for (auto ii = B.begin(); ii != B.end();) {
-	    Instruction *pi = &(*ii++);
+          for (auto ii = B.begin(); ii != B.end();) {
+            Instruction *pi = &(*ii++);
 
-	    if (isa<CallInst>(pi)) {
-	      // collect metadata info //
-	      if (Function *f = cast<CallInst>(pi)->getCalledFunction()) {
+            if (isa<CallInst>(pi)) {
+              // collect metadata info //
+              if (Function *f = cast<CallInst>(pi)->getCalledFunction()) {
 
-		if (MDNode *N = pi->getMetadata("dbg")) {
-		  DILocation *Loc = cast<DILocation>(N);
-		  DISubprogram *Sub = f->getSubprogram();
-		  unsigned line = Loc->getLine();
-		  std::string File = Loc->getFilename();
-		  std::string Name;
+                if (MDNode *N = pi->getMetadata("dbg")) {
+                  DILocation *Loc = cast<DILocation>(N);
+                  DISubprogram *Sub = f->getSubprogram();
+                  unsigned line = Loc->getLine();
+                  std::string File = Loc->getFilename();
+                  std::string Name;
 
-		  if (Sub) {
-		    Name = Sub->getName().str();
-		  } else {
-		    Name = f->getName().str();
-		  }
+                  if (Sub) {
+                    Name = Sub->getName().str();
+                  } else {
+                    Name = f->getName().str();
+                  }
 
-		  std::string Line = std::to_string(line);
-		  std::string NewName = "vfc_" + File + "/" + Parent + "/" +
-		                        Name + "/" + Line + "/" +
+                  std::string Line = std::to_string(line);
+                  std::string NewName = "vfc_" + File + "/" + Parent + "/" +
+                                        Name + "/" + Line + "/" +
                                         std::to_string(inst_cpt) + +"_hook";
 
-		  std::string FunctionName = File + "/" + Parent + "/" + Name +
+                  std::string FunctionName = File + "/" + Parent + "/" + Name +
                                              "/" + Line + "/" +
                                              std::to_string(++inst_cpt);
 
 // Test if f is a library function //
 #if LLVM_VERSION_MAJOR >= 10
-		  const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
+                  const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
 #else
-		  const TargetLibraryInfo &TLI = TLIWP.getTLI();
+                  const TargetLibraryInfo &TLI = TLIWP.getTLI();
 #endif
 
-		  LibFunc libfunc;
+                  LibFunc libfunc;
 
-		  bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
+                  bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
 
-		  // Test if f is instrinsic //
-		  bool is_intrinsic = f->isIntrinsic();
+                  // Test if f is instrinsic //
+                  bool is_intrinsic = f->isIntrinsic();
 
-		  // Test if the function use double or float
-		  bool use_float, use_double;
-		  haveFloatingPointArithmetic(pi, f, is_from_library,
+                  // Test if the function use double or float
+                  bool use_float, use_double;
+                  haveFloatingPointArithmetic(pi, f, is_from_library,
                                               is_intrinsic, &use_float,
                                               &use_double, M);
 
-		  // If the called function is an intrinsic function that does not
-		  // use float or double, do not instrument it.
-		  if (is_intrinsic && !(use_float || use_double)) {
-		    continue;
-		  }
+                  // If the called function is an intrinsic function that does
+                  // not use float or double, do not instrument it.
+                  if (is_intrinsic && !(use_float || use_double)) {
+                    continue;
+                  }
 
-		  // Create function ID
-		  Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
+                  // Create function ID
+                  Value *FunctionID =
+                      Builder.CreateGlobalStringPtr(FunctionName);
 
-		  // Constants creation
-		  Constant *isLibraryFunction =
+                  // Constants creation
+                  Constant *isLibraryFunction =
                       ConstantInt::get(Int8Ty, is_from_library);
-		  Constant *isInstrinsicFunction =
+                  Constant *isInstrinsicFunction =
                       ConstantInt::get(Int8Ty, is_intrinsic);
-		  Constant *haveFloat = ConstantInt::get(Int8Ty, use_float);
-		  Constant *haveDouble = ConstantInt::get(Int8Ty, use_double);
+                  Constant *haveFloat = ConstantInt::get(Int8Ty, use_float);
+                  Constant *haveDouble = ConstantInt::get(Int8Ty, use_double);
 
-		  // Enter function arguments
-		  std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
-						isInstrinsicFunction, haveFloat,
-						haveDouble};
+                  // Enter function arguments
+                  std::vector<Value *> MetaData{FunctionID, isLibraryFunction,
+                                                isInstrinsicFunction, haveFloat,
+                                                haveDouble};
 
-		  Type *ReturnTy = f->getReturnType();
-		  std::vector<Type *> CallTypes;
-		  for (auto it = pi->op_begin(); it < pi->op_end() - 1; it++) {
-		    CallTypes.push_back(cast<Value>(it)->getType());
-		  }
+                  Type *ReturnTy = f->getReturnType();
+                  std::vector<Type *> CallTypes;
+                  for (auto it = pi->op_begin(); it < pi->op_end() - 1; it++) {
+                    CallTypes.push_back(cast<Value>(it)->getType());
+                  }
 
-		  // Create the hook function
-		  FunctionType *HookFunTy =
+                  // Create the hook function
+                  FunctionType *HookFunTy =
                       FunctionType::get(ReturnTy, CallTypes, false);
-		  Function *hook_func = Function::Create(
+                  Function *hook_func = Function::Create(
                       HookFunTy, Function::ExternalLinkage, NewName, &M);
 
-		  // Gives to the hook function the calling convention and
-		  // attributes of the original function.
-		  hook_func->setAttributes(f->getAttributes());
-		  hook_func->setCallingConv(f->getCallingConv());
+                  // Gives to the hook function the calling convention and
+                  // attributes of the original function.
+                  hook_func->setAttributes(f->getAttributes());
+                  hook_func->setCallingConv(f->getCallingConv());
 
-		  BasicBlock *block =
+                  BasicBlock *block =
                       BasicBlock::Create(M.getContext(), "block", hook_func);
 
-		  // Instrument the original function call
-		  InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
-				     block, M);
-		  // Replace the call to the original function by a call to the
-		  // hook function
-		  cast<CallInst>(pi)->setCalledFunction(hook_func);
-		}
-	      }
-	    }
-	  }
-	}
+                  // Instrument the original function call
+                  InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
+                                     block, M);
+                  // Replace the call to the original function by a call to the
+                  // hook function
+                  cast<CallInst>(pi)->setCalledFunction(hook_func);
+                }
+              }
+            }
+          }
+        }
       }
     }
 
