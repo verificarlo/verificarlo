@@ -360,6 +360,18 @@ int compute_absErr_vprec_binary64(bool isDenormal, void *context, int expDiff,
   }
 }
 
+inline float generate_number_from_exponent_f(float a, int exponent) {
+  binary32 asgn = {.f32 = a};
+  int a_sign = 0 - (asgn.u32 >> (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE));
+  return (a_sign * exp2f(exponent));
+}
+
+inline double generate_number_from_exponent(double a, int exponent) {
+  binary64 asgn = {.f64 = a};
+  int a_sign = 0 - (asgn.u64 >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
+  return (a_sign * exp2(exponent));
+}
+
 /******************** VPREC ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the VPREC operation. Operands
  * are first correctly rounded to the target precison format if inbound
