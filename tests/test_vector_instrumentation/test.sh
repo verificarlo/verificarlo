@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+output=0
+
 # Function
 remove_test_output_file() {
     rm -Rf test.*.*.ll
@@ -10,7 +12,6 @@ check_wrapper_call() {
     type=$1
     op=$2
     size=$3
-    output=0
     
     remove_test_output_file
     verificarlo-c -DREAL=$type$size -c test.c -emit-llvm --save-temps
@@ -51,6 +52,33 @@ do
 	done
     done
 done
+
+# Check architecture
+is_x86=$(uname -m | grep x86_64 | wc -l)
+
+# Check if vector instruction are used
+cpuinfo=$(cat /proc/cpuinfo)
+
+sse=$(echo $cpuinfo | grep sse | wc -l)
+avx=$(echo $cpuinfo | grep avx | wc -l)
+avx512=$(echo $cpuinfo | grep avx512 | wc -l)
+
+if [ ! $is_x86 == 0 ] ; then
+    echo "You have x86 architecture"
+    if [ ! $sse == 0 ] ; then
+	echo "sse"	
+    fi
+
+    if [ ! $avx == 0 ] ; then
+	echo "avx"
+    fi
+
+    if [ ! $avx512 == 0 ] ; then
+	echo "avx512"
+    fi
+else
+    echo "You have NOT x86 architecture"
+fi
 
 if [ $result == 0 ] ; then
     echo "TEST PASS"
