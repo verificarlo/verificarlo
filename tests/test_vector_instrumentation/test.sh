@@ -6,7 +6,7 @@ remove_test_output_file() {
     rm -Rf test.*.*.ll
 }
 
-compile_and_run() {
+check_wrapper_call() {
     type=$1
     op=$2
     size=$3
@@ -44,7 +44,7 @@ do
     do
 	for op in add mul sub div
 	do
-	    compile_and_run $type $op $size
+	    check_wrapper_call $type $op $size
 	    if [ $output == 1 ] ; then
 		result=1
 	    fi
