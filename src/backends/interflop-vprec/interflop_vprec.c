@@ -276,10 +276,8 @@ void _set_vprec_inst_mode(vprec_inst_mode mode) {
  * VPREC mode of operation and instrumentation mode.
  ***************************************************************/
 
-int compute_absErr_vprec_binary32(bool isDenormal, void *context, int expDiff,
-                                  int binary32_precision) {
-  t_context *currentContext = (t_context *)context;
-
+int compute_absErr_vprec_binary32(bool isDenormal, t_context *currentContext,
+                                  int expDiff, int binary32_precision) {
   if (isDenormal == true) {
     /* denormal, or underflow case */
     if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
@@ -318,10 +316,8 @@ int compute_absErr_vprec_binary32(bool isDenormal, void *context, int expDiff,
   }
 }
 
-int compute_absErr_vprec_binary64(bool isDenormal, void *context, int expDiff,
-                                  int binary64_precision) {
-  t_context *currentContext = (t_context *)context;
-
+int compute_absErr_vprec_binary64(bool isDenormal, t_context *currentContext,
+                                  int expDiff, int binary64_precision) {
   if (isDenormal == true) {
     /* denormal, or underflow case */
     if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
@@ -370,6 +366,58 @@ inline double generate_number_from_exponent(double a, int exponent) {
   binary64 asgn = {.f64 = a};
   int a_sign = 0 - (asgn.u64 >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
   return (a_sign * exp2(exponent));
+}
+
+inline float handle_binary32_normal_absErr(float a, int32_t aexp,
+                                           int binary32_precision,
+                                           t_context *currentContext) {
+  /* absolute error, or absolute and relative error mode */
+  int expDiff = aexp - currentContext->absErr_exp;
+  float retVal;
+
+  if (expDiff < -1) {
+    /* equivalent to underflow on the precision given by absolute error */
+    retVal = 0;
+  } else if (expDiff == -1) {
+    /* case when the number is just below the absolute error threshold,
+      but will round to one ulp on the format given by the absolute error;
+      this needs to be handled separately, as round_binary32_normal cannot
+      generate this number */
+    retVal = generate_number_from_exponent_f(a, currentContext->absErr_exp);
+  } else {
+    /* normal case for the absolute error mode */
+    int binary32_precision_adjusted = compute_absErr_vprec_binary32(
+        false, currentContext, expDiff, binary32_precision);
+    retVal = round_binary32_normal(a, binary32_precision_adjusted);
+  }
+
+  return retVal;
+}
+
+inline double handle_binary64_normal_absErr(double a, int64_t aexp,
+                                           int binary64_precision,
+                                           t_context *currentContext) {
+  /* absolute error, or absolute and relative error mode */
+  int expDiff = aexp - currentContext->absErr_exp;
+  double retVal;
+
+  if (expDiff < -1) {
+    /* equivalent to underflow on the precision given by absolute error */
+    retVal = 0;
+  } else if (expDiff == -1) {
+    /* case when the number is just below the absolute error threshold,
+      but will round to one ulp on the format given by the absolute error;
+      this needs to be handled separately, as round_binary32_normal cannot
+      generate this number */
+    retVal = generate_number_from_exponent(a, currentContext->absErr_exp);
+  } else {
+    /* normal case for the absolute error mode */
+    int binary64_precision_adjusted = compute_absErr_vprec_binary64(
+        false, currentContext, expDiff, binary64_precision);
+    retVal = round_binary64_normal(a, binary64_precision_adjusted);
+  }
+
+  return retVal;
 }
 
 /******************** VPREC ARITHMETIC FUNCTIONS ********************
@@ -474,9 +522,8 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     } else {
       if (currentContext->absErr == true) {
         /* absolute error, or absolute and relative error mode */
-        int binary32_precision_adjusted;
-        binary32_precision_adjusted =
-            compute_absErr_vprec_binary32(true, context, 0, binary32_precision);
+        int binary32_precision_adjusted = compute_absErr_vprec_binary32(
+            true, currentContext, 0, binary32_precision);
         a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
       } else {
         /* relative error mode */
@@ -541,9 +588,8 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       a = 0;
     } else {
       if (currentContext->absErr == true) {
-        int binary64_precision_adjusted;
-        binary64_precision_adjusted =
-            compute_absErr_vprec_binary64(true, context, 0, binary64_precision);
+        int binary64_precision_adjusted = compute_absErr_vprec_binary64(
+            true, currentContext, 0, binary64_precision);
         a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
       } else {
         a = handle_binary64_denormal(a, emin, binary64_precision);
