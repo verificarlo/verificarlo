@@ -588,10 +588,12 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       a = 0;
     } else {
       if (currentContext->absErr == true) {
+        /* absolute error, or absolute and relative error mode */
         int binary64_precision_adjusted = compute_absErr_vprec_binary64(
             true, currentContext, 0, binary64_precision);
         a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
       } else {
+        /* relative error mode */
         a = handle_binary64_denormal(a, emin, binary64_precision);
       }
     }
