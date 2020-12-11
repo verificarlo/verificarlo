@@ -1,7 +1,7 @@
 #!/bin/bash
 
 temporary="*~"
-binary="*.o run"
+binary="*.asm *.o run"
 instrument="test.*.*.ll"
 
 rm -Rf $temporary $instrument $binary
