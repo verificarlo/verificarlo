@@ -43,13 +43,13 @@ check_vector_instruction_call() {
     register=$5
 
     rm -Rf test.o test.asm
-    verificarlo-c -DREAL=$type$size -c test.c -o test.o -march=native -fno-slp-vectorize
+    clang -DREAL=$type$size -c test.c -o test.o -march=native -fno-slp-vectorize
     objdump -d test.o > test.asm
 
     if grep $instru'.*'$register test.asm; then
-	echo "vector $op for $type$size instrumented"
+	echo "instruction $instru and register $register instrumented"
     else
-	echo "vector $op for $type$size NOT instrumented with --inst-func"
+	echo "instruction $instru and register $register NOT instrumented"
 	instruction_set=1
     fi
 }
@@ -89,25 +89,48 @@ if [ ! $is_x86 == 0 ] ; then
     if [ ! $sse == 0 ] ; then
 	echo "sse"
 
-	check_vector_instruction_call float add 2 addps xmm
-	check_vector_instruction_call double add 2 addpd xmm
-	check_vector_instruction_call float add 4 addps xmm
+	for size in 2 4
+	do
+	    for op in add mul sub div
+	    do
+		check_vector_instruction_call float $op $size $op"ps" xmm
+	    done
+	done
+
+	for op in add mul sub div
+	do
+	    check_vector_instruction_call double $op 2 $op"pd" xmm
+	done
     fi
 
     # AVX
     if [ ! $avx == 0 ] ; then
 	echo "avx"
 
-	check_vector_instruction_call double add 4 addpd ymm
-	check_vector_instruction_call float add 8 addps ymm
+	for op in add mul sub div
+	do
+	    check_vector_instruction_call float $op 8 $op"ps" ymm
+	done
+
+	for op in add mul sub div
+	do
+	    check_vector_instruction_call double $op 4 $op"pd" ymm
+	done
     fi
 
     # AVX512
     if [ ! $avx512 == 0 ] ; then
 	echo "avx512"
 
-	check_vector_instruction_call double add 8 addpd zmm
-	check_vector_instruction_call float add 16 addps zmm
+	for op in add mul sub div
+	do
+	    check_vector_instruction_call float $op 16 $op"ps" zmm
+	done
+
+	for op in add mul sub div
+	do
+	    check_vector_instruction_call double $op 8 $op"pd" zmm
+	done
     fi
 else
     echo "You have NOT x86 architecture"
