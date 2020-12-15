@@ -122,10 +122,10 @@ Then you can run the test suite with,
 If you disable flang support during configure, Fortran tests will be
 disabled and considered as passing the test.
 
-You can clean the test directory with (supposed to be in verificarlo directory),
+You can clean the test directory with,
 
 ```bash
-   $ ./tests/clean.sh
+   $ make cleantests
 ```
 
 ## Usage
