@@ -12,4 +12,4 @@ for t in $tests; do
     bash -c -l "cd $t && ./clean.sh"
 done
 
-rm -Rf *~ testplan.log testplan.trs
+rm -Rf *~ paths.sh testplan.log testplan.trs
