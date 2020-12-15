@@ -122,6 +122,8 @@ Then you can run the test suite with,
 If you disable flang support during configure, Fortran tests will be
 disabled and considered as passing the test.
 
+### Cleanning tests
+
 You can clean the test directory with,
 
 ```bash
