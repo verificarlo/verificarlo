@@ -37,3 +37,8 @@ installcheck:
 		done; \
 		exit 1; \
 	fi
+
+cleantests:
+# Clean tests directory
+	cd tests/ && ./clean.sh && cd ..
+	@echo "tests directory are cleaned."
