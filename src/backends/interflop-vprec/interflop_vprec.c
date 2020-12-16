@@ -407,7 +407,7 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
 inline float handle_binary32_normal_absErr(float a, int32_t aexp,
                                            int binary32_precision,
                                            t_context *currentContext) {
-  /* absolute error, or absolute and relative error mode */
+  /* absolute error mode, or both absolute and relative error modes */
   int expDiff = aexp - currentContext->absErr_exp;
   float retVal;
 
@@ -433,7 +433,7 @@ inline float handle_binary32_normal_absErr(float a, int32_t aexp,
 inline double handle_binary64_normal_absErr(double a, int64_t aexp,
                                             int binary64_precision,
                                             t_context *currentContext) {
-  /* absolute error, or absolute and relative error mode */
+  /* absolute error mode, or both absolute and relative error modes */
   int expDiff = aexp - currentContext->absErr_exp;
   double retVal;
 
