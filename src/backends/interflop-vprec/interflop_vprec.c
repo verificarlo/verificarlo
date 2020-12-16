@@ -379,7 +379,8 @@ inline float handle_binary32_normal_absErr(float a, int32_t aexp,
       but will round to one ulp on the format given by the absolute error;
       this needs to be handled separately, as round_binary32_normal cannot
       generate this number */
-    retVal = generate_number_from_exponent_f(a, currentContext->absErr_exp);
+    // retVal = generate_number_from_exponent_f(a, currentContext->absErr_exp);
+    retVal = copysignf(exp2f(currentContext->absErr_exp), a);
   } else {
     /* normal case for the absolute error mode */
     int binary32_precision_adjusted = compute_absErr_vprec_binary32(
@@ -405,7 +406,8 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
       but will round to one ulp on the format given by the absolute error;
       this needs to be handled separately, as round_binary32_normal cannot
       generate this number */
-    retVal = generate_number_from_exponent(a, currentContext->absErr_exp);
+    // retVal = generate_number_from_exponent(a, currentContext->absErr_exp);
+    retVal = copysign(exp2(currentContext->absErr_exp), a);
   } else {
     /* normal case for the absolute error mode */
     int binary64_precision_adjusted = compute_absErr_vprec_binary64(
