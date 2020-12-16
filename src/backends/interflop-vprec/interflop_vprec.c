@@ -283,6 +283,8 @@ inline int compute_absErr_vprec_binary32(bool isDenormal,
    * so there is no need to handle vprec error mode rel */
   if (isDenormal == true) {
     /* denormal, or underflow case */
+    /* this function is used only when in vprec error mode abs and all,
+     * so there is no need to handle the relative mode*/
     if (currentContext->relErr == true) {
       /* vprec error mode all */
       if (abs(currentContext->absErr_exp) < binary32_precision)
@@ -555,7 +557,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
       a = 0;
     } else {
       if (currentContext->absErr == true) {
-        /* absolute error, or absolute and relative error mode */
+        /* absolute error mode, or both absolute and relative error modes */
         int binary32_precision_adjusted = compute_absErr_vprec_binary32(
             true, currentContext, 0, binary32_precision);
         a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
@@ -676,7 +678,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       a = 0;
     } else {
       if (currentContext->absErr == true) {
-        /* absolute error, or absolute and relative error mode */
+        /* absolute error mode, or both absolute and relative error modes */
         int binary64_precision_adjusted = compute_absErr_vprec_binary64(
             true, currentContext, 0, binary64_precision);
         a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
