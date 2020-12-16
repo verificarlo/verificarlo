@@ -581,7 +581,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     /* else, normal case: can be executed even if a
      previously rounded and truncated as denormal */
     if (currentContext->absErr == true) {
-      /* absolute error, or absolute and relative error mode */
+      /* absolute error mode, or both absolute and relative error modes */
       a = handle_binary64_normal_absErr(a, aexp.s64, binary64_precision,
                                         currentContext);
     } else {
