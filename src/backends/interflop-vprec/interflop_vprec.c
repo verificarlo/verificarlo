@@ -460,7 +460,9 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     /* underflow case: possibly a denormal */
     if ((currentContext->daz && is_input) ||
         (currentContext->ftz && !is_input)) {
-      a = 0;
+      return a * 0; // preserve sign
+    } else if (FP_ZERO == fpclassify(a)) {
+      return a;
     } else {
       if (currentContext->absErr == true) {
         /* absolute error mode, or both absolute and relative error modes */
@@ -551,7 +553,9 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     /* underflow case: possibly a denormal */
     if ((currentContext->daz && is_input) ||
         (currentContext->ftz && !is_input)) {
-      a = 0;
+      return a * 0; // preserve sign
+    } else if (FP_ZERO == fpclassify(a)) {
+      return a;
     } else {
       if (currentContext->absErr == true) {
         /* absolute error mode, or both absolute and relative error modes */
