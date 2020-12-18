@@ -283,8 +283,6 @@ inline int compute_absErr_vprec_binary32(bool isDenormal,
    * so there is no need to handle vprec error mode rel */
   if (isDenormal == true) {
     /* denormal, or underflow case */
-    /* this function is used only when in vprec error mode abs and all,
-     * so there is no need to handle the relative mode*/
     if (currentContext->relErr == true) {
       /* vprec error mode all */
       if (abs(currentContext->absErr_exp) < binary32_precision)
@@ -352,57 +350,17 @@ inline int compute_absErr_vprec_binary64(bool isDenormal,
   }
 }
 
-inline float handle_binary32_normal_absErr(float a, int32_t aexp,
-                                           int binary32_precision,
-                                           t_context *currentContext) {
-  /* absolute error mode, or both absolute and relative error modes */
-  int expDiff = aexp - currentContext->absErr_exp;
-  float retVal;
+// inline float generate_number_from_exponent_f(float a, int exponent) {
+//   binary32 asgn = {.f32 = a};
+//   int a_sign = 0 - (asgn.u32 >> (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE));
+//   return (a_sign * exp2f(exponent));
+// }
 
-  if (expDiff < -1) {
-    /* equivalent to underflow on the precision given by absolute error */
-    retVal = 0;
-  } else if (expDiff == -1) {
-    /* case when the number is just below the absolute error threshold,
-      but will round to one ulp on the format given by the absolute error;
-      this needs to be handled separately, as round_binary32_normal cannot
-      generate this number */
-    retVal = copysignf(exp2f(currentContext->absErr_exp), a);
-  } else {
-    /* normal case for the absolute error mode */
-    int binary32_precision_adjusted = compute_absErr_vprec_binary32(
-        false, currentContext, expDiff, binary32_precision);
-    retVal = round_binary32_normal(a, binary32_precision_adjusted);
-  }
-
-  return retVal;
-}
-
-inline double handle_binary64_normal_absErr(double a, int64_t aexp,
-                                            int binary64_precision,
-                                            t_context *currentContext) {
-  /* absolute error mode, or both absolute and relative error modes */
-  int expDiff = aexp - currentContext->absErr_exp;
-  double retVal;
-
-  if (expDiff < -1) {
-    /* equivalent to underflow on the precision given by absolute error */
-    retVal = 0;
-  } else if (expDiff == -1) {
-    /* case when the number is just below the absolute error threshold,
-      but will round to one ulp on the format given by the absolute error;
-      this needs to be handled separately, as round_binary32_normal cannot
-      generate this number */
-    retVal = copysign(exp2(currentContext->absErr_exp), a);
-  } else {
-    /* normal case for the absolute error mode */
-    int binary64_precision_adjusted = compute_absErr_vprec_binary64(
-        false, currentContext, expDiff, binary64_precision);
-    retVal = round_binary64_normal(a, binary64_precision_adjusted);
-  }
-
-  return retVal;
-}
+// inline double generate_number_from_exponent(double a, int exponent) {
+//   binary64 asgn = {.f64 = a};
+//   int a_sign = 0 - (asgn.u64 >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
+//   return (a_sign * exp2(exponent));
+// }
 
 inline float handle_binary32_normal_absErr(float a, int32_t aexp,
                                            int binary32_precision,
