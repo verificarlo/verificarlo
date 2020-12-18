@@ -446,15 +446,6 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   /* here emin is the smallest exponent in the *normal* range */
   int emin = 1 - emax;
 
-  /* in absolute error mode, the error threshold also gives the possible
-   * underflow limit */
-  if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
-    if (currentContext->absErr_exp > emin)
-      emin = currentContext->absErr_exp;
-  } else if (currentContext->absErr == true) {
-    emin = currentContext->absErr_exp;
-  }
-
   binary32 aexp = {.f32 = a};
   aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE) - FLOAT_EXP_COMP;
 
@@ -466,37 +457,6 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 
   /* check for underflow in target range */
   if (aexp.s32 < emin) {
-    if ((currentContext->daz && is_input) ||
-        (currentContext->ftz && !is_input)) {
-      a = 0;
-    } else {
-      if ((currentContext->relErr == true) &&
-          (currentContext->absErr == true)) {
-        /* vprec error mode all */
-        if (abs(currentContext->absErr_exp) < binary32_precision)
-          a = handle_binary32_denormal(a, emin,
-                                       abs(currentContext->absErr_exp));
-        else
-          a = handle_binary32_denormal(a, emin, binary32_precision);
-      } else if (currentContext->absErr == true) {
-        /* vprec error mode abs */
-        a = handle_binary32_denormal(a, emin, abs(currentContext->absErr_exp));
-      } else {
-        /* vprec error mode rel */
-        a = handle_binary32_denormal(a, emin, binary32_precision);
-      }
-    }
-  }
-
-  /* Specials ops must be placed after denormal handling  */
-  /* If one of the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
-  if (sp_case) {
-    return a;
-  }
-
-  /* check for underflow in target range */
-  if (aexp.s32 < emin) {
     /* underflow case: possibly a denormal */
     if ((currentContext->daz && is_input) ||
         (currentContext->ftz && !is_input)) {
@@ -513,79 +473,18 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         /* relative error mode */
         a = handle_binary32_denormal(a, emin, binary32_precision);
       }
-    }
-  }
-
-  /* Specials ops must be placed after denormal handling  */
-  /* If one of the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
-  if (sp_case) {
-    return a;
-  }
-
-  /* check for underflow in target range */
-  if (aexp.s32 < emin) {
-    /* underflow case: possibly a denormal */
-    if ((currentContext->daz && is_input) ||
-        (currentContext->ftz && !is_input)) {
-      return a * 0; // preserve sign
-    } else if (FP_ZERO == fpclassify(a)) {
-      return a;
-    } else {
-      if (currentContext->absErr == true) {
-        /* absolute error mode, or both absolute and relative error modes */
-        int binary32_precision_adjusted = compute_absErr_vprec_binary32(
-            true, currentContext, 0, binary32_precision);
-        a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
-      } else {
-        /* relative error mode */
-        a = handle_binary32_denormal(a, emin, binary32_precision);
-      }
-    }
-  }
-
-  /* Specials ops must be placed after denormal handling  */
-  /* If one of the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
-  if (sp_case) {
-    return a;
-  }
-
-  /* check for underflow in target range */
-  if (aexp.s32 < emin) {
-    /* underflow case: possibly a denormal */
-    if ((currentContext->daz && is_input) ||
-        (currentContext->ftz && !is_input)) {
-      a = 0;
-    } else {
-      int binary32_precision_adjusted;
-      if (currentContext->absErr == true)
-        binary32_precision_adjusted =
-            compute_absErr_vprec_binary32(true, context, 0, binary32_precision);
-      else
-        binary32_precision_adjusted = binary32_precision;
-      a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
-    }
-  }
-
-  /* Specials ops must be placed after denormal handling  */
-  /* If one of the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
-  if (sp_case) {
-    return a;
-  }
-
-  if (aexp.s32 < emin) {
-    if ((((t_context *)context)->daz && is_input) ||
-        (((t_context *)context)->ftz && !is_input)) {
-      return a * 0; // preserve sign
-    } else if (FP_ZERO == fpclassify(a)) {
-      return a;
-    } else {
-      return handle_binary32_denormal(a, emin, binary32_precision);
     }
   } else {
-    return round_binary32_normal(a, binary32_precision);
+    /* else, normal case: can be executed even if a
+     previously rounded and truncated as denormal */
+    if (currentContext->absErr == true) {
+      /* absolute error mode, or both absolute and relative error modes */
+      a = handle_binary32_normal_absErr(a, aexp.s32, binary32_precision,
+                                        currentContext);
+    } else {
+      /* relative error mode */
+      a = round_binary32_normal(a, binary32_precision);
+    }
   }
 
   return a;
@@ -637,29 +536,16 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         a = handle_binary64_denormal(a, emin, binary64_precision);
       }
     }
-  }
-
-  /* Special ops must be placed after denormal handling  */
-  /* If the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
-  if (sp_case) {
-    return a;
-  }
-
-  /* check for underflow in target range */
-  if (aexp.s64 < emin) {
-    /* underflow case: possibly a denormal */
-    if ((currentContext->daz && is_input) ||
-        (currentContext->ftz && !is_input)) {
-      a = 0;
+  } else {
+    /* else, normal case: can be executed even if a
+     previously rounded and truncated as denormal */
+    if (currentContext->absErr == true) {
+      /* absolute error mode, or both absolute and relative error modes */
+      a = handle_binary64_normal_absErr(a, aexp.s64, binary64_precision,
+                                        currentContext);
     } else {
-      int binary64_precision_adjusted;
-      if (currentContext->absErr == true)
-        binary64_precision_adjusted =
-            compute_absErr_vprec_binary64(true, context, 0, binary64_precision);
-      else
-        binary64_precision_adjusted = binary64_precision;
-      a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
+      /* relative error mode */
+      a = round_binary64_normal(a, binary64_precision);
     }
   }
 
