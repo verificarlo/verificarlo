@@ -263,12 +263,13 @@ void _set_vprec_inst_mode(vprec_inst_mode mode) {
  * VPREC mode of operation and instrumentation mode.
  ***************************************************************/
 
-int compute_absErr_vprec_binary32(bool isDenormal, t_context *currentContext,
-                                  int expDiff, int binary32_precision) {
+inline int compute_absErr_vprec_binary32(bool isDenormal,
+                                         t_context *currentContext, int expDiff,
+                                         int binary32_precision) {
+  /* this function is used only when in vprec error mode abs and all,
+   * so there is no need to handle vprec error mode rel */
   if (isDenormal == true) {
     /* denormal, or underflow case */
-    /* this function is used only when in vprec error mode abs and all,
-     * so there is no need to handle the relative mode*/
     if (currentContext->relErr == true) {
       /* vprec error mode all */
       if (abs(currentContext->absErr_exp) < binary32_precision)
@@ -299,57 +300,54 @@ int compute_absErr_vprec_binary32(bool isDenormal, t_context *currentContext,
   }
 }
 
-int compute_absErr_vprec_binary64(bool isDenormal, t_context *currentContext,
-                                  int expDiff, int binary64_precision) {
+inline int compute_absErr_vprec_binary64(bool isDenormal,
+                                         t_context *currentContext, int expDiff,
+                                         int binary64_precision) {
+  /* this function is used only when in vprec error mode abs and all,
+   * so there is no need to handle vprec error mode rel */
   if (isDenormal == true) {
     /* denormal, or underflow case */
-    if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+    if (currentContext->relErr == true) {
       /* vprec error mode all */
       if (abs(currentContext->absErr_exp) < binary64_precision)
         return currentContext->absErr_exp;
       else
         return binary64_precision;
-    } else if (currentContext->absErr == true) {
+    } else {
       /* vprec error mode abs */
       return currentContext->absErr_exp;
-    } else {
-      /* vprec error mode rel */
-      return binary64_precision;
     }
   } else {
     /* normal case */
-    if ((currentContext->relErr == true) && (currentContext->absErr == true)) {
+    if (currentContext->relErr == true) {
       /* vprec error mode all */
       if (expDiff < binary64_precision)
         return expDiff;
       else {
         return binary64_precision;
       }
-    } else if (currentContext->absErr == true) {
+    } else {
       /* vprec error mode abs */
       if (expDiff < DOUBLE_PMAN_SIZE) {
         return expDiff;
       } else {
         return DOUBLE_PMAN_SIZE;
       }
-    } else {
-      /* vprec error mode rel */
-      return binary64_precision;
     }
   }
 }
 
-inline float generate_number_from_exponent_f(float a, int exponent) {
-  binary32 asgn = {.f32 = a};
-  int a_sign = 0 - (asgn.u32 >> (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE));
-  return (a_sign * exp2f(exponent));
-}
+// inline float generate_number_from_exponent_f(float a, int exponent) {
+//   binary32 asgn = {.f32 = a};
+//   int a_sign = 0 - (asgn.u32 >> (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE));
+//   return (a_sign * exp2f(exponent));
+// }
 
-inline double generate_number_from_exponent(double a, int exponent) {
-  binary64 asgn = {.f64 = a};
-  int a_sign = 0 - (asgn.u64 >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
-  return (a_sign * exp2(exponent));
-}
+// inline double generate_number_from_exponent(double a, int exponent) {
+//   binary64 asgn = {.f64 = a};
+//   int a_sign = 0 - (asgn.u64 >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
+//   return (a_sign * exp2(exponent));
+// }
 
 inline float handle_binary32_normal_absErr(float a, int32_t aexp,
                                            int binary32_precision,
