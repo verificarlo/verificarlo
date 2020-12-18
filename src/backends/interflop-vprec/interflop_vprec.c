@@ -350,18 +350,6 @@ inline int compute_absErr_vprec_binary64(bool isDenormal,
   }
 }
 
-// inline float generate_number_from_exponent_f(float a, int exponent) {
-//   binary32 asgn = {.f32 = a};
-//   int a_sign = 0 - (asgn.u32 >> (FLOAT_EXP_SIZE + FLOAT_PMAN_SIZE));
-//   return (a_sign * exp2f(exponent));
-// }
-
-// inline double generate_number_from_exponent(double a, int exponent) {
-//   binary64 asgn = {.f64 = a};
-//   int a_sign = 0 - (asgn.u64 >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
-//   return (a_sign * exp2(exponent));
-// }
-
 inline float handle_binary32_normal_absErr(float a, int32_t aexp,
                                            int binary32_precision,
                                            t_context *currentContext) {
@@ -377,7 +365,6 @@ inline float handle_binary32_normal_absErr(float a, int32_t aexp,
       but will round to one ulp on the format given by the absolute error;
       this needs to be handled separately, as round_binary32_normal cannot
       generate this number */
-    // retVal = generate_number_from_exponent_f(a, currentContext->absErr_exp);
     retVal = copysignf(exp2f(currentContext->absErr_exp), a);
   } else {
     /* normal case for the absolute error mode */
@@ -404,7 +391,6 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
       but will round to one ulp on the format given by the absolute error;
       this needs to be handled separately, as round_binary32_normal cannot
       generate this number */
-    // retVal = generate_number_from_exponent(a, currentContext->absErr_exp);
     retVal = copysign(exp2(currentContext->absErr_exp), a);
   } else {
     /* normal case for the absolute error mode */
