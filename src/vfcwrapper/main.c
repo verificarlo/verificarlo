@@ -267,11 +267,40 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   /* Initialize the logger */
   logger_init();
 
+  /* Parse VFC_BACKENDS_FROM_FILE */
+  char *vfc_backends_fromfile = NULL;
+  char *vfc_backends_fromfile_file = getenv("VFC_BACKENDS_FROM_FILE");
+  if (vfc_backends_fromfile_file != NULL) {
+    FILE *fi = fopen(vfc_backends_fromfile_file, "r");
+    if (fi == NULL) {
+      logger_error(
+          "Error while opening file pointed by VFC_BACKENDS_FROM_FILE: %s",
+          strerror(errno));
+    } else {
+      size_t len = 0;
+      ssize_t nread;
+      nread = getline(&vfc_backends_fromfile, &len, fi);
+      if (nread == -1) {
+        logger_error(
+            "Error while reading file pointed by VFC_BACKENDS_FROM_FILE: %s",
+            strerror(errno));
+      } else {
+        if (vfc_backends_fromfile[nread - 1] == '\n') {
+          vfc_backends_fromfile[nread - 1] = '\0';
+        }
+      }
+    }
+  }
+
   /* Parse VFC_BACKENDS */
   char *vfc_backends = getenv("VFC_BACKENDS");
   if (vfc_backends == NULL) {
-    logger_error(
-        "VFC_BACKENDS is empty, at least one backend should be provided");
+    if (vfc_backends_fromfile == NULL) {
+      logger_error(
+          "VFC_BACKENDS is empty, at least one backend should be provided");
+    } else {
+      vfc_backends = vfc_backends_fromfile;
+    }
   }
 
   /* Environnement variable to disable loading message */
@@ -287,7 +316,6 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   char *semicolonptr;
   char *token = strtok_r(vfc_backends, ";", &semicolonptr);
   while (token) {
-
     /* Parse each backend arguments, argv[0] is the backend name */
     int backend_argc = 0;
     char *backend_argv[MAX_ARGS];

@@ -205,6 +205,17 @@ after each backend,
                    ./program"
 ```
 
+You could also use the environment variable `VFC_BACKENDS_FROM_FILE` to
+read the value of `VFC_BACKENDS` from a file, 
+
+```bash
+   $ echo "libinterflop_ieee.so --debug; \
+           libinterflop-mca.so --precision-binary64 10 --mode rr" > config.txt
+   $ export VFC_BACKENDS_FROM_FILE=$PWD/config.txt
+```
+
+> :warning: `VFC_BACKENDS` takes precedence over `VFC_BACKENDS_FROM_FILE`
+
 To suppress the messages when loading backends, export the
 environment variable `VFC_BACKENDS_SILENT_LOAD`.
 
