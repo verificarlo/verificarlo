@@ -519,6 +519,8 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
   } else {
     return round_binary32_normal(a, binary32_precision);
   }
+
+  return a;
 }
 
 // Round the double with the given precision
@@ -580,25 +582,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     }
   }
 
-  /* Special ops must be placed after denormal handling  */
-  /* If the operand raises an underflow, the operation */
-  /* has a different behavior. Example: x*Inf != 0*Inf */
-  if (sp_case) {
-    return a;
-  }
-
-  if (aexp.s64 < emin) {
-    if ((((t_context *)context)->daz && is_input) ||
-        (((t_context *)context)->ftz && !is_input)) {
-      return a * 0; // preserve sign
-    } else if (FP_ZERO == fpclassify(a)) {
-      return a;
-    } else {
-      return handle_binary64_denormal(a, emin, binary64_precision);
-    }
-  } else {
-    return round_binary64_normal(a, binary64_precision);
-  }
+  return a;
 }
 
 static inline float _vprec_binary32_binary_op(float a, float b,
