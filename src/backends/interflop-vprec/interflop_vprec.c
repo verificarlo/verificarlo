@@ -486,6 +486,8 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
       a = round_binary32_normal(a, binary32_precision);
     }
   }
+
+  return a;
 }
 
 // Round the double with the given precision
@@ -546,6 +548,8 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
       a = round_binary64_normal(a, binary64_precision);
     }
   }
+
+  return a;
 }
 
 static inline float _vprec_binary32_binary_op(float a, float b,
