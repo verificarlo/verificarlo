@@ -265,6 +265,47 @@ static void _interflop_cmp_float(const enum FCMP_PREDICATE p, const float a,
   debug_print_float(context, COMPARISON, str, a, b, *c);
 }
 
+static void _interflop_add_float_vector(const int size, const float *a, const float *b,
+					float *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] + b[i];
+    debug_print_float(context, ARITHMETIC, "+", a[i], b[i], c[i]);
+  }
+}
+
+static void _interflop_sub_float_vector(const int size, const float *a, const float *b,
+					float *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] - b[i];
+    debug_print_float(context, ARITHMETIC, "-", a[i], b[i], c[i]);
+  }
+}
+
+static void _interflop_mul_float_vector(const int size, const float *a, const float *b,
+					float *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] * b[i];
+    debug_print_float(context, ARITHMETIC, "*", a[i], b[i], c[i]);
+  }
+}
+
+static void _interflop_div_float_vector(const int size, const float *a, const float *b,
+					float *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] / b[i];
+    debug_print_float(context, ARITHMETIC, "/", a[i], b[i], c[i]);
+  }
+}
+
+static void _interflop_cmp_float_vector(const enum FCMP_PREDICATE p, const int size,
+				 const float *a, const float *b, int *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    char *str = "";
+    SELECT_FLOAT_CMP(a[i], b[i], &(c[i]), p, str);
+    debug_print_float(context, COMPARISON, str, a[i], b[i], c[i]);
+  }
+}
+
 static void _interflop_add_double(const double a, const double b, double *c,
                                   void *context) {
   *c = a + b;
@@ -294,6 +335,47 @@ static void _interflop_cmp_double(const enum FCMP_PREDICATE p, const double a,
   char *str = "";
   SELECT_FLOAT_CMP(a, b, c, p, str);
   debug_print_double(context, COMPARISON, str, a, b, *c);
+}
+
+static void _interflop_add_double_vector(const int size, const double *a, const double *b,
+					 double *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] + b[i];
+    debug_print_double(context, ARITHMETIC, "+", a[i], b[i], c[i]);
+  }
+}
+
+static void _interflop_sub_double_vector(const int size, const double *a, const double *b,
+					 double *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] - b[i];
+    debug_print_double(context, ARITHMETIC, "-", a[i], b[i], c[i]);
+  }
+}
+
+static void _interflop_mul_double_vector(const int size, const double *a, const double *b,
+					 double *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] * b[i];
+    debug_print_double(context, ARITHMETIC, "*", a[i], b[i], c[i]);
+  }
+}
+
+static void _interflop_div_double_vector(const int size, const double *a, const double *b,
+					 double *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] / b[i];
+    debug_print_double(context, ARITHMETIC, "/", a[i], b[i], c[i]);
+  }
+}
+
+static void _interflop_cmp_double_vector(const enum FCMP_PREDICATE p, const int size,
+				  const double *a, const double *b, int *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    char *str = "";
+    SELECT_FLOAT_CMP(a[i], b[i], &(c[i]), p, str);
+    debug_print_double(context, COMPARISON, str, a[i], b[i], c[i]);
+  }
 }
 
 static struct argp_option options[] = {
@@ -364,21 +446,21 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_mul_float,
       _interflop_div_float,
       _interflop_cmp_float,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
+      _interflop_add_float_vector,
+      _interflop_sub_float_vector,
+      _interflop_mul_float_vector,
+      _interflop_div_float_vector,
+      _interflop_cmp_float_vector,
       _interflop_add_double,
       _interflop_sub_double,
       _interflop_mul_double,
       _interflop_div_double,
       _interflop_cmp_double,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
+      _interflop_add_double_vector,
+      _interflop_sub_double_vector,
+      _interflop_mul_double_vector,
+      _interflop_div_double_vector,
+      _interflop_cmp_double_vector,
       NULL,
       NULL,
       NULL};
