@@ -454,9 +454,9 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
 
 /* Arithmetic vector wrappers */
 
-#define define_vector_wrapper(size, precision, operation, operator)		       \
+#define define_vector_arithmetic_wrapper(size, precision, operation, operator)	       \
   precision##size _##size##x##precision##operation(precision##size a,	               \
-						   precision##size b) {	               \
+						   precision##size b) {                \
     precision##size c;                                                                 \
     for (unsigned char i = 0; i < size; ++i) {				               \
       c[i] = NAN;               					               \
@@ -475,44 +475,44 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
   }
 
 // Define wrapper for vector arithmetic operation for size 2
-define_vector_wrapper(2, float, add, +);
-define_vector_wrapper(2, float, sub, -);
-define_vector_wrapper(2, float, mul, *);
-define_vector_wrapper(2, float, div, /);
-define_vector_wrapper(2, double, add, +);
-define_vector_wrapper(2, double, sub, -);
-define_vector_wrapper(2, double, mul, *);
-define_vector_wrapper(2, double, div, /);
+define_vector_arithmetic_wrapper(2, float, add, +);
+define_vector_arithmetic_wrapper(2, float, sub, -);
+define_vector_arithmetic_wrapper(2, float, mul, *);
+define_vector_arithmetic_wrapper(2, float, div, /);
+define_vector_arithmetic_wrapper(2, double, add, +);
+define_vector_arithmetic_wrapper(2, double, sub, -);
+define_vector_arithmetic_wrapper(2, double, mul, *);
+define_vector_arithmetic_wrapper(2, double, div, /);
 
 // Define wrapper for vector arithmetic operation for size 4
-define_vector_wrapper(4, float, add, +);
-define_vector_wrapper(4, float, sub, -);
-define_vector_wrapper(4, float, mul, *);
-define_vector_wrapper(4, float, div, /);
-define_vector_wrapper(4, double, add, +);
-define_vector_wrapper(4, double, sub, -);
-define_vector_wrapper(4, double, mul, *);
-define_vector_wrapper(4, double, div, /);
+define_vector_arithmetic_wrapper(4, float, add, +);
+define_vector_arithmetic_wrapper(4, float, sub, -);
+define_vector_arithmetic_wrapper(4, float, mul, *);
+define_vector_arithmetic_wrapper(4, float, div, /);
+define_vector_arithmetic_wrapper(4, double, add, +);
+define_vector_arithmetic_wrapper(4, double, sub, -);
+define_vector_arithmetic_wrapper(4, double, mul, *);
+define_vector_arithmetic_wrapper(4, double, div, /);
 
 // Define wrapper for vector arithmetic operation for size 8
-define_vector_wrapper(8, float, add, +);
-define_vector_wrapper(8, float, sub, -);
-define_vector_wrapper(8, float, mul, *);
-define_vector_wrapper(8, float, div, /);
-define_vector_wrapper(8, double, add, +);
-define_vector_wrapper(8, double, sub, -);
-define_vector_wrapper(8, double, mul, *);
-define_vector_wrapper(8, double, div, /);
+define_vector_arithmetic_wrapper(8, float, add, +);
+define_vector_arithmetic_wrapper(8, float, sub, -);
+define_vector_arithmetic_wrapper(8, float, mul, *);
+define_vector_arithmetic_wrapper(8, float, div, /);
+define_vector_arithmetic_wrapper(8, double, add, +);
+define_vector_arithmetic_wrapper(8, double, sub, -);
+define_vector_arithmetic_wrapper(8, double, mul, *);
+define_vector_arithmetic_wrapper(8, double, div, /);
 
 // Define wrapper for vector arithmetic operation for size 16
-define_vector_wrapper(16, float, add, +);
-define_vector_wrapper(16, float, sub, -);
-define_vector_wrapper(16, float, mul, *);
-define_vector_wrapper(16, float, div, /);
-define_vector_wrapper(16, double, add, +);
-define_vector_wrapper(16, double, sub, -);
-define_vector_wrapper(16, double, mul, *);
-define_vector_wrapper(16, double, div, /);
+define_vector_arithmetic_wrapper(16, float, add, +);
+define_vector_arithmetic_wrapper(16, float, sub, -);
+define_vector_arithmetic_wrapper(16, float, mul, *);
+define_vector_arithmetic_wrapper(16, float, div, /);
+define_vector_arithmetic_wrapper(16, double, add, +);
+define_vector_arithmetic_wrapper(16, double, sub, -);
+define_vector_arithmetic_wrapper(16, double, mul, *);
+define_vector_arithmetic_wrapper(16, double, div, /);
 
 int2 _2xdoublecmp(enum FCMP_PREDICATE p, double2 a, double2 b) {
   int2 c;
