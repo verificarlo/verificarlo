@@ -514,81 +514,34 @@ define_vector_arithmetic_wrapper(16, double, sub, -);
 define_vector_arithmetic_wrapper(16, double, mul, *);
 define_vector_arithmetic_wrapper(16, double, div, /);
 
-int2 _2xdoublecmp(enum FCMP_PREDICATE p, double2 a, double2 b) {
-  int2 c;
-  c[0] = _doublecmp(p, a[0], b[0]);
-  c[1] = _doublecmp(p, a[1], b[1]);
-  return c;
-}
+/* Comparison vector wrappers */
 
-int2 _2xfloatcmp(enum FCMP_PREDICATE p, float2 a, float2 b) {
-  int2 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  return c;
-}
+#define define_vector_cmp_wrapper(size, precision)                           \
+  int##size _##size##x##precision##cmp(enum FCMP_PREDICATE p,                \
+				       precision##size a,		     \
+				       precision##size b) {		     \
+    int##size c;                                                             \
+    for (unsigned char i = 0; i < loaded_backends; i++) {                    \
+      if (backends[i].interflop_cmp_##precision##_vector) {                  \
+        backends[i].interflop_cmp_##precision##_vector(p,                    \
+						       size,		     \
+						       (precision *)(&a),    \
+						       (precision *)(&b),    \
+						       (int *)(&c),          \
+						       contexts[i]);	     \
+      }                                                                      \
+    }                                                                        \
+    return c;                                                                \
+  }
 
-int4 _4xdoublecmp(enum FCMP_PREDICATE p, double4 a, double4 b) {
-  int4 c;
-  c[0] = _doublecmp(p, a[0], b[0]);
-  c[1] = _doublecmp(p, a[1], b[1]);
-  c[2] = _doublecmp(p, a[2], b[2]);
-  c[3] = _doublecmp(p, a[3], b[3]);
-  return c;
-}
+define_vector_cmp_wrapper(2, float);
+define_vector_cmp_wrapper(2, double);
 
-int4 _4xfloatcmp(enum FCMP_PREDICATE p, float4 a, float4 b) {
-  int4 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  c[2] = _floatcmp(p, a[2], b[2]);
-  c[3] = _floatcmp(p, a[3], b[3]);
-  return c;
-}
+define_vector_cmp_wrapper(4, float);
+define_vector_cmp_wrapper(4, double);
 
-int8 _8xdoublecmp(enum FCMP_PREDICATE p, double8 a, double8 b) {
-  int8 c;
-  c[0] = _doublecmp(p, a[0], b[0]);
-  c[1] = _doublecmp(p, a[1], b[1]);
-  c[2] = _doublecmp(p, a[2], b[2]);
-  c[3] = _doublecmp(p, a[3], b[3]);
-  c[4] = _doublecmp(p, a[4], b[4]);
-  c[5] = _doublecmp(p, a[5], b[5]);
-  c[6] = _doublecmp(p, a[6], b[6]);
-  c[7] = _doublecmp(p, a[7], b[7]);
-  return c;
-}
+define_vector_cmp_wrapper(8, float);
+define_vector_cmp_wrapper(8, double);
 
-int8 _8xfloatcmp(enum FCMP_PREDICATE p, float8 a, float8 b) {
-  int8 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  c[2] = _floatcmp(p, a[2], b[2]);
-  c[3] = _floatcmp(p, a[3], b[3]);
-  c[4] = _floatcmp(p, a[4], b[4]);
-  c[5] = _floatcmp(p, a[5], b[5]);
-  c[6] = _floatcmp(p, a[6], b[6]);
-  c[7] = _floatcmp(p, a[7], b[7]);
-  return c;
-}
-
-int16 _16xfloatcmp(enum FCMP_PREDICATE p, float16 a, float16 b) {
-  int16 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  c[2] = _floatcmp(p, a[2], b[2]);
-  c[3] = _floatcmp(p, a[3], b[3]);
-  c[4] = _floatcmp(p, a[4], b[4]);
-  c[5] = _floatcmp(p, a[5], b[5]);
-  c[6] = _floatcmp(p, a[6], b[6]);
-  c[7] = _floatcmp(p, a[7], b[7]);
-  c[8] = _floatcmp(p, a[8], b[8]);
-  c[9] = _floatcmp(p, a[9], b[9]);
-  c[10] = _floatcmp(p, a[10], b[10]);
-  c[11] = _floatcmp(p, a[11], b[11]);
-  c[12] = _floatcmp(p, a[12], b[12]);
-  c[13] = _floatcmp(p, a[13], b[13]);
-  c[14] = _floatcmp(p, a[14], b[14]);
-  c[15] = _floatcmp(p, a[15], b[15]);
-  return c;
-}
+define_vector_cmp_wrapper(16, float);
+define_vector_cmp_wrapper(16, double);
