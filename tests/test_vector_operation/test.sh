@@ -4,7 +4,7 @@
 bin=binary_compute
 
 # Delete past result
-rm -Rf output.txt
+./clean.sh
 
 vec="1.1 1.1"
 
@@ -12,12 +12,9 @@ vec="1.1 1.1"
 # Take the architecture flags on parameter and the output file
 compile_and_run()
 {
-    export VFC_BACKENDS_SILENT_LOAD="True"
-    export VFC_BACKENDS_LOGGER="False"
-    
-    # Run test
-    touch output.txt
-    export VFC_BACKENDS="libinterflop_vprec.so"
+    touch $1
+    export VFC_BACKENDS="$2"
+
     for i in 2 4 8 16
     do
 	for type in float double
@@ -25,25 +22,27 @@ compile_and_run()
 	    # Compile test
 	    verificarlo-c -march=native -O3 -fno-slp-vectorize -DREAL=$type$i compute.c -o $bin
 
+	    # Run test
 	    ./$bin $type "+" $i $vec >> $1
 	    ./$bin $type "*" $i $vec >> $1
 	    ./$bin $type "-" $i $vec >> $1
 	    ./$bin $type "/" $i $vec >> $1
 	done
     done
-
-    unset VFC_BACKENDS_SILENT_LOAD
-    export VFC_BACKENDS_LOGGER="True"
 }
 
-compile_and_run output.txt
-is_equal=$(diff -U 0 result.txt output.txt | grep ^@ | wc -l)
+is_equal=0
+
+for backend in ieee vprec mca
+do
+    compile_and_run output_$backend.txt libinterflop_$backend.so
+    if [ $(diff -U 0 result.txt output_$backend.txt | grep ^@ | wc -l) != 0 ] ; then
+	is_equal=1
+    fi
+done
 
 # Print result
 echo $is_equal
-
-# Clean folder
-rm -Rf *~ *.o $bin
 
 # Exit
 if [ $is_equal == 0 ] ; then

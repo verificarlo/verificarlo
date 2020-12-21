@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -Rf *~ binary_compute output.txt
+rm -Rf *~ *.o binary_compute output*
