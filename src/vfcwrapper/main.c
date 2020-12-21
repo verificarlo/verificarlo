@@ -221,20 +221,21 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
 
 /* Checks that a least one of the loaded backend implements the chosen
  * vector operation at a given precision */
-#define check_backends_implements_vector(precision, operation)                 \
-  do {                                                                         \
-    int res = 0;                                                               \
-    for (unsigned char i = 0; i < loaded_backends; i++) {                      \
-      if (backends[i].interflop_##operation##_##precision##_vector) {          \
-        res = 1;                                                               \
-        break;                                                                 \
-      }                                                                        \
-    }                                                                          \
-    if (res == 0)                                                              \
-      logger_error("No backend instruments vector " #operation		       \
-		   " for " #precision					       \
-                   ".\n"                                                       \
-                   "Include one backend in VFC_BACKENDS that provides it");    \
+#define check_backends_implements_vector(precision, operation)		\
+  do {									\
+    int res = 0;							\
+    for (unsigned char i = 0; i < loaded_backends; i++) {		\
+      if (backends[i].interflop_##operation##_##precision##_vector) {	\
+        res = 1;							\
+        break;								\
+      } 								\
+    }									\
+    if (res == 0)							\
+      logger_error("No backend instruments vector " #operation		\
+		   " for " #precision					\
+                   ".\n"						\
+		   "Include one backend in VFC_BACKENDS"		\
+		   "that provides it");					\
   } while (0)
 
 /* vfc_read_filter_file reads an inclusion/exclusion ddebug file and returns
@@ -472,25 +473,27 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
 
 /* Arithmetic vector wrappers */
 
-#define define_vector_arithmetic_wrapper(size, precision, operation, operator)	       \
-  precision##size _##size##x##precision##operation(precision##size a,	               \
-						   precision##size b) {                \
-    check_backends_implements_vector(precision, operation);		               \
-    precision##size c;                                                                 \
-    for (unsigned char i = 0; i < size; ++i) {				               \
-      c[i] = NAN;               					               \
-    }									               \
-    ddebug(operator);                                                                  \
-    for (unsigned char i = 0; i < loaded_backends; i++) {                              \
-      if (backends[i].interflop_##operation##_##precision##_vector) {                  \
-        backends[i].interflop_##operation##_##precision##_vector(size,                 \
-								 (precision *)(&a),    \
-								 (precision *)(&b),    \
-								 (precision *)(&c),    \
-								 contexts[i]);         \
-      }                                                                                \
-    }                                                                                  \
-    return c;                                                                          \
+#define define_vector_arithmetic_wrapper(size, precision, operation,	\
+					 operator)			\
+  precision##size _##size##x##precision##operation(precision##size a,	\
+						   precision##size b) {	\
+    check_backends_implements_vector(precision, operation);		\
+    precision##size c;							\
+    for (unsigned char i = 0; i < size; ++i) {				\
+      c[i] = NAN;							\
+    }									\
+    ddebug(operator);							\
+    for (unsigned char i = 0; i < loaded_backends; i++) {		\
+      if (backends[i].interflop_##operation##_##precision##_vector) {	\
+        backends[i].interflop_##operation##_##precision##		\
+	  _vector(size,							\
+		  (precision *)(&a),					\
+		  (precision *)(&b),					\
+		  (precision *)(&c),					\
+		  contexts[i]);						\
+      } 								\
+    }   								\
+    return c;								\
   }
 
 // Define wrapper for vector arithmetic operation for size 2
@@ -535,23 +538,23 @@ define_vector_arithmetic_wrapper(16, double, div, /);
 
 /* Comparison vector wrappers */
 
-#define define_vector_cmp_wrapper(size, precision)                           \
-  int##size _##size##x##precision##cmp(enum FCMP_PREDICATE p,                \
-				       precision##size a,		     \
-				       precision##size b) {		     \
-    check_backends_implements_vector(precision, cmp);			     \
-    int##size c;                                                             \
-    for (unsigned char i = 0; i < loaded_backends; i++) {                    \
-      if (backends[i].interflop_cmp_##precision##_vector) {                  \
-        backends[i].interflop_cmp_##precision##_vector(p,                    \
-						       size,		     \
-						       (precision *)(&a),    \
-						       (precision *)(&b),    \
-						       (int *)(&c),          \
-						       contexts[i]);	     \
-      }                                                                      \
-    }                                                                        \
-    return c;                                                                \
+#define define_vector_cmp_wrapper(size, precision)			\
+  int##size _##size##x##precision##cmp(enum FCMP_PREDICATE p,		\
+				       precision##size a,		\
+				       precision##size b) {		\
+    check_backends_implements_vector(precision, cmp);			\
+    int##size c;							\
+    for (unsigned char i = 0; i < loaded_backends; i++) {		\
+      if (backends[i].interflop_cmp_##precision##_vector) {		\
+	backends[i].interflop_cmp_##precision##				\
+	  _vector(p, size,						\
+		  (precision *)(&a),					\
+		  (precision *)(&b),					\
+		  (int *)(&c),						\
+		  contexts[i]);						\
+      } 								\
+    }   								\
+    return c;								\
   }
 
 define_vector_cmp_wrapper(2, float);
