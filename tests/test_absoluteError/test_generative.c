@@ -9,10 +9,13 @@
 #include "../../src/common/float_utils.h"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #define DEBUG_MODE 0
 
 =======
 >>>>>>> formatting
+=======
+>>>>>>> ea03e4ae9991dd713ccc4ca8c7125a260a252fe1
 #define DEBUG_MODE 0
 
 double applyOp_double(char op, double a, double b) {
