@@ -4,35 +4,29 @@ set -e
 wrapper=0
 instruction_set=0
 
-# Function
-remove_test_output_file() {
-    rm -Rf test.*.*.ll
-}
+./clean.sh
+mkdir wrapper_log
 
+# Function
 check_wrapper_call() {
     type=$1
     op=$2
     size=$3
     
-    remove_test_output_file
     verificarlo-c -DREAL=$type$size -c test.c -emit-llvm --save-temps
 
-    if grep "_"$size"x"$type$op test.*.2.ll; then
-	echo "vector $op for $type$size INSTRUMENTED without --inst-func"
+    function_name=_$size"x"$type$op
+    count_line=$(cat test.*.2.ll | grep -zoe '@f_$op.*{' | grep -aoe 'call.*$function_name' | wc -l)
+
+    if [ count_line != 0 ] ; then
+	echo "vector $op for $type$size INSTRUMENTED"
     else
-	echo "vector $op for $type$size not instrumented"
+	echo "vector $op for $type$size NOT INSTRUMENTED"
 	wrapper=1
     fi
 
-    remove_test_output_file
-    verificarlo-c --inst-func -DREAL=$type$size -c test.c -emit-llvm --save-temps
-
-    if grep "_"$size"x"$type$op test.*.3.ll; then
-	echo "vector $op for $type$size instrumented"
-    else
-	echo "vector $op for $type$size NOT instrumented with --inst-func"
-	wrapper=1
-    fi
+    mkdir wrapper_log/$function_name
+    mv *.ll wrapper_log/$function_name/
 }
 
 check_vector_instruction_call() {
@@ -60,6 +54,7 @@ echo "Test for vector operation instrumentation"
 
 result=0
 
+echo "Test if vector wrapper are called"
 for size in 2 4 8 16
 do
     for type in float double
@@ -72,6 +67,7 @@ do
 done
 
 # Check architecture
+echo "Test if vector instruction and register are used"
 is_x86=$(uname -m | grep x86_64 | wc -l)
 
 # Check if vector instruction are used

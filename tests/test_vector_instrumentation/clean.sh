@@ -2,6 +2,6 @@
 
 temporary="*~"
 binary="*.asm *.o run"
-instrument="test.*.*.ll"
+instrument="wrapper_log"
 
 rm -Rf $temporary $instrument $binary
