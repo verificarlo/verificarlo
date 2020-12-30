@@ -1,7 +1,8 @@
 #!/bin/bash
 
 temporary="*~"
-binary="*.o run"
-instrument="test.*.*.ll"
+binary="*.asm *.o binary_compute"
+instrument="ieee vprec mca"
+result="output*"
 
-rm -Rf $temporary $instrument $binary
+rm -Rf $temporary $instrument $binary $result
