@@ -219,6 +219,25 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
                    "Include one backend in VFC_BACKENDS that provides it");    \
   } while (0)
 
+/* Checks that a least one of the loaded backend implements the chosen
+ * vector operation at a given precision */
+#define check_backends_implements_vector(precision, operation)		\
+  do {									\
+    int res = 0;							\
+    for (unsigned char i = 0; i < loaded_backends; i++) {		\
+      if (backends[i].interflop_##operation##_##precision##_vector) {	\
+        res = 1;							\
+        break;								\
+      } 								\
+    }									\
+    if (res == 0)							\
+      logger_error("No backend instruments vector " #operation		\
+		   " for " #precision					\
+                   ".\n"						\
+		   "Include one backend in VFC_BACKENDS"		\
+		   "that provides it");					\
+  } while (0)
+
 /* vfc_read_filter_file reads an inclusion/exclusion ddebug file and returns
  * an address map */
 static void vfc_read_filter_file(const char *dd_filter_path,
@@ -454,171 +473,98 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
 
 /* Arithmetic vector wrappers */
 
-#define define_2x_wrapper(precision, operation)                                \
-  precision##2 _2x##precision##operation(precision##2 a, precision##2 b) {     \
-    precision##2 c;                                                            \
-    c[0] = _##precision##operation(a[0], b[0]);                                \
-    c[1] = _##precision##operation(a[1], b[1]);                                \
-    return c;                                                                  \
+#define define_vector_arithmetic_wrapper(size, precision, operation,	\
+					 operator)			\
+  precision##size _##size##x##precision##operation(precision##size a,	\
+						   precision##size b) {	\
+    check_backends_implements_vector(precision, operation);		\
+    precision##size c;							\
+    for (unsigned char i = 0; i < size; ++i) {				\
+      c[i] = NAN;							\
+    }									\
+    ddebug(operator);							\
+    for (unsigned char i = 0; i < loaded_backends; i++) {		\
+      if (backends[i].interflop_##operation##_##precision##_vector) {	\
+        backends[i].interflop_##operation##_##precision##		\
+	  _vector(size,							\
+		  (precision *)(&a),					\
+		  (precision *)(&b),					\
+		  (precision *)(&c),					\
+		  contexts[i]);						\
+      } 								\
+    }   								\
+    return c;								\
   }
 
-#define define_4x_wrapper(precision, operation)                                \
-  precision##4 _4x##precision##operation(precision##4 a, precision##4 b) {     \
-    precision##4 c;                                                            \
-    c[0] = _##precision##operation(a[0], b[0]);                                \
-    c[1] = _##precision##operation(a[1], b[1]);                                \
-    c[2] = _##precision##operation(a[2], b[2]);                                \
-    c[3] = _##precision##operation(a[3], b[3]);                                \
-    return c;                                                                  \
+// Define wrapper for vector arithmetic operation for size 2
+define_vector_arithmetic_wrapper(2, float, add, +);
+define_vector_arithmetic_wrapper(2, float, sub, -);
+define_vector_arithmetic_wrapper(2, float, mul, *);
+define_vector_arithmetic_wrapper(2, float, div, /);
+define_vector_arithmetic_wrapper(2, double, add, +);
+define_vector_arithmetic_wrapper(2, double, sub, -);
+define_vector_arithmetic_wrapper(2, double, mul, *);
+define_vector_arithmetic_wrapper(2, double, div, /);
+
+// Define wrapper for vector arithmetic operation for size 4
+define_vector_arithmetic_wrapper(4, float, add, +);
+define_vector_arithmetic_wrapper(4, float, sub, -);
+define_vector_arithmetic_wrapper(4, float, mul, *);
+define_vector_arithmetic_wrapper(4, float, div, /);
+define_vector_arithmetic_wrapper(4, double, add, +);
+define_vector_arithmetic_wrapper(4, double, sub, -);
+define_vector_arithmetic_wrapper(4, double, mul, *);
+define_vector_arithmetic_wrapper(4, double, div, /);
+
+// Define wrapper for vector arithmetic operation for size 8
+define_vector_arithmetic_wrapper(8, float, add, +);
+define_vector_arithmetic_wrapper(8, float, sub, -);
+define_vector_arithmetic_wrapper(8, float, mul, *);
+define_vector_arithmetic_wrapper(8, float, div, /);
+define_vector_arithmetic_wrapper(8, double, add, +);
+define_vector_arithmetic_wrapper(8, double, sub, -);
+define_vector_arithmetic_wrapper(8, double, mul, *);
+define_vector_arithmetic_wrapper(8, double, div, /);
+
+// Define wrapper for vector arithmetic operation for size 16
+define_vector_arithmetic_wrapper(16, float, add, +);
+define_vector_arithmetic_wrapper(16, float, sub, -);
+define_vector_arithmetic_wrapper(16, float, mul, *);
+define_vector_arithmetic_wrapper(16, float, div, /);
+define_vector_arithmetic_wrapper(16, double, add, +);
+define_vector_arithmetic_wrapper(16, double, sub, -);
+define_vector_arithmetic_wrapper(16, double, mul, *);
+define_vector_arithmetic_wrapper(16, double, div, /);
+
+/* Comparison vector wrappers */
+
+#define define_vector_cmp_wrapper(size, precision)			\
+  int##size _##size##x##precision##cmp(enum FCMP_PREDICATE p,		\
+				       precision##size a,		\
+				       precision##size b) {		\
+    check_backends_implements_vector(precision, cmp);			\
+    int##size c;							\
+    for (unsigned char i = 0; i < loaded_backends; i++) {		\
+      if (backends[i].interflop_cmp_##precision##_vector) {		\
+	backends[i].interflop_cmp_##precision##				\
+	  _vector(p, size,						\
+		  (precision *)(&a),					\
+		  (precision *)(&b),					\
+		  (int *)(&c),						\
+		  contexts[i]);						\
+      } 								\
+    }   								\
+    return c;								\
   }
 
-#define define_8x_wrapper(precision, operation)                                \
-  precision##8 _8x##precision##operation(precision##8 a, precision##8 b) {     \
-    precision##8 c;                                                            \
-    c[0] = _##precision##operation(a[0], b[0]);                                \
-    c[1] = _##precision##operation(a[1], b[1]);                                \
-    c[2] = _##precision##operation(a[2], b[2]);                                \
-    c[3] = _##precision##operation(a[3], b[3]);                                \
-    c[4] = _##precision##operation(a[4], b[4]);                                \
-    c[5] = _##precision##operation(a[5], b[5]);                                \
-    c[6] = _##precision##operation(a[6], b[6]);                                \
-    c[7] = _##precision##operation(a[7], b[7]);                                \
-    return c;                                                                  \
-  }
+define_vector_cmp_wrapper(2, float);
+define_vector_cmp_wrapper(2, double);
 
-#define define_16x_wrapper(precision, operation)                               \
-  precision##16 _16x##precision##operation(precision##16 a, precision##16 b) { \
-    precision##16 c;                                                           \
-    c[0] = _##precision##operation(a[0], b[0]);                                \
-    c[1] = _##precision##operation(a[1], b[1]);                                \
-    c[2] = _##precision##operation(a[2], b[2]);                                \
-    c[3] = _##precision##operation(a[3], b[3]);                                \
-    c[4] = _##precision##operation(a[4], b[4]);                                \
-    c[5] = _##precision##operation(a[5], b[5]);                                \
-    c[6] = _##precision##operation(a[6], b[6]);                                \
-    c[7] = _##precision##operation(a[7], b[7]);                                \
-    c[8] = _##precision##operation(a[8], b[8]);                                \
-    c[9] = _##precision##operation(a[9], b[9]);                                \
-    c[10] = _##precision##operation(a[10], b[10]);                             \
-    c[11] = _##precision##operation(a[11], b[11]);                             \
-    c[12] = _##precision##operation(a[12], b[12]);                             \
-    c[13] = _##precision##operation(a[13], b[13]);                             \
-    c[14] = _##precision##operation(a[14], b[14]);                             \
-    c[15] = _##precision##operation(a[15], b[15]);                             \
-    return c;                                                                  \
-  }
+define_vector_cmp_wrapper(4, float);
+define_vector_cmp_wrapper(4, double);
 
-define_2x_wrapper(float, add);
-define_2x_wrapper(float, sub);
-define_2x_wrapper(float, mul);
-define_2x_wrapper(float, div);
-define_2x_wrapper(double, add);
-define_2x_wrapper(double, sub);
-define_2x_wrapper(double, mul);
-define_2x_wrapper(double, div);
+define_vector_cmp_wrapper(8, float);
+define_vector_cmp_wrapper(8, double);
 
-define_4x_wrapper(float, add);
-define_4x_wrapper(float, sub);
-define_4x_wrapper(float, mul);
-define_4x_wrapper(float, div);
-define_4x_wrapper(double, add);
-define_4x_wrapper(double, sub);
-define_4x_wrapper(double, mul);
-define_4x_wrapper(double, div);
-
-define_8x_wrapper(float, add);
-define_8x_wrapper(float, sub);
-define_8x_wrapper(float, mul);
-define_8x_wrapper(float, div);
-define_8x_wrapper(double, add);
-define_8x_wrapper(double, sub);
-define_8x_wrapper(double, mul);
-define_8x_wrapper(double, div);
-
-define_16x_wrapper(float, add);
-define_16x_wrapper(float, sub);
-define_16x_wrapper(float, mul);
-define_16x_wrapper(float, div);
-define_16x_wrapper(double, add);
-define_16x_wrapper(double, sub);
-define_16x_wrapper(double, mul);
-define_16x_wrapper(double, div);
-
-int2 _2xdoublecmp(enum FCMP_PREDICATE p, double2 a, double2 b) {
-  int2 c;
-  c[0] = _doublecmp(p, a[0], b[0]);
-  c[1] = _doublecmp(p, a[1], b[1]);
-  return c;
-}
-
-int2 _2xfloatcmp(enum FCMP_PREDICATE p, float2 a, float2 b) {
-  int2 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  return c;
-}
-
-int4 _4xdoublecmp(enum FCMP_PREDICATE p, double4 a, double4 b) {
-  int4 c;
-  c[0] = _doublecmp(p, a[0], b[0]);
-  c[1] = _doublecmp(p, a[1], b[1]);
-  c[2] = _doublecmp(p, a[2], b[2]);
-  c[3] = _doublecmp(p, a[3], b[3]);
-  return c;
-}
-
-int4 _4xfloatcmp(enum FCMP_PREDICATE p, float4 a, float4 b) {
-  int4 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  c[2] = _floatcmp(p, a[2], b[2]);
-  c[3] = _floatcmp(p, a[3], b[3]);
-  return c;
-}
-
-int8 _8xdoublecmp(enum FCMP_PREDICATE p, double8 a, double8 b) {
-  int8 c;
-  c[0] = _doublecmp(p, a[0], b[0]);
-  c[1] = _doublecmp(p, a[1], b[1]);
-  c[2] = _doublecmp(p, a[2], b[2]);
-  c[3] = _doublecmp(p, a[3], b[3]);
-  c[4] = _doublecmp(p, a[4], b[4]);
-  c[5] = _doublecmp(p, a[5], b[5]);
-  c[6] = _doublecmp(p, a[6], b[6]);
-  c[7] = _doublecmp(p, a[7], b[7]);
-  return c;
-}
-
-int8 _8xfloatcmp(enum FCMP_PREDICATE p, float8 a, float8 b) {
-  int8 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  c[2] = _floatcmp(p, a[2], b[2]);
-  c[3] = _floatcmp(p, a[3], b[3]);
-  c[4] = _floatcmp(p, a[4], b[4]);
-  c[5] = _floatcmp(p, a[5], b[5]);
-  c[6] = _floatcmp(p, a[6], b[6]);
-  c[7] = _floatcmp(p, a[7], b[7]);
-  return c;
-}
-
-int16 _16xfloatcmp(enum FCMP_PREDICATE p, float16 a, float16 b) {
-  int16 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  c[2] = _floatcmp(p, a[2], b[2]);
-  c[3] = _floatcmp(p, a[3], b[3]);
-  c[4] = _floatcmp(p, a[4], b[4]);
-  c[5] = _floatcmp(p, a[5], b[5]);
-  c[6] = _floatcmp(p, a[6], b[6]);
-  c[7] = _floatcmp(p, a[7], b[7]);
-  c[8] = _floatcmp(p, a[8], b[8]);
-  c[9] = _floatcmp(p, a[9], b[9]);
-  c[10] = _floatcmp(p, a[10], b[10]);
-  c[11] = _floatcmp(p, a[11], b[11]);
-  c[12] = _floatcmp(p, a[12], b[12]);
-  c[13] = _floatcmp(p, a[13], b[13]);
-  c[14] = _floatcmp(p, a[14], b[14]);
-  c[15] = _floatcmp(p, a[15], b[15]);
-  return c;
-}
+define_vector_cmp_wrapper(16, float);
+define_vector_cmp_wrapper(16, double);

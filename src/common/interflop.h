@@ -51,12 +51,36 @@ struct interflop_backend_interface_t {
   void (*interflop_cmp_float)(enum FCMP_PREDICATE p, float a, float b, int *c,
                               void *context);
 
+  void (*interflop_add_float_vector)(const int size, const float *a, const float *b,
+				     float *c, void *context);
+  void (*interflop_sub_float_vector)(const int size, const float *a, const float *b,
+				     float *c, void *context);
+  void (*interflop_mul_float_vector)(const int size, const float *a, const float *b,
+				     float *c, void *context);
+  void (*interflop_div_float_vector)(const int size, const float *a, const float *b,
+				     float *c, void *context);
+  void (*interflop_cmp_float_vector)(enum FCMP_PREDICATE p, const int size,
+				     const float *a, const float *b, int *c,
+				     void *context);
+
   void (*interflop_add_double)(double a, double b, double *c, void *context);
   void (*interflop_sub_double)(double a, double b, double *c, void *context);
   void (*interflop_mul_double)(double a, double b, double *c, void *context);
   void (*interflop_div_double)(double a, double b, double *c, void *context);
   void (*interflop_cmp_double)(enum FCMP_PREDICATE p, double a, double b,
                                int *c, void *context);
+
+  void (*interflop_add_double_vector)(const int size, const double *a, const double *b,
+				      double *c, void *context);
+  void (*interflop_sub_double_vector)(const int size, const double *a, const double *b,
+				      double *c, void *context);
+  void (*interflop_mul_double_vector)(const int size, const double *a, const double *b,
+				      double *c, void *context);
+  void (*interflop_div_double_vector)(const int size, const double *a, const double *b,
+				      double *c, void *context);
+  void (*interflop_cmp_double_vector)(enum FCMP_PREDICATE p, const int size,
+				      const double *a, const double *b, int *c,
+				      void *context);
 
   void (*interflop_enter_function)(interflop_function_stack_t *stack,
                                    void *context, int nb_args, va_list ap);
