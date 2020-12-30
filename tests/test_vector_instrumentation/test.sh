@@ -58,7 +58,7 @@ compile_and_run()
 }
 
 # Run the check of result and wrapper instrumentation
-for backend in ieee vprec #mca
+for backend in ieee vprec mca
 do
     echo "#######################################"
     export VFC_BACKENDS="libinterflop_$backend.so"
