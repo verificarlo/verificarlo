@@ -1,7 +1,8 @@
 #!/bin/bash
 
 temporary="*~"
-binary="*.asm *.o run"
-instrument="wrapper_log"
+binary="*.asm *.o binary_compute"
+instrument="ieee vprec mca"
+result="output*"
 
-rm -Rf $temporary $instrument $binary
+rm -Rf $temporary $instrument $binary $result

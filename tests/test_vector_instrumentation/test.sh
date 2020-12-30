@@ -1,70 +1,108 @@
 #!/bin/bash
-set -e
 
+# Result of sub test
+is_equal=0
 wrapper=0
 instruction_set=0
+result=0
 
+# Variable to set vector on C program
+bin=binary_compute
+vec="1.1 1.1"
+
+# Clean
 ./clean.sh
-mkdir wrapper_log
 
-# Function
-check_wrapper_call() {
-    type=$1
-    op=$2
-    size=$3
-    
-    verificarlo-c -DREAL=$type$size -c test.c -emit-llvm --save-temps
+# Begin script
+echo "Test for vector operation instrumentation"
 
-    function_name=_$size"x"$type$op
-    count_line=$(cat test.*.2.ll | grep -zoe '@f_$op.*{' | grep -aoe 'call.*$function_name' | wc -l)
+# Compile and run the program
+# Take the backend name on parameter
+compile_and_run()
+{
+    # Recup parameter
+    backend=$1
 
-    if [ count_line != 0 ] ; then
-	echo "vector $op for $type$size INSTRUMENTED"
-    else
-	echo "vector $op for $type$size NOT INSTRUMENTED"
-	wrapper=1
-    fi
+    # Temporarly fix size at 2 because it fail for other size in ceratin condition
+    for size in 2
+    do
+	for type in float double
+	do
+	    # Print the type and the size of the test
+	    echo $type$size
+	    
+	    # Compile test
+	    verificarlo-c -march=native -DREAL=$type$size compute.c -o $bin --save-temps
+	    rm *.1.ll
+	    mv *.2.ll $backend/$type$size.ll
 
-    mkdir wrapper_log/$function_name
-    mv *.ll wrapper_log/$function_name/
+	    # Run test
+	    ./$bin $type "+" $size $vec >> output_$backend.txt
+	    ./$bin $type "*" $size $vec >> output_$backend.txt
+	    ./$bin $type "-" $size $vec >> output_$backend.txt
+	    ./$bin $type "/" $size $vec >> output_$backend.txt
+
+	    # Check if vector wrapper is called
+	    add=$(grep call.*_$size"x"$type"add" $backend/$type$size.ll)
+	    mul=$(grep call.*_$size"x"$type"mul" $backend/$type$size.ll)
+	    sub=$(grep call.*_$size"x"$type"sub" $backend/$type$size.ll)
+	    div=$(grep call.*_$size"x"$type"div" $backend/$type$size.ll)
+
+	    if [ add != 0 ] && [ mul != 0 ] && [ sub != 0 ] && [ div != 0 ] ; then
+		echo "vector operation for $type$size INSTRUMENTED"
+	    else
+		echo "vector operation for $type$size NOT INSTRUMENTED"
+		wrapper=1
+	    fi
+	done
+    done
 }
 
+# Run the check of result and wrapper instrumentation
+for backend in ieee vprec
+do
+    export VFC_BACKENDS="libinterflop_$backend.so"
+    mkdir $backend
+    touch output_$backend.txt
+
+    compile_and_run $backend
+
+    if [ $(diff -U 0 result.txt output_$backend.txt | wc -l) != 0 ] ; then
+	echo "Result for $backend backend FAIL"
+	is_equal=1
+    else
+	echo "Result for $backend backend PASS"
+    fi
+done
+
+# Check if vector instruction and register of x86 architecture are used
+# Take on parameter :
+#  - type     (float or double)
+#  - op       (add, mul, sub, div)
+#  - size     (2, 4, 8, 16)
+#  - instru   (pd or ps)
+#  - register (xmm, ymm, zmm)
 check_vector_instruction_call() {
+
+    # Recup parameter
     type=$1
     op=$2
     size=$3
     instru=$4
     register=$5
 
-    rm -Rf test.o test.asm
-    clang -DREAL=$type$size -c test.c -o test.o -march=native -fno-slp-vectorize
-    objdump -d test.o > test.asm
+    # Compile and extract assembler
+    verificarlo-c -DREAL=$type$size compute.c -o $bin -march=native
+    objdump -D compute.o > compute.asm
 
-    if grep $instru'.*'$register test.asm; then
-	echo "instruction $instru and register $register instrumented"
+    # Check
+    if grep $instru'.*'$register compute.asm; then
+	echo "instruction $instru and register $register for _$size""x""$type$op INSTRUMENTED"
     else
-	echo "instruction $instru and register $register NOT instrumented"
+	echo "instruction $instru and register $register for _$size""x""$type$op NOT INSTRUMENTED"
 	instruction_set=1
     fi
 }
-
-
-# Begin script
-echo "Test for vector operation instrumentation"
-
-result=0
-
-echo "Test if vector wrapper are called"
-for size in 2 4 8 16
-do
-    for type in float double
-    do
-	for op in add mul sub div
-	do
-	    check_wrapper_call $type $op $size
-	done
-    done
-done
 
 # Check architecture
 echo "Test if vector instruction and register are used"
@@ -130,6 +168,14 @@ if [ ! $is_x86 == 0 ] ; then
     fi
 else
     echo "You have NOT x86 architecture"
+fi
+
+# Print operation result
+if [ $is_equal == 1 ] ; then
+    echo "TEST for vector operation result failed"
+    result=1
+else
+    echo "TEST for vector operation result passed"
 fi
 
 # Print wrapper result

@@ -53,8 +53,8 @@ int main(int argc, char **argv) {
   char op = argv[2][0];
   unsigned long long size = strtoll(argv[3], NULL, 10);
 
-  REAL a = 1.1;
-  REAL b = 1.1;
+  REAL a = strtod(argv[4], NULL);
+  REAL b = strtod(argv[5], NULL);
   REAL res = 0.0;
   
   printf("%s %c %lld\n", precision, op, size);
