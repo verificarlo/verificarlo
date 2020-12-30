@@ -67,7 +67,7 @@ do
 
     compile_and_run $backend
 
-    if [ $(diff -U 0 result.txt output_$backend.txt | grep '<' | wc -l) != 0 ] ; then
+    if [ $(diff -U 0 result_2x.txt output_$backend.txt | wc -l) != 0 ] ; then
 	echo "Result for $backend backend FAILED"
 	is_equal=1
     else
