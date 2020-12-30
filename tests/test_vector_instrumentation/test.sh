@@ -7,7 +7,7 @@ result=0
 
 # Variable to set vector on C program
 bin=binary_compute
-vec="1.1 1.1"
+vec="1.1 1"
 
 # Clean
 ./clean.sh
