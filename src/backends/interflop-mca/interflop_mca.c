@@ -331,6 +331,38 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
   *c = _mca_binary32_binary_op(a, b, mca_div, context);
 }
 
+static void _interflop_add_float_vector(const int size, const float *a,
+					const float *b, float *c,
+					void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _mca_binary32_binary_op(a[i], b[i], mca_add, context);
+  }
+}
+
+static void _interflop_sub_float_vector(const int size, const float *a,
+					const float *b, float *c,
+					void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _mca_binary32_binary_op(a[i], b[i], mca_sub, context);
+  }
+}
+
+static void _interflop_mul_float_vector(const int size, const float *a,
+					const float *b, float *c,
+					void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _mca_binary32_binary_op(a[i], b[i], mca_mul, context);
+  }
+}
+
+static void _interflop_div_float_vector(const int size, const float *a,
+					const float *b, float *c,
+					void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _mca_binary32_binary_op(a[i], b[i], mca_div, context);
+  }
+}
+
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
   *c = _mca_binary64_binary_op(a, b, mca_add, context);
@@ -349,6 +381,38 @@ static void _interflop_mul_double(double a, double b, double *c,
 static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
   *c = _mca_binary64_binary_op(a, b, mca_div, context);
+}
+
+static void _interflop_add_double_vector(const int size, const double *a,
+					 const double *b, double *c,
+					 void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _mca_binary64_binary_op(a[i], b[i], mca_add, context);
+  }
+}
+
+static void _interflop_sub_double_vector(const int size, const double *a,
+					 const double *b, double *c,
+					 void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _mca_binary64_binary_op(a[i], b[i], mca_sub, context);
+  }
+}
+
+static void _interflop_mul_double_vector(const int size, const double *a,
+					 const double *b, double *c,
+					 void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _mca_binary64_binary_op(a[i], b[i], mca_mul, context);
+  }
+}
+
+static void _interflop_div_double_vector(const int size, const double *a,
+					 const double *b, double *c,
+					 void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _mca_binary64_binary_op(a[i], b[i], mca_div, context);
+  }
 }
 
 static struct argp_option options[] = {
@@ -482,20 +546,20 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_mul_float,
       _interflop_div_float,
       NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
+      _interflop_add_float_vector,
+      _interflop_sub_float_vector,
+      _interflop_mul_float_vector,
+      _interflop_div_float_vector,
       NULL,
       _interflop_add_double,
       _interflop_sub_double,
       _interflop_mul_double,
       _interflop_div_double,
       NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
+      _interflop_add_double_vector,
+      _interflop_sub_double_vector,
+      _interflop_mul_double_vector,
+      _interflop_div_double_vector,
       NULL,
       NULL,
       NULL,
