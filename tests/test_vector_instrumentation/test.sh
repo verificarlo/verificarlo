@@ -3,7 +3,6 @@
 # Result of sub test
 is_equal=0
 wrapper=0
-instruction_set=0
 result=0
 
 # Variable to set vector on C program
@@ -61,137 +60,38 @@ compile_and_run()
 # Run the check of result and wrapper instrumentation
 for backend in ieee vprec #mca
 do
+    echo "#######################################"
     export VFC_BACKENDS="libinterflop_$backend.so"
     mkdir $backend
     touch output_$backend.txt
 
     compile_and_run $backend
 
-    if [ $(diff -U 0 result.txt output_$backend.txt | wc -l) != 0 ] ; then
-	echo "Result for $backend backend FAIL"
+    if [ $(diff -U 0 result.txt output_$backend.txt | grep '<' | wc -l) != 0 ] ; then
+	echo "Result for $backend backend FAILED"
 	is_equal=1
     else
-	echo "Result for $backend backend PASS"
+	echo "Result for $backend backend PASSED"
     fi
+    echo "#######################################"
 done
 
-# Check if vector instruction and register of x86 architecture are used
-# Take on parameter :
-#  - type     (float or double)
-#  - op       (add, mul, sub, div)
-#  - size     (2, 4, 8, 16)
-#  - instru   (pd or ps)
-#  - register (xmm, ymm, zmm)
-check_vector_instruction_call() {
-
-    # Recup parameter
-    type=$1
-    op=$2
-    size=$3
-    instru=$4
-    register=$5
-
-    # Compile and extract assembler
-    verificarlo-c -DREAL=$type$size compute.c -o $bin -march=native
-    objdump -D compute.o > compute.asm
-
-    # Check
-    if grep $instru'.*'$register compute.asm; then
-	echo "instruction $instru and register $register for _$size""x""$type$op INSTRUMENTED"
-    else
-	echo "instruction $instru and register $register for _$size""x""$type$op NOT INSTRUMENTED"
-	instruction_set=1
-    fi
-}
-
-# Check architecture
-echo "Test if vector instruction and register are used"
-is_x86=$(uname -m | grep x86_64 | wc -l)
-
-# Check if vector instruction are used
-cpuinfo=$(cat /proc/cpuinfo)
-
-sse=$(echo $cpuinfo | grep sse | wc -l)
-avx=$(echo $cpuinfo | grep avx | wc -l)
-avx512=$(echo $cpuinfo | grep avx512 | wc -l)
-
-# x86_64
-if [ ! $is_x86 == 0 ] ; then
-    echo "You have x86 architecture"
-
-    #  SSE
-    if [ ! $sse == 0 ] ; then
-	echo "sse"
-
-	for size in 2 4
-	do
-	    for op in add mul sub div
-	    do
-		check_vector_instruction_call float $op $size $op"ps" xmm
-	    done
-	done
-
-	for op in add mul sub div
-	do
-	    check_vector_instruction_call double $op 2 $op"pd" xmm
-	done
-    fi
-
-    # AVX
-    if [ ! $avx == 0 ] ; then
-	echo "avx"
-
-	for op in add mul sub div
-	do
-	    check_vector_instruction_call float $op 8 $op"ps" ymm
-	done
-
-	for op in add mul sub div
-	do
-	    check_vector_instruction_call double $op 4 $op"pd" ymm
-	done
-    fi
-
-    # AVX512
-    if [ ! $avx512 == 0 ] ; then
-	echo "avx512"
-
-	for op in add mul sub div
-	do
-	    check_vector_instruction_call float $op 16 $op"ps" zmm
-	done
-
-	for op in add mul sub div
-	do
-	    check_vector_instruction_call double $op 8 $op"pd" zmm
-	done
-    fi
-else
-    echo "You have NOT x86 architecture"
-fi
-
 # Print operation result
+echo "#######################################"
 if [ $is_equal == 1 ] ; then
-    echo "TEST for vector operation result failed"
+    echo "TEST for vector operation result FAILED"
     result=1
 else
-    echo "TEST for vector operation result passed"
+    echo "TEST for vector operation result PASSED"
 fi
+
 
 # Print wrapper result
 if [ $wrapper == 1 ] ; then
-    echo "TEST for wrapper instrumentation failed"
+    echo "TEST for wrapper instrumentation FAILED"
     result=1
 else
-    echo "TEST for wrapper instrumentation passed"
-fi
-
-# Print instrumentation set result
-if [ $instruction_set == 1 ] ; then
-    echo "TEST for instruction set failed"
-    result=1
-else
-    echo "TEST for instruction set passed"
+    echo "TEST for wrapper instrumentation PASSED"
 fi
 
 # Print result
@@ -200,6 +100,7 @@ if [ $result == 0 ] ; then
 else
     echo "TEST FAIL"
 fi
+echo "#######################################"
 
 # Exit
 exit $result
