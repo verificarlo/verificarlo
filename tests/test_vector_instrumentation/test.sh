@@ -24,7 +24,7 @@ compile_and_run()
     backend=$1
 
     # Temporarly fix size at 2 because it fail for other size in ceratin condition
-    for size in 2
+    for size in 2 #4 8 16
     do
 	for type in float double
 	do
@@ -59,7 +59,7 @@ compile_and_run()
 }
 
 # Run the check of result and wrapper instrumentation
-for backend in ieee vprec
+for backend in ieee vprec #mca
 do
     export VFC_BACKENDS="libinterflop_$backend.so"
     mkdir $backend
