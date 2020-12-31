@@ -61,6 +61,7 @@ compile_and_run()
 for backend in ieee vprec mca
 do
     echo "#######################################"
+
     export VFC_BACKENDS="libinterflop_$backend.so"
     mkdir $backend
     touch output_$backend.txt
@@ -73,6 +74,38 @@ do
     else
 	echo "Result for $backend backend PASSED"
     fi
+
+    # File path name
+    asm_file=$backend/$backend.asm
+    info_file=$backend/info.txt
+
+    # Disassemble
+    objdump -d /usr/local/lib/libinterflop_$backend.so > $asm_file
+
+    # Exec the python script to extract data for cut the assembler file
+    # Put data in info file
+    (./extract_asm_vector_func.py $asm_file) >> $info_file
+
+    # Count line of the python script output
+    count_line=$(cat $info_file | wc -l)
+
+    for i in $(seq -s ' ' 1 3 $count_line)
+    do
+	# Recup the function name
+	function_name=$(sed -n $i"p" $info_file)
+
+	# Recup the begin line
+	i=$((i+1))
+	begin=$(sed -n $i"p" $info_file)
+
+	# Recup the end line
+	i=$((i+1))
+	end=$(sed -n $i"p" $info_file)
+
+	# Recup the entire function given in the backend assembler
+	sed -n $begin,$end"p" $asm_file > $backend/$function_name
+    done
+    
     echo "#######################################"
 done
 
