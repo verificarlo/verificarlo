@@ -7,7 +7,7 @@ result=0
 
 # Variable to set vector on C program
 bin=binary_compute
-vec="1.1 1.1"
+vec="1.1 1"
 
 # Clean
 ./clean.sh
@@ -58,7 +58,7 @@ compile_and_run()
 }
 
 # Run the check of result and wrapper instrumentation
-for backend in ieee vprec #mca
+for backend in ieee vprec mca
 do
     echo "#######################################"
     export VFC_BACKENDS="libinterflop_$backend.so"
@@ -67,7 +67,7 @@ do
 
     compile_and_run $backend
 
-    if [ $(diff -U 0 result.txt output_$backend.txt | grep '<' | wc -l) != 0 ] ; then
+    if [ $(diff -U 0 result_2x.txt output_$backend.txt | wc -l) != 0 ] ; then
 	echo "Result for $backend backend FAILED"
 	is_equal=1
     else
