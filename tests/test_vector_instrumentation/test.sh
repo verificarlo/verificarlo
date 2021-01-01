@@ -57,24 +57,13 @@ compile_and_run()
     done
 }
 
-# Run the check of result and wrapper instrumentation
-for backend in ieee vprec mca
-do
-    echo "#######################################"
-
-    export VFC_BACKENDS="libinterflop_$backend.so"
-    mkdir $backend
-    touch output_$backend.txt
-
-    compile_and_run $backend
-
-    if [ $(diff -U 0 result_2x.txt output_$backend.txt | wc -l) != 0 ] ; then
-	echo "Result for $backend backend FAILED"
-	is_equal=1
-    else
-	echo "Result for $backend backend PASSED"
-    fi
-
+# Check if vector instruction and register are used in given backend
+# Take backend in parameter
+check_vector_instruction_and_register()
+{
+    # Recup backend
+    backend=$1
+    
     # File path name
     asm_file=$backend/$backend.asm
     info_file=$backend/info.txt
@@ -105,6 +94,27 @@ do
 	# Recup the entire function given in the backend assembler
 	sed -n $begin,$end"p" $asm_file > $backend/$function_name
     done
+}
+
+# Run the check of result and wrapper instrumentation
+for backend in ieee vprec mca
+do
+    echo "#######################################"
+
+    export VFC_BACKENDS="libinterflop_$backend.so"
+    mkdir $backend
+    touch output_$backend.txt
+
+    compile_and_run $backend
+
+    if [ $(diff -U 0 result_2x.txt output_$backend.txt | wc -l) != 0 ] ; then
+	echo "Result for $backend backend FAILED"
+	is_equal=1
+    else
+	echo "Result for $backend backend PASSED"
+    fi
+
+    check_vector_instruction_and_register $backend
     
     echo "#######################################"
 done
