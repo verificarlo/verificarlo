@@ -115,9 +115,6 @@ check_vector_instruction_and_register()
 	sed -n $begin,$end"p" $asm_file > $backend/$function_name
     done
 
-    # Separate
-    echo ""
-
     # Check architecture
     is_x86=$(uname -m | grep x86_64 | wc -l)
 
@@ -194,7 +191,10 @@ check_vector_instruction_and_register()
 for backend in ieee vprec mca
 do
     echo "#######################################"
+    echo "Backend $backend"
+    echo ""
 
+    echo "Testing wrapper instrumentation and good result"
     export VFC_BACKENDS="libinterflop_$backend.so"
     mkdir $backend
     touch output_$backend.txt
@@ -208,6 +208,10 @@ do
 	echo "Result for $backend backend PASSED"
     fi
 
+    # Separate
+    echo ""
+
+    echo "Testing the use of vector instruction and register"
     check_vector_instruction_and_register $backend
     
     echo "#######################################"
