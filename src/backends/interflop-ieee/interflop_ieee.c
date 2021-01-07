@@ -234,6 +234,32 @@ static inline void debug_print_double(void *context,
     break;                                                                     \
   }
 
+/* perform_vector_bin_op: applies the binary operator (op) to (a) and (b) */
+/* vector and stores the result in (res) vector */
+/* cast vector of precision in good vector type before to perform the operation */
+#define perform_vector_binary_op(precision, size, op, a, b, c)		\
+  switch (size) {							\
+  case 2:								\
+    (*(precision##2 *)c) = (*(precision##2 *)a)				\
+      op (*(precision##2 *)b);						\
+    break;								\
+  case 4:								\
+    (*(precision##4 *)c) = (*(precision##4 *)a)				\
+      op (*(precision##4 *)b);						\
+    break;								\
+  case 8:								\
+    (*(precision##8 *)c) = (*(precision##8 *)a)				\
+      op (*(precision##8 *)b);						\
+    break;								\
+  case 16:								\
+    (*(precision##16 *)c) = (*(precision##16 *)a)			\
+      op (*(precision##16 *)b);						\
+    break;								\
+  default:								\
+    logger_error("invalid size %d\n", size);				\
+    break;								\
+  }
+
 static void _interflop_add_float(const float a, const float b, float *c,
                                  void *context) {
   *c = a + b;
@@ -267,38 +293,38 @@ static void _interflop_cmp_float(const enum FCMP_PREDICATE p, const float a,
 
 static void _interflop_add_float_vector(const int size, const float *a, const float *b,
 					float *c, void *context) {
+  perform_vector_binary_op(float, size, +, a, b, c);
   for (int i = 0; i < size; ++i) {
-    c[i] = a[i] + b[i];
     debug_print_float(context, ARITHMETIC, "+", a[i], b[i], c[i]);
   }
 }
 
 static void _interflop_sub_float_vector(const int size, const float *a, const float *b,
 					float *c, void *context) {
+  perform_vector_binary_op(float, size, -, a, b, c);
   for (int i = 0; i < size; ++i) {
-    c[i] = a[i] - b[i];
     debug_print_float(context, ARITHMETIC, "-", a[i], b[i], c[i]);
   }
 }
 
 static void _interflop_mul_float_vector(const int size, const float *a, const float *b,
 					float *c, void *context) {
+  perform_vector_binary_op(float, size, *, a, b, c);
   for (int i = 0; i < size; ++i) {
-    c[i] = a[i] * b[i];
     debug_print_float(context, ARITHMETIC, "*", a[i], b[i], c[i]);
   }
 }
 
 static void _interflop_div_float_vector(const int size, const float *a, const float *b,
 					float *c, void *context) {
+  perform_vector_binary_op(float, size, /, a, b, c);
   for (int i = 0; i < size; ++i) {
-    c[i] = a[i] / b[i];
     debug_print_float(context, ARITHMETIC, "/", a[i], b[i], c[i]);
   }
 }
 
 static void _interflop_cmp_float_vector(const enum FCMP_PREDICATE p, const int size,
-				 const float *a, const float *b, int *c, void *context) {
+					const float *a, const float *b, int *c, void *context) {
   for (int i = 0; i < size; ++i) {
     char *str = "";
     SELECT_FLOAT_CMP(a[i], b[i], &(c[i]), p, str);
@@ -339,38 +365,38 @@ static void _interflop_cmp_double(const enum FCMP_PREDICATE p, const double a,
 
 static void _interflop_add_double_vector(const int size, const double *a, const double *b,
 					 double *c, void *context) {
+  perform_vector_binary_op(double, size, +, a, b, c);
   for (int i = 0; i < size; ++i) {
-    c[i] = a[i] + b[i];
     debug_print_double(context, ARITHMETIC, "+", a[i], b[i], c[i]);
   }
 }
 
 static void _interflop_sub_double_vector(const int size, const double *a, const double *b,
 					 double *c, void *context) {
+  perform_vector_binary_op(double, size, -, a, b, c);
   for (int i = 0; i < size; ++i) {
-    c[i] = a[i] - b[i];
     debug_print_double(context, ARITHMETIC, "-", a[i], b[i], c[i]);
   }
 }
 
 static void _interflop_mul_double_vector(const int size, const double *a, const double *b,
 					 double *c, void *context) {
+  perform_vector_binary_op(double, size, *, a, b, c);
   for (int i = 0; i < size; ++i) {
-    c[i] = a[i] * b[i];
     debug_print_double(context, ARITHMETIC, "*", a[i], b[i], c[i]);
   }
 }
 
 static void _interflop_div_double_vector(const int size, const double *a, const double *b,
 					 double *c, void *context) {
+  perform_vector_binary_op(double, size, /, a, b, c);
   for (int i = 0; i < size; ++i) {
-    c[i] = a[i] / b[i];
     debug_print_double(context, ARITHMETIC, "/", a[i], b[i], c[i]);
   }
 }
 
 static void _interflop_cmp_double_vector(const enum FCMP_PREDICATE p, const int size,
-				  const double *a, const double *b, int *c, void *context) {
+					 const double *a, const double *b, int *c, void *context) {
   for (int i = 0; i < size; ++i) {
     char *str = "";
     SELECT_FLOAT_CMP(a[i], b[i], &(c[i]), p, str);

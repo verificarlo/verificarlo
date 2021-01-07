@@ -1,5 +1,19 @@
 /* interflop backend interface */
 
+/* Define vector type */
+typedef double double2 __attribute__((ext_vector_type(2)));
+typedef double double4 __attribute__((ext_vector_type(4)));
+typedef double double8 __attribute__((ext_vector_type(8)));
+typedef double double16 __attribute__((ext_vector_type(16)));
+typedef float float2 __attribute__((ext_vector_type(2)));
+typedef float float4 __attribute__((ext_vector_type(4)));
+typedef float float8 __attribute__((ext_vector_type(8)));
+typedef float float16 __attribute__((ext_vector_type(16)));
+typedef int int2 __attribute__((ext_vector_type(2)));
+typedef int int4 __attribute__((ext_vector_type(4)));
+typedef int int8 __attribute__((ext_vector_type(8)));
+typedef int int16 __attribute__((ext_vector_type(16)));
+
 /* interflop float compare predicates, follows the same order than
  * LLVM's FCMPInstruction predicates */
 enum FCMP_PREDICATE {
