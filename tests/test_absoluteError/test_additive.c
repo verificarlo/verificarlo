@@ -8,7 +8,7 @@
 #include "../../src/common/float_struct.h"
 #include "../../src/common/float_utils.h"
 
-#define DEBUG_MODE 1
+#define DEBUG_MODE 0
 
 #define FLOAT_RANGE_LIMIT 40
 #define DOUBLE_RANGE_LIMIT 100
