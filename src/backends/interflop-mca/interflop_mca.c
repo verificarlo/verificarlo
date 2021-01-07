@@ -75,7 +75,9 @@
 typedef enum {
   KEY_PREC_B32,
   KEY_PREC_B64,
+  KEY_ERR_EXP,
   KEY_MODE = 'm',
+  KEY_ERR_MODE = 'e',
   KEY_SEED = 's',
   KEY_DAZ = 'd',
   KEY_FTZ = 'f'
@@ -84,11 +86,16 @@ typedef enum {
 static const char key_prec_b32_str[] = "precision-binary32";
 static const char key_prec_b64_str[] = "precision-binary64";
 static const char key_mode_str[] = "mode";
+static const char key_err_mode_str[] = "error-mode";
+static const char key_err_exp_str[] = "max-abs-error-exponent";
 static const char key_seed_str[] = "seed";
 static const char key_daz_str[] = "daz";
 static const char key_ftz_str[] = "ftz";
 
 typedef struct {
+  bool relErr;
+  bool absErr;
+  int absErr_exp;
   bool choose_seed;
   uint64_t seed;
   bool daz;
@@ -105,6 +112,15 @@ typedef enum {
 } mcamode;
 
 static const char *MCA_MODE_STR[] = {"ieee", "mca", "pb", "rr"};
+
+/* define the available error modes */
+typedef enum {
+  mca_err_mode_rel,
+  mca_err_mode_abs,
+  mca_err_mode_all
+} mca_err_mode;
+
+static const char *MCA_ERR_MODE_STR[] = {"rel", "abs", "all"};
 
 /* define default environment variables and default parameters */
 #define MCA_PRECISION_BINARY32_MIN 1
@@ -196,11 +212,11 @@ static __float128 _noise_binary128(const int exp) {
 /* Macro function for checking if the value X must be noised */
 #define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
   /* if mode ieee, do not introduce noise */                                   \
-  (MCALIB_MODE == mcamode_ieee) ||					\
-  /* Check that we are not in a special case */				\
-  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||	\
-  /* In RR if the number is representable in current virtual precision, */ \
-  /* do not add any noise if */						\
+  (MCALIB_MODE == mcamode_ieee) ||					                                   \
+  /* Check that we are not in a special case */				                         \
+  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||	           \
+  /* In RR if the number is representable in current virtual precision, */     \
+  /* do not add any noise if */						                                     \
   (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
@@ -209,34 +225,41 @@ static __float128 _noise_binary128(const int exp) {
 
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
-#define _INEXACT(X, VIRTUAL_PRECISION)                                         \
+#define _INEXACT(X, VIRTUAL_PRECISION, CTX)                                    \
   {                                                                            \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
     } else {                                                                   \
-      const int32_t e_a = GET_EXP_FLT(*X);                                     \
-      const int32_t e_n = e_a - (VIRTUAL_PRECISION - 1);                       \
-      const typeof(*X) noise = _NOISE(*X, e_n);                                \
-      *X = *X + noise;                                                         \
+      if (((t_context *)CTX)->relErr) {                                        \
+        const int32_t e_a = GET_EXP_FLT(*X);                                   \
+        const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
+        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel);                      \
+        *X = *X + noise_rel;                                                   \
+      }                                                                        \
+      if (((t_context *)CTX)->absErr) {                                        \
+        const int32_t e_n_abs = ((t_context *)CTX)->absErr_exp;                \
+        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs);                      \
+        *X = *X + noise_abs;                                                   \
+      }                                                                        \
     }                                                                          \
   }
 
 /* Adds the mca noise to da */
-static void _mca_inexact_binary64(double *da) {
-  _INEXACT(da, MCALIB_BINARY32_T);
+static void _mca_inexact_binary64(double *da, void *context) {
+  _INEXACT(da, MCALIB_BINARY32_T, context);
 }
 
 /* Adds the mca noise to qa */
-static void _mca_inexact_binary128(__float128 *qa) {
-  _INEXACT(qa, MCALIB_BINARY64_T);
+static void _mca_inexact_binary128(__float128 *qa, void *context) {
+  _INEXACT(qa, MCALIB_BINARY64_T, context);
 }
 
 /* Generic functions that adds noise to A */
 /* The function is choosen depending on the type of X  */
-#define _INEXACT_BINARYN(X, A)                                                 \
+#define _INEXACT_BINARYN(X, A, CTX)                                            \
   _Generic(X, double                                                           \
            : _mca_inexact_binary64, __float128                                 \
-           : _mca_inexact_binary128)(A)
+           : _mca_inexact_binary128)(A, CTX)
 
 /* Set the mca seed */
 static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
@@ -282,12 +305,12 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
       _B = DAZ(B);                                                             \
     }                                                                          \
     if (MCALIB_MODE == mcamode_pb || MCALIB_MODE == mcamode_mca) {             \
-      _INEXACT_BINARYN(X, &_A);                                                \
-      _INEXACT_BINARYN(X, &_B);                                                \
+      _INEXACT_BINARYN(X, &_A, CTX);                                           \
+      _INEXACT_BINARYN(X, &_B, CTX);                                           \
     }                                                                          \
     PERFORM_BIN_OP(OP, _RES, _A, _B);                                          \
     if (MCALIB_MODE == mcamode_rr || MCALIB_MODE == mcamode_mca) {             \
-      _INEXACT_BINARYN(X, &_RES);                                              \
+      _INEXACT_BINARYN(X, &_RES, CTX);                                         \
     }                                                                          \
     if (((t_context *)CTX)->ftz) {                                             \
       _RES = FTZ((typeof(A))_RES);                                             \
@@ -358,6 +381,10 @@ static struct argp_option options[] = {
      "select precision for binary64 (PRECISION > 0)", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
      "select MCA mode among {ieee, mca, pb, rr}", 0},
+    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
+     "select error mode among {rel, abs, all}", 0},
+    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
+     "select magnitude of the maximum absolute error", 0},
     {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed", 0},
     {key_daz_str, KEY_DAZ, 0, 0,
      "denormals-are-zero: sets denormals inputs to zero", 0},
@@ -408,6 +435,32 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
                    key_mode_str);
     }
     break;
+  case KEY_ERR_MODE:
+    /* mca error mode */
+    if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_rel], arg) == 0) {
+      ctx->relErr = true;
+      ctx->absErr = false;
+    } else if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_abs], arg) == 0) {
+      ctx->relErr = false;
+      ctx->absErr = true;
+    } else if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_all], arg) == 0) {
+      ctx->relErr = true;
+      ctx->absErr = true;
+    } else {
+      logger_error("--%s invalid value provided, must be one of: "
+                   "{rel, abs, all}.",
+                   key_err_mode_str);
+    }
+    break;
+  case KEY_ERR_EXP:
+    /* exponent of the maximum absolute error */
+    errno = 0;
+    ctx->absErr_exp = strtol(arg, &endptr, 10);
+    if (errno != 0) {
+      logger_error("--%s invalid value provided, must be an integer",
+                   key_err_exp_str);
+    }
+    break;
   case KEY_SEED:
     /* seed */
     errno = 0;
@@ -435,6 +488,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
 
 void init_context(t_context *ctx) {
+  ctx->relErr = true;
+  ctx->absErr = false;
+  ctx->absErr_exp = 112;
   ctx->choose_seed = false;
   ctx->daz = false;
   ctx->ftz = false;
@@ -444,17 +500,27 @@ void init_context(t_context *ctx) {
 void print_information_header(void *context) {
   t_context *ctx = (t_context *)context;
 
-  logger_info("load backend with "
-              "%s = %d, "
-              "%s = %d, "
-              "%s = %s, "
-              "%s = %s and "
-              "%s = %s"
-              "\n",
-              key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str,
-              MCALIB_BINARY64_T, key_mode_str, MCA_MODE_STR[MCALIB_MODE],
-              key_daz_str, ctx->daz ? "true" : "false", key_ftz_str,
-              ctx->ftz ? "true" : "false");
+  logger_info(
+      "load backend with "
+      "%s = %d, "
+      "%s = %d, "
+      "%s = %s, "
+      "%s = %s, "
+      "%s = %d, "
+      "%s = %s and "
+      "%s = %s"
+      "\n",
+      key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str, MCALIB_BINARY64_T,
+      key_mode_str, MCA_MODE_STR[MCALIB_MODE], key_err_mode_str,
+      (ctx->relErr && !ctx->absErr)
+          ? MCA_ERR_MODE_STR[mca_err_mode_rel]
+          : (!ctx->relErr && ctx->absErr)
+                ? MCA_ERR_MODE_STR[mca_err_mode_abs]
+                : (ctx->relErr && ctx->absErr)
+                      ? MCA_ERR_MODE_STR[mca_err_mode_all]
+                      : MCA_ERR_MODE_STR[mca_err_mode_rel],
+      key_err_exp_str, (ctx->absErr_exp), key_daz_str,
+      ctx->daz ? "true" : "false", key_ftz_str, ctx->ftz ? "true" : "false");
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
