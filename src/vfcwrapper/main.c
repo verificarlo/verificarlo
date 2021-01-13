@@ -479,10 +479,7 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
 					 operator)			\
   precision##size _##size##x##precision##operation(precision##size a,	\
 						   precision##size b) {	\
-    precision##size c;							\
-    for (unsigned char i = 0; i < size; ++i) {				\
-      c[i] = NAN;							\
-    }									\
+    precision##size c = NAN;						\
     ddebug(operator);							\
     for (unsigned char i = 0; i < loaded_backends; i++) {		\
       if (backends[i].interflop_##operation##_##precision##_vector) {	\
