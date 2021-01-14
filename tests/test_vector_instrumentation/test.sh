@@ -188,8 +188,7 @@ _check_vector_instruction_and_register() {
 
 # Check if vector instruction and register are used in given backend
 # Take backend in parameter
-check_vector_instruction_and_register()
-{
+check_vector_instruction_and_register() {
     # Recup backend
     backend=$1
     
@@ -284,8 +283,7 @@ check_vector_instruction_and_register()
 }
 
 # Run the check of result and wrapper instrumentation
-for backend in $list_of_backend
-do
+for backend in $list_of_backend ; do
     echo "#######################################"
     echo "Backend $backend"
     echo ""
