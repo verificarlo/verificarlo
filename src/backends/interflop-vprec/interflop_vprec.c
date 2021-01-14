@@ -270,6 +270,29 @@ void _set_vprec_inst_mode(vprec_inst_mode mode) {
     logger_error("invalid operator %c", op);                                   \
   };
 
+#define perform_vector_binary_op(precision, size, op, res, a, b)               \
+  switch (size) {                                                              \
+  case 2:                                                                      \
+    perform_binary_op(op, (*(precision##2 *)res), (*(precision##2 *)a),        \
+                      (*(precision##2 *)b));                                   \
+    break;                                                                     \
+  case 4:                                                                      \
+    perform_binary_op(op, (*(precision##4 *)res), (*(precision##4 *)a),        \
+                      (*(precision##4 *)b));                                   \
+    break;                                                                     \
+  case 8:                                                                      \
+    perform_binary_op(op, (*(precision##8 *)res), (*(precision##8 *)a),        \
+                      (*(precision##8 *)b));                                   \
+    break;                                                                     \
+  case 16:                                                                     \
+    perform_binary_op(op, (*(precision##16 *)res), (*(precision##16 *)a),      \
+                      (*(precision##16 *)b));                                  \
+    break;                                                                     \
+  default:                                                                     \
+    logger_error("invalid size %d\n", size);                                   \
+    break;                                                                     \
+  }
+
 // Round the float with the given precision
 static float _vprec_round_binary32(float a, char is_input, void *context,
                                    int binary32_range, int binary32_precision) {
@@ -367,6 +390,29 @@ static inline float _vprec_binary32_binary_op(float a, float b,
   return res;
 }
 
+static inline void _vprec_binary32_binary_op_vector(const int size, float *a,
+                                                    float *b, float *c,
+                                                    const vprec_operation op,
+                                                    void *context) {
+  if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
+    for (int i = 0; i < size; ++i) {
+      a[i] = _vprec_round_binary32(a[i], 1, context, VPRECLIB_BINARY32_RANGE,
+                                   VPRECLIB_BINARY32_PRECISION);
+      b[i] = _vprec_round_binary32(b[i], 1, context, VPRECLIB_BINARY32_RANGE,
+                                   VPRECLIB_BINARY32_PRECISION);
+    }
+  }
+
+  perform_vector_binary_op(float, size, op, c, a, b);
+
+  if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
+    for (int i = 0; i < size; ++i) {
+      c[i] = _vprec_round_binary32(c[i], 0, context, VPRECLIB_BINARY32_RANGE,
+                                   VPRECLIB_BINARY32_PRECISION);
+    }
+  }
+}
+
 static inline double _vprec_binary64_binary_op(double a, double b,
                                                const vprec_operation op,
                                                void *context) {
@@ -388,6 +434,30 @@ static inline double _vprec_binary64_binary_op(double a, double b,
 
   return res;
 }
+
+static inline void _vprec_binary64_binary_op_vector(const int size, double *a,
+                                                    double *b, double *c,
+                                                    const vprec_operation op,
+                                                    void *context) {
+  if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
+    for (int i = 0; i < size; ++i) {
+      a[i] = _vprec_round_binary64(a[i], 1, context, VPRECLIB_BINARY64_RANGE,
+                                   VPRECLIB_BINARY64_PRECISION);
+      b[i] = _vprec_round_binary64(b[i], 1, context, VPRECLIB_BINARY64_RANGE,
+                                   VPRECLIB_BINARY64_PRECISION);
+    }
+  }
+
+  perform_vector_binary_op(double, size, op, c, a, b);
+
+  if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
+    for (int i = 0; i < size; ++i) {
+      c[i] = _vprec_round_binary64(c[i], 0, context, VPRECLIB_BINARY64_RANGE,
+                                   VPRECLIB_BINARY64_PRECISION);
+    }
+  }
+}
+
 
 /******************** VPREC INSTRUMENTATION FUNCTIONS ********************
  * The following set of functions is used to apply vprec on instrumented
@@ -766,27 +836,23 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
 }
 
 static void _interflop_add_float_vector(const int size, float *a, float *b,
-					float *c, void *context) {
-  for (unsigned char i = 0; i < size; ++i)
-    c[i] = _vprec_binary32_binary_op(a[i], b[i], vprec_add, context);
+                                        float *c, void *context) {
+  _vprec_binary32_binary_op_vector(size, a, b, c, vprec_add, context);
 }
 
 static void _interflop_sub_float_vector(const int size, float *a, float *b,
-					float *c, void *context) {
-  for (unsigned char i = 0; i < size; ++i)
-    c[i] = _vprec_binary32_binary_op(a[i], b[i], vprec_sub, context);
+                                        float *c, void *context) {
+  _vprec_binary32_binary_op_vector(size, a, b, c, vprec_sub, context);
 }
 
 static void _interflop_mul_float_vector(const int size, float *a, float *b,
-					float *c, void *context) {
-  for (unsigned char i = 0; i < size; ++i)
-    c[i] = _vprec_binary32_binary_op(a[i], b[i], vprec_mul, context);
+                                        float *c, void *context) {
+  _vprec_binary32_binary_op_vector(size, a, b, c, vprec_mul, context);
 }
 
 static void _interflop_div_float_vector(const int size, float *a, float *b,
-					float *c, void *context) {
-  for (unsigned char i = 0; i < size; ++i)
-    c[i] = _vprec_binary32_binary_op(a[i], b[i], vprec_div, context);
+                                        float *c, void *context) {
+  _vprec_binary32_binary_op_vector(size, a, b, c, vprec_div, context);
 }
 
 static void _interflop_add_double(double a, double b, double *c,
@@ -810,27 +876,23 @@ static void _interflop_div_double(double a, double b, double *c,
 }
 
 static void _interflop_add_double_vector(const int size, double *a, double *b,
-					 double *c, void *context) {
-  for (unsigned char i = 0; i < size; ++i)
-    c[i] = _vprec_binary64_binary_op(a[i], b[i], vprec_add, context);
+                                         double *c, void *context) {
+  _vprec_binary64_binary_op_vector(size, a, b, c, vprec_add, context);
 }
 
 static void _interflop_sub_double_vector(const int size, double *a, double *b,
-					 double *c, void *context) {
-  for (unsigned char i = 0; i < size; ++i)
-    c[i] = _vprec_binary64_binary_op(a[i], b[i], vprec_sub, context);
+                                         double *c, void *context) {
+  _vprec_binary64_binary_op_vector(size, a, b, c, vprec_sub, context);
 }
 
 static void _interflop_mul_double_vector(const int size, double *a, double *b,
-					 double *c, void *context) {
-  for (unsigned char i = 0; i < size; ++i)
-    c[i] = _vprec_binary64_binary_op(a[i], b[i], vprec_mul, context);
+                                         double *c, void *context) {
+  _vprec_binary64_binary_op_vector(size, a, b, c, vprec_mul, context);
 }
 
 static void _interflop_div_double_vector(const int size, double *a, double *b,
-					 double *c, void *context) {
-  for (unsigned char i = 0; i < size; ++i)
-    c[i] = _vprec_binary64_binary_op(a[i], b[i], vprec_div, context);
+                                         double *c, void *context) {
+  _vprec_binary64_binary_op_vector(size, a, b, c, vprec_div, context);
 }
 
 static struct argp_option options[] = {
