@@ -178,7 +178,9 @@ _check_vector_instruction_and_register() {
     register=$5
     file=$6
 
-    if grep $instru'.*'$register $file; then
+    pattern=$instru'.*'$register
+
+    if grep -e $pattern $file; then
 	echo "Instruction $instru and register $register INSTRUMENTED"
     else
 	echo "Instruction $instru and register $register NOT instrumented"
@@ -236,31 +238,30 @@ check_vector_instruction_and_register() {
 	    echo "float$size"
 	    for op in $list_of_op
 	    do
-		_check_vector_instruction_and_register float $op $size $op"ps" xmm $backend/_interflop_$op"_"$precision"_vector"
+		    _check_vector_instruction_and_register float $op $size $op"ps" xmm $backend/_interflop_$op"_float_vector"
 	    done
 	done
 
 	echo "double2"
 	for op in $list_of_op
 	do
-	    _check_vector_instruction_and_register double $op 2 $op"pd" xmm $backend/_interflop_$op"_"$precision"_vector"
-	done
-    fi
+		_check_vector_instruction_and_register double $op 2 $op"pd" xmm $backend/_interflop_$op"_double_vector"
+	fi
 
     # AVX
     if [ ! $avx == 0 ] ; then
 	echo "You have AVX instruction"
-
+  
 	echo "float8"
 	for op in $list_of_op
 	do
-	    _check_vector_instruction_and_register float $op 8 $op"ps" ymm $backend/_interflop_$op"_"$precision"_vector"
+	    _check_vector_instruction_and_register float $op 8 $op"ps" ymm $backend/_interflop_$op"_float_vector"
 	done
 
 	echo "double4"
 	for op in $list_of_op
 	do
-	    _check_vector_instruction_and_register double $op 4 $op"pd" ymm $backend/_interflop_$op"_"$precision"_vector"
+	    _check_vector_instruction_and_register double $op 4 $op"pd" ymm $backend/_interflop_$op"_double_vector"
 	done
     fi
 
@@ -271,13 +272,13 @@ check_vector_instruction_and_register() {
 	echo "float16"
 	for op in $list_of_op
 	do
-	    _check_vector_instruction_and_register float $op 16 $op"ps" zmm $backend/_interflop_$op"_"$precision"_vector"
+	    _check_vector_instruction_and_register float $op 16 $op"ps" zmm $backend/_interflop_$op"_float_vector"
 	done
 
 	echo "double8"
 	for op in $list_of_op
 	do
-	    _check_vector_instruction_and_register double $op 8 $op"pd" zmm $backend/_interflop_$op"_"$precision"_vector"
+	    _check_vector_instruction_and_register double $op 8 $op"pd" zmm $backend/_interflop_$op"_double_vector"
 	done
     fi
 }

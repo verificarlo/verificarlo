@@ -4,5 +4,6 @@ libinterflop_ieee_la_CFLAGS = -DBACKEND_HEADER="interflop_ieee"
 if WALL_CFLAGS
 libinterflop_ieee_la_CFLAGS += -Wall -Wextra
 endif
+libinterflop_ieee_la_CFLAGS += -march=native
 libinterflop_ieee_la_LDFLAGS = -lm
 library_includedir =$(includedir)/

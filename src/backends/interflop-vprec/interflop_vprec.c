@@ -765,25 +765,25 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
   *c = _vprec_binary32_binary_op(a, b, vprec_div, context);
 }
 
-static void _interflop_add_float_vector(const int size, const float *a, const float *b,
+static void _interflop_add_float_vector(const int size, float *a, float *b,
 					float *c, void *context) {
   for (unsigned char i = 0; i < size; ++i)
     c[i] = _vprec_binary32_binary_op(a[i], b[i], vprec_add, context);
 }
 
-static void _interflop_sub_float_vector(const int size, const float *a, const float *b,
+static void _interflop_sub_float_vector(const int size, float *a, float *b,
 					float *c, void *context) {
   for (unsigned char i = 0; i < size; ++i)
     c[i] = _vprec_binary32_binary_op(a[i], b[i], vprec_sub, context);
 }
 
-static void _interflop_mul_float_vector(const int size, const float *a, const float *b,
+static void _interflop_mul_float_vector(const int size, float *a, float *b,
 					float *c, void *context) {
   for (unsigned char i = 0; i < size; ++i)
     c[i] = _vprec_binary32_binary_op(a[i], b[i], vprec_mul, context);
 }
 
-static void _interflop_div_float_vector(const int size, const float *a, const float *b,
+static void _interflop_div_float_vector(const int size, float *a, float *b,
 					float *c, void *context) {
   for (unsigned char i = 0; i < size; ++i)
     c[i] = _vprec_binary32_binary_op(a[i], b[i], vprec_div, context);
@@ -809,25 +809,25 @@ static void _interflop_div_double(double a, double b, double *c,
   *c = _vprec_binary64_binary_op(a, b, vprec_div, context);
 }
 
-static void _interflop_add_double_vector(const int size, const double *a, const double *b,
+static void _interflop_add_double_vector(const int size, double *a, double *b,
 					 double *c, void *context) {
   for (unsigned char i = 0; i < size; ++i)
     c[i] = _vprec_binary64_binary_op(a[i], b[i], vprec_add, context);
 }
 
-static void _interflop_sub_double_vector(const int size, const double *a, const double *b,
+static void _interflop_sub_double_vector(const int size, double *a, double *b,
 					 double *c, void *context) {
   for (unsigned char i = 0; i < size; ++i)
     c[i] = _vprec_binary64_binary_op(a[i], b[i], vprec_sub, context);
 }
 
-static void _interflop_mul_double_vector(const int size, const double *a, const double *b,
+static void _interflop_mul_double_vector(const int size, double *a, double *b,
 					 double *c, void *context) {
   for (unsigned char i = 0; i < size; ++i)
     c[i] = _vprec_binary64_binary_op(a[i], b[i], vprec_mul, context);
 }
 
-static void _interflop_div_double_vector(const int size, const double *a, const double *b,
+static void _interflop_div_double_vector(const int size, double *a, double *b,
 					 double *c, void *context) {
   for (unsigned char i = 0; i < size; ++i)
     c[i] = _vprec_binary64_binary_op(a[i], b[i], vprec_div, context);

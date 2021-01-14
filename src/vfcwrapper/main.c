@@ -51,19 +51,6 @@
 #define CALL_OP_SIZE 4
 #endif
 
-typedef double double2 __attribute__((ext_vector_type(2)));
-typedef double double4 __attribute__((ext_vector_type(4)));
-typedef double double8 __attribute__((ext_vector_type(8)));
-typedef double double16 __attribute__((ext_vector_type(16)));
-typedef float float2 __attribute__((ext_vector_type(2)));
-typedef float float4 __attribute__((ext_vector_type(4)));
-typedef float float8 __attribute__((ext_vector_type(8)));
-typedef float float16 __attribute__((ext_vector_type(16)));
-typedef int int2 __attribute__((ext_vector_type(2)));
-typedef int int4 __attribute__((ext_vector_type(4)));
-typedef int int8 __attribute__((ext_vector_type(8)));
-typedef int int16 __attribute__((ext_vector_type(16)));
-
 typedef struct interflop_backend_interface_t (*interflop_init_t)(
     int argc, char **argv, void **context);
 
@@ -234,7 +221,7 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
       logger_error("No backend instruments vector " #operation		\
 		   " for " #precision					\
                    ".\n"						\
-		   "Include one backend in VFC_BACKENDS"		\
+		   "Include one backend in VFC_BACKENDS "		\
 		   "that provides it");					\
   } while (0)
 
@@ -375,6 +362,21 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   check_backends_implements(double, cmp);
 #endif
 
+  /* Check that at least one backend implements each required vector 
+   * operation */
+  check_backends_implements_vector(float, add);
+  check_backends_implements_vector(float, sub);
+  check_backends_implements_vector(float, mul);
+  check_backends_implements_vector(float, div);
+  check_backends_implements_vector(double, add);
+  check_backends_implements_vector(double, sub);
+  check_backends_implements_vector(double, mul);
+  check_backends_implements_vector(double, div);
+#ifdef INST_FCMP
+  check_backends_implements_vector(float, cmp);
+  check_backends_implements_vector(double, cmp);
+#endif
+
 #ifdef DDEBUG
   /* Initialize ddebug */
   dd_must_instrument = vfc_hashmap_create();
@@ -477,11 +479,7 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
 					 operator)			\
   precision##size _##size##x##precision##operation(precision##size a,	\
 						   precision##size b) {	\
-    check_backends_implements_vector(precision, operation);		\
-    precision##size c;							\
-    for (unsigned char i = 0; i < size; ++i) {				\
-      c[i] = NAN;							\
-    }									\
+    precision##size c = NAN;						\
     ddebug(operator);							\
     for (unsigned char i = 0; i < loaded_backends; i++) {		\
       if (backends[i].interflop_##operation##_##precision##_vector) {	\
@@ -542,7 +540,6 @@ define_vector_arithmetic_wrapper(16, double, div, /);
   int##size _##size##x##precision##cmp(enum FCMP_PREDICATE p,		\
 				       precision##size a,		\
 				       precision##size b) {		\
-    check_backends_implements_vector(precision, cmp);			\
     int##size c;							\
     for (unsigned char i = 0; i < loaded_backends; i++) {		\
       if (backends[i].interflop_cmp_##precision##_vector) {		\
