@@ -466,6 +466,9 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* register %b format */
   register_printf_bit();
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wincompatible-function-pointer-types"
+
   struct interflop_backend_interface_t interflop_backend_ieee = {
       _interflop_add_float,
       _interflop_sub_float,
@@ -491,5 +494,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL};
 
+#pragma clang diagnostic pop
+  
   return interflop_backend_ieee;
 }
