@@ -127,14 +127,6 @@ check_result() {
     ./bin/$bin"_"$precision$size $precision "*" $size $vec >> output_$backend.txt
     ./bin/$bin"_"$precision$size $precision "-" $size $vec >> output_$backend.txt
     ./bin/$bin"_"$precision$size $precision "/" $size $vec >> output_$backend.txt
-
-
-    if [ $(diff -U 0 result.txt output_$backend.txt | wc -l) != 0 ] ; then
-	echo "Result for $backend backend FAILED"
-	is_equal=1
-    else
-	echo "Result for $backend backend PASSED"
-    fi
 }
 
 # Check if vector wrapper are called for all size and precision
@@ -305,6 +297,14 @@ for backend in $list_of_backend ; do
     if [ ! $avx512 == 0 ] ; then
 	check_result $backend double 8
 	check_result $backend float 16
+    fi
+
+    # Check result
+    if [ $(diff -U 0 result.txt output_$backend.txt | wc -l) != 0 ] ; then
+	echo "Result for $backend backend FAILED"
+	is_equal=1
+    else
+	echo "Result for $backend backend PASSED"
     fi
 
     # Separate output
