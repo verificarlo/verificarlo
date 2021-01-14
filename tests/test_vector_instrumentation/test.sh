@@ -212,8 +212,7 @@ check_vector_instruction_and_register() {
     # 1. name of the function
     # 2. begining line
     # 3. ending line
-    for i in $(seq -s ' ' 1 3 $count_line)
-    do
+    for i in $(seq -s ' ' 1 3 $count_line) ; do
 	# Recup the function name
 	function_name=$(sed -n $i"p" $info_file)
 
@@ -233,18 +232,15 @@ check_vector_instruction_and_register() {
     if [ ! $sse == 0 ] ; then
 	echo "You have SSE instruction"
 
-	for size in 2 4
-	do
+	for size in 2 4 ; do
 	    echo "float$size"
-	    for op in $list_of_op
-	    do
+	    for op in $list_of_op ; do
 		_check_vector_instruction_and_register float $op $size $op"ps" xmm $backend/_interflop_$op"_float_vector"
 	    done
 	done
 
 	echo "double2"
-	for op in $list_of_op
-	do
+	for op in $list_of_op ; do
 	    _check_vector_instruction_and_register double $op 2 $op"pd" xmm $backend/_interflop_$op"_double_vector"
 	done
     fi
@@ -254,14 +250,12 @@ check_vector_instruction_and_register() {
 	echo "You have AVX instruction"
 	
 	echo "float8"
-	for op in $list_of_op
-	do
+	for op in $list_of_op ; do
 	    _check_vector_instruction_and_register float $op 8 $op"ps" ymm $backend/_interflop_$op"_float_vector"
 	done
 
 	echo "double4"
-	for op in $list_of_op
-	do
+	for op in $list_of_op ; do
 	    _check_vector_instruction_and_register double $op 4 $op"pd" ymm $backend/_interflop_$op"_double_vector"
 	done
     fi
@@ -271,14 +265,12 @@ check_vector_instruction_and_register() {
 	echo "You have AVX512 instruction"
 
 	echo "float16"
-	for op in $list_of_op
-	do
+	for op in $list_of_op ; do
 	    _check_vector_instruction_and_register float $op 16 $op"ps" zmm $backend/_interflop_$op"_float_vector"
 	done
 
 	echo "double8"
-	for op in $list_of_op
-	do
+	for op in $list_of_op ; do
 	    _check_vector_instruction_and_register double $op 8 $op"pd" zmm $backend/_interflop_$op"_double_vector"
 	done
     fi
