@@ -11,35 +11,35 @@ typedef double double4 __attribute__((ext_vector_type(4)));
 typedef double double8 __attribute__((ext_vector_type(8)));
 typedef double double16 __attribute__((ext_vector_type(16)));
 
-#define perform_vector_binary_op(size, op, res, a, b)			\
-  switch (size) {							\
-  case 2:								\
-  case 4:								\
-  case 8:								\
-  case 16:								\
-    switch (op) {							\
-    case '+':								\
-      res = a + b;							\
-      break;								\
-    case '*':								\
-      res = a * b;							\
-      break;								\
-    case '-':								\
-      res = a - b;							\
-      break;								\
-    case '/':								\
-      res = a / b;							\
-      break;								\
-    default:								\
-      fprintf(stderr, "Bad op %c\n", op);				\
-      exit(EXIT_FAILURE);						\
-      break;								\
-    };									\
-    break;								\
-  default:								\
-    fprintf(stderr, "Bad size %llu\n", size);				\
-    exit(EXIT_FAILURE);							\
-    break;								\
+#define perform_vector_binary_op(size, op, res, a, b)                          \
+  switch (size) {                                                              \
+  case 2:                                                                      \
+  case 4:                                                                      \
+  case 8:                                                                      \
+  case 16:                                                                     \
+    switch (op) {                                                              \
+    case '+':                                                                  \
+      res = a + b;                                                             \
+      break;                                                                   \
+    case '*':                                                                  \
+      res = a * b;                                                             \
+      break;                                                                   \
+    case '-':                                                                  \
+      res = a - b;                                                             \
+      break;                                                                   \
+    case '/':                                                                  \
+      res = a / b;                                                             \
+      break;                                                                   \
+    default:                                                                   \
+      fprintf(stderr, "Bad op %c\n", op);                                      \
+      exit(EXIT_FAILURE);                                                      \
+      break;                                                                   \
+    };                                                                         \
+    break;                                                                     \
+  default:                                                                     \
+    fprintf(stderr, "Bad size %llu\n", size);                                  \
+    exit(EXIT_FAILURE);                                                        \
+    break;                                                                     \
   };
 
 int main(int argc, char **argv) {
