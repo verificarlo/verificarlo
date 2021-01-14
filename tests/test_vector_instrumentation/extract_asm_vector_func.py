@@ -9,6 +9,7 @@ if len(sys.argv) != 2:
     print("Usage: ./script_name <input_file>")
     exit(1)
 
+# Recup the file name
 filename = str(sys.argv[1])
 
 # Open file
@@ -33,6 +34,7 @@ for line in contents:
     if line.startswith("0000000", 0, len(line)):
         # We exit forward function
         if in_function:
+            # Add the end line number
             tables.append(line_number - 1)
         in_function = 0
 
