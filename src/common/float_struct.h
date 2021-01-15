@@ -5,6 +5,20 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+/* Define vector type */
+typedef double double2 __attribute__((ext_vector_type(2)));
+typedef double double4 __attribute__((ext_vector_type(4)));
+typedef double double8 __attribute__((ext_vector_type(8)));
+typedef double double16 __attribute__((ext_vector_type(16)));
+typedef float float2 __attribute__((ext_vector_type(2)));
+typedef float float4 __attribute__((ext_vector_type(4)));
+typedef float float8 __attribute__((ext_vector_type(8)));
+typedef float float16 __attribute__((ext_vector_type(16)));
+typedef int int2 __attribute__((ext_vector_type(2)));
+typedef int int4 __attribute__((ext_vector_type(4)));
+typedef int int8 __attribute__((ext_vector_type(8)));
+typedef int int16 __attribute__((ext_vector_type(16)));
+
 /* import from <quadmath-imp.h> */
 
 /* Frankly, if you have __float128, you have 64-bit integers, right?  */
@@ -179,6 +193,57 @@ typedef union {
   } ieee;
 
 } binary32;
+
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+
+#define define_binary32_vector(precision, size)                                \
+  typedef union {                                                              \
+                                                                               \
+  precision##size f32;                                                         \
+  int##size u32;                                                               \
+  int##size s32;                                                               \
+                                                                               \
+  /* Generic fields */                                                         \
+  float type;                                                                  \
+  uint32_t u;                                                                  \
+                                                                               \
+  struct {                                                                     \
+    uint32_t sign : FLOAT_SIGN_SIZE;                                           \
+    uint32_t exponent : FLOAT_EXP_SIZE;                                        \
+    uint32_t mantissa : FLOAT_PMAN_SIZE;                                       \
+  } ieee;                                                                      \
+                                                                               \
+  } binary32_##precision##size;
+
+#endif
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+
+#define define_binary32_vector(precision, size)                                \
+  typedef union {                                                              \
+                                                                               \
+    precision##size f32;                                                       \
+    int##size u32;                                                             \
+    int##size s32;                                                             \
+                                                                               \
+    /* Generic fields */                                                       \
+    float type;                                                                \
+    uint32_t u;                                                                \
+                                                                               \
+    struct {                                                                   \
+      uint32_t mantissa : FLOAT_PMAN_SIZE;                                     \
+      uint32_t exponent : FLOAT_EXP_SIZE;                                      \
+      uint32_t sign : FLOAT_SIGN_SIZE;                                         \
+    } ieee;                                                                    \
+                                                                               \
+  } binary32_##precision##size;
+
+#endif
+
+define_binary32_vector(float, 2);
+define_binary32_vector(float, 4);
+define_binary32_vector(float, 8);
+define_binary32_vector(float, 16);
 
 #define QUADFP_NAN 0
 #define QUADFP_INFINITE 1
