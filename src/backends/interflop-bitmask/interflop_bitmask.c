@@ -1,4 +1,4 @@
-/*****************************************************************************
+ /*****************************************************************************
  *                                                                           *
  *  This file is part of Verificarlo.                                        *
  *                                                                           *
@@ -131,10 +131,10 @@ static uint64_t binary64_bitmask = DOUBLE_MASK_ONE;
 
 #define GET_BITMASK(X)                                                         \
   _Generic(X, \
-				float: binary32_bitmask,    \
-				double:binary64_bitmask,    \
-				float*:&binary32_bitmask,   \
-				double*:&binary64_bitmask)
+                                float: binary32_bitmask,    \
+                                double:binary64_bitmask,    \
+                                float*:&binary32_bitmask,   \
+                                double*:&binary64_bitmask)
 
 /******************** BITMASK CONTROL FUNCTIONS *******************
  * The following functions are used to set virtual precision and
@@ -243,11 +243,11 @@ static void _set_bitmask_seed(const bool choose_seed, const uint64_t seed) {
 
 #define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
   /* if mode ieee, do not introduce noise */                                   \
-  (BITMASKLIB_MODE == bitmask_mode_ieee) ||				\
-  /* Check that we are not in a special case */				\
-  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||	\
+  (BITMASKLIB_MODE == bitmask_mode_ieee) ||                             \
+  /* Check that we are not in a special case */                         \
+  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||      \
   /* In RR if the number is representable in current virtual precision, */ \
-  /* do not add any noise if */						\
+  /* do not add any noise if */                                         \
   (BITMASKLIB_MODE == bitmask_mode_ob && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 #define _INEXACT(B)                                                            \
@@ -364,6 +364,34 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
   *c = _bitmask_binary32_binary_op(a, b, bitmask_div, context);
 }
 
+static void _interflop_add_float_vector(const int size, float *a, float *b,
+                                        float *c, void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _bitmask_binary32_binary_op(a[i], b[i], bitmask_add, context);
+  }
+}
+
+static void _interflop_sub_float_vector(const int size, float *a, float *b,
+                                        float *c, void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _bitmask_binary32_binary_op(a[i], b[i], bitmask_sub, context);
+  }
+}
+
+static void _interflop_mul_float_vector(const int size, float *a, float *b,
+                                        float *c, void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _bitmask_binary32_binary_op(a[i], b[i], bitmask_mul, context);
+  }
+}
+
+static void _interflop_div_float_vector(const int size, float *a, float *b,
+                                        float *c, void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _bitmask_binary32_binary_op(a[i], b[i], bitmask_div, context);
+  }
+}
+
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
   *c = _bitmask_binary64_binary_op(a, b, bitmask_add, context);
@@ -382,6 +410,34 @@ static void _interflop_mul_double(double a, double b, double *c,
 static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
   *c = _bitmask_binary64_binary_op(a, b, bitmask_div, context);
+}
+
+static void _interflop_add_double_vector(const int size, double *a, double *b,
+                                         double *c, void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _bitmask_binary64_binary_op(a[i], b[i], bitmask_add, context);
+  }
+}
+
+static void _interflop_sub_double_vector(const int size, double *a, double *b,
+                                         double *c, void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _bitmask_binary64_binary_op(a[i], b[i], bitmask_sub, context);
+  }
+}
+
+static void _interflop_mul_double_vector(const int size, double *a, double *b,
+                                         double *c, void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _bitmask_binary64_binary_op(a[i], b[i], bitmask_mul, context);
+  }
+}
+
+static void _interflop_div_double_vector(const int size, double *a, double *b,
+                                         double *c, void *context) {
+  for (int i = 0; i < size; i++) {
+    c[i] = _bitmask_binary64_binary_op(a[i], b[i], bitmask_div, context);
+  }
 }
 
 static struct argp_option options[] = {
@@ -541,20 +597,20 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_mul_float,
       _interflop_div_float,
       NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
+      _interflop_add_float_vector,
+      _interflop_sub_float_vector,
+      _interflop_mul_float_vector,
+      _interflop_div_float_vector,
       NULL,
       _interflop_add_double,
       _interflop_sub_double,
       _interflop_mul_double,
       _interflop_div_double,
       NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
+      _interflop_add_double_vector,
+      _interflop_sub_double_vector,
+      _interflop_mul_double_vector,
+      _interflop_div_double_vector,
       NULL,
       NULL,
       NULL,
