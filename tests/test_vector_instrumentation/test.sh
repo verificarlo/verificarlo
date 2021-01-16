@@ -14,7 +14,7 @@ bin=binary_compute
 vec="1.1 1"
 
 # Variable of test
-list_of_backend="ieee vprec mca bitmask mca_mpfr"
+list_of_backend="ieee vprec mca bitmask cancellation mca_mpfr"
 list_of_precision="float double"
 list_of_op="add mul sub div"
 list_of_size="2 4 8 16"
@@ -280,31 +280,36 @@ for backend in $list_of_backend ; do
 
     echo "Testing good result"
 
-    # SSE
-    if [ ! $sse == 0 ] ; then
-        check_result $backend float 2
-        check_result $backend double 2
-        check_result $backend float 4
-    fi
+    # Don't check result for cancellation backend because it change many of result
+    if [ $backend != "cancellation" ] ; then
+        # SSE
+        if [ ! $sse == 0 ] ; then
+            check_result $backend float 2
+            check_result $backend double 2
+            check_result $backend float 4
+        fi
 
-    # AVX
-    if [ ! $avx == 0 ] ; then
-        check_result $backend double 4
-        check_result $backend float 8
-    fi
+        # AVX
+        if [ ! $avx == 0 ] ; then
+            check_result $backend double 4
+            check_result $backend float 8
+        fi
 
-    # AVX512
-    if [ ! $avx512 == 0 ] ; then
-        check_result $backend double 8
-        check_result $backend float 16
-    fi
+        # AVX512
+        if [ ! $avx512 == 0 ] ; then
+            check_result $backend double 8
+            check_result $backend float 16
+        fi
 
-    # Check result
-    if [ $(diff -U 0 result.txt output_$backend.txt | wc -l) != 0 ] ; then
-        echo "Result for $backend backend FAILED"
-        is_equal=1
+        # Check result
+        if [ $(diff -U 0 result.txt output_$backend.txt | wc -l) != 0 ] ; then
+            echo "Result for $backend backend FAILED"
+            is_equal=1
+        else
+            echo "Result for $backend backend PASSED"
+        fi
     else
-        echo "Result for $backend backend PASSED"
+        echo "Don't check result for cancellation backend for the moment"
     fi
 
     # Separate output
