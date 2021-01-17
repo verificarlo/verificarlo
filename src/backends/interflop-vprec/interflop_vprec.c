@@ -270,6 +270,9 @@ void _set_vprec_inst_mode(vprec_inst_mode mode) {
     logger_error("invalid operator %c", op);                                   \
   };
 
+/* perform_vector_bin_op: call perform_binary_op with good type */
+/* cast pointer array of precision in clang vector type before performing the */
+/* operation */
 #define perform_vector_binary_op(precision, size, op, res, a, b)               \
   switch (size) {                                                              \
   case 2:                                                                      \
