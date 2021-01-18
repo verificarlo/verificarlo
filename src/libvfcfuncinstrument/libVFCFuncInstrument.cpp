@@ -540,7 +540,8 @@ struct VfclibFunc : public ModulePass {
 
                   // If the called function is an intrinsic function that does
                   // not use float or double, do not instrument it.
-                  if (!(use_float || use_double) || is_intrinsic) {
+                  if (!(use_float || use_double) ||
+                      (is_intrinsic && !(use_float || use_double))) {
                     continue;
                   }
 
