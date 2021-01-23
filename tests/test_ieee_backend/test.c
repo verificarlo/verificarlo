@@ -2,7 +2,7 @@
 
 #if __SSE__
 
-typedef double double2 __attribute__((ext_vector_type(4)));
+typedef double double2 __attribute__((ext_vector_type(2)));
 
 __attribute__ ((noinline)) double2 compute_vector(double2 a, double2 b) {
   return (a-b) + (a*b) + (a/b);
