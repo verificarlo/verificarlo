@@ -13,28 +13,30 @@ run() {
 eval_condition() {
     
     if [[ $? != 0 ]]; then
-	echo 0
+        echo 0
     else
-	echo 1
+        echo 1
     fi
 }
 
 check() {
-  
+    
     RESULT=$1
     ERROR_MSG=$2
     
     if [[ "$RESULT" != 0 ]] ; then
-       echo $ERROR_MSG
-       exit 1
+        echo $ERROR_MSG
+        exit 1
     else
-	echo "[ok]"
+        echo "[ok]"
     fi
 }
 
 for TYPE in float double; do
 
-    verificarlo-c -O0 test_options.c -DREAL=float -o test_options
+    echo -e "\n$TYPE"
+
+    verificarlo-c -O0 test_options.c -DREAL=$TYPE -o test_options
 
     DEBUG_MODE="--debug"
     OPTIONS=""
