@@ -1,5 +1,8 @@
 #!/bin/sh
 set -e
+
+rm -Rf *~ log test *.o *.ll
+
 verificarlo-c -O0 -march=native test.c -o test --save-temps
 
 # Check that all the operations have been instrumented
