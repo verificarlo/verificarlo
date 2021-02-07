@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([verificarlo], [0.4.0], [])
+AC_INIT([verificarlo], [0.4.1], [])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
@@ -180,7 +180,7 @@ AC_CONFIG_FILES([Makefile
                  src/backends/interflop-mca-mpfr/Makefile
                  src/backends/interflop-cancellation/Makefile
                  src/backends/interflop-bitmask/Makefile
-		 src/backends/interflop-vprec/Makefile
+                 src/backends/interflop-vprec/Makefile
                  tests/Makefile
                  tests/paths.sh
                 ])
