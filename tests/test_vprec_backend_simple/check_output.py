@@ -7,9 +7,14 @@ import sys
 exit_at_error = True
 
 PRECISION="VERIFICARLO_PRECISION"
-mpfr_file="mpfr.txt"
-vprec_file="vprec.txt"
+
 input_file="input.txt"
+if len(sys.argv) == 1:
+    mpfr_file="mpfr.txt"
+    vprec_file="vprec.txt"
+else:
+    mpfr_file="mpfr_vector.txt"
+    vprec_file="vprec_vector.txt"
 
 def get_var_env_int(env):
 
