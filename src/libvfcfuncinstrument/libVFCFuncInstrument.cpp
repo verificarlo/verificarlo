@@ -23,7 +23,6 @@
 #include "../../config.h"
 #include "llvm/Analysis/CallGraphSCCPass.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DebugLoc.h"
@@ -500,7 +499,7 @@ struct VfclibFunc : public ModulePass {
                   DILocation *Loc = cast<DILocation>(N);
                   DISubprogram *Sub = f->getSubprogram();
                   unsigned line = Loc->getLine();
-                  std::string File = Loc->getFilename();
+                  std::string File = Loc->getFilename().str();
                   std::string Name;
 
                   if (Sub) {
