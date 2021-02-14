@@ -28,11 +28,20 @@
 #include "float_const.h"
 #include "float_struct.h"
 
+/**
+ * round the mantissa of 'x' on the precision specified by 'precision'
+ * this function does not check that 'precision' is within the correct
+ * range; the user is responsible for ensuring that 'precision'
+ * satisfies this requirement
+ *   x: the binary32 number to round
+ *   precision: the new virtual precision; 0<=precision<=FLOAT_PMAN_SIZE
+ *   retval x rounded on the specified precision
+ */
 inline float round_binary32_normal(float x, int precision) {
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
-  /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other word,
-     it remains VPRECLIB_PREC bit in the mantissa */
+  /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other words,
+     there remain VPRECLIB_PREC bits in the mantissa */
   const uint32_t mask = 0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision);
 
   /* position to the end of the target prec-1 */
@@ -49,11 +58,20 @@ inline float round_binary32_normal(float x, int precision) {
   return b32x.f32;
 }
 
+/**
+ * round the mantissa of 'x' on the precision specified by 'precision'
+ * this function does not check that 'precision' is within the correct
+ * range; the user is responsible for ensuring that 'precision'
+ * satisfies this requirement
+ *   x: the binary64 number to round
+ *   precision: the new virtual precision; 0<=precision<=DOUBLE_PMAN_SIZE
+ *   retval x rounded on the specified precision
+ */
 inline double round_binary64_normal(double x, int precision) {
   /* build 1/2 ulp and add it  before truncation for faithfull rounding */
 
-  /* generate a mask to erase the last 52-VPRECLIB_PREC bits, in other word,
-     it remains VPRECLIB_PREC bit in the mantissa */
+  /* generate a mask to erase the last 52-VPRECLIB_PREC bits, in other words,
+     there remain VPRECLIB_PREC bits in the mantissa */
   const uint64_t mask = 0xFFFFFFFFFFFFFFFF << (DOUBLE_PMAN_SIZE - precision);
 
   /* position to the end of the target prec-1 */
@@ -102,6 +120,10 @@ inline float handle_binary32_denormal(float x, int emin, int precision) {
   else if (precision <= FLOAT_PMAN_SIZE) {
     return round_binary_denormal(x, emin, precision);
   }
+  /* no rounding needed, precision is greater than the mantissa size */
+  else {
+    return x;
+  }
 }
 
 inline double handle_binary64_denormal(double x, int emin, int precision) {
@@ -114,5 +136,9 @@ inline double handle_binary64_denormal(double x, int emin, int precision) {
   /* denormal */
   else if (precision <= DOUBLE_PMAN_SIZE) {
     return round_binary_denormal(x, emin, precision);
+  }
+  /* no rounding needed, precision is greater than the mantissa size */
+  else {
+    return x;
   }
 }

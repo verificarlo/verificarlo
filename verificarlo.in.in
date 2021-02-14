@@ -276,7 +276,7 @@ if __name__ == "__main__":
     parser.add_argument('--function', metavar='function',
                         help='only instrument <function>')
     parser.add_argument('--include-file', metavar='file',
-                        help='inlcude-list module and functions')
+                        help='include-list module and functions')
     parser.add_argument('--exclude-file', metavar='file',
                         help='exclude-list module and functions')
     parser.add_argument('-static', '--static',
