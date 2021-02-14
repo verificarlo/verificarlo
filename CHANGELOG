@@ -1,5 +1,28 @@
 Verificarlo CHANGELOG
 
+# [Unreleased]
+
+## Added
+  * Mechanism for reading VFC_BACKENDS from file through VFC_BACKENDS_FROM_FILE
+  * Absolute error option for MCA and VPREC backends
+
+# [v0.4.1] 2020/10/22
+
+## Added
+  * Add support for function instrumentation. Through a new compiler pass, backends can operate at the function granularity. Function instrumentation provides call site and call stack information and allows to instrument the scalar inputs and output of functions.
+  * VPREC backend takes advantage of function instrumentation to enable per function and per (scalar) argument exploration of variable precision
+  * Add compiler options support (-E, -S, --save-temps) and remove intermediate .ll files
+  * Support assembly (.S) files (which are not instrumented)
+  * Improved support for include/exclude mechanism. In particular now, regexps are supported
+  * Delta-debug supports exclude files
+  * Increase the size of supported vectors from 4 to 16
+
+## Fixed
+  * Fix multiple corner-cases in the VPREC backend. In particular, handling of denormals has been fixed and new tests added.
+  * Fix configure.ac GCC version on some linux distributions
+  * Fix bugs in include/exclude mechanisms
+  * Fix bug with absolute paths for .ll paths
+
 # [v0.4.0] 2020/07/03
 
 ## Added
