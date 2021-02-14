@@ -299,7 +299,7 @@ The MCA backends implements Montecarlo Arithmetic.  It uses quad type to
 compute MCA operations on doubles and double type to compute MCA operations
 on floats. It is much faster than the legacy MCA-MPFR backend.
 
-```
+```bash
 VFC_BACKENDS="libinterflop_mca.so --help" ./test
 test: verificarlo loaded backend libinterflop_mca.so
 Usage: libinterflop_mca.so [OPTION...]
@@ -309,6 +309,11 @@ Usage: libinterflop_mca.so [OPTION...]
                              select precision for binary32 (PRECISION >= 0)
       --precision-binary64=PRECISION
                              select precision for binary64 (PRECISION >= 0)
+      --error-mode=ERR_MODE  select error mode among (rel, abs, all)
+      --max-abs-error-exponent=ERR_EXPONENT
+                             select the magnitude of the maximum allowed
+                             absolute error (this option is only used when
+                             error-mode={abs, all})
   -d, --daz                  denormals-are-zero: sets denormals inputs to zero
   -f, --ftz                  flush-to-zero: sets denormal output to zero
   -s, --seed=SEED            fix the random generator seed
@@ -339,6 +344,20 @@ MCA computation always use round-to-zero mode.
 
 In Random Round mode, the exact operations in given virtual precision are
 preserved.
+
+The option `--error-mode=ERR_MODE` controls the way in which the error is
+interpreted. It accepts the following modes:
+
+ * `rel`: (default mode) the error is specified relative to the magnitude of
+ the floating-point number
+ * `abs`: the error threshold is specified as an absolute value, independent of
+the value of the floating-point number, to be interpreted as 2<sup>ERR_EXPONENT</sup>
+ * `all`: both relative and absolute modes are active simultaneously
+
+The option `--max-abs-error-exponent=ERR_EXPONENT` is used only when the option
+`--error-mode=ERR_MODE` is active and controls the magnitude of the error
+threshold, when in absolute error mode or all mode. The error thershold is set
+to 2<sup>ERR_EXPONENT</sup>.
 
 The options `--daz` and `--ftz` flush subnormal numbers to 0.
 The `--daz` (**Denormals-Are-Zero**) flushes subnormal inputs to 0.
@@ -476,6 +495,11 @@ Usage: libinterflop_vprec.so [OPTION...]
                              8)
       --range-binary64=RANGE select range for binary64 (0 < RANGE && RANGE <=
                              11)
+      --error-mode=ERR_MODE  select error mode among (rel, abs, all)
+      --max-abs-error-exponent=ERR_EXPONENT
+                             select the magnitude of the maximum allowed
+                             absolute error (this option is only used when
+                             error-mode={abs, all})
   -d, --daz                  denormals-are-zero: sets denormals inputs to zero
   -f, --ftz                  flush-to-zero: sets denormal output to zero
   -?, --help                 Give this help list
@@ -501,6 +525,20 @@ The option `--range-binary64=PRECISION` controls the exponent bit length of
 the new tested format for floating-point operations in double precision
 (respectively for single precision with --range-binary32).
 It accepts an integer value that represents the magnitude of the numbers.
+
+The option `--error-mode=ERR_MODE` controls the way in which the error is
+interpreted. It accepts the following modes:
+
+ * `rel`: (default mode) the error is specified relative to the magnitude of
+ the floating-point number
+ * `abs`: the error threshold is specified as an absolute value, independent of
+the value of the floating-point number, to be interpreted as 2<sup>ERR_EXPONENT</sup>
+ * `all`: both relative and absolute modes are active simultaneously
+
+The option `--max-abs-error-exponent=ERR_EXPONENT` is used only when the option
+`--error-mode=ERR_MODE` is active and controls the magnitude of the error
+threshold, when in absolute error mode or all mode. The error thershold is set
+to 2<sup>ERR_EXPONENT</sup>.
 
 A detailed description of the backend is given [here](https://hal.archives-ouvertes.fr/hal-02564972/document).
 
@@ -551,7 +589,7 @@ module3 *
 # this inclusion file will instrument any function starting by g in main.c
 # and all functions f in any module of the directory dir
 main.c g*
-dir/* * 
+dir/* *
 ```
 
 Inclusion and exclusion files can be used together, in that case inclusion
