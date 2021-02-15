@@ -4,7 +4,7 @@
 #
 
 FROM ubuntu:20.04
-LABEL maintainner="verificarlo contributors <verificarlo@googlegroups.com>"
+LABEL maintainer="verificarlo contributors <verificarlo@googlegroups.com>"
 
 ARG PYTHON_VERSION=3.8
 ARG LLVM_VERSION=7
