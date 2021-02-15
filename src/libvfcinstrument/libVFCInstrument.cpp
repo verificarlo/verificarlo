@@ -217,8 +217,8 @@ struct VfclibInst : public ModulePass {
                << lineno << "\n";
         report_fatal_error("libVFCInstrument fatal error");
       } else {
-        std::string mod = p.first.trim();
-        std::string fun = p.second.trim();
+        std::string mod = p.first.trim().str();
+        std::string fun = p.second.trim().str();
 
         // If mod is not an absolute path,
         // we search any module containing mod
@@ -299,7 +299,7 @@ struct VfclibInst : public ModulePass {
   bool runOnFunction(Module &M, Function &F) {
     if (VfclibInstVerbose) {
       errs() << "In Function: ";
-      errs().write_escaped(demangle(F.getName())) << '\n';
+      errs().write_escaped(demangle(F.getName().str())) << '\n';
     }
 
     bool modified = false;

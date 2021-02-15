@@ -236,7 +236,7 @@ static inline void debug_print_double(void *context,
 
 /* perform_vector_bin_op: applies the binary operator (op) to (a) and (b) */
 /* vector and stores the result in (res) vector */
-/* cast array of precision in good vector type before to perform the */
+/* cast pointer array of precision in clang vector type before performing the */
 /* operation */
 #define perform_vector_binary_op(precision, size, op, a, b, c)                 \
   switch (size) {                                                              \

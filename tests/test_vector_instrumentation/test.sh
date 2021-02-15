@@ -14,7 +14,7 @@ bin=binary_compute
 vec="1.1 1"
 
 # Variable of test
-list_of_backend="ieee vprec mca"
+list_of_backend="ieee vprec mca bitmask cancellation mca_mpfr"
 list_of_precision="float double"
 list_of_op="add mul sub div"
 list_of_size="2 4 8 16"
@@ -49,29 +49,29 @@ print_result() {
     
     for op in $list_of_op ; do
 
-	# Print precision op size
-	if [ $op == add ] ; then
-	    echo "$1 + $2" >> result.txt 
-	elif [ $op == mul ] ; then
-	    echo "$1 * $2" >> result.txt 
-	elif [ $op == sub ] ; then
-	    echo "$1 - $2" >> result.txt 
-	else
-	    echo "$1 / $2" >> result.txt 
-	fi
+        # Print precision op size
+        if [ $op == add ] ; then
+            echo "$1 + $2" >> result.txt 
+        elif [ $op == mul ] ; then
+            echo "$1 * $2" >> result.txt 
+        elif [ $op == sub ] ; then
+            echo "$1 - $2" >> result.txt 
+        else
+            echo "$1 / $2" >> result.txt 
+        fi
 
-	# Print result
-	for i in $(seq 1 $2) ; do
-	    if [ $op == add ] ; then
-		echo "2.100000" >> result.txt 
-	    elif [ $op == mul ] ; then
-		echo "1.100000" >> result.txt 
-	    elif [ $op == sub ] ; then
-		echo "0.100000" >> result.txt 
-	    else
-		echo "1.100000" >> result.txt 
-	    fi
-	done
+        # Print result
+        for i in $(seq 1 $2) ; do
+            if [ $op == add ] ; then
+                echo "2.100000" >> result.txt 
+            elif [ $op == mul ] ; then
+                echo "1.100000" >> result.txt 
+            elif [ $op == sub ] ; then
+                echo "0.100000" >> result.txt 
+            else
+                echo "1.100000" >> result.txt 
+            fi
+        done
     done
 }
 
@@ -99,10 +99,10 @@ mkdir bin wrapper
 echo -n "Compiling all tests..."
 for size in 2 4 8 16 ; do
     for precision in $list_of_precision ; do
-	# Compile test
-	verificarlo-c -march=native -DREAL=$precision$size compute.c -o bin/$bin"_"$precision$size --save-temps
-	rm *.1.ll
-	mv *.2.ll wrapper/$precision$size.ll
+        # Compile test
+        verificarlo-c -march=native -DREAL=$precision$size compute.c -o bin/$bin"_"$precision$size --save-temps
+        rm *.1.ll
+        mv *.2.ll wrapper/$precision$size.ll
     done
 done
 echo "DONE"
@@ -137,24 +137,24 @@ check_wrapper() {
     backend=$1
 
     for size in $list_of_size ; do
-	for precision in $list_of_precision ; do
-	    # Print test
-	    echo "$precision$size"
+        for precision in $list_of_precision ; do
+            # Print test
+            echo "$precision$size"
 
-	    # Check if vector wrapper are called
-	    add=$(grep call.*_$size"x"$precision"add" wrapper/$precision$size.ll)
-	    mul=$(grep call.*_$size"x"$precision"mul" wrapper/$precision$size.ll)
-	    sub=$(grep call.*_$size"x"$precision"sub" wrapper/$precision$size.ll)
-	    div=$(grep call.*_$size"x"$precision"div" wrapper/$precision$size.ll)
+            # Check if vector wrapper are called
+            add=$(grep call.*_$size"x"$precision"add" wrapper/$precision$size.ll)
+            mul=$(grep call.*_$size"x"$precision"mul" wrapper/$precision$size.ll)
+            sub=$(grep call.*_$size"x"$precision"sub" wrapper/$precision$size.ll)
+            div=$(grep call.*_$size"x"$precision"div" wrapper/$precision$size.ll)
 
-	    # Print and set result of test
-	    if [ add != 0 ] && [ mul != 0 ] && [ sub != 0 ] && [ div != 0 ] ; then
-		echo "vector operation for $precision$size INSTRUMENTED"
-	    else
-		echo "vector operation for $precision$size NOT INSTRUMENTED"
-		wrapper=1
-	    fi
-	done
+            # Print and set result of test
+            if [ add != 0 ] && [ mul != 0 ] && [ sub != 0 ] && [ div != 0 ] ; then
+                echo "vector operation for $precision$size INSTRUMENTED"
+            else
+                echo "vector operation for $precision$size NOT INSTRUMENTED"
+                wrapper=1
+            fi
+        done
     done
 }
 
@@ -173,10 +173,10 @@ _check_vector_instruction_and_register() {
     pattern=$instru'.*'$register
 
     if grep -e $pattern $file; then
-	echo "Instruction $instru and register $register INSTRUMENTED"
+        echo "Instruction $instru and register $register INSTRUMENTED"
     else
-	echo "Instruction $instru and register $register NOT instrumented"
-	instruction_set=1
+        echo "Instruction $instru and register $register NOT instrumented"
+        instruction_set=1
     fi
 }
 
@@ -205,66 +205,66 @@ check_vector_instruction_and_register() {
     # 2. begining line
     # 3. ending line
     for i in $(seq -s ' ' 1 3 $count_line) ; do
-	# Recup the function name
-	function_name=$(sed -n $i"p" $info_file)
+        # Recup the function name
+        function_name=$(sed -n $i"p" $info_file)
 
-	# Recup the begin line
-	i=$((i+1))
-	begin=$(sed -n $i"p" $info_file)
+        # Recup the begin line
+        i=$((i+1))
+        begin=$(sed -n $i"p" $info_file)
 
-	# Recup the end line
-	i=$((i+1))
-	end=$(sed -n $i"p" $info_file)
+        # Recup the end line
+        i=$((i+1))
+        end=$(sed -n $i"p" $info_file)
 
-	# Recup the entire function given in the backend assembler
-	sed -n $begin,$end"p" $asm_file > $backend/$function_name
+        # Recup the entire function given in the backend assembler
+        sed -n $begin,$end"p" $asm_file > $backend/$function_name
     done
 
     #  SSE
     if [ ! $sse == 0 ] ; then
-	echo "You have SSE instruction"
+        echo "You have SSE instruction"
 
-	for size in 2 4 ; do
-	    echo "float$size"
-	    for op in $list_of_op ; do
-		_check_vector_instruction_and_register float $op $size $op"ps" xmm $backend/_interflop_$op"_float_vector"
-	    done
-	done
+        for size in 2 4 ; do
+            echo "float$size"
+            for op in $list_of_op ; do
+                _check_vector_instruction_and_register float $op $size $op"ps" xmm $backend/_interflop_$op"_float_vector"
+            done
+        done
 
-	echo "double2"
-	for op in $list_of_op ; do
-	    _check_vector_instruction_and_register double $op 2 $op"pd" xmm $backend/_interflop_$op"_double_vector"
-	done
+        echo "double2"
+        for op in $list_of_op ; do
+            _check_vector_instruction_and_register double $op 2 $op"pd" xmm $backend/_interflop_$op"_double_vector"
+        done
     fi
 
     # AVX
     if [ ! $avx == 0 ] ; then
-	echo "You have AVX instruction"
-	
-	echo "float8"
-	for op in $list_of_op ; do
-	    _check_vector_instruction_and_register float $op 8 $op"ps" ymm $backend/_interflop_$op"_float_vector"
-	done
+        echo "You have AVX instruction"
+        
+        echo "float8"
+        for op in $list_of_op ; do
+            _check_vector_instruction_and_register float $op 8 $op"ps" ymm $backend/_interflop_$op"_float_vector"
+        done
 
-	echo "double4"
-	for op in $list_of_op ; do
-	    _check_vector_instruction_and_register double $op 4 $op"pd" ymm $backend/_interflop_$op"_double_vector"
-	done
+        echo "double4"
+        for op in $list_of_op ; do
+            _check_vector_instruction_and_register double $op 4 $op"pd" ymm $backend/_interflop_$op"_double_vector"
+        done
     fi
 
     # AVX512
     if [ ! $avx512 == 0 ] ; then
-	echo "You have AVX512 instruction"
+        echo "You have AVX512 instruction"
 
-	echo "float16"
-	for op in $list_of_op ; do
-	    _check_vector_instruction_and_register float $op 16 $op"ps" zmm $backend/_interflop_$op"_float_vector"
-	done
+        echo "float16"
+        for op in $list_of_op ; do
+            _check_vector_instruction_and_register float $op 16 $op"ps" zmm $backend/_interflop_$op"_float_vector"
+        done
 
-	echo "double8"
-	for op in $list_of_op ; do
-	    _check_vector_instruction_and_register double $op 8 $op"pd" zmm $backend/_interflop_$op"_double_vector"
-	done
+        echo "double8"
+        for op in $list_of_op ; do
+            _check_vector_instruction_and_register double $op 8 $op"pd" zmm $backend/_interflop_$op"_double_vector"
+        done
     fi
 }
 
@@ -280,31 +280,36 @@ for backend in $list_of_backend ; do
 
     echo "Testing good result"
 
-    # SSE
-    if [ ! $sse == 0 ] ; then
-	check_result $backend float 2
-	check_result $backend double 2
-	check_result $backend float 4
-    fi
+    # Don't check result for cancellation backend because it change many of result
+    if [ $backend != "cancellation" ] ; then
+        # SSE
+        if [ ! $sse == 0 ] ; then
+            check_result $backend float 2
+            check_result $backend double 2
+            check_result $backend float 4
+        fi
 
-    # AVX
-    if [ ! $avx == 0 ] ; then
-	check_result $backend double 4
-	check_result $backend float 8
-    fi
+        # AVX
+        if [ ! $avx == 0 ] ; then
+            check_result $backend double 4
+            check_result $backend float 8
+        fi
 
-    # AVX512
-    if [ ! $avx512 == 0 ] ; then
-	check_result $backend double 8
-	check_result $backend float 16
-    fi
+        # AVX512
+        if [ ! $avx512 == 0 ] ; then
+            check_result $backend double 8
+            check_result $backend float 16
+        fi
 
-    # Check result
-    if [ $(diff -U 0 result.txt output_$backend.txt | wc -l) != 0 ] ; then
-	echo "Result for $backend backend FAILED"
-	is_equal=1
+        # Check result
+        if [ $(diff -U 0 result.txt output_$backend.txt | wc -l) != 0 ] ; then
+            echo "Result for $backend backend FAILED"
+            is_equal=1
+        else
+            echo "Result for $backend backend PASSED"
+        fi
     else
-	echo "Result for $backend backend PASSED"
+        echo "Don't check result for cancellation backend for the moment"
     fi
 
     # Separate output

@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([verificarlo], [0.4.0], [])
+AC_INIT([verificarlo], [0.4.1], [])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
@@ -24,7 +24,7 @@ AC_MSG_RESULT([$GCC_VERSION])
 AX_COMPARE_VERSION([$GCC_VERSION],[ge],['6.0.0'],[],[AC_MSG_ERROR([At least GCC version 6 is required])])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for compiling)])
 AC_SUBST(GCC_PATH, $CC)
-AX_LLVM([4.0],[10.0.1],[all])
+AX_LLVM([4.0],[11.0.1],[all])
 AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
 AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
 
@@ -67,7 +67,7 @@ else
       AC_MSG_ERROR([`flang` cannot be found in $with_flang_path])
    fi
    dnl Check that flang version matches the llvm one
-   FLANG_VERSION=`$FLANG --version | head -n1 | cut -d' ' -f3`
+   FLANG_VERSION=`$FLANG --version 2>&1 | grep -Po '\d+.\d+.\d+'`
    AC_DEFINE_UNQUOTED([FLANG_VERSION], [$FLANG_VERSION], [The flang version])
    FLANG_VERSION_MAJOR=`echo $FLANG_VERSION | cut -d'.' -f1`
    AC_DEFINE_UNQUOTED([FLANG_VERSION_MAJOR], [$FLANG_VERSION_MAJOR], [The flang major version])
@@ -180,7 +180,7 @@ AC_CONFIG_FILES([Makefile
                  src/backends/interflop-mca-mpfr/Makefile
                  src/backends/interflop-cancellation/Makefile
                  src/backends/interflop-bitmask/Makefile
-		 src/backends/interflop-vprec/Makefile
+                 src/backends/interflop-vprec/Makefile
                  tests/Makefile
                  tests/paths.sh
                 ])

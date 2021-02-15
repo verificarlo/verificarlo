@@ -4,6 +4,7 @@ libinterflop_bitmask_la_CFLAGS = -DBACKEND_HEADER="interflop_bitmask"
 if WALL_CFLAGS
 libinterflop_bitmask_la_CFLAGS += -Wall -Wextra
 endif
+libinterflop_bitmask_la_CFLAGS += -march=native
 libinterflop_bitmask_la_LDFLAGS = -lm
 libinterflop_bitmask_la_LIBADD = ../../common/libtinymt64.la
 library_includedir =$(includedir)/
