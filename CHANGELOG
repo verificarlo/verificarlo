@@ -1,8 +1,9 @@
 Verificarlo CHANGELOG
 
-# [Unreleased]
+# [v0.4.2] 2021/02/15
 
 ## Added
+  * Support for LLVM up to 11.0.1
   * Mechanism for reading VFC_BACKENDS from file through VFC_BACKENDS_FROM_FILE
   * Absolute error option for MCA and VPREC backends
 

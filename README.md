@@ -1,6 +1,6 @@
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
-## Verificarlo v0.4.1
+## Verificarlo v0.4.2
 
 ![Build Status](https://github.com/verificarlo/verificarlo/workflows/test-docker/badge.svg?branch=master)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
@@ -66,7 +66,7 @@ $ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt from 4.0 up to 10.0.1, http://clang.llvm.org/
+  * LLVM, clang and opt from 4.0 up to 11.0.1, http://clang.llvm.org/
   * gcc from 4.9
   * flang for Fortran support
   * python3 with numpy and bigfloat packages
