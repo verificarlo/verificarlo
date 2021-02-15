@@ -518,7 +518,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 
 // Round the float vector with the given precision
 #define define_vprec_round_binary32_vector(precision, size)                    \
-  static void _vprec_round_binary32_##precision##size(const int size, float *a,\
+  static void _vprec_round_binary32_##precision##size(float *a,                \
                                                       char is_input,           \
                                                       void *context,           \
                                                       int binary32_range,      \
@@ -538,8 +538,8 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     int emin = 1 - emax;                                                       \
                                                                                \
     binary32_##precision##size aexp = {.f32 = *(precision##size *)a};          \
-    aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE)                 \
-      - FLOAT_EXP_COMP;                                                        \ 
+    aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE);                \
+    aexp.s32 -= FLOAT_EXP_COMP;                                                \
                                                                                \
     /* check for overflow or underflow in target range */                      \
     if (aexp.s32 > emax) {                                                     \
@@ -577,6 +577,11 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
       a = round_binary32_normal(a, binary32_precision);                        \
     }                                                                          \
   }
+
+define_vprec_round_binary32_vector(float, 2);
+define_vprec_round_binary32_vector(float, 4);
+define_vprec_round_binary32_vector(float, 8);
+define_vprec_round_binary32_vector(float, 16);
 
 // Round the double with the given precision
 static double _vprec_round_binary64(double a, char is_input, void *context,
@@ -667,10 +672,43 @@ static inline void _vprec_binary32_binary_op_vector(const int size, float *a,
                                                     const vprec_operation op,
                                                     void *context) {
   if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
-    _vprec_round_binary32_binary_vector(size, a, 1, context, VPRECLIB_BINARY32_RANGE,
-                                        VPRECLIB_BINARY32_PRECISION);
-    _vprec_round_binary32_binary_vector(size, b, 1, context, VPRECLIB_BINARY32_RANGE,
-                                        VPRECLIB_BINARY32_PRECISION);
+    switch (size)
+      {
+      case 2:
+        _vprec_round_binary32_binary_float2(a, 1, context,
+                                            VPRECLIB_BINARY32_RANGE,
+                                            VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_binary_float2(b, 1, context,
+                                            VPRECLIB_BINARY32_RANGE,
+                                            VPRECLIB_BINARY32_PRECISION);
+        break;
+      case 4:
+        _vprec_round_binary32_binary_float4(a, 1, context,
+                                            VPRECLIB_BINARY32_RANGE,
+                                            VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_binary_float4(b, 1, context,
+                                            VPRECLIB_BINARY32_RANGE,
+                                            VPRECLIB_BINARY32_PRECISION);
+        break;
+      case 8:
+        _vprec_round_binary32_binary_float8(a, 1, context,
+                                            VPRECLIB_BINARY32_RANGE,
+                                            VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_binary_float8(b, 1, context,
+                                            VPRECLIB_BINARY32_RANGE,
+                                            VPRECLIB_BINARY32_PRECISION);
+        break;
+      case 16:
+        _vprec_round_binary32_binary_float16(a, 1, context,
+                                             VPRECLIB_BINARY32_RANGE,
+                                             VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_binary_float16(b, 1, context,
+                                             VPRECLIB_BINARY32_RANGE,
+                                             VPRECLIB_BINARY32_PRECISION);
+        break;
+      default:
+        break;
+      }
   }
 
   perform_vector_binary_op(float, size, op, c, a, b);
