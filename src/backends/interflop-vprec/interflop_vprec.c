@@ -571,10 +571,14 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
           (((t_context *)context)->ftz && !is_input)) {                        \
         *(precision##size *)a = 0;                                             \
       } else {                                                                 \
-        a = handle_binary32_denormal(a, emin, binary32_precision);             \
+        for (int i = 0; i < size; ++i) {                                       \
+          a = handle_binary32_denormal(a, emin, binary32_precision);           \
+        }                                                                      \
       }                                                                        \
     } else {                                                                   \
-      a = round_binary32_normal(a, binary32_precision);                        \
+      for (int i = 0; i < size; ++i) {                                         \
+        a = round_binary32_normal(a, binary32_precision);                      \
+      }                                                                        \
     }                                                                          \
   }
 
