@@ -22,8 +22,11 @@ A tool for debugging and assessing floating point precision and reproducibility.
       * [Cancellation Backend (libinterflop_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
       * [VPREC Backend (libinterflop_vprec.so)](#vprec-backend-libinterflop_vprecso)
    * [Verificarlo inclusion / exclusion options](#verificarlo-inclusion--exclusion-options)
+   * [Function instrumentation](#function-instrumentation)
+   * [VPREC custom precision](#vprec-custom-precision)
    * [Postprocessing](#postprocessing)
    * [Pinpointing errors with delta-debug](#pinpointing-errors-with-delta-debug)
+   * [Find Optimal precision with vfc_precexp and vfc_report](#find-optimal-precision-with-vfc_precexp-and-vfc_report)
    * [Unstable branch detection](#unstable-branch-detection)
    * [Branch instrumentation](#branch-instrumentation)
    * [How to cite Verificarlo](#how-to-cite-verificarlo)
@@ -635,8 +638,8 @@ Where:
   - `name` is the name of the called function
   - `line` is the line where the function is called in the source code
   - `id` is a unique integer used for identification
-  - `isInt` is a boolean which indicates if the function come from an intrinsic
-  - `isLib` is a boolean which indicates if the function come from a library
+  - `isInt` is a boolean which indicates if the function comes from an intrinsic
+  - `isLib` is a boolean which indicates if the function comes from a library
   - `useFloat` is a boolean which indicates if the function uses 32 bit float
   - `useDouble` is a boolean which indicates if the function uses 64 bit float
   - `precision_binary64` controls the length of the mantissa for a 64 bit float for operations inside the function
@@ -645,7 +648,7 @@ Where:
   - `range_binary32` control the length of the exponent for a 64 bit float for operations inside the function
   - `nb_inputs` is the number of floating point inputs intercepted
   - `nb_outputs` is the number of floating point outputs intercepted
-  - `nb_calls` is the number of calls to the function from this site
+  - `nb_calls` is the number of calls to the function from this call-site
   - `type` is the type of the argument (0 = float and 1 = double)
   - `arg_name` is the name of the argument or his number
   - `precision` is the length of the mantissa for this argument
@@ -653,11 +656,11 @@ Where:
   - `smallest_value` is the smallest value of this argument during execution
   - `biggest_value` is the biggest value of this argument during execution
 
-Only floating point arguments are managed by vprec, so for example this code: 
+Only floating point arguments are managed by vprec, so for example this code:
 
 ```c
 double print(int n, double a, double b) {
-  for (int i = 0; i < n; i++)   
+  for (int i = 0; i < n; i++)
     printf("%lf %lf\n", a, b);
   return a + b;
 }
@@ -670,9 +673,9 @@ will produce this profile file:
 
 ```
 main.c/main/print/11/11 0 0 0 1 52  11  23  8 2 1 1
-# a 
+# a
 input:  a 1 52  11  2 2
-# b 
+# b
 input:  b 1 52  11  3 4
 # res
 output: return_value  1 52  11  5 6
@@ -693,15 +696,15 @@ The `--instrument` parameters set the behavior of the backend:
 
 The program is now executed with the given configuration.
 
-You can produce a log file to summarize the vprec backend activity during the execution by giving the name of the file with the `--prec-output-file` parameter. The produced file will have the following structure:
+You can produce a log file to summarize the vprec backend activity during the execution by giving the name of the file with the `--prec-log-file` parameter. The produced file will have the following structure:
 
 ```
   enter in file/parent/name/line/id  precision_binary64 range_binary64  precision_binary32  range_binary32
    - file/parent/name/line/id  input type  arg_name value_before_rounding  ->    value_after_rounding  (precision, range)
    - file/parent/name/line/id  input type  arg_name value_before_rounding  ->    value_after_rounding  (precision, range)
-    
+
    ...
-    
+
   exit of file/parent/name/line/id precision_binary64 range_binary64  precision_binary32  range_binary32
    - file/parent/name/line/id  output  type  return_value  value_before_rounding  ->    value_after_rounding  (precision, range)
 ```
