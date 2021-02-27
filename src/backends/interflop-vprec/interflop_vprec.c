@@ -523,6 +523,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
                                                       void *context,           \
                                                       int binary32_range,      \
                                                       int binary32_precision) {\
+    t_context *currentContext = (t_context *)context;                          \
     int##size set = 0;                                                         \
                                                                                \
     for (int i = 0; i < size; ++i) {                                           \
@@ -541,43 +542,48 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE);                \
     aexp.s32 -= FLOAT_EXP_COMP;                                                \
                                                                                \
-    /* check for overflow or underflow in target range */                      \
-    if (aexp.s32 > emax) {                                                     \
-      if (!set) {                                                              \
-        *(precision##size *)a = *(precision##size *)a * INFINITY;              \
-        return;                                                                \
+    for (int i = 0; i < size; i++) {                                           \
+      /* check for overflow in target range */                                 \
+      if (aexp.s32[i] > emax && !set[i]) {                                     \
+        a[i] = a[i] * INFINITY;                                                \
+        continue;                                                              \
       }                                                                        \
-      else {                                                                   \
-        for (int i = 0; i < size; ++i) {                                       \
-          if (!set[i]) {                                                       \
-            a[i] = a[i] * INFINITY;                                            \
+                                                                               \
+      /* check for underflow in target range */                                \
+      if (aexp.s32[i] < emin && !set[i]) {                                     \
+        /* underflow case: possibly a denormal */                              \
+        if ((currentContext->daz && is_input) ||                               \
+            (currentContext->ftz && !is_input)) {                              \
+          /* preserve sign */                                                  \
+          a[i] = a[i] * 0;                                                     \
+        } else if (FP_ZERO == fpclassify(a[i])) {                              \
+          continue;                                                            \
+        } else {                                                               \
+          if (currentContext->absErr == true) {                                \
+            /* absolute error mode, or both absolute and relative error        \
+               modes */                                                        \
+            int binary32_precision_adjusted =                                  \
+              compute_absErr_vprec_binary32(true, currentContext, 0,           \
+                                            binary32_precision);               \
+            a[i] = handle_binary32_denormal(a[i], emin,                        \
+                                            binary32_precision_adjusted);      \
+          } else {                                                             \
+            /* relative error mode */                                          \
+            a[i] = handle_binary32_denormal(a[i], emin, binary32_precision);   \
           }                                                                    \
         }                                                                      \
-        return;                                                                \
-      }                                                                        \
-    }                                                                          \
-    /* check if one operand on the vector verify the conditon */               \
-    else if ((aexp.s32 > emax) ^ 1 || (aexp.s32 > emax)) {                     \
-      char boolean = 0;                                                        \
-      for (int i = 0; i < size; ++i) {                                         \
-        if (aexp.s32[i] && !set[i]) {                                          \
-          a[i] = a[i] * INFINITY;                                              \
-        }                                                                      \
-      }                                                                        \
-    }                                                                          \
-                                                                               \
-    if (aexp.s32 < emin) {                                                     \
-      if ((((t_context *)context)->daz && is_input) ||                         \
-          (((t_context *)context)->ftz && !is_input)) {                        \
-        *(precision##size *)a = 0;                                             \
       } else {                                                                 \
-        for (int i = 0; i < size; ++i) {                                       \
-          a = handle_binary32_denormal(a, emin, binary32_precision);           \
+        /* else, normal case: can be executed even if a                        \
+           previously rounded and truncated as denormal */                     \
+        if (currentContext->absErr == true) {                                  \
+          /* absolute error mode, or both absolute and relative error modes */ \
+          a[i] = handle_binary32_normal_absErr(a[i], aexp.s32[i],              \
+                                               binary32_precision,             \
+                                               currentContext);                \
+        } else {                                                               \
+          /* relative error mode */                                            \
+          a[i] = round_binary32_normal(a[i], binary32_precision);              \
         }                                                                      \
-      }                                                                        \
-    } else {                                                                   \
-      for (int i = 0; i < size; ++i) {                                         \
-        a = round_binary32_normal(a, binary32_precision);                      \
       }                                                                        \
     }                                                                          \
   }
@@ -679,36 +685,28 @@ static inline void _vprec_binary32_binary_op_vector(const int size, float *a,
     switch (size)
       {
       case 2:
-        _vprec_round_binary32_binary_float2(a, 1, context,
-                                            VPRECLIB_BINARY32_RANGE,
-                                            VPRECLIB_BINARY32_PRECISION);
-        _vprec_round_binary32_binary_float2(b, 1, context,
-                                            VPRECLIB_BINARY32_RANGE,
-                                            VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_float2(a, 1, context, VPRECLIB_BINARY32_RANGE,
+                                     VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_float2(b, 1, context, VPRECLIB_BINARY32_RANGE,
+                                     VPRECLIB_BINARY32_PRECISION);
         break;
       case 4:
-        _vprec_round_binary32_binary_float4(a, 1, context,
-                                            VPRECLIB_BINARY32_RANGE,
-                                            VPRECLIB_BINARY32_PRECISION);
-        _vprec_round_binary32_binary_float4(b, 1, context,
-                                            VPRECLIB_BINARY32_RANGE,
-                                            VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_float4(a, 1, context, VPRECLIB_BINARY32_RANGE,
+                                     VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_float4(b, 1, context, VPRECLIB_BINARY32_RANGE,
+                                     VPRECLIB_BINARY32_PRECISION);
         break;
       case 8:
-        _vprec_round_binary32_binary_float8(a, 1, context,
-                                            VPRECLIB_BINARY32_RANGE,
-                                            VPRECLIB_BINARY32_PRECISION);
-        _vprec_round_binary32_binary_float8(b, 1, context,
-                                            VPRECLIB_BINARY32_RANGE,
-                                            VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_float8(a, 1, context, VPRECLIB_BINARY32_RANGE,
+                                     VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_float8(b, 1, context, VPRECLIB_BINARY32_RANGE,
+                                     VPRECLIB_BINARY32_PRECISION);
         break;
       case 16:
-        _vprec_round_binary32_binary_float16(a, 1, context,
-                                             VPRECLIB_BINARY32_RANGE,
-                                             VPRECLIB_BINARY32_PRECISION);
-        _vprec_round_binary32_binary_float16(b, 1, context,
-                                             VPRECLIB_BINARY32_RANGE,
-                                             VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_float16(a, 1, context, VPRECLIB_BINARY32_RANGE,
+                                      VPRECLIB_BINARY32_PRECISION);
+        _vprec_round_binary32_float16(b, 1, context, VPRECLIB_BINARY32_RANGE,
+                                      VPRECLIB_BINARY32_PRECISION);
         break;
       default:
         break;
@@ -717,8 +715,28 @@ static inline void _vprec_binary32_binary_op_vector(const int size, float *a,
 
   perform_vector_binary_op(float, size, op, c, a, b);
 
-  if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
-    define_vprec_round_binary32_vector(float, size, c);
+  if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
+    switch (size)
+      {
+      case 2:
+        _vprec_round_binary32_float2(c, 0, context, VPRECLIB_BINARY32_RANGE,
+                                     VPRECLIB_BINARY32_PRECISION);
+        break;
+      case 4:
+        _vprec_round_binary32_float4(c, 0, context, VPRECLIB_BINARY32_RANGE,
+                                     VPRECLIB_BINARY32_PRECISION);
+        break;
+      case 8:
+        _vprec_round_binary32_float8(c, 0, context, VPRECLIB_BINARY32_RANGE,
+                                     VPRECLIB_BINARY32_PRECISION);
+        break;
+      case 16:
+        _vprec_round_binary32_float16(c, 0, context, VPRECLIB_BINARY32_RANGE,
+                                      VPRECLIB_BINARY32_PRECISION);
+        break;
+      default:
+        break;
+      }
   }
 }
 
