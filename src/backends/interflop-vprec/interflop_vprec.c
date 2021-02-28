@@ -542,13 +542,16 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE);                \
     aexp.s32 -= FLOAT_EXP_COMP;                                                \
                                                                                \
+    /* check for overflow in target range */                                   \
+    int##size is_overflow = aexp.s32 > emax;                                   \
     for (int i = 0; i < size; i++) {                                           \
-      /* check for overflow in target range */                                 \
-      if (aexp.s32[i] > emax && !set[i]) {                                     \
+      if (is_overflow[i] && !set[i]) {                                         \
         a[i] = a[i] * INFINITY;                                                \
-        continue;                                                              \
+        set[i] = 1;                                                            \
       }                                                                        \
+    }                                                                          \
                                                                                \
+    for (int i = 0; i < size; i++) {                                           \
       /* check for underflow in target range */                                \
       if (aexp.s32[i] < emin && !set[i]) {                                     \
         /* underflow case: possibly a denormal */                              \
