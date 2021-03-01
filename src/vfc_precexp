@@ -11,10 +11,15 @@ import os.path
 import subprocess
 import signal
 from os import listdir
+import argparse
 
 vfc_profile_file = "vfc_profile.txt"
 vfc_config_file = "vfc_config.txt"
 output_dir = ["vfc_ref", "vfc_std"]
+
+vfc_maxTimeout = None
+vfc_mode = None
+vfc_vprec_mode = None
 
 
 def set_environment_variable(envVar, value, env):
@@ -25,8 +30,9 @@ def set_environment_variable(envVar, value, env):
 
 
 def unset_environment_variable(envVar, env):
-    """ replace current value, if the environment variable already exists """
-    del env[envVar.strip()]
+    """ remove environment variable, if it already exists """
+    if (envVar.strip() in env):
+        del env[envVar.strip()]
 
     return env
 
@@ -41,7 +47,7 @@ def add_environment_variable(envVar, value, env):
     return env
 
 
-def shell(cmd, newEnv):
+def shell(cmd, newEnv, maxTimeout=None):
     env = None
     if (newEnv is None):
         env = os.environ.copy()
@@ -57,16 +63,16 @@ def shell(cmd, newEnv):
                             stdout=subprocess.PIPE,
                             env=env)
 
-    proc.wait()
+    proc.wait(maxTimeout)
 
     return proc.returncode
 
 
-def run(script, output_dir, env):
+def run(script, output_dir, env, maxTimeout=None):
     """ create the runing command """
     command = "./" + script + " " + output_dir
 
-    return_code = shell(command, env)
+    return_code = shell(command, env, maxTimeout)
 
     if return_code != 0:
         print("Error during run, return code =  {}".format(return_code))
@@ -74,11 +80,11 @@ def run(script, output_dir, env):
     return return_code
 
 
-def cmp(script, reference_dir, current_dir, env):
+def cmp(script, reference_dir, current_dir, env, maxTimeout=None):
     """ create the comparison command """
     command = "./" + script + " " + reference_dir + " " + current_dir
 
-    return (shell(command, env) == 0)
+    return (shell(command, env, maxTimeout) == 0)
 
 
 def getFunctionInfo(FunctionID):
@@ -217,7 +223,7 @@ def Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Argume
     """ Save the current state of the exploration in a configuration file, execute the program, return the result of the comparison """
     save(Arguments, Operations, config_file)
 
-    run(runPath, current_dir, env)
+    run(runPath, current_dir, env, vfc_maxTimeout)
 
     return cmp(cmpPath, reference_dir, current_dir, env)
 
@@ -350,24 +356,49 @@ def search_minimum_arguments(	runPath,
 
 
 if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(description="The vfc_precexp script tries "
+                                     "to minimize the precision for each function "
+                                     "call of a code compiled with verificarlo")
+    parser.add_argument("runPath", help="command used to execute the target program")
+    parser.add_argument("cmpPath", help="command used to compare an execution with the reference")
+    
+    parser.add_argument("--maxTimeout", type=int, default=None,
+                        help="maximum execution time (ms)")
+    parser.add_argument("-m", "--mode", choices=["arguments", "operations", "all"], default="all",
+                        help="function instrumentation mode")
+    parser.add_argument("--vprec_mode", choices=["ieee", "ib", "ob", "all"], default="ob",
+                        help="vprec operating mode")
+    
+    args = parser.parse_known_args()
 
     if len(sys.argv) < 3:
         print("explore.py [exrun] [excmp] functions ...")
         exit()
 
-    runPath = sys.argv[1]
-    cmpPath = sys.argv[2]
-    function_list = []
+    # runPath = sys.argv[1]
+    # cmpPath = sys.argv[2]
+    # function_list = []
 
-    for i in range(3, len(sys.argv)):
-        function_list.append(sys.argv[i])
+    # for i in range(3, len(sys.argv)):
+    #     function_list.append(sys.argv[i])
+    
+    runPath = args[0].runPath
+    cmpPath = args[0].cmpPath
+    
+    vfc_vprec_mode = args[0].vfc_vprec_mode
+    vfc_vprec_mode = args[0].vfc_mode
+    if (args[0].maxTimeout != None) :
+        vfc_maxTimeout = int(args[0].maxTimeout)
+    
+    function_list = args[1]
 
     if not os.path.exists(runPath):
         print("runing script not found")
         exit(0)
 
     if not os.path.exists(cmpPath):
-        print("comparison scirpt not found")
+        print("comparison script not found")
         exit(0)
 
     if not os.access(runPath, os.X_OK):
@@ -413,93 +444,105 @@ if __name__ == "__main__":
     FunctionsFrame, FunctionsIndex, ArgumentsFrame = getProfile(
         vfc_profile_file, function_list)
 
-    # set backend
-    set_environment_variable(
-        "VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --daz --ftz --mode=full --instrument=operations".format(vfc_config_file), env)
+    #########################################
+    #  				Explore Operations 	    #
+    #########################################
+    if (vfc_mode == "operations") :
+        print("-------------- Operations --------------")
+        
+        # set backend
+        set_environment_variable(
+            "VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --daz --ftz --mode={} --instrument=operations".format(vfc_config_file, vfc_vprec_mode), env)
+        
+        FunctionsFrameCopy = FunctionsFrame.copy()
+        cpt = 1
+        for i in FunctionsIndex:
+            print(cpt, "/", len(FunctionsIndex))
+            search_minimum_operations(	runPath,
+                                    cmpPath,
+                                    output_dir[0],
+                                    output_dir[1],
+                                    vfc_config_file,
+                                    env,
+                                    ArgumentsFrame,
+                                    FunctionsFrameCopy,
+                                    i)
+            cpt += 1
 
-    # Operations
-    print("-------------- Operations --------------")
-    FunctionsFrameCopy = FunctionsFrame.copy()
-    cpt = 1
-    for i in FunctionsIndex:
-        print(cpt, "/", len(FunctionsIndex))
-        search_minimum_operations(	runPath,
-                                   cmpPath,
-                                   output_dir[0],
-                                   output_dir[1],
-                                   vfc_config_file,
-                                   env,
-                                   ArgumentsFrame,
-                                   FunctionsFrameCopy,
-                                   i)
-        cpt += 1
+        FunctionsFrameCopy.to_csv("vfc_exp_data/OperationsResults.csv")
 
-    FunctionsFrameCopy.to_csv("vfc_exp_data/OperationsResults.csv")
+    #########################################
+    #  				Explore Arguments 		#
+    #########################################
+    if (vfc_mode == "arguments") :
+        print("-------------- Arguments --------------")
+        
+        # set backend
+        set_environment_variable(
+            "VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --daz --ftz --mode={} --instrument=arguments".format(vfc_config_file, vfc_vprec_mode), env)
+        
+        ArgumentsFrameCopy = ArgumentsFrame.copy()
+        FunctionsFrameCopy = FunctionsFrame.copy()
+        cpt = 1
+        for i in range(len(FunctionsFrame.index)):
+            tmp = ArgumentsFrameCopy[(
+                ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
+            for j in tmp.index:
+                print(cpt, "/", len(ArgumentsFrameCopy.index))
+                search_minimum_arguments(	runPath,
+                                        cmpPath,
+                                        output_dir[0],
+                                        output_dir[1],
+                                        vfc_config_file,
+                                        env,
+                                        ArgumentsFrameCopy,
+                                        FunctionsFrameCopy,
+                                        j)
 
-    # set backend
-    set_environment_variable(
-        "VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --daz --ftz --mode=full --instrument=arguments".format(vfc_config_file), env)
+                cpt += 1
 
-    # Arguments
-    print("-------------- Arguments --------------")
-    ArgumentsFrameCopy = ArgumentsFrame.copy()
-    FunctionsFrameCopy = FunctionsFrame.copy()
-    cpt = 1
-    for i in range(len(FunctionsFrame.index)):
-        tmp = ArgumentsFrameCopy[(
-            ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
-        for j in tmp.index:
-            print(cpt, "/", len(ArgumentsFrameCopy.index))
-            search_minimum_arguments(	runPath,
-                                      cmpPath,
-                                      output_dir[0],
-                                      output_dir[1],
-                                      vfc_config_file,
-                                      env,
-                                      ArgumentsFrameCopy,
-                                      FunctionsFrameCopy,
-                                      j)
+        ArgumentsFrameCopy.to_csv("vfc_exp_data/ArgumentsResults.csv")
+
+    #########################################
+    #  				Explore All 			#
+    #########################################
+    if (vfc_mode == "all") :
+        print("-------------- All --------------")
+        
+        # set backend
+        set_environment_variable(
+            "VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --daz --ftz --mode={} --instrument=all".format(vfc_config_file, vfc_vprec_mode), env)
+        
+        ArgumentsFrameCopy = ArgumentsFrame.copy()
+        FunctionsFrameCopy = FunctionsFrame.copy()
+        cpt = 1
+        for i in range(len(FunctionsFrameCopy.index)):
+            print(cpt, "/", len(FunctionsFrameCopy.index))
+            for j in tmp.index:
+                search_minimum_arguments(	runPath,
+                                        cmpPath,
+                                        output_dir[0],
+                                        output_dir[1],
+                                        vfc_config_file,
+                                        env,
+                                        ArgumentsFrameCopy,
+                                        FunctionsFrameCopy,
+                                        j)
+            if i in FunctionsIndex:
+                search_minimum_operations(	runPath,
+                                        cmpPath,
+                                        output_dir[0],
+                                        output_dir[1],
+                                        vfc_config_file,
+                                        env,
+                                        ArgumentsFrameCopy,
+                                        FunctionsFrameCopy,
+                                        i)
+
+            tmp = ArgumentsFrameCopy[(
+                ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
 
             cpt += 1
 
-    ArgumentsFrameCopy.to_csv("vfc_exp_data/ArgumentsResults.csv")
-
-    # set backend
-    set_environment_variable(
-        "VFC_BACKENDS", "libinterflop_vprec.so --prec-input-file={} --daz --ftz --mode=full --instrument=all".format(vfc_config_file), env)
-
-    # All
-    print("-------------- All --------------")
-    ArgumentsFrameCopy = ArgumentsFrame.copy()
-    FunctionsFrameCopy = FunctionsFrame.copy()
-    cpt = 1
-    for i in range(len(FunctionsFrameCopy.index)):
-        print(cpt, "/", len(FunctionsFrameCopy.index))
-        for j in tmp.index:
-            search_minimum_arguments(	runPath,
-                                      cmpPath,
-                                      output_dir[0],
-                                      output_dir[1],
-                                      vfc_config_file,
-                                      env,
-                                      ArgumentsFrameCopy,
-                                      FunctionsFrameCopy,
-                                      j)
-        if i in FunctionsIndex:
-            search_minimum_operations(	runPath,
-                                       cmpPath,
-                                       output_dir[0],
-                                       output_dir[1],
-                                       vfc_config_file,
-                                       env,
-                                       ArgumentsFrameCopy,
-                                       FunctionsFrameCopy,
-                                       i)
-
-        tmp = ArgumentsFrameCopy[(
-            ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
-
-        cpt += 1
-
-    ArgumentsFrameCopy.to_csv("vfc_exp_data/AllArgsResults.csv")
-    FunctionsFrameCopy.to_csv("vfc_exp_data/AllOpsResults.csv")
+        ArgumentsFrameCopy.to_csv("vfc_exp_data/AllArgsResults.csv")
+        FunctionsFrameCopy.to_csv("vfc_exp_data/AllOpsResults.csv")
