@@ -377,11 +377,10 @@ inline float handle_binary32_normal_absErr(float a, int32_t aexp,
 }
 
 #define define_handle_binary32_vector_normal_absErr(size)                      \
-  inline void handle_binary32_normal_absErr_x##size(float* a,                  \
-                                                    int##size aexp,            \
-                                                    int binary32_precision,    \
-                                                    t_context                  \
-                                                    *currentContext) {         \
+  void handle_binary32_normal_absErr_x##size(float* a,                         \
+                                             int##size aexp,                   \
+                                             int binary32_precision,           \
+                                             t_context *currentContext) {      \
     for (int i = 0; i < size; i++) {                                           \
       /* absolute error mode, or both absolute and relative error modes */     \
       int expDiff = aexp[i] - currentContext->absErr_exp;                      \
@@ -652,7 +651,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         }                                                                      \
       }                                                                        \
     } else {                                                                   \
-      /* we con vectorize because we are sure that the vector is normal */     \
+      /* we can vectorize because we are sure that the vector is normal */     \
       /* else, normal case: can be executed even if a                          \
          previously rounded and truncated as denormal */                       \
       if (currentContext->absErr == true) {                                    \
@@ -662,7 +661,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
                                               currentContext);                 \
       } else {                                                                 \
         /* relative error mode */                                              \
-        round_binary32_vector_normal(a, binary32_precision);                   \
+        round_binary32_normal_x##size(a, binary32_precision);                  \
       }                                                                        \
     }                                                                          \
   }
