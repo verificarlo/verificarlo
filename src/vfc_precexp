@@ -373,7 +373,7 @@ if __name__ == "__main__":
     args = parser.parse_known_args()
 
     if len(sys.argv) < 3:
-        print("explore.py [exrun] [excmp] functions ...")
+        print("explore.py [runPath] [cmpPath] functions ...")
         exit()
 
     # runPath = sys.argv[1]
@@ -386,8 +386,8 @@ if __name__ == "__main__":
     runPath = args[0].runPath
     cmpPath = args[0].cmpPath
     
-    vfc_vprec_mode = args[0].vfc_vprec_mode
-    vfc_vprec_mode = args[0].vfc_mode
+    vfc_vprec_mode = args[0].vprec_mode
+    vfc_mode = args[0].mode
     if (args[0].maxTimeout != None) :
         vfc_maxTimeout = int(args[0].maxTimeout)
     
