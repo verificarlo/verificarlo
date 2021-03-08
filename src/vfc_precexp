@@ -375,13 +375,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("explore.py [runPath] [cmpPath] functions ...")
         exit()
-
-    # runPath = sys.argv[1]
-    # cmpPath = sys.argv[2]
-    # function_list = []
-
-    # for i in range(3, len(sys.argv)):
-    #     function_list.append(sys.argv[i])
     
     runPath = args[0].runPath
     cmpPath = args[0].cmpPath
