@@ -159,6 +159,11 @@ else
                 AC_MSG_ERROR([could not find python 2.7 or higher])])
 fi
 
+# Check for Python modules
+AX_PYTHON_MODULE(numpy, fatal)
+AX_PYTHON_MODULE(bigfloat, fatal)
+AX_PYTHON_MODULE(pandas, fatal)
+
 AC_ARG_ENABLE(wall, AC_HELP_STRING([--enable-wall], [Enable -Wall compilation flag]), [WALL_CFLAGS="yes"])
 AM_CONDITIONAL([WALL_CFLAGS], [test "x$WALL_CFLAGS" = "xyes"])
 if test "x$WALL_CFLAGS" = "xyes"; then
