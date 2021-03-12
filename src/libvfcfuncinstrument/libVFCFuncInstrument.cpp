@@ -438,7 +438,7 @@ struct VfclibFunc : public ModulePass {
       Function *Clone = CloneFunction(Main, VMap);
 
       DISubprogram *Sub = Main->getSubprogram();
-      std::string Name = Sub->getName().str();
+      std::string Name = Main->getName().str();
       std::string File = Sub->getFilename().str();
       std::string Line = std::to_string(Sub->getLine());
       std::string NewName = "vfc_" + File + "//" + Name + "/" + Line + "/" +
@@ -496,16 +496,11 @@ struct VfclibFunc : public ModulePass {
 
                 if (MDNode *N = pi->getMetadata("dbg")) {
                   DILocation *Loc = cast<DILocation>(N);
-                  DISubprogram *Sub = f->getSubprogram();
                   unsigned line = Loc->getLine();
                   std::string File = Loc->getFilename().str();
                   std::string Name;
 
-                  if (Sub) {
-                    Name = Sub->getName().str();
-                  } else {
-                    Name = f->getName().str();
-                  }
+                  Name = f->getName().str();
 
                   std::string Line = std::to_string(line);
                   std::string NewName = "vfc_" + File + "/" + Parent + "/" +
