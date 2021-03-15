@@ -323,13 +323,13 @@ typedef union {
     int##size s32;                                                             \
                                                                                \
     /* Generic fields */                                                       \
-    float type;                                                                \
-    uint32_t u;                                                                \
+    float##size type;                                                          \
+    int##size u;                                                               \
                                                                                \
     struct {                                                                   \
-      uint32_t mantissa : FLOAT_PMAN_SIZE;                                     \
-      uint32_t exponent : FLOAT_EXP_SIZE;                                      \
-      uint32_t sign : FLOAT_SIGN_SIZE;                                         \
+      int##size mantissa : (float##size)FLOAT_PMAN_SIZE;                       \
+      int##size exponent : FLOAT_EXP_SIZE;                                     \
+      int##size sign : FLOAT_SIGN_SIZE;                                        \
     } ieee;                                                                    \
                                                                                \
   } binary32_##precision##size;
