@@ -65,5 +65,10 @@ for TYPE in float double; do
     OPTIONS="--print-new-line"
     run
     check "$(test '$(wc -l log)'; echo $?)" "Error no new lines printed"
-    
+
+    DEBUG_MODE="--count_op"
+    OPTIONS=""
+    run
+    check "$(grep -vq "add=" log ; echo $?)" "Error no counts printed"
+
 done
