@@ -256,15 +256,19 @@ It should have no effect on the output and behavior of your program.
 The options `--debug` and `--debug_binary` enable verbose output that print
 every instrumented floating-point operation.
 
+The option `--count-op` enable to count the dynamic number of mul/div/add/sub operations during the instrumented program execution, 
+and print it on the standard error output at the end of program execution.
 ```bash
+
 VFC_BACKENDS="libinterflop_ieee.so --help" ./test
-test: verificarlo loaded backend libinterflop_ieee.so
+Info [verificarlo]: loaded backend libinterflop_ieee.so
 Usage: libinterflop_ieee.so [OPTION...]
 
   -b, --debug-binary         enable binary debug output
   -d, --debug                enable debug output
   -n, --print-new-line       add a new line after debug ouput
-  -o, --print-subnormal-normalized
+  -o, --count-op             enable operation count output
+  -p, --print-subnormal-normalized
                              normalize subnormal numbers
   -s, --no-backend-name      do not print backend name in debug output
   -?, --help                 Give this help list
@@ -294,6 +298,16 @@ Info [interflop_ieee]: Binary
 +1.00011111011100011111010100010000111 x 2^43 ->
 +1.0111000011101111100001010101101010010010111010010101 x 2^-60
 ...
+
+VFC_BACKENDS="libinterflop_ieee.so --count-op" ./test
+Info [verificarlo]: loaded backend libinterflop_ieee.so
+result is correct -9.87642e+12 == -9.87642e+12 (ref)
+operations count:
+         mul=2
+         div=2
+         add=4
+         sub=2
+
 ```
 
 ### MCA Backend (libinterflop_mca.so)
