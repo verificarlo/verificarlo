@@ -10,7 +10,7 @@ for op in fadd fsub fmul fdiv; do
   fi
 done
 
-VFC_BACKENDS="libinterflop_ieee.so --count_op" ./test
+VFC_BACKENDS="libinterflop_ieee.so" ./test
 
 #Test options
 echo "Test interflop_ieee.so options"
