@@ -52,7 +52,7 @@ static const char key_no_backend_name_str[] = "no-backend-name";
 static const char key_print_new_line_str[] = "print-new-line";
 static const char key_print_subnormal_normalized_str[] =
     "print-subnormal-normalized";
-static const char key_count_op[] = "count_op";
+static const char key_count_op[] = "count-op";
 
 typedef struct {
   bool debug;
@@ -372,13 +372,13 @@ void _interflop_finalize(void *context) {
 
   t_context *my_context = (t_context *)context;
 
-  if (my_context->count_op) {
+  //if (my_context->count_op) {
     fprintf(stderr, "operations count:\n");
     fprintf(stderr, "\t mul=%ld\n", my_context->mul_count);
     fprintf(stderr, "\t div=%ld\n", my_context->div_count);
     fprintf(stderr, "\t add=%ld\n", my_context->add_count);
     fprintf(stderr, "\t sub=%ld\n", my_context->sub_count);
-  };
+  //};
 }
 
 static void init_context(t_context *context) {
