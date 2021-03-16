@@ -372,12 +372,12 @@ void _interflop_finalize(void *context) {
 
   t_context *my_context = (t_context *)context;
 
-  //if (my_context->count_op) {
-    fprintf(stderr, "operations count:\n");
-    fprintf(stderr, "\t mul=%ld\n", my_context->mul_count);
-    fprintf(stderr, "\t div=%ld\n", my_context->div_count);
-    fprintf(stderr, "\t add=%ld\n", my_context->add_count);
-    fprintf(stderr, "\t sub=%ld\n", my_context->sub_count);
+  // if (my_context->count_op) {
+  fprintf(stderr, "operations count:\n");
+  fprintf(stderr, "\t mul=%ld\n", my_context->mul_count);
+  fprintf(stderr, "\t div=%ld\n", my_context->div_count);
+  fprintf(stderr, "\t add=%ld\n", my_context->add_count);
+  fprintf(stderr, "\t sub=%ld\n", my_context->sub_count);
   //};
 }
 
