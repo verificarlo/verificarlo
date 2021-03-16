@@ -54,7 +54,6 @@ static const char key_print_subnormal_normalized_str[] =
     "print-subnormal-normalized";
 static const char key_count_op[] = "count_op";
 
-
 typedef struct {
   bool debug;
   bool debug_binary;
@@ -65,7 +64,7 @@ typedef struct {
   unsigned long int mul_count;
   unsigned long int div_count;
   unsigned long int add_count;
-  unsigned long int sub_count; 
+  unsigned long int sub_count;
 } t_context;
 
 typedef enum {
@@ -242,36 +241,39 @@ static inline void debug_print_double(void *context,
     break;                                                                     \
   }
 
-
 static void _interflop_add_float(const float a, const float b, float *c,
                                  void *context) {
-  t_context* my_context = (t_context*) context;  
+  t_context *my_context = (t_context *)context;
   *c = a + b;
-  if (my_context->count_op)  my_context->add_count++;
+  if (my_context->count_op)
+    my_context->add_count++;
   debug_print_float(context, ARITHMETIC, "+", a, b, *c);
 }
 
 static void _interflop_sub_float(const float a, const float b, float *c,
                                  void *context) {
-  t_context* my_context = (t_context*) context;  
+  t_context *my_context = (t_context *)context;
   *c = a - b;
-  if (my_context->count_op)  my_context->sub_count++;
+  if (my_context->count_op)
+    my_context->sub_count++;
   debug_print_float(context, ARITHMETIC, "-", a, b, *c);
 }
 
 static void _interflop_mul_float(const float a, const float b, float *c,
                                  void *context) {
-  t_context* my_context = (t_context*) context;  
+  t_context *my_context = (t_context *)context;
   *c = a * b;
-  if (my_context->count_op)  my_context->mul_count++;
+  if (my_context->count_op)
+    my_context->mul_count++;
   debug_print_float(context, ARITHMETIC, "*", a, b, *c);
 }
 
 static void _interflop_div_float(const float a, const float b, float *c,
                                  void *context) {
-  t_context* my_context = (t_context*) context;  
+  t_context *my_context = (t_context *)context;
   *c = a / b;
-  if (my_context->count_op)  my_context->div_count++;
+  if (my_context->count_op)
+    my_context->div_count++;
   debug_print_float(context, ARITHMETIC, "/", a, b, *c);
 }
 
@@ -284,33 +286,37 @@ static void _interflop_cmp_float(const enum FCMP_PREDICATE p, const float a,
 
 static void _interflop_add_double(const double a, const double b, double *c,
                                   void *context) {
-  t_context* my_context = (t_context*) context;  
+  t_context *my_context = (t_context *)context;
   *c = a + b;
-  if (my_context->count_op) my_context->add_count++;
+  if (my_context->count_op)
+    my_context->add_count++;
   debug_print_double(context, ARITHMETIC, "+", a, b, *c);
 }
 
 static void _interflop_sub_double(const double a, const double b, double *c,
                                   void *context) {
-  t_context* my_context = (t_context*) context;  
+  t_context *my_context = (t_context *)context;
   *c = a - b;
-  if (my_context->count_op) my_context->sub_count++;
+  if (my_context->count_op)
+    my_context->sub_count++;
   debug_print_double(context, ARITHMETIC, "-", a, b, *c);
 }
 
 static void _interflop_mul_double(const double a, const double b, double *c,
                                   void *context) {
-  t_context* my_context = (t_context*) context;  
+  t_context *my_context = (t_context *)context;
   *c = a * b;
-  if (my_context->count_op) my_context->mul_count++;
+  if (my_context->count_op)
+    my_context->mul_count++;
   debug_print_double(context, ARITHMETIC, "*", a, b, *c);
 }
 
 static void _interflop_div_double(const double a, const double b, double *c,
                                   void *context) {
-  t_context* my_context = (t_context*) context;  
+  t_context *my_context = (t_context *)context;
   *c = a / b;
-  if (my_context->count_op) my_context->div_count++;
+  if (my_context->count_op)
+    my_context->div_count++;
   debug_print_double(context, ARITHMETIC, "/", a, b, *c);
 }
 
@@ -362,19 +368,17 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
+void _interflop_finalize(void *context) {
 
+  t_context *my_context = (t_context *)context;
 
-void _interflop_finalize(void *context){
-
-	t_context* my_context = (t_context*) context;
-	
-	if (my_context->count_op){ 
-		fprintf(stderr,"operations count:\n");
-		fprintf(stderr,"\t mul=%ld\n",my_context->mul_count);
-		fprintf(stderr,"\t div=%ld\n",my_context->div_count);
-		fprintf(stderr,"\t add=%ld\n",my_context->add_count);
-		fprintf(stderr,"\t sub=%ld\n",my_context->sub_count);
-	};
+  if (my_context->count_op) {
+    fprintf(stderr, "operations count:\n");
+    fprintf(stderr, "\t mul=%ld\n", my_context->mul_count);
+    fprintf(stderr, "\t div=%ld\n", my_context->div_count);
+    fprintf(stderr, "\t add=%ld\n", my_context->add_count);
+    fprintf(stderr, "\t sub=%ld\n", my_context->sub_count);
+  };
 }
 
 static void init_context(t_context *context) {
@@ -383,11 +387,11 @@ static void init_context(t_context *context) {
   context->no_backend_name = false;
   context->print_new_line = false;
   context->print_subnormal_normalized = false;
-  context->count_op=false;
-  context->mul_count=0;
-  context->div_count=0;
-  context->add_count=0;
-  context->sub_count=0;
+  context->count_op = false;
+  context->mul_count = 0;
+  context->div_count = 0;
+  context->add_count = 0;
+  context->sub_count = 0;
 }
 
 static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
@@ -420,7 +424,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_cmp_double,
       NULL,
       NULL,
-       _interflop_finalize};
+      _interflop_finalize};
 
   return interflop_backend_ieee;
 }
