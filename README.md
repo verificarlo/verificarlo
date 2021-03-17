@@ -257,7 +257,7 @@ The options `--debug` and `--debug_binary` enable verbose output that print
 every instrumented floating-point operation.
 
 The option `--count-op` enable to count the dynamic number of mul/div/add/sub operations during the instrumented program execution, 
-and print it on the standard error output at the end of program execution..
+and print it on the standard error output at the end of program execution.
 ```bash
 
 VFC_BACKENDS="libinterflop_ieee.so --help" ./test
