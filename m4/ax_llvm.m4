@@ -77,7 +77,7 @@ AC_DEFUN([AX_LLVM],
     [],
     [
       AC_MSG_ERROR(
-        [LLVM version up to $2 is supported])
+        [LLVM version up to $2 is not supported])
     ])
 
   LLVM_BINDIR=`$LLVM_CONFIG --bindir`
