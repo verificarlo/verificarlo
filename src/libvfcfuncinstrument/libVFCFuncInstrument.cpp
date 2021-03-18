@@ -123,8 +123,9 @@ unsigned int getSizeOf(Value *V, const Function *F) {
   // of F
   for (auto &Args : F->args()) {
     if (&Args == V) {
-      for (const auto &U : F->users()) {
-        if (const CallInst *call = cast<CallInst>(U)) {
+      for (const auto &U : V->users()) {
+        if (isa<CallInst>(U)) {
+	  const CallInst *call = cast<CallInst>(U);
           Value *to_search = call->getOperand(Args.getArgNo());
 
           return getSizeOf(to_search, call->getParent()->getParent());
