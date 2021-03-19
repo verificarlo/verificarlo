@@ -12,7 +12,7 @@ for t in $tests ; do
         echo $t OK
         bash -c -l "cd $t && ./clean.sh"
     else
-        echo $t have not clean.sh script
+        echo $t does not have a clean.sh script
     fi
 done
 
