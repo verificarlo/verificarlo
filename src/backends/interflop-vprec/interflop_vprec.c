@@ -433,39 +433,7 @@ inline float handle_binary32_normal_absErr(float a, int32_t aexp,
   return retVal;
 }
 
-
-//#define define_handle_binary32_vector_normal_absErr(size)                      \
-//  void handle_binary32_normal_absErr_x##size(float* a,                         \
-//                                             int##size aexp,                   \
-//                                             int binary32_precision,           \
-//                                             t_context *currentContext) {      \
-//    for (int i = 0; i < size; i++) {                                           \
-//      /* absolute error mode, or both absolute and relative error modes */     \
-//      int expDiff = aexp[i] - currentContext->absErr_exp;                      \
-//      float retVal;                                                            \
-//                                                                               \
-//      if (expDiff < -1) {                                                      \
-//        /* equivalent to underflow on the precision given by absolute error */ \
-//        retVal = 0;                                                            \
-//      } else if (expDiff == -1) {                                              \
-//        /* case when the number is just below the absolute error threshold,    \
-//           but will round to one ulp on the format given by the absolute error;\
-//           this needs to be handled separately, as round_binary32_normal cannot\
-//           generate this number */                                             \
-//        retVal = copysignf(exp2f(currentContext->absErr_exp), a[i]);           \
-//      } else {                                                                 \
-//        /* normal case for the absolute error mode */                          \
-//        int binary32_precision_adjusted =                                      \
-//          compute_absErr_vprec_binary32(false, currentContext, expDiff,        \
-//                                        binary32_precision);                   \
-//        retVal = round_binary32_normal(a[i], binary32_precision_adjusted);     \
-//      }                                                                        \
-//                                                                               \
-//      a[i] = retVal;                                                           \
-//    }                                                                          \
-//  }
-
-
+// Macro to define vector function for normal absolute error mode
 #define define_handle_binary32_vector_normal_absErr(size)                      \
   void handle_binary32_normal_absErr_x##size(float *a,                         \
                                              int##size aexp,                   \
