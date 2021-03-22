@@ -1,6 +1,6 @@
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
-## Verificarlo v0.4.0
+## Verificarlo v0.4.2
 
 ![Build Status](https://github.com/verificarlo/verificarlo/workflows/test-docker/badge.svg?branch=master)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
@@ -22,8 +22,11 @@ A tool for debugging and assessing floating point precision and reproducibility.
       * [Cancellation Backend (libinterflop_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
       * [VPREC Backend (libinterflop_vprec.so)](#vprec-backend-libinterflop_vprecso)
    * [Verificarlo inclusion / exclusion options](#verificarlo-inclusion--exclusion-options)
+   * [Function instrumentation](#function-instrumentation)
+   * [VPREC custom precision](#vprec-custom-precision)
    * [Postprocessing](#postprocessing)
    * [Pinpointing errors with delta-debug](#pinpointing-errors-with-delta-debug)
+   * [Find Optimal precision with vfc_precexp and vfc_report](#find-optimal-precision-with-vfc_precexp-and-vfc_report)
    * [Unstable branch detection](#unstable-branch-detection)
    * [Branch instrumentation](#branch-instrumentation)
    * [How to cite Verificarlo](#how-to-cite-verificarlo)
@@ -66,7 +69,7 @@ $ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
 Please ensure that Verificarlo's dependencies are installed on your system:
 
   * GNU mpfr library http://www.mpfr.org/
-  * LLVM, clang and opt from 4.0 up to 10.0.1, http://clang.llvm.org/
+  * LLVM, clang and opt from 4.0 up to 11.0.1, http://clang.llvm.org/
   * gcc from 4.9
   * flang for Fortran support
   * python3 with numpy and bigfloat packages
@@ -205,6 +208,17 @@ after each backend,
                    ./program"
 ```
 
+You could also use the environment variable `VFC_BACKENDS_FROM_FILE` to
+read the value of `VFC_BACKENDS` from a file, 
+
+```bash
+   $ echo "libinterflop_ieee.so --debug; \
+           libinterflop-mca.so --precision-binary64 10 --mode rr" > config.txt
+   $ export VFC_BACKENDS_FROM_FILE=$PWD/config.txt
+```
+
+> :warning: `VFC_BACKENDS` takes precedence over `VFC_BACKENDS_FROM_FILE`
+
 To suppress the messages when loading backends, export the
 environment variable `VFC_BACKENDS_SILENT_LOAD`.
 
@@ -242,15 +256,19 @@ It should have no effect on the output and behavior of your program.
 The options `--debug` and `--debug_binary` enable verbose output that print
 every instrumented floating-point operation.
 
+The option `--count-op` enable to count the dynamic number of mul/div/add/sub operations during the instrumented program execution, 
+and print it on the standard error output at the end of program execution.
 ```bash
+
 VFC_BACKENDS="libinterflop_ieee.so --help" ./test
-test: verificarlo loaded backend libinterflop_ieee.so
+Info [verificarlo]: loaded backend libinterflop_ieee.so
 Usage: libinterflop_ieee.so [OPTION...]
 
   -b, --debug-binary         enable binary debug output
   -d, --debug                enable debug output
   -n, --print-new-line       add a new line after debug ouput
-  -o, --print-subnormal-normalized
+  -o, --count-op             enable operation count output
+  -p, --print-subnormal-normalized
                              normalize subnormal numbers
   -s, --no-backend-name      do not print backend name in debug output
   -?, --help                 Give this help list
@@ -280,6 +298,16 @@ Info [interflop_ieee]: Binary
 +1.00011111011100011111010100010000111 x 2^43 ->
 +1.0111000011101111100001010101101010010010111010010101 x 2^-60
 ...
+
+VFC_BACKENDS="libinterflop_ieee.so --count-op" ./test
+Info [verificarlo]: loaded backend libinterflop_ieee.so
+result is correct -9.87642e+12 == -9.87642e+12 (ref)
+operations count:
+         mul=2
+         div=2
+         add=4
+         sub=2
+
 ```
 
 ### MCA Backend (libinterflop_mca.so)
@@ -288,7 +316,7 @@ The MCA backends implements Montecarlo Arithmetic.  It uses quad type to
 compute MCA operations on doubles and double type to compute MCA operations
 on floats. It is much faster than the legacy MCA-MPFR backend.
 
-```
+```bash
 VFC_BACKENDS="libinterflop_mca.so --help" ./test
 test: verificarlo loaded backend libinterflop_mca.so
 Usage: libinterflop_mca.so [OPTION...]
@@ -298,6 +326,11 @@ Usage: libinterflop_mca.so [OPTION...]
                              select precision for binary32 (PRECISION >= 0)
       --precision-binary64=PRECISION
                              select precision for binary64 (PRECISION >= 0)
+      --error-mode=ERR_MODE  select error mode among (rel, abs, all)
+      --max-abs-error-exponent=ERR_EXPONENT
+                             select the magnitude of the maximum allowed
+                             absolute error (this option is only used when
+                             error-mode={abs, all})
   -d, --daz                  denormals-are-zero: sets denormals inputs to zero
   -f, --ftz                  flush-to-zero: sets denormal output to zero
   -s, --seed=SEED            fix the random generator seed
@@ -328,6 +361,20 @@ MCA computation always use round-to-zero mode.
 
 In Random Round mode, the exact operations in given virtual precision are
 preserved.
+
+The option `--error-mode=ERR_MODE` controls the way in which the error is
+interpreted. It accepts the following modes:
+
+ * `rel`: (default mode) the error is specified relative to the magnitude of
+ the floating-point number
+ * `abs`: the error threshold is specified as an absolute value, independent of
+the value of the floating-point number, to be interpreted as 2<sup>ERR_EXPONENT</sup>
+ * `all`: both relative and absolute modes are active simultaneously
+
+The option `--max-abs-error-exponent=ERR_EXPONENT` is used only when the option
+`--error-mode=ERR_MODE` is active and controls the magnitude of the error
+threshold, when in absolute error mode or all mode. The error thershold is set
+to 2<sup>ERR_EXPONENT</sup>.
 
 The options `--daz` and `--ftz` flush subnormal numbers to 0.
 The `--daz` (**Denormals-Are-Zero**) flushes subnormal inputs to 0.
@@ -465,6 +512,11 @@ Usage: libinterflop_vprec.so [OPTION...]
                              8)
       --range-binary64=RANGE select range for binary64 (0 < RANGE && RANGE <=
                              11)
+      --error-mode=ERR_MODE  select error mode among (rel, abs, all)
+      --max-abs-error-exponent=ERR_EXPONENT
+                             select the magnitude of the maximum allowed
+                             absolute error (this option is only used when
+                             error-mode={abs, all})
   -d, --daz                  denormals-are-zero: sets denormals inputs to zero
   -f, --ftz                  flush-to-zero: sets denormal output to zero
   -?, --help                 Give this help list
@@ -490,6 +542,20 @@ The option `--range-binary64=PRECISION` controls the exponent bit length of
 the new tested format for floating-point operations in double precision
 (respectively for single precision with --range-binary32).
 It accepts an integer value that represents the magnitude of the numbers.
+
+The option `--error-mode=ERR_MODE` controls the way in which the error is
+interpreted. It accepts the following modes:
+
+ * `rel`: (default mode) the error is specified relative to the magnitude of
+ the floating-point number
+ * `abs`: the error threshold is specified as an absolute value, independent of
+the value of the floating-point number, to be interpreted as 2<sup>ERR_EXPONENT</sup>
+ * `all`: both relative and absolute modes are active simultaneously
+
+The option `--max-abs-error-exponent=ERR_EXPONENT` is used only when the option
+`--error-mode=ERR_MODE` is active and controls the magnitude of the error
+threshold, when in absolute error mode or all mode. The error thershold is set
+to 2<sup>ERR_EXPONENT</sup>.
 
 A detailed description of the backend is given [here](https://hal.archives-ouvertes.fr/hal-02564972/document).
 
@@ -540,7 +606,7 @@ module3 *
 # this inclusion file will instrument any function starting by g in main.c
 # and all functions f in any module of the directory dir
 main.c g*
-dir/* * 
+dir/* *
 ```
 
 Inclusion and exclusion files can be used together, in that case inclusion
@@ -573,51 +639,60 @@ Then you can execute your code with the VPREC backend and set a precision profil
 In this file you can see information on the functions and on floating point arguments with the following structure: 
 
 ```
-file/name_line  precision_binary64  range_binary64  precision_binary32  range_binary32  nb_inputs nb_outputs  nb_calls
-input:  type  precision   range
+file/parent/name/line/id  isInt isLib useFloat  useDouble precision_binary64 range_binary64  precision_binary32  range_binary32  nb_inputs nb_outputs  nb_calls
+input:  arg_name  type  precision   range   smallest_value  biggest_value
 ...
-input:  type  precision   range
-output: type  precision   range
+input:  arg_name  type  precision   range   smallest_value  biggest_value
+output: arg_name  type  precision   range   smallest_value  biggest_value
 ```
 
 Where:
   - `file` is the file which contains the call of the function
+  - `parent` is the function name where the call is executed
   - `name` is the name of the called function
   - `line` is the line where the function is called in the source code
+  - `id` is a unique integer used for identification
+  - `isInt` is a boolean which indicates if the function comes from an intrinsic
+  - `isLib` is a boolean which indicates if the function comes from a library
+  - `useFloat` is a boolean which indicates if the function uses 32 bit float
+  - `useDouble` is a boolean which indicates if the function uses 64 bit float
   - `precision_binary64` controls the length of the mantissa for a 64 bit float for operations inside the function
   - `range_binary64` controls the length of the exponent for a 64 bit float for operations inside the function
   - `precision_binary32` control the length of the mantissa for a 32 bit float for operations inside the function
   - `range_binary32` control the length of the exponent for a 64 bit float for operations inside the function
   - `nb_inputs` is the number of floating point inputs intercepted
   - `nb_outputs` is the number of floating point outputs intercepted
-  - `nb_calls` is the number of calls to the function from this site
+  - `nb_calls` is the number of calls to the function from this call-site
   - `type` is the type of the argument (0 = float and 1 = double)
+  - `arg_name` is the name of the argument or his number
   - `precision` is the length of the mantissa for this argument
   - `range` is the length of the exponent for this argument
+  - `smallest_value` is the smallest value of this argument during execution
+  - `biggest_value` is the biggest value of this argument during execution
 
-Only floating point arguments are managed by vprec, so for example this code: 
+Only floating point arguments are managed by vprec, so for example this code:
 
 ```c
 double print(int n, double a, double b) {
-  for (int i = 0; i < n; i++)   
+  for (int i = 0; i < n; i++)
     printf("%lf %lf\n", a, b);
   return a + b;
 }
 
 ...
 
-double res = print(2, 3.5);
+double res = print(1, 2.0, 3.5);
 ```
 will produce this profile file:
 
 ```
-main.c/print_20  52  11  23  8  2 1 1
-# a 
-input:  1  52   23
+main.c/main/print/11/11 0 0 0 1 52  11  23  8 2 1 1
+# a
+input:  a 1 52  11  2 2
 # b
-input:  1  52   23
+input:  b 1 52  11  3 4
 # res
-output: 1  52   23
+output: return_value  1 52  11  5 6
 ```
 
 You are now able to customize the length of the mantissa/exponent for each argument but also to set the internal precision for floating point operations in a function compiled with verificarlo.
@@ -634,6 +709,19 @@ The `--instrument` parameters set the behavior of the backend:
   - `none` (default) does not apply any custom precision
 
 The program is now executed with the given configuration.
+
+You can produce a log file to summarize the vprec backend activity during the execution by giving the name of the file with the `--prec-log-file` parameter. The produced file will have the following structure:
+
+```
+  enter in file/parent/name/line/id  precision_binary64 range_binary64  precision_binary32  range_binary32
+   - file/parent/name/line/id  input type  arg_name value_before_rounding  ->    value_after_rounding  (precision, range)
+   - file/parent/name/line/id  input type  arg_name value_before_rounding  ->    value_after_rounding  (precision, range)
+
+   ...
+
+  exit of file/parent/name/line/id precision_binary64 range_binary64  precision_binary32  range_binary32
+   - file/parent/name/line/id  output  type  return_value  value_before_rounding  ->    value_after_rounding  (precision, range)
+```
 
 ## Postprocessing
 
@@ -727,6 +815,39 @@ using a script such as `tests/test_ddebug_archimedes/vfc_dderrors.py`, which
 returns a [quickfix](http://vimdoc.sourceforge.net/htmldoc/quickfix.html)
 compatible output with the union of _ddmin_ instructions.
 
+## Find Optimal precision with vfc_precexp and vfc_report
+
+The ``vfc_precexp`` script tries to minimize the precision for each function call 
+of a code compiled with verificarlo. To use vfc_precexp, you need to compile your code
+with the ``--inst-func`` and to write two scripts as for the [delta-debug](#pinpointing-errors-with-delta-debug):
+
+   - A first script ``exrun <output_dir>``, is responsible for running the
+     program and writing its output inside the ``<output_dir>`` folder. 
+     During exploration the code can be broken so please think about adding 
+     a timeout when you are executing your code.
+
+   - A second script ``excmp <reference_dir> <current_dir>``, takes as
+     parameter two folders including respectively the outputs from a reference
+     run and from the current run. The `exmp` script must return
+     success when the deviation between the two runs is acceptable, and fail if
+     the deviation is unacceptable.
+
+Once those two scripts are written you can launch the execution with:
+```
+./vfc_precexp exrun excmp
+```
+If you're looking for the optimal precision for a set of functions:
+```
+./vfc_precexp exrun excmp function_1 function_2 ...
+```
+
+At the end of the exploration, a ``vfc_exp_data`` directory is created and you can 
+find explorations results in ``ArgumentsResults.csv `` for arguments only , 
+``OperationsResults.csv`` for internal operations only, ``AllArgsResults.csv`` 
+and ``AllOpsResults.csv`` for arguments and internal operations.
+
+You can produce an html report with the ``vfc_report`` script, this will produce a 
+``vfc_precexp_report.html`` in the ``vfc_exp_data`` directory.
 
 ## Unstable branch detection
 

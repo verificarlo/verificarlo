@@ -128,19 +128,6 @@ struct VfclibInst : public ModulePass {
     return tokens;
   }
 
-  // taken from
-  // https://stackoverflow.com/questions/281818/unmangling-the-result-of-stdtype-infoname
-  std::string demangle(const std::string &name) {
-
-    const char *name_c_str = name.c_str();
-    int status = -4; // some arbitrary value to eliminate the compiler warning
-
-    // enable c++11 by passing the flag -std=c++11 to g++
-    std::unique_ptr<char, void (*)(void *)> res{
-        abi::__cxa_demangle(name_c_str, NULL, NULL, &status), std::free};
-    return (status == 0) ? res.get() : name;
-  }
-
   // https://thispointer.com/find-and-replace-all-occurrences-of-a-sub-string-in-c/
   void findAndReplaceAll(std::string &data, std::string toSearch,
                          std::string replaceStr) {
@@ -217,8 +204,8 @@ struct VfclibInst : public ModulePass {
                << lineno << "\n";
         report_fatal_error("libVFCInstrument fatal error");
       } else {
-        std::string mod = p.first.trim();
-        std::string fun = p.second.trim();
+        std::string mod = p.first.trim().str();
+        std::string fun = p.second.trim().str();
 
         // If mod is not an absolute path,
         // we search any module containing mod
@@ -299,7 +286,7 @@ struct VfclibInst : public ModulePass {
   bool runOnFunction(Module &M, Function &F) {
     if (VfclibInstVerbose) {
       errs() << "In Function: ";
-      errs().write_escaped(demangle(F.getName())) << '\n';
+      errs().write_escaped(F.getName().str()) << '\n';
     }
 
     bool modified = false;

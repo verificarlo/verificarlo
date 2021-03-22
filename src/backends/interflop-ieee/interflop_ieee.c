@@ -42,7 +42,8 @@ typedef enum {
   KEY_DEBUG_BINARY = 'b',
   KEY_NO_BACKEND_NAME = 's',
   KEY_PRINT_NEW_LINE = 'n',
-  KEY_PRINT_SUBNORMAL_NORMALIZED
+  KEY_COUNT_OP = 'o',
+  KEY_PRINT_SUBNORMAL_NORMALIZED,
 } key_args;
 
 static const char key_debug_str[] = "debug";
@@ -51,6 +52,7 @@ static const char key_no_backend_name_str[] = "no-backend-name";
 static const char key_print_new_line_str[] = "print-new-line";
 static const char key_print_subnormal_normalized_str[] =
     "print-subnormal-normalized";
+static const char key_count_op[] = "count-op";
 
 typedef struct {
   bool debug;
@@ -58,6 +60,11 @@ typedef struct {
   bool no_backend_name;
   bool print_new_line;
   bool print_subnormal_normalized;
+  bool count_op;
+  unsigned long int mul_count;
+  unsigned long int div_count;
+  unsigned long int add_count;
+  unsigned long int sub_count;
 } t_context;
 
 typedef enum {
@@ -236,25 +243,37 @@ static inline void debug_print_double(void *context,
 
 static void _interflop_add_float(const float a, const float b, float *c,
                                  void *context) {
+  t_context *my_context = (t_context *)context;
   *c = a + b;
+  if (my_context->count_op)
+    my_context->add_count++;
   debug_print_float(context, ARITHMETIC, "+", a, b, *c);
 }
 
 static void _interflop_sub_float(const float a, const float b, float *c,
                                  void *context) {
+  t_context *my_context = (t_context *)context;
   *c = a - b;
+  if (my_context->count_op)
+    my_context->sub_count++;
   debug_print_float(context, ARITHMETIC, "-", a, b, *c);
 }
 
 static void _interflop_mul_float(const float a, const float b, float *c,
                                  void *context) {
+  t_context *my_context = (t_context *)context;
   *c = a * b;
+  if (my_context->count_op)
+    my_context->mul_count++;
   debug_print_float(context, ARITHMETIC, "*", a, b, *c);
 }
 
 static void _interflop_div_float(const float a, const float b, float *c,
                                  void *context) {
+  t_context *my_context = (t_context *)context;
   *c = a / b;
+  if (my_context->count_op)
+    my_context->div_count++;
   debug_print_float(context, ARITHMETIC, "/", a, b, *c);
 }
 
@@ -267,25 +286,37 @@ static void _interflop_cmp_float(const enum FCMP_PREDICATE p, const float a,
 
 static void _interflop_add_double(const double a, const double b, double *c,
                                   void *context) {
+  t_context *my_context = (t_context *)context;
   *c = a + b;
+  if (my_context->count_op)
+    my_context->add_count++;
   debug_print_double(context, ARITHMETIC, "+", a, b, *c);
 }
 
 static void _interflop_sub_double(const double a, const double b, double *c,
                                   void *context) {
+  t_context *my_context = (t_context *)context;
   *c = a - b;
+  if (my_context->count_op)
+    my_context->sub_count++;
   debug_print_double(context, ARITHMETIC, "-", a, b, *c);
 }
 
 static void _interflop_mul_double(const double a, const double b, double *c,
                                   void *context) {
+  t_context *my_context = (t_context *)context;
   *c = a * b;
+  if (my_context->count_op)
+    my_context->mul_count++;
   debug_print_double(context, ARITHMETIC, "*", a, b, *c);
 }
 
 static void _interflop_div_double(const double a, const double b, double *c,
                                   void *context) {
+  t_context *my_context = (t_context *)context;
   *c = a / b;
+  if (my_context->count_op)
+    my_context->div_count++;
   debug_print_double(context, ARITHMETIC, "/", a, b, *c);
 }
 
@@ -306,6 +337,7 @@ static struct argp_option options[] = {
      "add a new line after debug ouput", 0},
     {key_print_subnormal_normalized_str, KEY_PRINT_SUBNORMAL_NORMALIZED, 0, 0,
      "normalize subnormal numbers", 0},
+    {key_count_op, KEY_COUNT_OP, 0, 0, "enable operation count output", 0},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -326,6 +358,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_PRINT_SUBNORMAL_NORMALIZED:
     ctx->print_subnormal_normalized = true;
     break;
+  case KEY_COUNT_OP:
+    ctx->count_op = true;
+    break;
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -333,12 +368,30 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
-void init_context(t_context *context) {
+void _interflop_finalize(void *context) {
+
+  t_context *my_context = (t_context *)context;
+
+  if (my_context->count_op) {
+    fprintf(stderr, "operations count:\n");
+    fprintf(stderr, "\t mul=%ld\n", my_context->mul_count);
+    fprintf(stderr, "\t div=%ld\n", my_context->div_count);
+    fprintf(stderr, "\t add=%ld\n", my_context->add_count);
+    fprintf(stderr, "\t sub=%ld\n", my_context->sub_count);
+  };
+}
+
+static void init_context(t_context *context) {
   context->debug = false;
   context->debug_binary = false;
   context->no_backend_name = false;
   context->print_new_line = false;
   context->print_subnormal_normalized = false;
+  context->count_op = false;
+  context->mul_count = 0;
+  context->div_count = 0;
+  context->add_count = 0;
+  context->sub_count = 0;
 }
 
 static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
@@ -371,7 +424,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_cmp_double,
       NULL,
       NULL,
-      NULL};
+      _interflop_finalize};
 
   return interflop_backend_ieee;
 }

@@ -1,237 +1,162 @@
 #!/bin/bash
 #set -e
 
-verificarlo-c test.c -o test --inst-func -lm
+verificarlo-c test_mantissa.c -o test_mantissa --inst-func -lm
 
 # mode none
 rm -f output.txt
 
-echo "--------------------------- None -----------------------------" >> output.txt
+echo "--------------------------------------------------------------" >> output.txt
+echo "							 Mantissa 							" >> output.txt
+echo "--------------------------------------------------------------" >> output.txt
+printf "\n------------------- Instrumentation = None -------------------\n" >> output.txt
 
-echo "Double: " >> output.txt
+export VFC_BACKENDS="libinterflop_vprec.so --prec-output-file=config.txt"
+./test_mantissa 52 23 >> /dev/null
 
-for i in 1 26 52; do
-	echo \
-"test.c/powf_64_27	$i	11	23	8	2	1	1
-input:	0	23	8
-input:	0	23	8
-output:	0	23	8
-test.c/pow_47_10	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Fdouble_84_47	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Ffloat_85_49	$i	11	23	8	2	1	1
-input:	0	23	8
-input:	0	23	8
-output:	0	23	8" > config.txt
+double_arr=(1 26 51)
+float_arr=(1 11 22)
+
+for i in 0 1 2; do
+	./set_input_file config.txt ${double_arr[$i]} 11 ${float_arr[$i]} 8 Ffloat/powf main/Fdouble main/Ffloat Fdouble/pow
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ib"
-	./test $i 23 >> output.txt
+	printf "\n	InBound Rounding at bit of the mantissa ${double_arr[$i]} in double precision and at bit ${float_arr[$i]} in single precision\n\n" >> output.txt
+	./test_mantissa ${double_arr[$i]} ${float_arr[$i]} >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ob"
-	./test $i 23 >> output.txt
-done
-
-echo "Float: " >> output.txt
-
-for i in 1 11 23; do
-	echo \
-"test.c/powf_64_27	52	11	$i	8	2	1	1
-input:	0	$i	8
-input:	0	$i	8
-output:	0	$i	8
-test.c/pow_47_10	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Fdouble_84_47	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Ffloat_85_49	52	11	$i	8	2	1	1
-input:	0	$i	8
-input:	0	$i	8
-output:	0	$i	8" > config.txt
-	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ib"
-	./test 52 $i >> output.txt
-	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ob"
-	./test 52 $i >> output.txt
+	printf "\n	OutBound Rounding at bit of the mantissa ${double_arr[$i]} in double precision and at bit ${float_arr[$i]} in single precision\n\n" >> output.txt
+	./test_mantissa ${double_arr[$i]} ${float_arr[$i]} >> output.txt
 done
 
 # mode arguments
 
-echo "----------------------------- Arguments ---------------------------" >> output.txt
+printf "\n---------------- Instrumentation = Arguments -----------------\n" >> output.txt
 
-echo "Double: " >> output.txt
-
-for i in 1 26 52; do
-	echo \
-"test.c/powf_64_27	$i	11	23	8	2	1	1
-input:	0	23	8
-input:	0	23	8
-output:	0	23	8
-test.c/pow_47_10	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Fdouble_84_47	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Ffloat_85_49	$i	11	23	8	2	1	1
-input:	0	23	8
-input:	0	23	8
-output:	0	23	8" > config.txt
+for i in 0 1 2; do
+	./set_input_file config.txt ${double_arr[$i]} 11 ${float_arr[$i]} 8 Ffloat/powf main/Fdouble main/Ffloat Fdouble/pow
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ib"
-	./test $i 23 >> output.txt
+	printf "\n	InBound Rounding at bit of the mantissa ${double_arr[$i]} in double precision and at bit ${float_arr[$i]} in single precision\n\n" >> output.txt
+	./test_mantissa ${double_arr[$i]} ${float_arr[$i]} >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ob"
-	./test $i 23 >> output.txt
-done
-
-echo "Float: " >> output.txt
-
-for i in 1 11 23; do
-	echo \
-"test.c/powf_64_27	52	11	$i	8	2	1	1
-input:	0	$i	8
-input:	0	$i	8
-output:	0	$i	8
-test.c/pow_47_10	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Fdouble_84_47	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Ffloat_85_49	52	11	$i	8	2	1	1
-input:	0	$i	8
-input:	0	$i	8
-output:	0	$i	8" > config.txt
-	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ib"
-	./test 52 $i >> output.txt
-	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ob"
-	./test 52 $i >> output.txt
+	printf "\n	OutBound Rounding at bit of the mantissa ${double_arr[$i]} in double precision and at bit ${float_arr[$i]} in single precision\n\n" >> output.txt
+	./test_mantissa ${double_arr[$i]} ${float_arr[$i]} >> output.txt
 done
 
 # mode operations
 
-echo "----------------------------- Operations ---------------------------" >> output.txt
+printf "\n--------------- Instrumentation = Operations -----------------\n" >> output.txt
 
-echo "Double: " >> output.txt
-
-for i in 1 26 52; do
-	echo \
-"test.c/powf_64_27	$i	11	23	8	2	1	1
-input:	0	23	8
-input:	0	23	8
-output:	0	23	8
-test.c/pow_47_10	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Fdouble_84_47	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Ffloat_85_49	$i	11	23	8	2	1	1
-input:	0	23	8
-input:	0	23	8
-output:	0	23	8" > config.txt
+for i in 0 1 2; do
+	./set_input_file config.txt ${double_arr[$i]} 11 ${float_arr[$i]} 8 Ffloat/powf main/Fdouble main/Ffloat Fdouble/pow
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ib"
-	./test $i 23 >> output.txt
+	printf "\n	InBound Rounding at bit of the mantissa ${double_arr[$i]} in double precision and at bit ${float_arr[$i]} in single precision\n\n" >> output.txt
+	./test_mantissa ${double_arr[$i]} ${float_arr[$i]} >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ob"
-	./test $i 23 >> output.txt
-done
-
-echo "Float: " >> output.txt
-
-for i in 1 11 23; do
-	echo \
-"test.c/powf_64_27	52	11	$i	8	2	1	1
-input:	0	$i	8
-input:	0	$i	8
-output:	0	$i	8
-test.c/pow_47_10	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Fdouble_84_47	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Ffloat_85_49	52	11	$i	8	2	1	1
-input:	0	$i	8
-input:	0	$i	8
-output:	0	$i	8" > config.txt
-	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ib"
-	./test 52 $i >> output.txt
-	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ob"
-	./test 52 $i >> output.txt
+	printf "\n	OutBound Rounding at bit of the mantissa ${double_arr[$i]} in double precision and at bit ${float_arr[$i]} in single precision\n\n" >> output.txt
+	./test_mantissa ${double_arr[$i]} ${float_arr[$i]} >> output.txt
 done
 
 # mode all
 
-echo "----------------------------- All ---------------------------" >> output.txt
+printf "\n------------------ Instrumentation = All --------------------\n" >> output.txt
 
-echo "Double: " >> output.txt
-
-for i in 1 26 52; do
-	echo \
-"test.c/powf_64_27	$i	11	23	8	2	1	1
-input:	0	23	8
-input:	0	23	8
-output:	0	23	8
-test.c/pow_47_10	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Fdouble_84_47	$i	11	23	8	2	1	1
-input:	1	$i	11
-input:	1	$i	11
-output:	1	$i	11
-test.c/Ffloat_85_49	$i	11	23	8	2	1	1
-input:	0	23	8
-input:	0	23	8
-output:	0	23	8" > config.txt
+for i in 0 1 2; do
+	./set_input_file config.txt ${double_arr[$i]} 11 ${float_arr[$i]} 8 Ffloat/powf main/Fdouble main/Ffloat Fdouble/pow
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ib"
-	./test $i 23 >> output.txt
+	printf "\n	InBound Rounding at bit of the mantissa ${double_arr[$i]} in double precision and at bit ${float_arr[$i]} in single precision\n\n" >> output.txt
+	./test_mantissa ${double_arr[$i]} ${float_arr[$i]} >> output.txt
 	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ob"
-	./test $i 23 >> output.txt
+	printf "\n	OutBound Rounding at bit of the mantissa ${double_arr[$i]} in double precision and at bit ${float_arr[$i]} in single precision\n\n" >> output.txt
+	./test_mantissa ${double_arr[$i]} ${float_arr[$i]} >> output.txt
 done
 
-echo "Float: " >> output.txt
+verificarlo-c test_exponent.c -o test_exponent --inst-func -lm
 
-for i in 1 11 23; do
-	echo \
-"test.c/powf_64_27	52	11	$i	8	2	1	1
-input:	0	$i	8
-input:	0	$i	8
-output:	0	$i	8
-test.c/pow_47_10	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Fdouble_84_47	52	11	$i	8	2	1	1
-input:	1	52	11
-input:	1	52	11
-output:	1	52	11
-test.c/Ffloat_85_49	52	11	$i	8	2	1	1
-input:	0	$i	8
-input:	0	$i	8
-output:	0	$i	8" > config.txt
-	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ib"
-	./test 52 $i >> output.txt
-	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ob"
-	./test 52 $i >> output.txt
+echo "--------------------------------------------------------------" >> output.txt
+echo "							 Exponent 							" >> output.txt
+echo "--------------------------------------------------------------" >> output.txt
+echo "" >> output.txt
+
+export VFC_BACKENDS="libinterflop_vprec.so --prec-output-file=config.txt"
+./test_exponent 52 23 >> /dev/null
+
+double_arr=(11 10)
+float_arr=(8 7)
+
+# mode none
+
+printf "\n------------------- Instrumentation = None -------------------\n" >> output.txt
+
+for i in 0 1; do
+	./set_input_file config.txt 52 ${double_arr[$i]} 23 ${float_arr[$i]} main/Fdouble main/Ffloat
+	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ib"
+	printf "\n	InBound Rounding of the exponent at bit ${double_arr[$i]} in double precision and ${float_arr[$i]} in simple precision\n\n" >> output.txt
+	./test_exponent >> output.txt
+	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=none --mode=ob"
+	printf "\n	OutBound Rounding of the exponent at bit ${double_arr[$i]} in double precision and ${float_arr[$i]} in simple precision\n\n" >> output.txt
+	./test_exponent >> output.txt
 done
 
-if [ $(diff -U 0 result.txt output.txt | wc -l) == 0 ]
-then
+# mode arguments
+
+printf "\n---------------- Instrumentation = Arguments -----------------\n" >> output.txt
+
+for i in 0 1; do
+	./set_input_file config.txt 52 ${double_arr[$i]} 23 ${float_arr[$i]} main/Fdouble main/Ffloat
+	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ib"
+	printf "\n	InBound Rounding of the exponent at bit ${double_arr[$i]} in double precision and ${float_arr[$i]} in simple precision\n\n" >> output.txt
+	./test_exponent >> output.txt
+	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=arguments --mode=ob"
+	printf "\n	OutBound Rounding of the exponent at bit ${double_arr[$i]} in double precision and ${float_arr[$i]} in simple precision\n\n" >> output.txt
+	./test_exponent >> output.txt
+done
+
+# mode operations
+
+printf "\n--------------- Instrumentation = Operations -----------------\n" >> output.txt
+
+for i in 0 1; do
+	./set_input_file config.txt 52 ${double_arr[$i]} 23 ${float_arr[$i]} main/Fdouble main/Ffloat
+	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ib"
+	printf "\n	InBound Rounding of the exponent at bit ${double_arr[$i]} in double precision and ${float_arr[$i]} in simple precision\n\n" >> output.txt
+	./test_exponent >> output.txt
+	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=operations --mode=ob"
+	printf "\n	OutBound Rounding of the exponent at bit ${double_arr[$i]} in double precision and ${float_arr[$i]} in simple precision\n\n" >> output.txt
+	./test_exponent >> output.txt
+done
+
+# mode all
+
+printf "\n------------------ Instrumentation = All --------------------\n" >> output.txt
+
+for i in 0 1; do
+	./set_input_file config.txt 52 ${double_arr[$i]} 23 ${float_arr[$i]} main/Fdouble main/Ffloat
+	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ib"
+	printf "\n	InBound Rounding of the exponent at bit ${double_arr[$i]} in double precision and ${float_arr[$i]} in simple precision\n\n" >> output.txt
+	./test_exponent >> output.txt
+	export VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=config.txt --instrument=all --mode=ob"
+	printf "\n	OutBound Rounding of the exponent at bit ${double_arr[$i]} in double precision and ${float_arr[$i]} in simple precision\n\n" >> output.txt
+	./test_exponent >> output.txt
+done
+
+echo "--------------------------------------------------------------" >> output.txt
+echo "							 Range 							" >> output.txt
+echo "--------------------------------------------------------------" >> output.txt
+echo "" >> output.txt
+
+verificarlo-c test_range.c -o test_range --inst-func -lm
+
+export VFC_BACKENDS="libinterflop_vprec.so --prec-output-file=config.txt"
+
+printf "Functions Fdouble and Ffloat take real numbers from 1 to 102 and from -1 to -102 and subtract 10 \n\n" >> output.txt
+
+./test_range
+./print_range config.txt main/Ffloat main/Fdouble >> output.txt
+
+if [ $(diff -U 0 result.txt output.txt | grep ^@ | wc -l) == 0 ]
+then 
 	exit 0
-else
-	echo $(diff -U 0 result.txt output.txt | wc -l)
+else 
+	echo $(diff -U 0 result.txt output.txt | grep ^@ | wc -l)
 	exit 1
 fi
+
