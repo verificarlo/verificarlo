@@ -37,3 +37,11 @@ installcheck:
 		done; \
 		exit 1; \
 	fi
+
+# clean-local is a clean dependency of autotool clean target
+clean-local: cleantests
+
+cleantests:
+# Clean tests directory
+	cd tests/ && ./clean.sh && cd ..
+	@echo "tests directory are cleaned."
