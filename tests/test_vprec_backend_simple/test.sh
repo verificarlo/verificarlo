@@ -43,3 +43,13 @@ cat > input.txt << EOF
 0x1.22034fafd4a10p-4 -0x1.eee201b1c85d4p-1
 EOF
 ./compare_vector.sh FULL 2 23 float x input.txt
+
+## Normal
+cat > input.txt << EOF
+0x1.a53a8b6373154p1 0x1.cfa1850291880p-1
+-0x1.6312bf6a7f2f8p-0 -0x1.5b403af9711e8p-1
+EOF
+
+./compare_vector.sh FULL 2 3 float x input.txt
+
+## Infinity

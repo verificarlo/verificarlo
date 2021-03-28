@@ -62,21 +62,21 @@ inline float round_binary32_normal(float x, int precision) {
  * Macro which define vector function to round binary32 normal
  */
 #define define_round_binary32_normal_vector(size)                              \
-  void round_binary32_normal_x##size(float *x, int precision) {                \
+  void round_binary32_normal_x##size(float *x, int##size precision) {          \
     float##size a = *(float##size *)x;                                         \
     /* build 1/2 ulp and add it  before truncation for faithfull rounding */   \
                                                                                \
     /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other words,\
        there remain VPRECLIB_PREC bits in the mantissa */                      \
-    const uint32_t mask = 0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision);         \
+    const int##size mask = 0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision);        \
                                                                                \
     /* position to the end of the target prec-1 */                             \
-    const uint32_t target_position = FLOAT_PMAN_SIZE - precision - 1;          \
+    const int##size target_position = FLOAT_PMAN_SIZE - precision - 1;         \
                                                                                \
     binary32_float##size b32x = {.f32 = a};                                    \
-    b32x.ieee.mantissa = 0;                                                    \
+    FLOAT_SET_PMAN(b32x.ieee.mantissa, 0);                                     \
     binary32_float##size half_ulp = {.f32 = a};                                \
-    half_ulp.ieee.mantissa = (1 << target_position);                           \
+    FLOAT_SET_PMAN(half_ulp.ieee.mantissa, 1 << target_position);              \
                                                                                \
     b32x.f32 = a + (half_ulp.f32 - b32x.f32);                                  \
     b32x.u32 &= mask;                                                          \

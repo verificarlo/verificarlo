@@ -304,9 +304,9 @@ typedef union {
   uint32_t u;                                                                  \
                                                                                \
   struct {                                                                     \
-    uint32_t sign : FLOAT_SIGN_SIZE;                                           \
-    uint32_t exponent : FLOAT_EXP_SIZE;                                        \
-    uint32_t mantissa : FLOAT_PMAN_SIZE;                                       \
+    int##size sign;                                                            \
+    int##size exponent                                                         \
+    int##size mantissa;                                                        \
   } ieee;                                                                      \
                                                                                \
   } binary32_##precision##size;
@@ -323,16 +323,18 @@ typedef union {
     int##size s32;                                                             \
                                                                                \
     /* Generic fields */                                                       \
-    float type;                                                                \
-    uint32_t u;                                                                \
+    float##size type;                                                          \
+    int##size u;                                                               \
                                                                                \
     struct {                                                                   \
-      uint32_t mantissa : FLOAT_PMAN_SIZE;                                     \
-      uint32_t exponent : FLOAT_EXP_SIZE;                                      \
-      uint32_t sign : FLOAT_SIGN_SIZE;                                         \
+      int##size mantissa;                                                      \
+      int##size exponent;                                                      \
+      int##size sign;                                                          \
     } ieee;                                                                    \
                                                                                \
   } binary32_##precision##size;
+
+typedef struct ieee_s ieee;
 
 #endif
 

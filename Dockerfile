@@ -38,7 +38,7 @@ COPY . /build/verificarlo/
 WORKDIR /build/verificarlo
 RUN ./autogen.sh && \
     ./configure --with-llvm=$(llvm-config-${LLVM_VERSION} --prefix) \
-    		--with-flang CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} \
+                --with-flang CC=clang-${LLVM_VERSION} CXX=clang++-${LLVM_VERSION} \
     || cat config.log
 
 # Build verificarlo
