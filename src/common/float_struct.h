@@ -304,9 +304,9 @@ typedef union {
   uint32_t u;                                                                  \
                                                                                \
   struct {                                                                     \
-    int##size sign : FLOAT_SIGN_SIZE;                                          \
-    int##size exponent : FLOAT_EXP_SIZE;                                       \
-    int##size mantissa : FLOAT_PMAN_SIZE;                                      \
+    int##size sign;                                                            \
+    int##size exponent                                                         \
+    int##size mantissa;                                                        \
   } ieee;                                                                      \
                                                                                \
   } binary32_##precision##size;
@@ -326,12 +326,12 @@ typedef union {
     float##size type;                                                          \
     int##size u;                                                               \
                                                                                \
-    struct {                                                            \
-      int##size mantissa : FLOAT_PMAN_SIZE;                             \
-      int##size exponent : FLOAT_EXP_SIZE;                              \
-      int##size sign : FLOAT_SIGN_SIZE;                                 \
-    } ieee;                                                             \
-                                                                        \
+    struct {                                                                   \
+      int##size mantissa;                                                      \
+      int##size exponent;                                                      \
+      int##size sign;                                                          \
+    } ieee;                                                                    \
+                                                                               \
   } binary32_##precision##size;
 
 typedef struct ieee_s ieee;
