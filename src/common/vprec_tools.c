@@ -74,9 +74,9 @@ inline float round_binary32_normal(float x, int precision) {
     const int##size target_position = FLOAT_PMAN_SIZE - precision - 1;         \
                                                                                \
     binary32_float##size b32x = {.f32 = a};                                    \
-    b32x.ieee.mantissa = 0;                                                    \
+    FLOAT_SET_PMAN(b32x.ieee.mantissa, 0);                                     \
     binary32_float##size half_ulp = {.f32 = a};                                \
-    half_ulp.ieee.mantissa = (1 << target_position);                           \
+    FLOAT_SET_PMAN(half_ulp.ieee.mantissa, 1 << target_position);              \
                                                                                \
     b32x.f32 = a + (half_ulp.f32 - b32x.f32);                                  \
     b32x.u32 &= mask;                                                          \
