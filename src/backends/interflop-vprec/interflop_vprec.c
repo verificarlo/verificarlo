@@ -665,8 +665,9 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     int emin = 1 - emax;                                                       \
                                                                                \
     binary32_##precision##size aexp = {.f32 = *(precision##size *)a};          \
-    aexp.s32 = ((FLOAT_GET_EXP & aexp.u32) >> FLOAT_PMAN_SIZE);                \
-    aexp.s32 -= FLOAT_EXP_COMP;                                                \
+    aexp.s32 = (int32_##size##x)((FLOAT_GET_EXP & aexp.u32));                  \
+    aexp.s32 >>= (int32_##size##x)FLOAT_PMAN_SIZE;                             \
+    aexp.s32 -= (int32_##size##x)FLOAT_EXP_COMP;                               \
                                                                                \
     /* check for overflow in target range */                                   \
     int##size is_overflow = aexp.s32 > emax;                                   \

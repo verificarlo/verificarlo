@@ -18,6 +18,14 @@ typedef int int2 __attribute__((ext_vector_type(2)));
 typedef int int4 __attribute__((ext_vector_type(4)));
 typedef int int8 __attribute__((ext_vector_type(8)));
 typedef int int16 __attribute__((ext_vector_type(16)));
+typedef int32_t int32_2x __attribute__((ext_vector_type(2)));
+typedef int32_t int32_4x __attribute__((ext_vector_type(4)));
+typedef int32_t int32_8x __attribute__((ext_vector_type(8)));
+typedef int32_t int32_16x __attribute__((ext_vector_type(16)));
+typedef uint32_t uint32_2x __attribute__((ext_vector_type(2)));
+typedef uint32_t uint32_4x __attribute__((ext_vector_type(4)));
+typedef uint32_t uint32_8x __attribute__((ext_vector_type(8)));
+typedef uint32_t uint32_16x __attribute__((ext_vector_type(16)));
 
 /* import from <quadmath-imp.h> */
 
@@ -295,19 +303,19 @@ typedef union {
 #define define_binary32_vector(precision, size)                                \
   typedef union {                                                              \
                                                                                \
-  precision##size f32;                                                         \
-  int##size u32;                                                               \
-  int##size s32;                                                               \
+    precision##size f32;                                                       \
+    uint32_##size##x u32;                                                      \
+    int32_##size##x s32;                                                       \
                                                                                \
-  /* Generic fields */                                                         \
-  float type;                                                                  \
-  uint32_t u;                                                                  \
+    /* Generic fields */                                                       \
+    float##size type;                                                          \
+    uint32_##size##x u;                                                        \
                                                                                \
-  struct {                                                                     \
-    int##size sign;                                                            \
-    int##size exponent                                                         \
-    int##size mantissa;                                                        \
-  } ieee;                                                                      \
+    struct {                                                                   \
+      uint32_##size##x sign;                                                   \
+      uint32_##size##x exponent;                                               \
+      uint32_##size##x mantissa;                                               \
+    } ieee;                                                                    \
                                                                                \
   } binary32_##precision##size;
 
@@ -319,17 +327,17 @@ typedef union {
   typedef union {                                                              \
                                                                                \
     precision##size f32;                                                       \
-    int##size u32;                                                             \
-    int##size s32;                                                             \
+    uint32_##size##x u32;                                                      \
+    int32_##size##x s32;                                                       \
                                                                                \
     /* Generic fields */                                                       \
     float##size type;                                                          \
-    int##size u;                                                               \
+    uint32_##size##x u;                                                        \
                                                                                \
     struct {                                                                   \
-      int##size mantissa;                                                      \
-      int##size exponent;                                                      \
-      int##size sign;                                                          \
+      uint32_##size##x mantissa;                                               \
+      uint32_##size##x exponent;                                               \
+      uint32_##size##x sign;                                                   \
     } ieee;                                                                    \
                                                                                \
   } binary32_##precision##size;
