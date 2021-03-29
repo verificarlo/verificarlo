@@ -129,6 +129,38 @@ static void _interflop_sub_double(double a, double b, double *c,
   cancell(a, b, c);
 }
 
+static void _interflop_add_float_vector(const int size, float *a, float *b,
+                                        float *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] + b[i];
+    cancell(a[i], b[i], &(c[i]));
+  }
+}
+
+static void _interflop_sub_float_vector(const int size, float *a, float *b,
+                                        float *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] - b[i];
+    cancell(a[i], b[i], &(c[i]));
+  }
+}
+
+static void _interflop_add_double_vector(const int size, double *a, double *b,
+                                         double *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] + b[i];
+    cancell(a[i], b[i], &(c[i]));
+  }
+}
+
+static void _interflop_sub_double_vector(const int size, double *a, double *b,
+                                         double *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] - b[i];
+    cancell(a[i], b[i], &(c[i]));
+  }
+}
+
 static void _interflop_mul_float(float a, float b, float *c, void *context) {
   *c = a * b;
 }
@@ -145,6 +177,34 @@ static void _interflop_mul_double(double a, double b, double *c,
 static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
   *c = a / b;
+}
+
+static void _interflop_mul_float_vector(const int size, float *a, float *b,
+                                        float *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] * b[i];
+  }
+}
+
+static void _interflop_div_float_vector(const int size, float *a, float *b,
+                                        float *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] / b[i];
+  }
+}
+
+static void _interflop_mul_double_vector(const int size, double *a, double *b,
+                                         double *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] * b[i];
+  }
+}
+
+static void _interflop_div_double_vector(const int size, double *a, double *b,
+                                         double *c, void *context) {
+  for (int i = 0; i < size; ++i) {
+    c[i] = a[i] / b[i];
+  }
 }
 
 static struct argp_option options[] = {
@@ -215,10 +275,20 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_mul_float,
       _interflop_div_float,
       NULL,
+      _interflop_add_float_vector,
+      _interflop_sub_float_vector,
+      _interflop_mul_float_vector,
+      _interflop_div_float_vector,
+      NULL,
       _interflop_add_double,
       _interflop_sub_double,
       _interflop_mul_double,
       _interflop_div_double,
+      NULL,
+      _interflop_add_double_vector,
+      _interflop_sub_double_vector,
+      _interflop_mul_double_vector,
+      _interflop_div_double_vector,
       NULL,
       NULL,
       NULL,

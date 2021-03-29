@@ -5,7 +5,7 @@
  *  Copyright (c) 2015                                                       *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *     CMLA, Ecole Normale Superieure de Cachan                              *
- *  Copyright (c) 2019-2020						     *
+ *  Copyright (c) 2019-2020                                                  *
  *     Verificarlo contributors                                              *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *                                                                           *
@@ -57,6 +57,37 @@ inline float round_binary32_normal(float x, int precision) {
 
   return b32x.f32;
 }
+
+/**
+ * Macro which define vector function to round binary32 normal
+ */
+#define define_round_binary32_normal_vector(size)                              \
+  void round_binary32_normal_x##size(float *x, int##size precision) {          \
+    float##size a = *(float##size *)x;                                         \
+    /* build 1/2 ulp and add it  before truncation for faithfull rounding */   \
+                                                                               \
+    /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other words,\
+       there remain VPRECLIB_PREC bits in the mantissa */                      \
+    const int##size mask = 0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision);        \
+                                                                               \
+    /* position to the end of the target prec-1 */                             \
+    const int##size target_position = FLOAT_PMAN_SIZE - precision - 1;         \
+                                                                               \
+    binary32_float##size b32x = {.f32 = a};                                    \
+    FLOAT_SET_PMAN(b32x.ieee.mantissa, 0);                                     \
+    binary32_float##size half_ulp = {.f32 = a};                                \
+    FLOAT_SET_PMAN(half_ulp.ieee.mantissa, 1 << target_position);              \
+                                                                               \
+    b32x.f32 = a + (half_ulp.f32 - b32x.f32);                                  \
+    b32x.u32 &= mask;                                                          \
+    x = (float *)&a;                                                           \
+  }
+
+/* Using above macro */
+define_round_binary32_normal_vector(2);
+define_round_binary32_normal_vector(4);
+define_round_binary32_normal_vector(8);
+define_round_binary32_normal_vector(16);
 
 /**
  * round the mantissa of 'x' on the precision specified by 'precision'
