@@ -552,28 +552,21 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
 /* perform_vector_bin_op: call perform_binary_op with good type */
 /* cast pointer array of precision in clang vector type before performing the */
 /* operation */
-#define perform_vector_binary_op(precision, size, op, res, a, b)               \
-  switch (size) {                                                              \
-  case 2:                                                                      \
+#define perform_binary_op_2x(precision, op, res, a, b)                         \
     perform_binary_op(op, (*(precision##2 *)res), (*(precision##2 *)a),        \
-                      (*(precision##2 *)b));                                   \
-    break;                                                                     \
-  case 4:                                                                      \
+                      (*(precision##2 *)b));
+
+#define perform_binary_op_4x(precision, op, res, a, b)                         \
     perform_binary_op(op, (*(precision##4 *)res), (*(precision##4 *)a),        \
-                      (*(precision##4 *)b));                                   \
-    break;                                                                     \
-  case 8:                                                                      \
+                      (*(precision##4 *)b));
+
+#define perform_binary_op_8x(precision, op, res, a, b)                         \
     perform_binary_op(op, (*(precision##8 *)res), (*(precision##8 *)a),        \
-                      (*(precision##8 *)b));                                   \
-    break;                                                                     \
-  case 16:                                                                     \
-    perform_binary_op(op, (*(precision##16 *)res), (*(precision##16 *)a),      \
-                      (*(precision##16 *)b));                                  \
-    break;                                                                     \
-  default:                                                                     \
-    logger_error("invalid size %d\n", size);                                   \
-    break;                                                                     \
-  }
+                      (*(precision##8 *)b));
+
+#define perform_binary_op_16x(precision, op, res, a, b)                         \
+    perform_binary_op(op, (*(precision##16 *)res), (*(precision##16 *)a),       \
+                      (*(precision##16 *)b));
 
 // Round the float with the given precision
 static float _vprec_round_binary32(float a, char is_input, void *context,
@@ -853,7 +846,7 @@ static inline void _vprec_binary32_binary_op_vector(const int size, float *a,
                                  VPRECLIB_BINARY32_PRECISION);
       }
           
-      perform_vector_binary_op(float, size, op, c, a, b);
+      perform_binary_op_2x(float, op, c, a, b);
 
       if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
         _vprec_round_binary32_2x(c, 0, context, VPRECLIB_BINARY32_RANGE,
@@ -869,7 +862,7 @@ static inline void _vprec_binary32_binary_op_vector(const int size, float *a,
                                  VPRECLIB_BINARY32_PRECISION);
       }
           
-      perform_vector_binary_op(float, size, op, c, a, b);
+      perform_binary_op_4x(float, op, c, a, b);
 
       if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
         _vprec_round_binary32_4x(c, 0, context, VPRECLIB_BINARY32_RANGE,
@@ -885,7 +878,7 @@ static inline void _vprec_binary32_binary_op_vector(const int size, float *a,
                                  VPRECLIB_BINARY32_PRECISION);
       }
           
-      perform_vector_binary_op(float, size, op, c, a, b);
+      perform_binary_op_8x(float, op, c, a, b);
 
       if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
         _vprec_round_binary32_8x(c, 0, context, VPRECLIB_BINARY32_RANGE,
@@ -901,7 +894,7 @@ static inline void _vprec_binary32_binary_op_vector(const int size, float *a,
                                   VPRECLIB_BINARY32_PRECISION);
       }
           
-      perform_vector_binary_op(float, size, op, c, a, b);
+      perform_binary_op_16x(float, op, c, a, b);
 
       if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
         _vprec_round_binary32_16x(c, 0, context, VPRECLIB_BINARY32_RANGE,
@@ -948,8 +941,10 @@ static inline void _vprec_binary64_binary_op_vector(const int size, double *a,
                                    VPRECLIB_BINARY64_PRECISION);
     }
   }
-
-  perform_vector_binary_op(double, size, op, c, a, b);
+  
+  for (int i = 0; i < size; ++i) {
+    perform_binary_op(op, c[i], a[i], b[i]);
+  }
 
   if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
     for (int i = 0; i < size; ++i) {
