@@ -37,7 +37,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "float_type.h"
+#include "interflop.h"
 
 /* In delta-debug we retrieve the return address of
  * instrumented operations. Call op size allows us

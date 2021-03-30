@@ -296,7 +296,7 @@ typedef union {
       uint32_##size##x mantissa;                                               \
     } ieee;                                                                    \
                                                                                \
-  } binary32_##precision##size;
+  } binary32_##size##x;
 
 #endif
 
@@ -319,9 +319,7 @@ typedef union {
       uint32_##size##x sign;                                                   \
     } ieee;                                                                    \
                                                                                \
-  } binary32_##precision##size;
-
-typedef struct ieee_s ieee;
+  } binary32_##size##x;
 
 #endif
 
