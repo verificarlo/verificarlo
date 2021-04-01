@@ -777,10 +777,10 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
     function_inst->isIntrinsicFunction = function_info->isIntrinsicFunction;
     function_inst->useFloat = function_info->useFloat;
     function_inst->useDouble = function_info->useDouble;
-    function_inst->OpsRange64 = VPREC_RANGE_BINARY64_DEFAULT;
-    function_inst->OpsPrec64 = VPREC_PRECISION_BINARY64_DEFAULT;
-    function_inst->OpsRange32 = VPREC_RANGE_BINARY32_DEFAULT;
-    function_inst->OpsPrec32 = VPREC_PRECISION_BINARY32_DEFAULT;
+    function_inst->OpsRange64 = VPRECLIB_BINARY64_RANGE;
+    function_inst->OpsPrec64 = VPRECLIB_BINARY64_PRECISION;
+    function_inst->OpsRange32 = VPRECLIB_BINARY32_RANGE;
+    function_inst->OpsPrec32 = VPRECLIB_BINARY32_PRECISION;
     function_inst->nb_input_args = 0;
     function_inst->input_args = NULL;
     function_inst->nb_output_args = 0;
@@ -843,13 +843,11 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
       function_inst->input_args[i].min_range = INT_MAX;
       function_inst->input_args[i].max_range = INT_MIN;
       function_inst->input_args[i].exponent_length =
-          (type == FDOUBLE || type == FDOUBLE_PTR)
-              ? VPREC_RANGE_BINARY64_DEFAULT
-              : VPREC_RANGE_BINARY32_DEFAULT;
+          (type == FDOUBLE || type == FDOUBLE_PTR) ? function_inst->OpsRange64
+                                                   : function_inst->OpsRange32;
       function_inst->input_args[i].mantissa_length =
-          (type == FDOUBLE || type == FDOUBLE_PTR)
-              ? VPREC_PRECISION_BINARY64_DEFAULT
-              : VPREC_PRECISION_BINARY32_DEFAULT;
+          (type == FDOUBLE || type == FDOUBLE_PTR) ? function_inst->OpsPrec64
+                                                   : function_inst->OpsPrec32;
     }
 
     if (type == FDOUBLE) {
@@ -1057,13 +1055,11 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
       function_inst->output_args[i].data_type = type;
       strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
       function_inst->output_args[i].exponent_length =
-          (type == FDOUBLE || type == FDOUBLE_PTR)
-              ? VPREC_RANGE_BINARY64_DEFAULT
-              : VPREC_RANGE_BINARY32_DEFAULT;
+          (type == FDOUBLE || type == FDOUBLE_PTR) ? function_inst->OpsRange64
+                                                   : function_inst->OpsRange32;
       function_inst->output_args[i].mantissa_length =
-          (type == FDOUBLE || type == FDOUBLE_PTR)
-              ? VPREC_PRECISION_BINARY64_DEFAULT
-              : VPREC_PRECISION_BINARY32_DEFAULT;
+          (type == FDOUBLE || type == FDOUBLE_PTR) ? function_inst->OpsPrec64
+                                                   : function_inst->OpsPrec32;
       function_inst->output_args[i].min_range = INT_MAX;
       function_inst->output_args[i].max_range = INT_MIN;
     }
