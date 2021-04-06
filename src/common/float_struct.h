@@ -163,28 +163,28 @@ typedef union {
   typedef union {                                                              \
                                                                                \
     double##size f64;                                                          \
-    uint64_t##size u64;                                                        \
-    int64_t##size s64;                                                         \
-    uint32_t##size u32[2];                                                     \
+    uint64_##size##x u64;                                                      \
+    int64_##size##x s64;                                                       \
+    uint32_##size##x u32[2];                                                   \
                                                                                \
     /* Generic fields */                                                       \
-    double type;                                                               \
-    uint64_t u;                                                                \
+    double##size type;                                                         \
+    uint64_##size##x u;                                                        \
                                                                                \
     struct {                                                                   \
-      uint64_t sign : DOUBLE_SIGN_SIZE;                                        \
-      uint64_t exponent : DOUBLE_EXP_SIZE;                                     \
-      uint64_t mantissa : DOUBLE_PMAN_SIZE;                                    \
+      uint64_##size##x sign;                                                   \
+      uint64_##size##x exponent;                                               \
+      uint64_##size##x mantissa;                                               \
     } ieee;                                                                    \
                                                                                \
     struct {                                                                   \
-      uint32_t sign : DOUBLE_SIGN_SIZE;                                        \
-      uint32_t exponent : DOUBLE_EXP_SIZE;                                     \
-      uint32_t mantissa_high : DOUBLE_PMAN_HIGH_SIZE;                          \
-      uint32_t mantissa_low : DOUBLE_PMAN_LOW_SIZE;                            \
+      uint32_##size##x sign;                                                   \
+      uint32_##size##x exponent;                                               \
+      uint32_##size##x mantissa_high;                                          \
+      uint32_##size##x mantissa_low;                                           \
     } ieee32;                                                                  \
                                                                                \
-  } binary64_##size;
+  } binary64_##size##x;
 
 #endif
 
@@ -196,28 +196,28 @@ typedef union {
   typedef union {                                                              \
                                                                                \
     double##size f64;                                                          \
-    uint64_t##size u64;                                                        \
-    int64_t##size s64;                                                         \
-    uint32_t##size u32[2];                                                     \
+    uint64_##size##x u64;                                                      \
+    int64_##size##x s64;                                                       \
+    uint32_##size##x u32[2];                                                   \
                                                                                \
     /* Generic fields */                                                       \
-    double type;                                                               \
-    uint64_t u;                                                                \
+    double##size type;                                                         \
+    uint64_##size##x u;                                                        \
                                                                                \
     struct {                                                                   \
-      uint64_t mantissa : DOUBLE_PMAN_SIZE;                                    \
-      uint64_t exponent : DOUBLE_EXP_SIZE;                                     \
-      uint64_t sign : DOUBLE_SIGN_SIZE;                                        \
+      uint64_##size##x mantissa;                                               \
+      uint64_##size##x exponent;                                               \
+      uint64_##size##x sign;                                                   \
     } ieee;                                                                    \
                                                                                \
     struct {                                                                   \
-      uint32_t mantissa_high : DOUBLE_PMAN_HIGH_SIZE;                          \
-      uint32_t exponent : DOUBLE_EXP_SIZE;                                     \
-      uint32_t sign : DOUBLE_SIGN_SIZE;                                        \
-      uint32_t mantissa_low : DOUBLE_PMAN_LOW_SIZE;                            \
+      uint32_##size##x mantissa_high;                                          \
+      uint32_##size##x exponent;                                               \
+      uint32_##size##x sign;                                                   \
+      uint32_##size##x mantissa_low;                                           \
     } ieee32;                                                                  \
                                                                                \
-  } binary64_##size;
+  } binary64_##size##x;
 
 #else
 
@@ -226,28 +226,28 @@ typedef union {
   typedef union {                                                              \
                                                                                \
     double##size f64;                                                          \
-    uint64_t##size u64;                                                        \
-    int64_t##size s64;                                                         \
-    uint32_t##size u32[2];                                                     \
+    uint64_##size##x u64;                                                      \
+    int64_##size##x s64;                                                       \
+    uint32_##size##x u32[2];                                                   \
                                                                                \
     /* Generic fields */                                                       \
-    double type;                                                               \
-    uint64_t u;                                                                \
+    double##size type;                                                         \
+    uint64_##size##x u;                                                        \
                                                                                \
     struct {                                                                   \
-      uint64_t mantissa : DOUBLE_PMAN_SIZE;                                    \
-      uint64_t exponent : DOUBLE_EXP_SIZE;                                     \
-      uint64_t sign : DOUBLE_SIGN_SIZE;                                        \
+      uint64_##size##x mantissa;                                               \
+      uint64_##size##x exponent;                                               \
+      uint64_##size##x sign;                                                   \
     } ieee;                                                                    \
                                                                                \
     struct {                                                                   \
-      uint32_t mantissa_low : DOUBLE_PMAN_LOW_SIZE;                            \
-      uint32_t mantissa_high : DOUBLE_PMAN_HIGH_SIZE;                          \
-      uint32_t exponent : DOUBLE_EXP_SIZE;                                     \
-      uint32_t sign : DOUBLE_SIGN_SIZE;                                        \
+      uint32_##size##x mantissa_low;                                           \
+      uint32_##size##x mantissa_high;                                          \
+      uint32_##size##x exponent;                                               \
+      uint32_##size##x sign;                                                   \
     } ieee32;                                                                  \
                                                                                \
-  } binary64_##size;
+  } binary64_##size##x;
 
 #endif
 #endif
