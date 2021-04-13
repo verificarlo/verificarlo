@@ -120,9 +120,9 @@
 #define WORD64_MSB 0x8000000000000000ULL
 
 // Set single precison exponent
-#define FLOAT_SET_EXP(a, e) (a = e & FLOAT_GET_EXP)
+#define FLOAT_SET_EXP(a, e, size) (a = (uint32_##size##x)(e & FLOAT_GET_EXP))
 // Set single precison pseudo mantissa
-#define FLOAT_SET_PMAN(a, m) (a = m & FLOAT_GET_PMAN)
+#define FLOAT_SET_PMAN(a, m, size) (a = (uint32_##size##x)(m & FLOAT_GET_PMAN))
 // Set double precison exponent
 #define DOUBLE_SET_EXP(a, e) (a = e & DOUBLE_GET_EXP)
 // Set double precison pseudo mantissa

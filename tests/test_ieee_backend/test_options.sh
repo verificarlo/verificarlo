@@ -113,5 +113,10 @@ for TYPE in float4 double2 ; do
     OPTIONS="--print-new-line"
     run $BINARY
     check "$(test '$(wc -l log)'; echo $?)" "Error no new lines printed"
-    
+
+    DEBUG_MODE="--count-op"
+    OPTIONS=""
+    run
+    check "$(grep -vq "add=" log; echo $?)" "Error no counts printed"
+
 done

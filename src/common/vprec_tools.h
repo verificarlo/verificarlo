@@ -27,6 +27,9 @@
 #ifndef __VPREC_TOOLS_H__
 #define __VPREC_TOOLS_H__
 
+#include "float_type.h"
+#include "float_struct.h"
+
 /******************** VPREC ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the VPREC operation. Operands
  * are first correctly rounded to the target precison format if inbound
@@ -37,6 +40,11 @@
 
 float round_binary32_normal(float x, int precision);
 float handle_binary32_denormal(float x, int emin, int precision);
+
+void round_binary32_normal_x2(float *x, int2 precision);
+void round_binary32_normal_x4(float *x, int4 precision);
+void round_binary32_normal_x8(float *x, int8 precision);
+void round_binary32_normal_x16(float *x, int16 precision);
 
 double round_binary64_normal(double x, int precision);
 double handle_binary64_denormal(double x, int emin, int precision);

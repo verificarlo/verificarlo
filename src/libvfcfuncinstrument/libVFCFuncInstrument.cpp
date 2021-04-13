@@ -40,7 +40,6 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 
-#include <cxxabi.h>
 #include <fstream>
 #include <iostream>
 #include <set>
@@ -124,8 +123,9 @@ unsigned int getSizeOf(Value *V, const Function *F) {
   // of F
   for (auto &Args : F->args()) {
     if (&Args == V) {
-      for (const auto &U : F->users()) {
-        if (const CallInst *call = cast<CallInst>(U)) {
+      for (const auto &U : V->users()) {
+        if (isa<CallInst>(U)) {
+          const CallInst *call = cast<CallInst>(U);
           Value *to_search = call->getOperand(Args.getArgNo());
 
           return getSizeOf(to_search, call->getParent()->getParent());
@@ -439,7 +439,7 @@ struct VfclibFunc : public ModulePass {
       Function *Clone = CloneFunction(Main, VMap);
 
       DISubprogram *Sub = Main->getSubprogram();
-      std::string Name = Sub->getName().str();
+      std::string Name = Main->getName().str();
       std::string File = Sub->getFilename().str();
       std::string Line = std::to_string(Sub->getLine());
       std::string NewName = "vfc_" + File + "//" + Name + "/" + Line + "/" +
@@ -497,16 +497,11 @@ struct VfclibFunc : public ModulePass {
 
                 if (MDNode *N = pi->getMetadata("dbg")) {
                   DILocation *Loc = cast<DILocation>(N);
-                  DISubprogram *Sub = f->getSubprogram();
                   unsigned line = Loc->getLine();
                   std::string File = Loc->getFilename().str();
                   std::string Name;
 
-                  if (Sub) {
-                    Name = Sub->getName().str();
-                  } else {
-                    Name = f->getName().str();
-                  }
+                  Name = f->getName().str();
 
                   std::string Line = std::to_string(line);
                   std::string NewName = "vfc_" + File + "/" + Parent + "/" +

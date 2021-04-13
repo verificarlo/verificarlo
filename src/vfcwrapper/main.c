@@ -171,7 +171,7 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
 
   /* Send finalize message to backends */
   for (int i = 0; i < loaded_backends; i++)
-    if (backends[i].interflop_exit_function)
+    if (backends[i].interflop_finalize)
       backends[i].interflop_finalize(contexts[i]);
 
 #ifdef DDEBUG
