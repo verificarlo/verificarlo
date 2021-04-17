@@ -65,6 +65,22 @@ typedef struct {
   unsigned long int div_count;
   unsigned long int add_count;
   unsigned long int sub_count;
+  unsigned long int _2x_mul_count;
+  unsigned long int _2x_div_count;
+  unsigned long int _2x_add_count;
+  unsigned long int _2x_sub_count;
+  unsigned long int _4x_mul_count;
+  unsigned long int _4x_div_count;
+  unsigned long int _4x_add_count;
+  unsigned long int _4x_sub_count;
+  unsigned long int _8x_mul_count;
+  unsigned long int _8x_div_count;
+  unsigned long int _8x_add_count;
+  unsigned long int _8x_sub_count;
+  unsigned long int _16x_mul_count;
+  unsigned long int _16x_div_count;
+  unsigned long int _16x_add_count;
+  unsigned long int _16x_sub_count;
 } t_context;
 
 typedef enum {
@@ -268,6 +284,29 @@ static inline void debug_print_double(void *context,
     break;                                                                     \
   }
 
+#define count_vector(my_context, size, op)                                     \
+  switch (size) {                                                              \
+  case 2:                                                                      \
+    if (my_context->count_op)                                                  \
+      my_context->_2x_##op##_count++;                                          \
+    break;                                                                     \
+  case 4:                                                                      \
+    if (my_context->count_op)                                                  \
+      my_context->_4x_##op##_count++;                                          \
+    break;                                                                     \
+  case 8:                                                                      \
+    if (my_context->count_op)                                                  \
+      my_context->_8x_##op##_count++;                                          \
+    break;                                                                     \
+  case 16:                                                                     \
+    if (my_context->count_op)                                                  \
+      my_context->_16x_##op##_count++;                                         \
+    break;                                                                     \
+  default:                                                                     \
+    logger_error("invalid size %d\n", size);                                   \
+    break;                                                                     \
+  }
+
 static void _interflop_add_float(const float a, const float b, float *c,
                                  void *context) {
   t_context *my_context = (t_context *)context;
@@ -313,7 +352,11 @@ static void _interflop_cmp_float(const enum FCMP_PREDICATE p, const float a,
 
 static void _interflop_add_float_vector(const int size, const float *a, const float *b,
                                         float *c, void *context) {
+  t_context *my_context = (t_context *)context;
+
   perform_vector_binary_op(float, size, +, a, b, c);
+
+  count_vector(my_context, size, add);
   for (int i = 0; i < size; ++i) {
     debug_print_float(context, ARITHMETIC, "+", a[i], b[i], c[i]);
   }
@@ -321,7 +364,11 @@ static void _interflop_add_float_vector(const int size, const float *a, const fl
 
 static void _interflop_sub_float_vector(const int size, const float *a, const float *b,
                                         float *c, void *context) {
+  t_context *my_context = (t_context *)context;
+  
   perform_vector_binary_op(float, size, -, a, b, c);
+
+  count_vector(my_context, size, sub);
   for (int i = 0; i < size; ++i) {
     debug_print_float(context, ARITHMETIC, "-", a[i], b[i], c[i]);
   }
@@ -329,7 +376,11 @@ static void _interflop_sub_float_vector(const int size, const float *a, const fl
 
 static void _interflop_mul_float_vector(const int size, const float *a, const float *b,
                                         float *c, void *context) {
+  t_context *my_context = (t_context *)context;
+  
   perform_vector_binary_op(float, size, *, a, b, c);
+
+  count_vector(my_context, size, mul);
   for (int i = 0; i < size; ++i) {
     debug_print_float(context, ARITHMETIC, "*", a[i], b[i], c[i]);
   }
@@ -337,7 +388,11 @@ static void _interflop_mul_float_vector(const int size, const float *a, const fl
 
 static void _interflop_div_float_vector(const int size, const float *a, const float *b,
                                         float *c, void *context) {
+  t_context *my_context = (t_context *)context;
+  
   perform_vector_binary_op(float, size, /, a, b, c);
+
+  count_vector(my_context, size, div);
   for (int i = 0; i < size; ++i) {
     debug_print_float(context, ARITHMETIC, "/", a[i], b[i], c[i]);
   }
@@ -397,7 +452,11 @@ static void _interflop_cmp_double(const enum FCMP_PREDICATE p, const double a,
 
 static void _interflop_add_double_vector(const int size, const double *a, const double *b,
                                          double *c, void *context) {
+  t_context *my_context = (t_context *)context;
+  
   perform_vector_binary_op(double, size, +, a, b, c);
+
+  count_vector(my_context, size, add);
   for (int i = 0; i < size; ++i) {
     debug_print_double(context, ARITHMETIC, "+", a[i], b[i], c[i]);
   }
@@ -405,7 +464,11 @@ static void _interflop_add_double_vector(const int size, const double *a, const 
 
 static void _interflop_sub_double_vector(const int size, const double *a, const double *b,
                                          double *c, void *context) {
+  t_context *my_context = (t_context *)context;
+  
   perform_vector_binary_op(double, size, -, a, b, c);
+
+  count_vector(my_context, size, sub);
   for (int i = 0; i < size; ++i) {
     debug_print_double(context, ARITHMETIC, "-", a[i], b[i], c[i]);
   }
@@ -413,7 +476,11 @@ static void _interflop_sub_double_vector(const int size, const double *a, const 
 
 static void _interflop_mul_double_vector(const int size, const double *a, const double *b,
                                          double *c, void *context) {
+  t_context *my_context = (t_context *)context;
+  
   perform_vector_binary_op(double, size, *, a, b, c);
+
+  count_vector(my_context, size, mul);
   for (int i = 0; i < size; ++i) {
     debug_print_double(context, ARITHMETIC, "*", a[i], b[i], c[i]);
   }
@@ -421,7 +488,11 @@ static void _interflop_mul_double_vector(const int size, const double *a, const 
 
 static void _interflop_div_double_vector(const int size, const double *a, const double *b,
                                          double *c, void *context) {
+  t_context *my_context = (t_context *)context;
+
   perform_vector_binary_op(double, size, /, a, b, c);
+
+  count_vector(my_context, size, div);
   for (int i = 0; i < size; ++i) {
     debug_print_double(context, ARITHMETIC, "/", a[i], b[i], c[i]);
   }
@@ -482,11 +553,37 @@ void _interflop_finalize(void *context) {
   t_context *my_context = (t_context *)context;
 
   if (my_context->count_op) {
+    // Scalar
     fprintf(stderr, "operations count:\n");
     fprintf(stderr, "\t mul=%ld\n", my_context->mul_count);
     fprintf(stderr, "\t div=%ld\n", my_context->div_count);
     fprintf(stderr, "\t add=%ld\n", my_context->add_count);
     fprintf(stderr, "\t sub=%ld\n", my_context->sub_count);
+
+    // Vector
+    fprintf(stderr, "2x vector operations count:\n");
+    fprintf(stderr, "\t 2x_mul=%ld\n", my_context->_2x_mul_count);
+    fprintf(stderr, "\t 2x_div=%ld\n", my_context->_2x_div_count);
+    fprintf(stderr, "\t 2x_add=%ld\n", my_context->_2x_add_count);
+    fprintf(stderr, "\t 2x_sub=%ld\n", my_context->_2x_sub_count);
+
+    fprintf(stderr, "4x vector operations count:\n");
+    fprintf(stderr, "\t 4x_mul=%ld\n", my_context->_4x_mul_count);
+    fprintf(stderr, "\t 4x_div=%ld\n", my_context->_4x_div_count);
+    fprintf(stderr, "\t 4x_add=%ld\n", my_context->_4x_add_count);
+    fprintf(stderr, "\t 4x_sub=%ld\n", my_context->_4x_sub_count);
+
+    fprintf(stderr, "8x vector operations count:\n");
+    fprintf(stderr, "\t 8x_mul=%ld\n", my_context->_8x_mul_count);
+    fprintf(stderr, "\t 8x_div=%ld\n", my_context->_8x_div_count);
+    fprintf(stderr, "\t 8x_add=%ld\n", my_context->_8x_add_count);
+    fprintf(stderr, "\t 8x_sub=%ld\n", my_context->_8x_sub_count);
+
+    fprintf(stderr, "16x vector operations count:\n");
+    fprintf(stderr, "\t 16x_mul=%ld\n", my_context->_16x_mul_count);
+    fprintf(stderr, "\t 16x_div=%ld\n", my_context->_16x_div_count);
+    fprintf(stderr, "\t 16x_add=%ld\n", my_context->_16x_add_count);
+    fprintf(stderr, "\t 16x_sub=%ld\n", my_context->_16x_sub_count);
   };
 }
 
@@ -497,10 +594,34 @@ static void init_context(t_context *context) {
   context->print_new_line = false;
   context->print_subnormal_normalized = false;
   context->count_op = false;
+
+  // Scalar
   context->mul_count = 0;
   context->div_count = 0;
   context->add_count = 0;
   context->sub_count = 0;
+
+  // Vector
+  context->_2x_mul_count = 0;
+  context->_2x_div_count = 0;
+  context->_2x_add_count = 0;
+  context->_2x_sub_count = 0;
+
+  context->_4x_mul_count = 0;
+  context->_4x_div_count = 0;
+  context->_4x_add_count = 0;
+  context->_4x_sub_count = 0;
+
+  context->_8x_mul_count = 0;
+  context->_8x_div_count = 0;
+  context->_8x_add_count = 0;
+  context->_8x_sub_count = 0;
+
+  context->_16x_mul_count = 0;
+  context->_16x_div_count = 0;
+  context->_16x_add_count = 0;
+  context->_16x_sub_count = 0;
+
 }
 
 static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
