@@ -384,8 +384,6 @@ struct VfclibFunc : public ModulePass {
   VfclibFunc() : ModulePass(ID) { inst_cpt = 1; }
 
   virtual bool runOnModule(Module &M) {
-    TargetLibraryInfoWrapperPass TLIWP;
-
     FloatTy = Type::getFloatTy(M.getContext());
     FloatPtrTy = Type::getFloatPtrTy(M.getContext());
     DoubleTy = Type::getDoubleTy(M.getContext());
@@ -514,9 +512,11 @@ struct VfclibFunc : public ModulePass {
 
                   // Test if f is a library function //
 #if LLVM_VERSION_MAJOR >= 10
-                  const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
+                  const TargetLibraryInfo &TLI =
+                      getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(*f);
 #else
-                  const TargetLibraryInfo &TLI = TLIWP.getTLI();
+                  const TargetLibraryInfo &TLI =
+                      getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
 #endif
 
                   LibFunc libfunc;
