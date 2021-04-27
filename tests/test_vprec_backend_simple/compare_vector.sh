@@ -28,7 +28,7 @@ export VERIFICARLO_OP=$OP
 export VFC_BACKENDS="libinterflop_vprec.so ${precision_option[$TYPE]}=${PRECISION} ${range_option[$TYPE]}=${RANGE} --mode=${MODE}"
 
 rm -f compute_vprec_rounding_vector log.error mpfr_vector.txt vprec_vector.txt
-verificarlo-c -march=native compute_vprec_rounding_vector.c -o compute_vprec_rounding_vector
+verificarlo-c -DREAL=$TYPE -march=native compute_vprec_rounding_vector.c -o compute_vprec_rounding_vector
 
 while read a1 b1 && read a2 b2; do
     ./compute_mpfr_rounding.py $a1 $b1 $OP $TYPE >> mpfr_vector.txt
