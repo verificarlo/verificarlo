@@ -61,26 +61,26 @@ typedef struct {
   bool print_new_line;
   bool print_subnormal_normalized;
   bool count_op;
-  unsigned long int mul_count;
-  unsigned long int div_count;
-  unsigned long int add_count;
-  unsigned long int sub_count;
-  unsigned long int _2x_mul_count;
-  unsigned long int _2x_div_count;
-  unsigned long int _2x_add_count;
-  unsigned long int _2x_sub_count;
-  unsigned long int _4x_mul_count;
-  unsigned long int _4x_div_count;
-  unsigned long int _4x_add_count;
-  unsigned long int _4x_sub_count;
-  unsigned long int _8x_mul_count;
-  unsigned long int _8x_div_count;
-  unsigned long int _8x_add_count;
-  unsigned long int _8x_sub_count;
-  unsigned long int _16x_mul_count;
-  unsigned long int _16x_div_count;
-  unsigned long int _16x_add_count;
-  unsigned long int _16x_sub_count;
+  unsigned long long mul_count;
+  unsigned long long div_count;
+  unsigned long long add_count;
+  unsigned long long sub_count;
+  unsigned long long _2x_mul_count;
+  unsigned long long _2x_div_count;
+  unsigned long long _2x_add_count;
+  unsigned long long _2x_sub_count;
+  unsigned long long _4x_mul_count;
+  unsigned long long _4x_div_count;
+  unsigned long long _4x_add_count;
+  unsigned long long _4x_sub_count;
+  unsigned long long _8x_mul_count;
+  unsigned long long _8x_div_count;
+  unsigned long long _8x_add_count;
+  unsigned long long _8x_sub_count;
+  unsigned long long _16x_mul_count;
+  unsigned long long _16x_div_count;
+  unsigned long long _16x_add_count;
+  unsigned long long _16x_sub_count;
 } t_context;
 
 typedef enum {
@@ -553,37 +553,79 @@ void _interflop_finalize(void *context) {
   t_context *my_context = (t_context *)context;
 
   if (my_context->count_op) {
-    // Scalar
+    // Total vector count
+    unsigned long long total_vector_mul_count =
+      my_context->_2x_mul_count
+      + my_context->_4x_mul_count
+      + my_context->_8x_mul_count
+      + my_context->_16x_mul_count;
+
+    unsigned long long total_vector_div_count =
+      my_context->_2x_div_count
+      + my_context->_4x_div_count
+      + my_context->_8x_div_count
+      + my_context->_16x_div_count;
+
+    unsigned long long total_vector_add_count =
+      my_context->_2x_add_count
+      + my_context->_4x_add_count
+      + my_context->_8x_add_count
+      + my_context->_16x_add_count;
+
+    unsigned long long total_vector_sub_count =
+      my_context->_2x_sub_count
+      + my_context->_4x_sub_count
+      + my_context->_8x_sub_count
+      + my_context->_16x_sub_count;
+
+    // Total count
+    unsigned long long total_mul_count =
+      my_context->mul_count + total_vector_mul_count;
+
+    unsigned long long total_div_count =
+      my_context->div_count + total_vector_div_count;
+
+    unsigned long long total_add_count =
+      my_context->add_count + total_vector_add_count;
+
+    unsigned long long total_sub_count =
+      my_context->sub_count + total_vector_sub_count;
+
+    // Vectorized %
+    double mul_pourcent_vectorized =
+      ((double)total_vector_mul_count * 100) / (double)total_mul_count;
+
+    if (total_mul_count == 0)
+      mul_pourcent_vectorized = 0.0;
+
+    double div_pourcent_vectorized =
+      ((double)total_vector_div_count / (double)total_div_count) * 100;
+
+    if (total_div_count == 0)
+      div_pourcent_vectorized = 0.0;
+
+    double add_pourcent_vectorized =
+      ((double)total_vector_add_count * 100) / (double)total_add_count;
+
+    if (total_add_count == 0)
+      add_pourcent_vectorized = 0.0;
+
+    double sub_pourcent_vectorized =
+      ((double)total_vector_sub_count / (double)total_sub_count) * 100;
+
+    if (total_sub_count == 0)
+      sub_pourcent_vectorized = 0.0;
+
+    // Overview
     fprintf(stderr, "operations count:\n");
-    fprintf(stderr, "\t mul=%ld\n", my_context->mul_count);
-    fprintf(stderr, "\t div=%ld\n", my_context->div_count);
-    fprintf(stderr, "\t add=%ld\n", my_context->add_count);
-    fprintf(stderr, "\t sub=%ld\n", my_context->sub_count);
-
-    // Vector
-    fprintf(stderr, "2x vector operations count:\n");
-    fprintf(stderr, "\t 2x_mul=%ld\n", my_context->_2x_mul_count);
-    fprintf(stderr, "\t 2x_div=%ld\n", my_context->_2x_div_count);
-    fprintf(stderr, "\t 2x_add=%ld\n", my_context->_2x_add_count);
-    fprintf(stderr, "\t 2x_sub=%ld\n", my_context->_2x_sub_count);
-
-    fprintf(stderr, "4x vector operations count:\n");
-    fprintf(stderr, "\t 4x_mul=%ld\n", my_context->_4x_mul_count);
-    fprintf(stderr, "\t 4x_div=%ld\n", my_context->_4x_div_count);
-    fprintf(stderr, "\t 4x_add=%ld\n", my_context->_4x_add_count);
-    fprintf(stderr, "\t 4x_sub=%ld\n", my_context->_4x_sub_count);
-
-    fprintf(stderr, "8x vector operations count:\n");
-    fprintf(stderr, "\t 8x_mul=%ld\n", my_context->_8x_mul_count);
-    fprintf(stderr, "\t 8x_div=%ld\n", my_context->_8x_div_count);
-    fprintf(stderr, "\t 8x_add=%ld\n", my_context->_8x_add_count);
-    fprintf(stderr, "\t 8x_sub=%ld\n", my_context->_8x_sub_count);
-
-    fprintf(stderr, "16x vector operations count:\n");
-    fprintf(stderr, "\t 16x_mul=%ld\n", my_context->_16x_mul_count);
-    fprintf(stderr, "\t 16x_div=%ld\n", my_context->_16x_div_count);
-    fprintf(stderr, "\t 16x_add=%ld\n", my_context->_16x_add_count);
-    fprintf(stderr, "\t 16x_sub=%ld\n", my_context->_16x_sub_count);
+    fprintf(stderr, "\t mul = %lld total count; %6.2f%% vectorized\n", total_mul_count,
+            mul_pourcent_vectorized);
+    fprintf(stderr, "\t div = %lld total count; %6.2f%% vectorized\n", total_div_count,
+            div_pourcent_vectorized);
+    fprintf(stderr, "\t add = %lld total count; %6.2f%% vectorized\n", total_add_count,
+            add_pourcent_vectorized);
+    fprintf(stderr, "\t sub = %lld total count; %6.2f%% vectorized\n", total_sub_count,
+            sub_pourcent_vectorized);
   };
 }
 
