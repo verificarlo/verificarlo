@@ -49,4 +49,9 @@ void round_binary32_normal_x16(float *x, int16 precision);
 double round_binary64_normal(double x, int precision);
 double handle_binary64_denormal(double x, int emin, int precision);
 
+void round_binary64_normal_x2(double *x, int64_2x precision);
+void round_binary64_normal_x4(double *x, int64_4x precision);
+void round_binary64_normal_x8(double *x, int64_8x precision);
+void round_binary64_normal_x16(double *x, int64_16x precision);
+
 #endif /* __VPREC_TOOLS_H__ */

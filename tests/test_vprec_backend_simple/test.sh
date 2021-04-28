@@ -51,7 +51,7 @@ cat > input.txt << EOF
 -0x1.6312bf6a7f2f8p-0 -0x1.5b403af9711e8p-1
 EOF
 
-./compare_vector.sh FULL 2 3 float x input.txt
+./compare_vector.sh FULL 6 23 float x input.txt
 
 ## Denormal tests for range 2, precision 23
 cat > input.txt << EOF
@@ -67,5 +67,5 @@ cat > input.txt << EOF
 -0x1.6312bf6a7f2f8p-0 -0x1.5b403af9711e8p-1
 EOF
 
-./compare_vector.sh FULL 2 3 double x input.txt
+./compare_vector.sh FULL 10 23 double x input.txt
 

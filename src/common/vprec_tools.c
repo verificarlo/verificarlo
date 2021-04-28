@@ -25,6 +25,7 @@
  *****************************************************************************/
 
 #include "vprec_tools.h"
+#include "float_type.h"
 #include "float_const.h"
 #include "float_struct.h"
 
@@ -118,6 +119,37 @@ inline double round_binary64_normal(double x, int precision) {
 
   return b64x.f64;
 }
+
+/**
+ * Macro which define vector function to round binary64 normal
+ */
+#define define_round_binary64_normal_vector(size)                              \
+  void round_binary64_normal_x##size(double *x, int64_##size##x precision) {   \
+    double##size a = *(double##size *)x;                                       \
+    /* build 1/2 ulp and add it  before truncation for faithfull rounding */   \
+                                                                               \
+    /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other words,\
+       there remain VPRECLIB_PREC bits in the mantissa */                      \
+    const int64_##size##x mask = 0xFFFFFFFF << (DOUBLE_PMAN_SIZE - precision); \
+                                                                               \
+    /* position to the end of the target prec-1 */                             \
+    const int64_##size##x target_position = DOUBLE_PMAN_SIZE - precision - 1;  \
+                                                                               \
+    binary64_##size##x b64x = {.f64 = a};                                      \
+    DOUBLE_SET_PMAN(b64x.ieee.mantissa, 0, size);                              \
+    binary64_##size##x half_ulp = {.f64 = a};                                  \
+    DOUBLE_SET_PMAN(half_ulp.ieee.mantissa, 1 << target_position, size);       \
+                                                                               \
+    b64x.f64 = a + (half_ulp.f64 - b64x.f64);                                  \
+    b64x.u64 &= mask;                                                          \
+    x = (double *)&a;                                                          \
+  }
+
+/* Using above macro */
+define_round_binary64_normal_vector(2);
+define_round_binary64_normal_vector(4);
+define_round_binary64_normal_vector(8);
+define_round_binary64_normal_vector(16);
 
 inline static double round_binary_denormal(double x, int emin, int precision) {
   /* emin represents the lowest exponent in the normal range */

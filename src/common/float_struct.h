@@ -252,6 +252,12 @@ typedef union {
 #endif
 #endif
 
+// Define binary64 vector type
+define_binary64_vector(2);
+define_binary64_vector(4);
+define_binary64_vector(8);
+define_binary64_vector(16);
+
 typedef union {
 
   float f32;
@@ -279,10 +285,10 @@ typedef union {
 
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 
-#define define_binary32_vector(precision, size)                                \
+#define define_binary32_vector(size)                                           \
   typedef union {                                                              \
                                                                                \
-    precision##size f32;                                                       \
+    float##size f32;                                                           \
     uint32_##size##x u32;                                                      \
     int32_##size##x s32;                                                       \
                                                                                \
@@ -302,10 +308,10 @@ typedef union {
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 
-#define define_binary32_vector(precision, size)                                \
+#define define_binary32_vector(size)                                           \
   typedef union {                                                              \
                                                                                \
-    precision##size f32;                                                       \
+    float##size f32;                                                           \
     uint32_##size##x u32;                                                      \
     int32_##size##x s32;                                                       \
                                                                                \
@@ -323,10 +329,11 @@ typedef union {
 
 #endif
 
-define_binary32_vector(float, 2);
-define_binary32_vector(float, 4);
-define_binary32_vector(float, 8);
-define_binary32_vector(float, 16);
+// Define binary32 vector type
+define_binary32_vector(2);
+define_binary32_vector(4);
+define_binary32_vector(8);
+define_binary32_vector(16);
 
 #define QUADFP_NAN 0
 #define QUADFP_INFINITE 1
