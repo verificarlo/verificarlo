@@ -648,22 +648,26 @@ void _interflop_finalize(void *context) {
 
     // Overview
     fprintf(stderr, "operations count:\n");
-    fprintf(stderr, "\t mul = %lld total count; %6.2f%% vectorized; "
-            "%6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x; %6.2f%% 16x\n",
-            total_mul_count, mul_pourcent_vectorized,
-            mul_pourcent_2x, mul_pourcent_4x, mul_pourcent_8x, mul_pourcent_16x);
-    fprintf(stderr, "\t div = %lld total count; %6.2f%% vectorized; "
-            "%6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x; %6.2f%% 16x\n",
-            total_div_count, div_pourcent_vectorized,
-            div_pourcent_2x, div_pourcent_4x, div_pourcent_8x, div_pourcent_16x);
-    fprintf(stderr, "\t add = %lld total count; %6.2f%% vectorized; "
-            "%6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x; %6.2f%% 16x\n",
-            total_add_count, add_pourcent_vectorized,
-            add_pourcent_2x, add_pourcent_4x, add_pourcent_8x, add_pourcent_16x);
-    fprintf(stderr, "\t sub = %lld total count; %6.2f%% vectorized; "
-            "%6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x; %6.2f%% 16x\n",
-            total_sub_count, sub_pourcent_vectorized,
-            sub_pourcent_2x, sub_pourcent_4x, sub_pourcent_8x, sub_pourcent_16x);
+    fprintf(stderr, "\t mul = %lld total count; %6.2f%% vectorized\n",
+            total_mul_count, mul_pourcent_vectorized);
+    fprintf(stderr, "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n", mul_pourcent_2x, mul_pourcent_4x,
+            mul_pourcent_8x, mul_pourcent_16x);
+    fprintf(stderr, "\t div = %lld total count; %6.2f%% vectorized\n",
+            total_div_count, div_pourcent_vectorized);
+    fprintf(stderr, "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n", div_pourcent_2x, div_pourcent_4x,
+            div_pourcent_8x, div_pourcent_16x);
+    fprintf(stderr, "\t add = %lld total count; %6.2f%% vectorized\n",
+            total_add_count, add_pourcent_vectorized);
+    fprintf(stderr, "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n", add_pourcent_2x, add_pourcent_4x,
+            add_pourcent_8x, add_pourcent_16x);
+    fprintf(stderr, "\t sub = %lld total count; %6.2f%% vectorized\n",
+            total_sub_count, sub_pourcent_vectorized);
+    fprintf(stderr, "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n", sub_pourcent_2x, sub_pourcent_4x,
+            sub_pourcent_8x, sub_pourcent_16x);
   };
 }
 
