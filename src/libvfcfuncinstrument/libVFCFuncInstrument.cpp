@@ -408,11 +408,6 @@ struct VfclibFunc : public ModulePass {
       if ((F.getName().str() != "main") && F.size() != 0) {
         OriginalFunctions.push_back(&F);
       }
-    }
-    /*************************************************************************
-     *                  Gather all library calls                             *
-     *************************************************************************/
-    for (auto &F : M) {
 #if LLVM_VERSION_MAJOR >= 10
       TLI = &(getAnalysis<TargetLibraryInfoWrapperPass>()).getTLI(F);
 #else
