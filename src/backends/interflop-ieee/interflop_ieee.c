@@ -548,6 +548,15 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
+#define define_specific_pourcent_depend_on_size(op, size)                      \
+  double op##_pourcent_##size##x =                                             \
+    ((double)my_context->_##size##x_##op##_count * 100)                        \
+    / (double)total_##op##_count;                                              \
+                                                                               \
+  if (my_context->_##size##x_##op##_count == 0)                                \
+    op##_pourcent_##size##x = 0.0;
+
+
 void _interflop_finalize(void *context) {
 
   t_context *my_context = (t_context *)context;
@@ -616,16 +625,45 @@ void _interflop_finalize(void *context) {
     if (total_sub_count == 0)
       sub_pourcent_vectorized = 0.0;
 
+    // Xx %
+    define_specific_pourcent_depend_on_size(mul, 2);
+    define_specific_pourcent_depend_on_size(mul, 4);
+    define_specific_pourcent_depend_on_size(mul, 8);
+    define_specific_pourcent_depend_on_size(mul, 16);
+
+    define_specific_pourcent_depend_on_size(div, 2);
+    define_specific_pourcent_depend_on_size(div, 4);
+    define_specific_pourcent_depend_on_size(div, 8);
+    define_specific_pourcent_depend_on_size(div, 16);
+
+    define_specific_pourcent_depend_on_size(add, 2);
+    define_specific_pourcent_depend_on_size(add, 4);
+    define_specific_pourcent_depend_on_size(add, 8);
+    define_specific_pourcent_depend_on_size(add, 16);
+
+    define_specific_pourcent_depend_on_size(sub, 2);
+    define_specific_pourcent_depend_on_size(sub, 4);
+    define_specific_pourcent_depend_on_size(sub, 8);
+    define_specific_pourcent_depend_on_size(sub, 16);
+
     // Overview
     fprintf(stderr, "operations count:\n");
-    fprintf(stderr, "\t mul = %lld total count; %6.2f%% vectorized\n", total_mul_count,
-            mul_pourcent_vectorized);
-    fprintf(stderr, "\t div = %lld total count; %6.2f%% vectorized\n", total_div_count,
-            div_pourcent_vectorized);
-    fprintf(stderr, "\t add = %lld total count; %6.2f%% vectorized\n", total_add_count,
-            add_pourcent_vectorized);
-    fprintf(stderr, "\t sub = %lld total count; %6.2f%% vectorized\n", total_sub_count,
-            sub_pourcent_vectorized);
+    fprintf(stderr, "\t mul = %lld total count; %6.2f%% vectorized; "
+            "%6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x; %6.2f%% 16x\n",
+            total_mul_count, mul_pourcent_vectorized,
+            mul_pourcent_2x, mul_pourcent_4x, mul_pourcent_8x, mul_pourcent_16x);
+    fprintf(stderr, "\t div = %lld total count; %6.2f%% vectorized; "
+            "%6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x; %6.2f%% 16x\n",
+            total_div_count, div_pourcent_vectorized,
+            div_pourcent_2x, div_pourcent_4x, div_pourcent_8x, div_pourcent_16x);
+    fprintf(stderr, "\t add = %lld total count; %6.2f%% vectorized; "
+            "%6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x; %6.2f%% 16x\n",
+            total_add_count, add_pourcent_vectorized,
+            add_pourcent_2x, add_pourcent_4x, add_pourcent_8x, add_pourcent_16x);
+    fprintf(stderr, "\t sub = %lld total count; %6.2f%% vectorized; "
+            "%6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x; %6.2f%% 16x\n",
+            total_sub_count, sub_pourcent_vectorized,
+            sub_pourcent_2x, sub_pourcent_4x, sub_pourcent_8x, sub_pourcent_16x);
   };
 }
 
