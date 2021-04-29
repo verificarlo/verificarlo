@@ -384,6 +384,10 @@ struct VfclibFunc : public ModulePass {
   VfclibFunc() : ModulePass(ID) { inst_cpt = 1; }
 
   virtual bool runOnModule(Module &M) {
+    TargetLibraryInfo *TLI;
+    LibFunc inbuilt_func;
+    std::set<StringRef> builtins;
+
     FloatTy = Type::getFloatTy(M.getContext());
     FloatPtrTy = Type::getFloatPtrTy(M.getContext());
     DoubleTy = Type::getDoubleTy(M.getContext());
@@ -403,6 +407,19 @@ struct VfclibFunc : public ModulePass {
     for (auto &F : M) {
       if ((F.getName().str() != "main") && F.size() != 0) {
         OriginalFunctions.push_back(&F);
+      }
+    }
+    /*************************************************************************
+     *                  Gather all library calls                             *
+     *************************************************************************/
+    for (auto &F : M) {
+#if LLVM_VERSION_MAJOR >= 10
+      TLI = &(getAnalysis<TargetLibraryInfoWrapperPass>()).getTLI(F);
+#else
+      TLI = &(getAnalysis<TargetLibraryInfoWrapperPass>()).getTLI();
+#endif
+      if (TLI->getLibFunc(F, inbuilt_func)) {
+        builtins.insert(F.getFunction().getName());
       }
     }
 
@@ -510,18 +527,8 @@ struct VfclibFunc : public ModulePass {
                                              "/" + Line + "/" +
                                              std::to_string(++inst_cpt);
 
-                  // Test if f is a library function //
-#if LLVM_VERSION_MAJOR >= 10
-                  const TargetLibraryInfo &TLI =
-                      getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(*f);
-#else
-                  const TargetLibraryInfo &TLI =
-                      getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
-#endif
-
-                  LibFunc libfunc;
-
-                  bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
+                  bool is_from_library =
+                      builtins.find(f->getName()) != builtins.end();
 
                   // Test if f is instrinsic //
                   bool is_intrinsic = f->isIntrinsic();
