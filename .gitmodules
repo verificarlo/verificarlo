@@ -1,0 +1,3 @@
+[submodule "src/sigdigits"]
+	path = src/sigdigits
+	url = https://github.com/verificarlo/significantdigits

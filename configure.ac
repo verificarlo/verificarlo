@@ -163,6 +163,12 @@ fi
 AX_PYTHON_MODULE(numpy, fatal)
 AX_PYTHON_MODULE(bigfloat, fatal)
 AX_PYTHON_MODULE(pandas, fatal)
+AX_PYTHON_MODULE(tables, fatal)
+AX_PYTHON_MODULE(scipy, fatal)
+AX_PYTHON_MODULE(GitPython, fatal)
+AX_PYTHON_MODULE(jinja2, fatal)
+AX_PYTHON_MODULE(bokeh, fatal)
+
 
 AC_ARG_ENABLE(wall, AC_HELP_STRING([--enable-wall], [Enable -Wall compilation flag]), [WALL_CFLAGS="yes"])
 AM_CONDITIONAL([WALL_CFLAGS], [test "x$WALL_CFLAGS" = "xyes"])
@@ -179,6 +185,7 @@ AC_CONFIG_FILES([Makefile
                  src/libvfcinstrument/Makefile
                  src/libvfcfuncinstrument/Makefile
                  src/vfcwrapper/Makefile
+                 src/ci/Makefile
                  src/backends/Makefile
                  src/backends/interflop-ieee/Makefile
                  src/backends/interflop-mca/Makefile
