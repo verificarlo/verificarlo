@@ -165,7 +165,7 @@ AX_PYTHON_MODULE(bigfloat, fatal)
 AX_PYTHON_MODULE(pandas, fatal)
 AX_PYTHON_MODULE(tables, fatal)
 AX_PYTHON_MODULE(scipy, fatal)
-AX_PYTHON_MODULE(GitPython, fatal)
+AX_PYTHON_MODULE(git, fatal)
 AX_PYTHON_MODULE(jinja2, fatal)
 AX_PYTHON_MODULE(bokeh, fatal)
 
@@ -186,6 +186,9 @@ AC_CONFIG_FILES([Makefile
                  src/libvfcfuncinstrument/Makefile
                  src/vfcwrapper/Makefile
                  src/ci/Makefile
+                 src/ci/vfc_ci_report/Makefile
+                 src/ci/vfc_ci_report/templates/Makefile
+                 src/ci/workflow_templates/Makefile
                  src/backends/Makefile
                  src/backends/interflop-ieee/Makefile
                  src/backends/interflop-mca/Makefile
