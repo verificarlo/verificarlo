@@ -43,6 +43,7 @@
 #include <string.h>
 #include <strings.h>
 
+#include "../../common/float_type.h"
 #include "../../common/float_const.h"
 #include "../../common/float_struct.h"
 #include "../../common/float_utils.h"
@@ -407,6 +408,67 @@ inline int compute_absErr_vprec_binary64(bool isDenormal,
   }
 }
 
+#define define_compute_absErr_vprec_binary64_vector(size)                      \
+  int64_##size##x compute_absErr_vprec_binary64_##size##x(bool isDenormal,     \
+                                                          t_context            \
+                                                          *currentContext,     \
+                                                          int64_##size##x      \
+                                                          expDiff,             \
+                                                          int64_t              \
+                                                          binary64_precision)  \
+  {                                                                            \
+                                                                               \
+    /* this function is used only when in vprec error mode abs and all,        \
+     * so there is no need to handle vprec error mode rel */                   \
+    if (isDenormal == true) {                                                  \
+      /* denormal, or underflow case */                                        \
+      if (currentContext->relErr == true) {                                    \
+        /* vprec error mode all */                                             \
+        if (abs(currentContext->absErr_exp) < binary64_precision)              \
+          return currentContext->absErr_exp;                                   \
+        else                                                                   \
+          return (int64_##size##x)binary64_precision;                          \
+      } else {                                                                 \
+        /* vprec error mode abs */                                             \
+        return (int64_##size##x)currentContext->absErr_exp;                    \
+      }                                                                        \
+    } else {                                                                   \
+      /* normal case */                                                        \
+      if (currentContext->relErr == true) {                                    \
+        /* vprec error mode all */                                             \
+        int64_##size##x res = 0;                                               \
+        int64_##size##x res_test = expDiff < binary64_precision;               \
+                                                                               \
+        for (int i = 0; i < size; i++) {                                       \
+          if (res_test[i])                                                     \
+            res[i] = expDiff[i];                                               \
+          else {                                                               \
+            res[i] = binary64_precision;                                       \
+          }                                                                    \
+        }                                                                      \
+        return res;                                                            \
+      } else {                                                                 \
+        /* vprec error mode abs */                                             \
+        int64_##size##x res = 0;                                               \
+        int64_##size##x res_test = expDiff < FLOAT_PMAN_SIZE;                  \
+                                                                               \
+        for (int i = 0; i < size; i++) {                                       \
+          if (res_test[i])                                                     \
+            res[i] = expDiff[i];                                               \
+          else {                                                               \
+            res[i] = FLOAT_PMAN_SIZE;                                          \
+          }                                                                    \
+        }                                                                      \
+        return res;                                                            \
+      }                                                                        \
+    }                                                                          \
+  }
+
+define_compute_absErr_vprec_binary64_vector(2);
+define_compute_absErr_vprec_binary64_vector(4);
+define_compute_absErr_vprec_binary64_vector(8);
+define_compute_absErr_vprec_binary64_vector(16);
+
 inline float handle_binary32_normal_absErr(float a, int32_t aexp,
                                            int binary32_precision,
                                            t_context *currentContext) {
@@ -521,6 +583,68 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
   return retVal;
 }
 
+// Macro to define vector function for normal absolute error mode
+#define define_handle_binary64_normal_absErr_vector(size)                      \
+  void handle_binary64_normal_absErr_##size##x(double *a,                      \
+                                               int64_##size##x aexp,           \
+                                               int64_t binary64_precision,     \
+                                               t_context *currentContext) {    \
+                                                                               \
+    /* absolute error mode, or both absolute and relative error modes */       \
+    int64_##size##x expDiff = aexp - currentContext->absErr_exp;               \
+    double##size retVal;                                                       \
+    int##size set = 0;                                                         \
+    int count = 0;                                                             \
+                                                                               \
+    for (int i = 0; i < size; i++) {                                           \
+      if (expDiff[i] < -1) {                                                   \
+        /* equivalent to underflow on the precision given by absolute error */ \
+        a[i] = 0;                                                              \
+        set[i] = 1;                                                            \
+        count++;                                                               \
+      } else if (expDiff[i] == -1) {                                           \
+        /* case when the number is just below the absolute error threshold,    \
+           but will round to one ulp on the format given by the absolute error;\
+           this needs to be handled separately, as round_binary64_normal cannot\
+           generate this number */                                             \
+        a[i] = copysignf(exp2f(currentContext->absErr_exp), a[i]);             \
+        set[i] = 1;                                                            \
+        count++;                                                               \
+      }                                                                        \
+    }                                                                          \
+                                                                               \
+    if (count == 0) { /* we can vectorize */                                   \
+      /* normal case for the absolute error mode */                            \
+      int64_##size##x binary64_precision_adjusted =                            \
+        compute_absErr_vprec_binary64_##size##x(false, currentContext,         \
+                                                expDiff, binary64_precision);  \
+      round_binary64_normal_x##size(a, binary64_precision_adjusted);           \
+    } else { /* we can't vectorize */                                          \
+      for (int i = 0; i < size; i++) {                                         \
+        if (!set[i]) {                                                         \
+          if (expDiff[i] < -1) {                                               \
+            /* equivalent to underflow on the precision given by absolute      \
+               error */                                                        \
+            a[i] = 0;                                                          \
+          } else if (expDiff[i] == -1) {                                       \
+            /* case when the number is just below the absolute error threshold,\
+               but will round to one ulp on the format given by the absolute   \
+               error; this needs to be handled separately,                     \
+               as round_binary64_normal cannot generate this number */         \
+            a[i] = copysignf(exp2f(currentContext->absErr_exp), a[i]);         \
+          }                                                                    \
+        }                                                                      \
+      }                                                                        \
+    }                                                                          \
+  }
+
+
+// Declare all vector function for handle binary64 absolute error
+define_handle_binary64_normal_absErr_vector(2);
+define_handle_binary64_normal_absErr_vector(4);
+define_handle_binary64_normal_absErr_vector(8);
+define_handle_binary64_normal_absErr_vector(16);
+
 /******************** VPREC ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the VPREC operation. Operands
  * are first correctly rounded to the target precison format if inbound
@@ -550,8 +674,8 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
   };
 
 /* perform_vector_bin_op: call perform_binary_op with good type */
-/* cast pointer array of precision in clang vector type before performing the */
-/* operation */
+/* cast pointer array of precision in clang vector type before  */
+/* performing the operation */
 #define perform_binary_op_2x(precision, op, res, a, b)                         \
     perform_binary_op(op, (*(precision##2 *)res), (*(precision##2 *)a),        \
                       (*(precision##2 *)b));
@@ -564,8 +688,8 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
     perform_binary_op(op, (*(precision##8 *)res), (*(precision##8 *)a),        \
                       (*(precision##8 *)b));
 
-#define perform_binary_op_16x(precision, op, res, a, b)                         \
-    perform_binary_op(op, (*(precision##16 *)res), (*(precision##16 *)a),       \
+#define perform_binary_op_16x(precision, op, res, a, b)                        \
+    perform_binary_op(op, (*(precision##16 *)res), (*(precision##16 *)a),      \
                       (*(precision##16 *)b));
 
 // Round the float with the given precision
@@ -639,18 +763,6 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     int##size set = 0;                                                         \
     int count = 0;                                                             \
                                                                                \
-    for (int i = 0; i < size; ++i) {                                           \
-      if (!isfinite(a[i])) {                                                   \
-        set[i] = 1;                                                            \
-        count++;                                                               \
-      }                                                                        \
-    }                                                                          \
-                                                                               \
-    /* test if all vector is set */                                            \
-    if (count == size) {                                                       \
-      return;                                                                  \
-    }                                                                          \
-                                                                               \
     /* round to zero or set to infinity if underflow or overflow compare to */ \
     /* VPRECLIB_BINARY32_RANGE */                                              \
     int emax = (1 << (binary32_range - 1)) - 1;                                \
@@ -662,24 +774,23 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     aexp.s32 >>= (int32_##size##x)FLOAT_PMAN_SIZE;                             \
     aexp.s32 -= (int32_##size##x)FLOAT_EXP_COMP;                               \
                                                                                \
-    /* check for overflow in target range */                                   \
+    /* make a vector test */                                                   \
     int##size is_overflow = aexp.s32 > emax;                                   \
+                                                                               \
     for (int i = 0; i < size; i++) {                                           \
+      /* test if 'a[i]' is a special case */                                   \
+      if (!isfinite(a[i])) {                                                   \
+        set[i] = 1;                                                            \
+        count++;                                                               \
+      }                                                                        \
+                                                                               \
+      /* check for overflow in target range */                                 \
       if (is_overflow[i] && !set[i]) {                                         \
         a[i] = a[i] * INFINITY;                                                \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
-    }                                                                          \
                                                                                \
-    /* test if all vector is set */                                            \
-    if (count == size) {                                                       \
-      return;                                                                  \
-    }                                                                          \
-                                                                               \
-    int check = 0;                                                             \
-                                                                               \
-    for (int i = 0; i < size; i++) {                                           \
       /* check for underflow in target range */                                \
       if (aexp.s32[i] < emin && !set[i]) {                                     \
         /* underflow case: possibly a denormal */                              \
@@ -810,6 +921,113 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
   return a;
 }
 
+// Round the double vector with the given precision
+#define define_vprec_round_binary64_vector(size)                               \
+  static void _vprec_round_binary64_##size##x(double *a,                       \
+                                              char is_input,                   \
+                                              void *context,                   \
+                                              int64_t binary64_range,          \
+                                              int64_t binary64_precision) {    \
+    t_context *currentContext = (t_context *)context;                          \
+    int##size set = 0;                                                         \
+    int count = 0;                                                             \
+                                                                               \
+    /* round to zero or set to infinity if underflow or overflow compare to */ \
+    /* VPRECLIB_BINARY64_RANGE */                                              \
+    int64_t emax = (1 << (binary64_range - 1)) - 1;                            \
+    /* here emin is the smallest exponent in the *normal* range */             \
+    int64_t emin = 1 - emax;                                                   \
+                                                                               \
+    binary64_##size##x aexp = {.f64 = *(double##size *)a};                     \
+    aexp.s64 = (int64_##size##x)((DOUBLE_GET_EXP & aexp.u64));                 \
+    aexp.s64 >>= (int64_##size##x)DOUBLE_PMAN_SIZE;                            \
+    aexp.s64 -= (int64_##size##x)DOUBLE_EXP_COMP;                              \
+                                                                               \
+    /* make a vector test */                                                   \
+    int64_##size##x is_overflow = aexp.s64 > emax;                             \
+                                                                               \
+    for (int i = 0; i < size; i++) {                                           \
+      /* test if 'a[i]' is a special case */                                   \
+      if (!isfinite(a[i])) {                                                   \
+        set[i] = 1;                                                            \
+        count++;                                                               \
+      }                                                                        \
+                                                                               \
+      /* check for overflow in target range */                                 \
+      if (is_overflow[i] && !set[i]) {                                         \
+        a[i] = a[i] * INFINITY;                                                \
+        set[i] = 1;                                                            \
+        count++;                                                               \
+      }                                                                        \
+                                                                               \
+      /* check for underflow in target range */                                \
+      if (aexp.s64[i] < emin && !set[i]) {                                     \
+        /* underflow case: possibly a denormal */                              \
+        if ((currentContext->daz && is_input) ||                               \
+            (currentContext->ftz && !is_input)) {                              \
+          /* preserve sign */                                                  \
+          a[i] = a[i] * 0;                                                     \
+        } else if (FP_ZERO == fpclassify(a[i])) {                              \
+          continue;                                                            \
+        } else {                                                               \
+          if (currentContext->absErr == true) {                                \
+            /* absolute error mode, or both absolute and relative error        \
+               modes */                                                        \
+            int64_t binary64_precision_adjusted =                              \
+              compute_absErr_vprec_binary64(true, currentContext, 0,           \
+                                            binary64_precision);               \
+            a[i] = handle_binary64_denormal(a[i], emin,                        \
+                                            binary64_precision_adjusted);      \
+          } else {                                                             \
+            /* relative error mode */                                          \
+            a[i] = handle_binary64_denormal(a[i], emin, binary64_precision);   \
+          }                                                                    \
+        }                                                                      \
+        set[i] = 1;                                                            \
+        count++;                                                               \
+      }                                                                        \
+    }                                                                          \
+                                                                               \
+    /* test if all vector is set */                                            \
+    if (count == size) {                                                       \
+      return;                                                                  \
+    } else if (count != 0) {                                                   \
+      /* if one element is set we can't vectorized */                          \
+      for (int i = 0; i < size; i++) {                                         \
+        /* else, normal case: can be executed even if a                        \
+           previously rounded and truncated as denormal */                     \
+        if (currentContext->absErr == true) {                                  \
+          /* absolute error mode, or both absolute and relative error modes */ \
+          a[i] = handle_binary64_normal_absErr(a[i], aexp.s64[i],              \
+                                               binary64_precision,             \
+                                               currentContext);                \
+        } else {                                                               \
+          /* relative error mode */                                            \
+          a[i] = round_binary64_normal(a[i], binary64_precision);              \
+        }                                                                      \
+      }                                                                        \
+    } else {                                                                   \
+      /* we can vectorize because we are sure that the vector is normal */     \
+      /* else, normal case: can be executed even if a                          \
+         previously rounded and truncated as denormal */                       \
+      if (currentContext->absErr == true) {                                    \
+        /* absolute error mode, or both absolute and relative error modes */   \
+        handle_binary64_normal_absErr_##size##x(a, aexp.s64,                   \
+                                                binary64_precision,            \
+                                                currentContext);               \
+      } else {                                                                 \
+        /* relative error mode */                                              \
+        round_binary64_normal_x##size(a, binary64_precision);                  \
+      }                                                                        \
+    }                                                                          \
+  }
+
+// Declare all vector function for rounding binary64
+define_vprec_round_binary64_vector(2);
+define_vprec_round_binary64_vector(4);
+define_vprec_round_binary64_vector(8);
+define_vprec_round_binary64_vector(16);
+
 static inline float _vprec_binary32_binary_op(float a, float b,
                                               const vprec_operation op,
                                               void *context) {
@@ -933,27 +1151,76 @@ static inline void _vprec_binary64_binary_op_vector(const int size, double *a,
                                                     double *b, double *c,
                                                     const vprec_operation op,
                                                     void *context) {
-  if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
-    for (int i = 0; i < size; ++i) {
-      a[i] = _vprec_round_binary64(a[i], 1, context, VPRECLIB_BINARY64_RANGE,
-                                   VPRECLIB_BINARY64_PRECISION);
-      b[i] = _vprec_round_binary64(b[i], 1, context, VPRECLIB_BINARY64_RANGE,
-                                   VPRECLIB_BINARY64_PRECISION);
-    }
-  }
-  
-  for (int i = 0; i < size; ++i) {
-    perform_binary_op(op, c[i], a[i], b[i]);
-  }
+  switch (size)
+    {
+    case 2:
+      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
+        _vprec_round_binary64_2x(a, 1, context, VPRECLIB_BINARY64_RANGE,
+                                 VPRECLIB_BINARY64_PRECISION);
+        _vprec_round_binary64_2x(b, 1, context, VPRECLIB_BINARY64_RANGE,
+                                 VPRECLIB_BINARY64_PRECISION);
+      }
+          
+      perform_binary_op_2x(double, op, c, a, b);
 
-  if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
-    for (int i = 0; i < size; ++i) {
-      c[i] = _vprec_round_binary64(c[i], 0, context, VPRECLIB_BINARY64_RANGE,
-                                   VPRECLIB_BINARY64_PRECISION);
+      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
+        _vprec_round_binary64_2x(c, 0, context, VPRECLIB_BINARY64_RANGE,
+                                 VPRECLIB_BINARY64_PRECISION);
+      }
+        
+      break;
+    case 4:
+      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
+        _vprec_round_binary64_4x(a, 1, context, VPRECLIB_BINARY64_RANGE,
+                                 VPRECLIB_BINARY64_PRECISION);
+        _vprec_round_binary64_4x(b, 1, context, VPRECLIB_BINARY64_RANGE,
+                                 VPRECLIB_BINARY64_PRECISION);
+      }
+          
+      perform_binary_op_4x(double, op, c, a, b);
+
+      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
+        _vprec_round_binary64_4x(c, 0, context, VPRECLIB_BINARY64_RANGE,
+                                 VPRECLIB_BINARY64_PRECISION);
+      }
+        
+      break;
+    case 8:
+      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
+        _vprec_round_binary64_8x(a, 1, context, VPRECLIB_BINARY64_RANGE,
+                                 VPRECLIB_BINARY64_PRECISION);
+        _vprec_round_binary64_8x(b, 1, context, VPRECLIB_BINARY64_RANGE,
+                                 VPRECLIB_BINARY64_PRECISION);
+      }
+          
+      perform_binary_op_8x(double, op, c, a, b);
+
+      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
+        _vprec_round_binary64_8x(c, 0, context, VPRECLIB_BINARY64_RANGE,
+                                 VPRECLIB_BINARY64_PRECISION);
+      }
+        
+      break;
+    case 16:
+      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
+        _vprec_round_binary64_16x(a, 1, context, VPRECLIB_BINARY64_RANGE,
+                                  VPRECLIB_BINARY64_PRECISION);
+        _vprec_round_binary64_16x(b, 1, context, VPRECLIB_BINARY64_RANGE,
+                                  VPRECLIB_BINARY64_PRECISION);
+      }
+          
+      perform_binary_op_16x(double, op, c, a, b);
+
+      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
+        _vprec_round_binary64_16x(c, 0, context, VPRECLIB_BINARY64_RANGE,
+                                  VPRECLIB_BINARY64_PRECISION);
+      }
+        
+      break;
+    default:
+      break;
     }
-  }
 }
-
 
 /******************** VPREC INSTRUMENTATION FUNCTIONS ********************
  * The following set of functions is used to apply vprec on instrumented
