@@ -72,7 +72,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
   * LLVM, clang and opt from 4.0 up to 11.0.1, http://clang.llvm.org/
   * gcc from 4.9
   * flang for Fortran support
-  * python3 with numpy and bigfloat packages
+  * python3 with numpy, bigfloat and pandas packages
   * autotools (automake, autoconf)
 
 Then run the following command inside verificarlo directory:
@@ -91,8 +91,9 @@ install procedure:
 
 ```bash
    $ sudo apt-get install libmpfr-dev clang-7 flang-7 llvm-7-dev \
-       gcc-7 autoconf automake build-essential python3 python3-numpy python3-pip
-   $ sudo pip3 install bigfloat
+       gcc-7 autoconf automake libtool build-essential python3 python3-numpy \
+       python3-pip
+   $ sudo pip3 install bigfloat pandas
    $ cd verificarlo/
    $ ./autogen.sh
    $ ./configure --with-flang CC=gcc-7 CXX=g++-7
