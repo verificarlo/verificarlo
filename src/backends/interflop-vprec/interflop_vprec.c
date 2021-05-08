@@ -674,8 +674,8 @@ define_handle_binary64_normal_absErr_vector(16);
   };
 
 /* perform_vector_bin_op: call perform_binary_op with good type */
-/* cast pointer array of precision in clang vector type before performing the */
-/* operation */
+/* cast pointer array of precision in clang vector type before  */
+/* performing the operation */
 #define perform_binary_op_2x(precision, op, res, a, b)                         \
     perform_binary_op(op, (*(precision##2 *)res), (*(precision##2 *)a),        \
                       (*(precision##2 *)b));
@@ -688,8 +688,8 @@ define_handle_binary64_normal_absErr_vector(16);
     perform_binary_op(op, (*(precision##8 *)res), (*(precision##8 *)a),        \
                       (*(precision##8 *)b));
 
-#define perform_binary_op_16x(precision, op, res, a, b)                         \
-    perform_binary_op(op, (*(precision##16 *)res), (*(precision##16 *)a),       \
+#define perform_binary_op_16x(precision, op, res, a, b)                        \
+    perform_binary_op(op, (*(precision##16 *)res), (*(precision##16 *)a),      \
                       (*(precision##16 *)b));
 
 // Round the float with the given precision
