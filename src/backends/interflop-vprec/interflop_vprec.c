@@ -763,18 +763,6 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     int##size set = 0;                                                         \
     int count = 0;                                                             \
                                                                                \
-    for (int i = 0; i < size; ++i) {                                           \
-      if (!isfinite(a[i])) {                                                   \
-        set[i] = 1;                                                            \
-        count++;                                                               \
-      }                                                                        \
-    }                                                                          \
-                                                                               \
-    /* test if all vector is set */                                            \
-    if (count == size) {                                                       \
-      return;                                                                  \
-    }                                                                          \
-                                                                               \
     /* round to zero or set to infinity if underflow or overflow compare to */ \
     /* VPRECLIB_BINARY32_RANGE */                                              \
     int emax = (1 << (binary32_range - 1)) - 1;                                \
@@ -786,24 +774,23 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     aexp.s32 >>= (int32_##size##x)FLOAT_PMAN_SIZE;                             \
     aexp.s32 -= (int32_##size##x)FLOAT_EXP_COMP;                               \
                                                                                \
-    /* check for overflow in target range */                                   \
+    /* make a vector test */                                                   \
     int##size is_overflow = aexp.s32 > emax;                                   \
+                                                                               \
     for (int i = 0; i < size; i++) {                                           \
+      /* test if 'a[i]' is a special case */                                   \
+      if (!isfinite(a[i])) {                                                   \
+        set[i] = 1;                                                            \
+        count++;                                                               \
+      }                                                                        \
+                                                                               \
+      /* check for overflow in target range */                                 \
       if (is_overflow[i] && !set[i]) {                                         \
         a[i] = a[i] * INFINITY;                                                \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
-    }                                                                          \
                                                                                \
-    /* test if all vector is set */                                            \
-    if (count == size) {                                                       \
-      return;                                                                  \
-    }                                                                          \
-                                                                               \
-    int check = 0;                                                             \
-                                                                               \
-    for (int i = 0; i < size; i++) {                                           \
       /* check for underflow in target range */                                \
       if (aexp.s32[i] < emin && !set[i]) {                                     \
         /* underflow case: possibly a denormal */                              \
@@ -945,18 +932,6 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     int##size set = 0;                                                         \
     int count = 0;                                                             \
                                                                                \
-    for (int i = 0; i < size; ++i) {                                           \
-      if (!isfinite(a[i])) {                                                   \
-        set[i] = 1;                                                            \
-        count++;                                                               \
-      }                                                                        \
-    }                                                                          \
-                                                                               \
-    /* test if all vector is set */                                            \
-    if (count == size) {                                                       \
-      return;                                                                  \
-    }                                                                          \
-                                                                               \
     /* round to zero or set to infinity if underflow or overflow compare to */ \
     /* VPRECLIB_BINARY64_RANGE */                                              \
     int64_t emax = (1 << (binary64_range - 1)) - 1;                            \
@@ -968,24 +943,23 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     aexp.s64 >>= (int64_##size##x)DOUBLE_PMAN_SIZE;                            \
     aexp.s64 -= (int64_##size##x)DOUBLE_EXP_COMP;                              \
                                                                                \
-    /* check for overflow in target range */                                   \
+    /* make a vector test */                                                   \
     int64_##size##x is_overflow = aexp.s64 > emax;                             \
+                                                                               \
     for (int i = 0; i < size; i++) {                                           \
+      /* test if 'a[i]' is a special case */                                   \
+      if (!isfinite(a[i])) {                                                   \
+        set[i] = 1;                                                            \
+        count++;                                                               \
+      }                                                                        \
+                                                                               \
+      /* check for overflow in target range */                                 \
       if (is_overflow[i] && !set[i]) {                                         \
         a[i] = a[i] * INFINITY;                                                \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
-    }                                                                          \
                                                                                \
-    /* test if all vector is set */                                            \
-    if (count == size) {                                                       \
-      return;                                                                  \
-    }                                                                          \
-                                                                               \
-    int check = 0;                                                             \
-                                                                               \
-    for (int i = 0; i < size; i++) {                                           \
       /* check for underflow in target range */                                \
       if (aexp.s64[i] < emin && !set[i]) {                                     \
         /* underflow case: possibly a denormal */                              \
