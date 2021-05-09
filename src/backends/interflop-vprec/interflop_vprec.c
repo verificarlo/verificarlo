@@ -783,16 +783,14 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
-                                                                               \
       /* check for overflow in target range */                                 \
-      if (is_overflow[i] && !set[i]) {                                         \
+      else if (is_overflow[i] && !set[i]) {                                    \
         a[i] = a[i] * INFINITY;                                                \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
-                                                                               \
       /* check for underflow in target range */                                \
-      if (aexp.s32[i] < emin && !set[i]) {                                     \
+      else if (aexp.s32[i] < emin && !set[i]) {                                \
         /* underflow case: possibly a denormal */                              \
         if ((currentContext->daz && is_input) ||                               \
             (currentContext->ftz && !is_input)) {                              \
@@ -952,16 +950,14 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
-                                                                               \
       /* check for overflow in target range */                                 \
-      if (is_overflow[i] && !set[i]) {                                         \
+      else if (is_overflow[i] && !set[i]) {                                    \
         a[i] = a[i] * INFINITY;                                                \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
-                                                                               \
       /* check for underflow in target range */                                \
-      if (aexp.s64[i] < emin && !set[i]) {                                     \
+      else if (aexp.s64[i] < emin && !set[i]) {                                \
         /* underflow case: possibly a denormal */                              \
         if ((currentContext->daz && is_input) ||                               \
             (currentContext->ftz && !is_input)) {                              \
