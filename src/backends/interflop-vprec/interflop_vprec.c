@@ -625,7 +625,7 @@ typedef struct _vprec_argument_data {
 // Metadata of function calls
 typedef struct _vprec_inst_function {
   // Id of the function
-  char id[500];
+  char *id;
   // Indicate if the function is from library
   short isLibraryFunction;
   // Indicate if the function is intrinsic
@@ -769,9 +769,11 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
   // if the function is not in the hashtable
   if (function_inst == NULL) {
-    function_inst = malloc(sizeof(_vprec_inst_function_t));
+    function_inst =
+        malloc(sizeof(_vprec_inst_function_t) + strlen(function_info->id));
 
     // initialize the structure
+    function_inst->id = (char *)malloc(strlen(function_inst->id));
     strcpy(function_inst->id, function_info->id);
     function_inst->isLibraryFunction = function_info->isLibraryFunction;
     function_inst->isIntrinsicFunction = function_info->isIntrinsicFunction;
