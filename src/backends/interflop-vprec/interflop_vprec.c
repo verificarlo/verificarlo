@@ -769,7 +769,8 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
   // if the function is not in the hashtable
   if (function_inst == NULL) {
-    function_inst = malloc(sizeof(_vprec_inst_function_t) + strlen(function_info->id));
+    function_inst =
+        malloc(sizeof(_vprec_inst_function_t) + strlen(function_info->id));
 
     // initialize the structure
     function_inst->id = (char *)malloc(strlen(function_inst->id));
