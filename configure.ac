@@ -185,10 +185,11 @@ AC_CONFIG_FILES([Makefile
                  src/libvfcinstrument/Makefile
                  src/libvfcfuncinstrument/Makefile
                  src/vfcwrapper/Makefile
-                 src/ci/Makefile
-                 src/ci/vfc_ci_report/Makefile
-                 src/ci/vfc_ci_report/templates/Makefile
-                 src/ci/workflow_templates/Makefile
+                 src/tools/Makefile
+                 src/tools/ci/Makefile
+                 src/tools/ci/vfc_ci_report/Makefile
+                 src/tools/ci/vfc_ci_report/templates/Makefile
+                 src/tools/ci/workflow_templates/Makefile
                  src/backends/Makefile
                  src/backends/interflop-ieee/Makefile
                  src/backends/interflop-mca/Makefile
