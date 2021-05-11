@@ -609,7 +609,7 @@ vfc_hashmap_t _vprec_func_map;
 // Metadata of arguments
 typedef struct _vprec_argument_data {
   // Identifier of the argument
-  char arg_id[100];
+  char arg_id[5000];
   // Data type of the argument 0 is float and 1 is double
   short data_type;
   // Minimum rounded value of the argument
@@ -625,7 +625,7 @@ typedef struct _vprec_argument_data {
 // Metadata of function calls
 typedef struct _vprec_inst_function {
   // Id of the function
-  char *id;
+  char id[5000];
   // Indicate if the function is from library
   short isLibraryFunction;
   // Indicate if the function is intrinsic
@@ -769,11 +769,6 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
   // if the function is not in the hashtable
   if (function_inst == NULL) {
-    function_inst =
-        malloc(sizeof(_vprec_inst_function_t) + strlen(function_info->id));
-
-    // initialize the structure
-    function_inst->id = (char *)malloc(strlen(function_inst->id));
     strcpy(function_inst->id, function_info->id);
     function_inst->isLibraryFunction = function_info->isLibraryFunction;
     function_inst->isIntrinsicFunction = function_info->isIntrinsicFunction;
