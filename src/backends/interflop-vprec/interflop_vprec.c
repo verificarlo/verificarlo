@@ -769,6 +769,8 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
   // if the function is not in the hashtable
   if (function_inst == NULL) {
+    function_inst = malloc(sizeof(_vprec_inst_function_t));
+
     strcpy(function_inst->id, function_info->id);
     function_inst->isLibraryFunction = function_info->isLibraryFunction;
     function_inst->isIntrinsicFunction = function_info->isIntrinsicFunction;
