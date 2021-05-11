@@ -609,7 +609,7 @@ vfc_hashmap_t _vprec_func_map;
 // Metadata of arguments
 typedef struct _vprec_argument_data {
   // Identifier of the argument
-  char arg_id[100];
+  char arg_id[5000];
   // Data type of the argument 0 is float and 1 is double
   short data_type;
   // Minimum rounded value of the argument
@@ -625,7 +625,7 @@ typedef struct _vprec_argument_data {
 // Metadata of function calls
 typedef struct _vprec_inst_function {
   // Id of the function
-  char id[500];
+  char id[5000];
   // Indicate if the function is from library
   short isLibraryFunction;
   // Indicate if the function is intrinsic
