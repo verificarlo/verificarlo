@@ -41,17 +41,17 @@
 float round_binary32_normal(float x, int precision);
 float handle_binary32_denormal(float x, int emin, int precision);
 
-void round_binary32_normal_x2(float *x, int2 precision);
-void round_binary32_normal_x4(float *x, int4 precision);
-void round_binary32_normal_x8(float *x, int8 precision);
-void round_binary32_normal_x16(float *x, int16 precision);
+void round_binary32_normal_2x(float2 *x, int2 precision);
+void round_binary32_normal_4x(float4 *x, int4 precision);
+void round_binary32_normal_8x(float8 *x, int8 precision);
+void round_binary32_normal_16x(float16 *x, int16 precision);
 
 double round_binary64_normal(double x, int precision);
 double handle_binary64_denormal(double x, int emin, int precision);
 
-void round_binary64_normal_x2(double *x, int64_2x precision);
-void round_binary64_normal_x4(double *x, int64_4x precision);
-void round_binary64_normal_x8(double *x, int64_8x precision);
-void round_binary64_normal_x16(double *x, int64_16x precision);
+void round_binary64_normal_2x(double2 *x, int64_2x precision);
+void round_binary64_normal_4x(double4 *x, int64_4x precision);
+void round_binary64_normal_8x(double8 *x, int64_8x precision);
+void round_binary64_normal_16x(double16 *x, int64_16x precision);
 
 #endif /* __VPREC_TOOLS_H__ */

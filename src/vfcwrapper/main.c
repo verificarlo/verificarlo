@@ -208,11 +208,11 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
 
 /* Checks that a least one of the loaded backend implements the chosen
  * vector operation at a given precision */
-#define check_backends_implements_vector(precision, operation)                 \
+#define check_backends_implements_vector(size, precision, operation)           \
   do {                                                                         \
     int res = 0;                                                               \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
-      if (backends[i].interflop_##operation##_##precision##_vector) {          \
+      if (backends[i].interflop_##operation##_##precision##_##size##x) {       \
         res = 1;                                                               \
         break;                                                                 \
       }                                                                        \
@@ -392,19 +392,58 @@ __attribute__((constructor(0))) static void vfc_init(void) {
 
   /* Check that at least one backend implements each required vector 
    * operation */
-  check_backends_implements_vector(float, add);
-  check_backends_implements_vector(float, sub);
-  check_backends_implements_vector(float, mul);
-  check_backends_implements_vector(float, div);
-  check_backends_implements_vector(double, add);
-  check_backends_implements_vector(double, sub);
-  check_backends_implements_vector(double, mul);
-  check_backends_implements_vector(double, div);
+    check_backends_implements_vector(2, float, add);
+    check_backends_implements_vector(2, float, sub);
+    check_backends_implements_vector(2, float, mul);
+    check_backends_implements_vector(2, float, div);
+    check_backends_implements_vector(2, double, add);
+    check_backends_implements_vector(2, double, sub);
+    check_backends_implements_vector(2, double, mul);
+    check_backends_implements_vector(2, double, div);
 #ifdef INST_FCMP
-  check_backends_implements_vector(float, cmp);
-  check_backends_implements_vector(double, cmp);
+    check_backends_implements_vector(2, float, cmp);
+    check_backends_implements_vector(2, double, cmp);
 #endif
 
+    check_backends_implements_vector(4, float, add);
+    check_backends_implements_vector(4, float, sub);
+    check_backends_implements_vector(4, float, mul);
+    check_backends_implements_vector(4, float, div);
+    check_backends_implements_vector(4, double, add);
+    check_backends_implements_vector(4, double, sub);
+    check_backends_implements_vector(4, double, mul);
+    check_backends_implements_vector(4, double, div);
+#ifdef INST_FCMP
+    check_backends_implements_vector(4, float, cmp);
+    check_backends_implements_vector(4, double, cmp);
+#endif
+
+    check_backends_implements_vector(8, float, add);
+    check_backends_implements_vector(8, float, sub);
+    check_backends_implements_vector(8, float, mul);
+    check_backends_implements_vector(8, float, div);
+    check_backends_implements_vector(8, double, add);
+    check_backends_implements_vector(8, double, sub);
+    check_backends_implements_vector(8, double, mul);
+    check_backends_implements_vector(8, double, div);
+#ifdef INST_FCMP
+    check_backends_implements_vector(8, float, cmp);
+    check_backends_implements_vector(8, double, cmp);
+#endif
+
+    check_backends_implements_vector(16, float, add);
+    check_backends_implements_vector(16, float, sub);
+    check_backends_implements_vector(16, float, mul);
+    check_backends_implements_vector(16, float, div);
+    check_backends_implements_vector(16, double, add);
+    check_backends_implements_vector(16, double, sub);
+    check_backends_implements_vector(16, double, mul);
+    check_backends_implements_vector(16, double, div);
+#ifdef INST_FCMP
+    check_backends_implements_vector(16, float, cmp);
+    check_backends_implements_vector(16, double, cmp);
+#endif
+    
 #ifdef DDEBUG
   /* Initialize ddebug */
   dd_must_instrument = vfc_hashmap_create();
@@ -509,13 +548,9 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
     precision##size c = NAN;                                                   \
     ddebug(operator);                                                          \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
-      if (backends[i].interflop_##operation##_##precision##_vector) {          \
+      if (backends[i].interflop_##operation##_##precision##_##size##x) {       \
         backends[i].interflop_##operation##_##precision##                      \
-          _vector(size,                                                        \
-                  (precision *)(&a),                                           \
-                  (precision *)(&b),                                           \
-                  (precision *)(&c),                                           \
-                  contexts[i]);                                                \
+          _##size##x(&a, &b, &c, contexts[i]);                                 \
       }                                                                        \
     }                                                                          \
     return c;                                                                  \
@@ -569,12 +604,9 @@ define_vector_arithmetic_wrapper(16, double, div, /);
                                        precision##size b) {                    \
     int##size c;                                                               \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
-      if (backends[i].interflop_cmp_##precision##_vector) {                    \
-        backends[i].interflop_cmp_##precision##_vector(p, size,                \
-                                                       (precision *)(&a),      \
-                                                       (precision *)(&b),      \
-                                                       (int *)(&c),            \
-                                                       contexts[i]);           \
+      if (backends[i].interflop_cmp_##precision##_##size##x) {                 \
+        backends[i].interflop_cmp_##precision##_##size##x(p, &a, &b, &c,       \
+                                                          contexts[i]);        \
       }                                                                        \
     }                                                                          \
     return c;                                                                  \

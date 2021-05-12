@@ -257,33 +257,56 @@ static inline void debug_print_double(void *context,
     break;                                                                     \
   }
 
-/* perform_vector_bin_op: applies the binary operator (op) to (a) and (b) */
-/* vector and stores the result in (res) vector */
-/* cast pointer array of precision in clang vector type before performing the */
-/* operation */
-#define perform_vector_binary_op(precision, size, op, a, b, c)                 \
-  switch (size) {                                                              \
-  case 2:                                                                      \
-    (*(precision##2 *)c) = (*(precision##2 *)a)                                \
-      op (*(precision##2 *)b);                                                 \
-    break;                                                                     \
-  case 4:                                                                      \
-    (*(precision##4 *)c) = (*(precision##4 *)a)                                \
-      op (*(precision##4 *)b);                                                 \
-    break;                                                                     \
-  case 8:                                                                      \
-    (*(precision##8 *)c) = (*(precision##8 *)a)                                \
-      op (*(precision##8 *)b);                                                 \
-    break;                                                                     \
-  case 16:                                                                     \
-    (*(precision##16 *)c) = (*(precision##16 *)a)                              \
-      op (*(precision##16 *)b);                                                \
-    break;                                                                     \
-  default:                                                                     \
-    logger_error("invalid size %d\n", size);                                   \
-    break;                                                                     \
+/* Define vector operation functions
+ * size: size of vector
+ * precision: floating point format (float or double)
+ * ops: operation string (add, sub, mul, div)
+ * ope: operator (+, -, *, /)
+ */
+#define define_interflop_op_vector(size, precision, ops, ope)                  \
+  static void _interflop_##ops##_##precision##_##size##x(const                 \
+                                                         precision##size *a,   \
+                                                         const                 \
+                                                         precision##size *b,   \
+                                                         precision##size *c,   \
+                                                         void *context) {      \
+    t_context *my_context = (t_context *)context;                              \
+                                                                               \
+    *c = *a + *b;                                                              \
+                                                                               \
+    count_vector(my_context, size, ops);                                       \
+                                                                               \
+    for (int i = 0; i < size; ++i) {                                           \
+      debug_print_##precision(context, ARITHMETIC, #ope, (*a)[i], (*b)[i],     \
+                              (*c)[i]);                                        \
+    }                                                                          \
   }
 
+/* Define vector comparison functions
+ * size: size of vector
+ * precision: floating point format (float or double)
+ */
+#define define_interflop_cmp_vector(size, precision)                           \
+  static void _interflop_cmp_##precision##_##size##x(const                     \
+                                                     enum FCMP_PREDICATE p,    \
+                                                     const precision##size *a, \
+                                                     const precision##size *b, \
+                                                     int##size *c,             \
+                                                     void *context) {          \
+    for (int i = 0; i < size; ++i) {                                           \
+      char *str = "";                                                          \
+      int _c = (*c)[i];                                                        \
+      SELECT_FLOAT_CMP((*a)[i], (*b)[i], &_c, p, str);                         \
+      debug_print_##precision(context, COMPARISON, str, (*a)[i], (*b)[i],      \
+                              (*c)[i]);                                        \
+    }                                                                          \
+}
+
+/* Count vector operations
+ * my_context: my_context
+ * size: size of vector
+ * op: operation (mul, sub, mul, div)
+ */
 #define count_vector(my_context, size, op)                                     \
   switch (size) {                                                              \
   case 2:                                                                      \
@@ -350,62 +373,31 @@ static void _interflop_cmp_float(const enum FCMP_PREDICATE p, const float a,
   debug_print_float(context, COMPARISON, str, a, b, *c);
 }
 
-static void _interflop_add_float_vector(const int size, const float *a, const float *b,
-                                        float *c, void *context) {
-  t_context *my_context = (t_context *)context;
+/* Define here all double vector interflop functions */
+define_interflop_op_vector(2, float, add, +);
+define_interflop_op_vector(2, float, sub, -);
+define_interflop_op_vector(2, float, mul, *);
+define_interflop_op_vector(2, float, div, /);
 
-  perform_vector_binary_op(float, size, +, a, b, c);
+define_interflop_op_vector(4, float, add, +);
+define_interflop_op_vector(4, float, sub, -);
+define_interflop_op_vector(4, float, mul, *);
+define_interflop_op_vector(4, float, div, /);
 
-  count_vector(my_context, size, add);
-  for (int i = 0; i < size; ++i) {
-    debug_print_float(context, ARITHMETIC, "+", a[i], b[i], c[i]);
-  }
-}
+define_interflop_op_vector(8, float, add, +);
+define_interflop_op_vector(8, float, sub, -);
+define_interflop_op_vector(8, float, mul, *);
+define_interflop_op_vector(8, float, div, /);
 
-static void _interflop_sub_float_vector(const int size, const float *a, const float *b,
-                                        float *c, void *context) {
-  t_context *my_context = (t_context *)context;
-  
-  perform_vector_binary_op(float, size, -, a, b, c);
+define_interflop_op_vector(16, float, add, +);
+define_interflop_op_vector(16, float, sub, -);
+define_interflop_op_vector(16, float, mul, *);
+define_interflop_op_vector(16, float, div, /);
 
-  count_vector(my_context, size, sub);
-  for (int i = 0; i < size; ++i) {
-    debug_print_float(context, ARITHMETIC, "-", a[i], b[i], c[i]);
-  }
-}
-
-static void _interflop_mul_float_vector(const int size, const float *a, const float *b,
-                                        float *c, void *context) {
-  t_context *my_context = (t_context *)context;
-  
-  perform_vector_binary_op(float, size, *, a, b, c);
-
-  count_vector(my_context, size, mul);
-  for (int i = 0; i < size; ++i) {
-    debug_print_float(context, ARITHMETIC, "*", a[i], b[i], c[i]);
-  }
-}
-
-static void _interflop_div_float_vector(const int size, const float *a, const float *b,
-                                        float *c, void *context) {
-  t_context *my_context = (t_context *)context;
-  
-  perform_vector_binary_op(float, size, /, a, b, c);
-
-  count_vector(my_context, size, div);
-  for (int i = 0; i < size; ++i) {
-    debug_print_float(context, ARITHMETIC, "/", a[i], b[i], c[i]);
-  }
-}
-
-static void _interflop_cmp_float_vector(const enum FCMP_PREDICATE p, const int size,
-                                        const float *a, const float *b, int *c, void *context) {
-  for (int i = 0; i < size; ++i) {
-    char *str = "";
-    SELECT_FLOAT_CMP(a[i], b[i], &(c[i]), p, str);
-    debug_print_float(context, COMPARISON, str, a[i], b[i], c[i]);
-  }
-}
+define_interflop_cmp_vector(2, float);
+define_interflop_cmp_vector(4, float);
+define_interflop_cmp_vector(8, float);
+define_interflop_cmp_vector(16, float);
 
 static void _interflop_add_double(const double a, const double b, double *c,
                                   void *context) {
@@ -450,62 +442,31 @@ static void _interflop_cmp_double(const enum FCMP_PREDICATE p, const double a,
   debug_print_double(context, COMPARISON, str, a, b, *c);
 }
 
-static void _interflop_add_double_vector(const int size, const double *a, const double *b,
-                                         double *c, void *context) {
-  t_context *my_context = (t_context *)context;
-  
-  perform_vector_binary_op(double, size, +, a, b, c);
+/* Define here all double vector interflop functions */
+define_interflop_op_vector(2, double, add, +);
+define_interflop_op_vector(2, double, sub, -);
+define_interflop_op_vector(2, double, mul, *);
+define_interflop_op_vector(2, double, div, /);
 
-  count_vector(my_context, size, add);
-  for (int i = 0; i < size; ++i) {
-    debug_print_double(context, ARITHMETIC, "+", a[i], b[i], c[i]);
-  }
-}
+define_interflop_op_vector(4, double, add, +);
+define_interflop_op_vector(4, double, sub, -);
+define_interflop_op_vector(4, double, mul, *);
+define_interflop_op_vector(4, double, div, /);
 
-static void _interflop_sub_double_vector(const int size, const double *a, const double *b,
-                                         double *c, void *context) {
-  t_context *my_context = (t_context *)context;
-  
-  perform_vector_binary_op(double, size, -, a, b, c);
+define_interflop_op_vector(8, double, add, +);
+define_interflop_op_vector(8, double, sub, -);
+define_interflop_op_vector(8, double, mul, *);
+define_interflop_op_vector(8, double, div, /);
 
-  count_vector(my_context, size, sub);
-  for (int i = 0; i < size; ++i) {
-    debug_print_double(context, ARITHMETIC, "-", a[i], b[i], c[i]);
-  }
-}
+define_interflop_op_vector(16, double, add, +);
+define_interflop_op_vector(16, double, sub, -);
+define_interflop_op_vector(16, double, mul, *);
+define_interflop_op_vector(16, double, div, /);
 
-static void _interflop_mul_double_vector(const int size, const double *a, const double *b,
-                                         double *c, void *context) {
-  t_context *my_context = (t_context *)context;
-  
-  perform_vector_binary_op(double, size, *, a, b, c);
-
-  count_vector(my_context, size, mul);
-  for (int i = 0; i < size; ++i) {
-    debug_print_double(context, ARITHMETIC, "*", a[i], b[i], c[i]);
-  }
-}
-
-static void _interflop_div_double_vector(const int size, const double *a, const double *b,
-                                         double *c, void *context) {
-  t_context *my_context = (t_context *)context;
-
-  perform_vector_binary_op(double, size, /, a, b, c);
-
-  count_vector(my_context, size, div);
-  for (int i = 0; i < size; ++i) {
-    debug_print_double(context, ARITHMETIC, "/", a[i], b[i], c[i]);
-  }
-}
-
-static void _interflop_cmp_double_vector(const enum FCMP_PREDICATE p, const int size,
-                                         const double *a, const double *b, int *c, void *context) {
-  for (int i = 0; i < size; ++i) {
-    char *str = "";
-    SELECT_FLOAT_CMP(a[i], b[i], &(c[i]), p, str);
-    debug_print_double(context, COMPARISON, str, a[i], b[i], c[i]);
-  }
-}
+define_interflop_cmp_vector(2, double);
+define_interflop_cmp_vector(4, double);
+define_interflop_cmp_vector(8, double);
+define_interflop_cmp_vector(16, double);
 
 static struct argp_option options[] = {
     {key_debug_str, KEY_DEBUG, 0, 0, "enable debug output", 0},
@@ -734,21 +695,51 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_mul_float,
       _interflop_div_float,
       _interflop_cmp_float,
-      _interflop_add_float_vector,
-      _interflop_sub_float_vector,
-      _interflop_mul_float_vector,
-      _interflop_div_float_vector,
-      _interflop_cmp_float_vector,
+      _interflop_add_float_2x,
+      _interflop_sub_float_2x,
+      _interflop_mul_float_2x,
+      _interflop_div_float_2x,
+      _interflop_cmp_float_2x,
+      _interflop_add_float_4x,
+      _interflop_sub_float_4x,
+      _interflop_mul_float_4x,
+      _interflop_div_float_4x,
+      _interflop_cmp_float_4x,
+      _interflop_add_float_8x,
+      _interflop_sub_float_8x,
+      _interflop_mul_float_8x,
+      _interflop_div_float_8x,
+      _interflop_cmp_float_8x,
+      _interflop_add_float_16x,
+      _interflop_sub_float_16x,
+      _interflop_mul_float_16x,
+      _interflop_div_float_16x,
+      _interflop_cmp_float_16x,
       _interflop_add_double,
       _interflop_sub_double,
       _interflop_mul_double,
       _interflop_div_double,
       _interflop_cmp_double,
-      _interflop_add_double_vector,
-      _interflop_sub_double_vector,
-      _interflop_mul_double_vector,
-      _interflop_div_double_vector,
-      _interflop_cmp_double_vector,
+      _interflop_add_double_2x,
+      _interflop_sub_double_2x,
+      _interflop_mul_double_2x,
+      _interflop_div_double_2x,
+      _interflop_cmp_double_2x,
+      _interflop_add_double_4x,
+      _interflop_sub_double_4x,
+      _interflop_mul_double_4x,
+      _interflop_div_double_4x,
+      _interflop_cmp_double_4x,
+      _interflop_add_double_8x,
+      _interflop_sub_double_8x,
+      _interflop_mul_double_8x,
+      _interflop_div_double_8x,
+      _interflop_cmp_double_8x,
+      _interflop_add_double_16x,
+      _interflop_sub_double_16x,
+      _interflop_mul_double_16x,
+      _interflop_div_double_16x,
+      _interflop_cmp_double_16x,
       NULL,
       NULL,
       _interflop_finalize};

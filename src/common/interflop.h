@@ -67,6 +67,29 @@ typedef struct interflop_function_stack {
   long int top;
 } interflop_function_stack_t;
 
+#define define_interflop_vector(size, precision)                               \
+  void (*interflop_add_##precision##_##size##x)(precision##size *a,            \
+                                                precision##size *b,            \
+                                                precision##size *c,            \
+                                                void *context);                \
+  void (*interflop_sub_##precision##_##size##x)(precision##size *a,            \
+                                                precision##size *b,            \
+                                                precision##size *c,            \
+                                                void *context);                \
+  void (*interflop_mul_##precision##_##size##x)(precision##size *a,            \
+                                                precision##size *b,            \
+                                                precision##size *c,            \
+                                                void *context);                \
+  void (*interflop_div_##precision##_##size##x)(precision##size *a,            \
+                                                precision##size *b,            \
+                                                precision##size *c,            \
+                                                void *context);                \
+  void (*interflop_cmp_##precision##_##size##x)(enum FCMP_PREDICATE p,         \
+                                                precision##size *a,            \
+                                                precision##size *b,            \
+                                                int##size *c,                  \
+                                                void *context);                \
+
 struct interflop_backend_interface_t {
   void (*interflop_add_float)(float a, float b, float *c, void *context);
   void (*interflop_sub_float)(float a, float b, float *c, void *context);
@@ -75,18 +98,11 @@ struct interflop_backend_interface_t {
   void (*interflop_cmp_float)(enum FCMP_PREDICATE p, float a, float b, int *c,
                               void *context);
 
-  void (*interflop_add_float_vector)(int size, float *a, float *b, float *c,
-                                     void *context);
-  void (*interflop_sub_float_vector)(int size, float *a, float *b, float *c,
-                                     void *context);
-  void (*interflop_mul_float_vector)(int size, float *a, float *b, float *c,
-                                     void *context);
-  void (*interflop_div_float_vector)(int size, float *a, float *b, float *c,
-                                     void *context);
-  void (*interflop_cmp_float_vector)(enum FCMP_PREDICATE p, int size,
-                                     float *a, float *b, int *c,
-                                     void *context);
-
+  define_interflop_vector(2, float);
+  define_interflop_vector(4, float);
+  define_interflop_vector(8, float);
+  define_interflop_vector(16, float);
+  
   void (*interflop_add_double)(double a, double b, double *c, void *context);
   void (*interflop_sub_double)(double a, double b, double *c, void *context);
   void (*interflop_mul_double)(double a, double b, double *c, void *context);
@@ -94,17 +110,10 @@ struct interflop_backend_interface_t {
   void (*interflop_cmp_double)(enum FCMP_PREDICATE p, double a, double b,
                                int *c, void *context);
 
-  void (*interflop_add_double_vector)(int size, double *a, double *b, double *c,
-                                      void *context);
-  void (*interflop_sub_double_vector)(int size, double *a, double *b, double *c,
-                                      void *context);
-  void (*interflop_mul_double_vector)(int size, double *a, double *b, double *c,
-                                      void *context);
-  void (*interflop_div_double_vector)(int size, double *a, double *b, double *c,
-                                      void *context);
-  void (*interflop_cmp_double_vector)(enum FCMP_PREDICATE p, int size,
-                                      double *a, double *b, int *c,
-                                      void *context);
+  define_interflop_vector(2, double);
+  define_interflop_vector(4, double);
+  define_interflop_vector(8, double);
+  define_interflop_vector(16, double);
 
   void (*interflop_enter_function)(interflop_function_stack_t *stack,
                                    void *context, int nb_args, va_list ap);

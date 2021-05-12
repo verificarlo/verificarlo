@@ -497,7 +497,7 @@ inline float handle_binary32_normal_absErr(float a, int32_t aexp,
 
 // Macro to define vector function for normal absolute error mode
 #define define_handle_binary32_normal_absErr_vector(size)                      \
-  void handle_binary32_normal_absErr_##size##x(float *a,                       \
+  void handle_binary32_normal_absErr_##size##x(float##size *a,                 \
                                                int##size aexp,                 \
                                                int binary32_precision,         \
                                                t_context *currentContext) {    \
@@ -511,15 +511,15 @@ inline float handle_binary32_normal_absErr(float a, int32_t aexp,
     for (int i = 0; i < size; i++) {                                           \
       if (expDiff[i] < -1) {                                                   \
         /* equivalent to underflow on the precision given by absolute error */ \
-        a[i] = 0;                                                              \
+        (*a)[i] = 0;                                                           \
         set[i] = 1;                                                            \
         count++;                                                               \
       } else if (expDiff[i] == -1) {                                           \
         /* case when the number is just below the absolute error threshold,    \
-           but will round to one ulp on the format given by the absolute error;\
-           this needs to be handled separately, as round_binary32_normal cannot\
-           generate this number */                                             \
-        a[i] = copysignf(exp2f(currentContext->absErr_exp), a[i]);             \
+           but will round to one ulp on the format given by the absolute       \
+           error; this needs to be handled separately, as                      \
+           round_binary32_normal cannot generate this number */                \
+        (*a)[i] = copysignf(exp2f(currentContext->absErr_exp), (*a)[i]);       \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
@@ -530,20 +530,20 @@ inline float handle_binary32_normal_absErr(float a, int32_t aexp,
       int##size binary32_precision_adjusted =                                  \
         compute_absErr_vprec_binary32_##size##x(false, currentContext,         \
                                                 expDiff, binary32_precision);  \
-      round_binary32_normal_x##size(a, binary32_precision_adjusted);           \
+      round_binary32_normal_##size##x(a, binary32_precision_adjusted);         \
     } else { /* we can't vectorize */                                          \
       for (int i = 0; i < size; i++) {                                         \
         if (!set[i]) {                                                         \
           if (expDiff[i] < -1) {                                               \
             /* equivalent to underflow on the precision given by absolute      \
                error */                                                        \
-            a[i] = 0;                                                          \
+            (*a)[i] = 0;                                                       \
           } else if (expDiff[i] == -1) {                                       \
-            /* case when the number is just below the absolute error threshold,\
-               but will round to one ulp on the format given by the absolute   \
-               error; this needs to be handled separately,                     \
+            /* case when the number is just below the absolute error           \
+               threshold, but will round to one ulp on the format given by the \
+               absolute error; this needs to be handled separately,            \
                as round_binary32_normal cannot generate this number */         \
-            a[i] = copysignf(exp2f(currentContext->absErr_exp), a[i]);         \
+            (*a)[i] = copysignf(exp2f(currentContext->absErr_exp), (*a)[i]);   \
           }                                                                    \
         }                                                                      \
       }                                                                        \
@@ -585,7 +585,7 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
 
 // Macro to define vector function for normal absolute error mode
 #define define_handle_binary64_normal_absErr_vector(size)                      \
-  void handle_binary64_normal_absErr_##size##x(double *a,                      \
+  void handle_binary64_normal_absErr_##size##x(double##size *a,                \
                                                int64_##size##x aexp,           \
                                                int64_t binary64_precision,     \
                                                t_context *currentContext) {    \
@@ -599,15 +599,15 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
     for (int i = 0; i < size; i++) {                                           \
       if (expDiff[i] < -1) {                                                   \
         /* equivalent to underflow on the precision given by absolute error */ \
-        a[i] = 0;                                                              \
+        (*a)[i] = 0;                                                           \
         set[i] = 1;                                                            \
         count++;                                                               \
       } else if (expDiff[i] == -1) {                                           \
         /* case when the number is just below the absolute error threshold,    \
-           but will round to one ulp on the format given by the absolute error;\
-           this needs to be handled separately, as round_binary64_normal cannot\
-           generate this number */                                             \
-        a[i] = copysignf(exp2f(currentContext->absErr_exp), a[i]);             \
+           but will round to one ulp on the format given by the absolute       \
+           error; this needs to be handled separately, as                      \
+           round_binary64_normal cannot generate this number */                \
+        (*a)[i] = copysignf(exp2f(currentContext->absErr_exp), (*a)[i]);       \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
@@ -618,20 +618,20 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
       int64_##size##x binary64_precision_adjusted =                            \
         compute_absErr_vprec_binary64_##size##x(false, currentContext,         \
                                                 expDiff, binary64_precision);  \
-      round_binary64_normal_x##size(a, binary64_precision_adjusted);           \
+      round_binary64_normal_##size##x(a, binary64_precision_adjusted);         \
     } else { /* we can't vectorize */                                          \
       for (int i = 0; i < size; i++) {                                         \
         if (!set[i]) {                                                         \
           if (expDiff[i] < -1) {                                               \
             /* equivalent to underflow on the precision given by absolute      \
                error */                                                        \
-            a[i] = 0;                                                          \
+            (*a)[i] = 0;                                                       \
           } else if (expDiff[i] == -1) {                                       \
-            /* case when the number is just below the absolute error threshold,\
-               but will round to one ulp on the format given by the absolute   \
-               error; this needs to be handled separately,                     \
+            /* case when the number is just below the absolute error           \
+               threshold, but will round to one ulp on the format given by the \
+               absolute error; this needs to be handled separately,            \
                as round_binary64_normal cannot generate this number */         \
-            a[i] = copysignf(exp2f(currentContext->absErr_exp), a[i]);         \
+            (*a)[i] = copysignf(exp2f(currentContext->absErr_exp), (*a)[i]);   \
           }                                                                    \
         }                                                                      \
       }                                                                        \
@@ -673,24 +673,23 @@ define_handle_binary64_normal_absErr_vector(16);
     logger_error("invalid operator %c", op);                                   \
   };
 
-/* perform_vector_bin_op: call perform_binary_op with good type */
-/* cast pointer array of precision in clang vector type before  */
-/* performing the operation */
-#define perform_binary_op_2x(precision, op, res, a, b)                         \
-    perform_binary_op(op, (*(precision##2 *)res), (*(precision##2 *)a),        \
-                      (*(precision##2 *)b));
-
-#define perform_binary_op_4x(precision, op, res, a, b)                         \
-    perform_binary_op(op, (*(precision##4 *)res), (*(precision##4 *)a),        \
-                      (*(precision##4 *)b));
-
-#define perform_binary_op_8x(precision, op, res, a, b)                         \
-    perform_binary_op(op, (*(precision##8 *)res), (*(precision##8 *)a),        \
-                      (*(precision##8 *)b));
-
-#define perform_binary_op_16x(precision, op, res, a, b)                        \
-    perform_binary_op(op, (*(precision##16 *)res), (*(precision##16 *)a),      \
-                      (*(precision##16 *)b));
+#define perform_vector_binary_op(op, res, a, b)                                \
+  switch (op) {                                                                \
+  case vprec_add:                                                              \
+    *res = (*a) + (*b);                                                        \
+    break;                                                                     \
+  case vprec_mul:                                                              \
+    *res = (*a) * (*b);                                                        \
+    break;                                                                     \
+  case vprec_sub:                                                              \
+    *res = (*a) - (*b);                                                        \
+    break;                                                                     \
+  case vprec_div:                                                              \
+    *res = (*a) / (*b);                                                        \
+    break;                                                                     \
+  default:                                                                     \
+    logger_error("invalid operator %c", op);                                   \
+  };
 
 // Round the float with the given precision
 static float _vprec_round_binary32(float a, char is_input, void *context,
@@ -754,7 +753,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 
 // Round the float vector with the given precision
 #define define_vprec_round_binary32_vector(size)                               \
-  static void _vprec_round_binary32_##size##x(float *a,                        \
+  static void _vprec_round_binary32_##size##x(float##size *a,                  \
                                               char is_input,                   \
                                               void *context,                   \
                                               int binary32_range,              \
@@ -769,7 +768,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     /* here emin is the smallest exponent in the *normal* range */             \
     int emin = 1 - emax;                                                       \
                                                                                \
-    binary32_##size##x aexp = {.f32 = *(float##size *)a};                      \
+    binary32_##size##x aexp = {.f32 = *a};                                     \
     aexp.s32 = (int32_##size##x)((FLOAT_GET_EXP & aexp.u32));                  \
     aexp.s32 >>= (int32_##size##x)FLOAT_PMAN_SIZE;                             \
     aexp.s32 -= (int32_##size##x)FLOAT_EXP_COMP;                               \
@@ -779,13 +778,13 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
                                                                                \
     for (int i = 0; i < size; i++) {                                           \
       /* test if 'a[i]' is a special case */                                   \
-      if (!isfinite(a[i])) {                                                   \
+      if (!isfinite((*a)[i])) {                                                \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
       /* check for overflow in target range */                                 \
       else if (is_overflow[i] && !set[i]) {                                    \
-        a[i] = a[i] * INFINITY;                                                \
+        (*a)[i] = (*a)[i] * INFINITY;                                          \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
@@ -795,8 +794,8 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         if ((currentContext->daz && is_input) ||                               \
             (currentContext->ftz && !is_input)) {                              \
           /* preserve sign */                                                  \
-          a[i] = a[i] * 0;                                                     \
-        } else if (FP_ZERO == fpclassify(a[i])) {                              \
+          (*a)[i] = (*a)[i] * 0;                                               \
+        } else if (FP_ZERO == fpclassify((*a)[i])) {                           \
           continue;                                                            \
         } else {                                                               \
           if (currentContext->absErr == true) {                                \
@@ -805,11 +804,12 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
             int binary32_precision_adjusted =                                  \
               compute_absErr_vprec_binary32(true, currentContext, 0,           \
                                             binary32_precision);               \
-            a[i] = handle_binary32_denormal(a[i], emin,                        \
+            (*a)[i] = handle_binary32_denormal((*a)[i], emin,                  \
                                             binary32_precision_adjusted);      \
           } else {                                                             \
             /* relative error mode */                                          \
-            a[i] = handle_binary32_denormal(a[i], emin, binary32_precision);   \
+            (*a)[i] = handle_binary32_denormal((*a)[i], emin,                  \
+                                               binary32_precision);            \
           }                                                                    \
         }                                                                      \
         set[i] = 1;                                                            \
@@ -827,12 +827,12 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
            previously rounded and truncated as denormal */                     \
         if (currentContext->absErr == true) {                                  \
           /* absolute error mode, or both absolute and relative error modes */ \
-          a[i] = handle_binary32_normal_absErr(a[i], aexp.s32[i],              \
+          (*a)[i] = handle_binary32_normal_absErr((*a)[i], aexp.s32[i],        \
                                                binary32_precision,             \
                                                currentContext);                \
         } else {                                                               \
           /* relative error mode */                                            \
-          a[i] = round_binary32_normal(a[i], binary32_precision);              \
+          (*a)[i] = round_binary32_normal((*a)[i], binary32_precision);        \
         }                                                                      \
       }                                                                        \
     } else {                                                                   \
@@ -846,7 +846,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
                                                 currentContext);               \
       } else {                                                                 \
         /* relative error mode */                                              \
-        round_binary32_normal_x##size(a, binary32_precision);                  \
+        round_binary32_normal_##size##x(a, binary32_precision);                \
       }                                                                        \
     }                                                                          \
   }
@@ -921,11 +921,11 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
 
 // Round the double vector with the given precision
 #define define_vprec_round_binary64_vector(size)                               \
-  static void _vprec_round_binary64_##size##x(double *a,                       \
+  static void _vprec_round_binary64_##size##x(double##size *a,                 \
                                               char is_input,                   \
                                               void *context,                   \
-                                              int64_t binary64_range,          \
-                                              int64_t binary64_precision) {    \
+                                              int binary64_range,              \
+                                              int binary64_precision) {        \
     t_context *currentContext = (t_context *)context;                          \
     int##size set = 0;                                                         \
     int count = 0;                                                             \
@@ -936,7 +936,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     /* here emin is the smallest exponent in the *normal* range */             \
     int64_t emin = 1 - emax;                                                   \
                                                                                \
-    binary64_##size##x aexp = {.f64 = *(double##size *)a};                     \
+    binary64_##size##x aexp = {.f64 = *a};                                     \
     aexp.s64 = (int64_##size##x)((DOUBLE_GET_EXP & aexp.u64));                 \
     aexp.s64 >>= (int64_##size##x)DOUBLE_PMAN_SIZE;                            \
     aexp.s64 -= (int64_##size##x)DOUBLE_EXP_COMP;                              \
@@ -946,13 +946,13 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
                                                                                \
     for (int i = 0; i < size; i++) {                                           \
       /* test if 'a[i]' is a special case */                                   \
-      if (!isfinite(a[i])) {                                                   \
+      if (!isfinite((*a)[i])) {                                                \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
       /* check for overflow in target range */                                 \
       else if (is_overflow[i] && !set[i]) {                                    \
-        a[i] = a[i] * INFINITY;                                                \
+        (*a)[i] = (*a)[i] * INFINITY;                                          \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
@@ -962,21 +962,22 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         if ((currentContext->daz && is_input) ||                               \
             (currentContext->ftz && !is_input)) {                              \
           /* preserve sign */                                                  \
-          a[i] = a[i] * 0;                                                     \
-        } else if (FP_ZERO == fpclassify(a[i])) {                              \
+          (*a)[i] = (*a)[i] * 0;                                               \
+        } else if (FP_ZERO == fpclassify((*a)[i])) {                           \
           continue;                                                            \
         } else {                                                               \
           if (currentContext->absErr == true) {                                \
             /* absolute error mode, or both absolute and relative error        \
                modes */                                                        \
-            int64_t binary64_precision_adjusted =                              \
+            int binary64_precision_adjusted =                                  \
               compute_absErr_vprec_binary64(true, currentContext, 0,           \
                                             binary64_precision);               \
-            a[i] = handle_binary64_denormal(a[i], emin,                        \
+            (*a)[i] = handle_binary64_denormal((*a)[i], emin,                  \
                                             binary64_precision_adjusted);      \
           } else {                                                             \
             /* relative error mode */                                          \
-            a[i] = handle_binary64_denormal(a[i], emin, binary64_precision);   \
+            (*a)[i] = handle_binary64_denormal((*a)[i], emin,                  \
+                                               binary64_precision);            \
           }                                                                    \
         }                                                                      \
         set[i] = 1;                                                            \
@@ -994,12 +995,12 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
            previously rounded and truncated as denormal */                     \
         if (currentContext->absErr == true) {                                  \
           /* absolute error mode, or both absolute and relative error modes */ \
-          a[i] = handle_binary64_normal_absErr(a[i], aexp.s64[i],              \
+          (*a)[i] = handle_binary64_normal_absErr((*a)[i], aexp.s64[i],        \
                                                binary64_precision,             \
                                                currentContext);                \
         } else {                                                               \
           /* relative error mode */                                            \
-          a[i] = round_binary64_normal(a[i], binary64_precision);              \
+          (*a)[i] = round_binary64_normal((*a)[i], binary64_precision);        \
         }                                                                      \
       }                                                                        \
     } else {                                                                   \
@@ -1013,7 +1014,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
                                                 currentContext);               \
       } else {                                                                 \
         /* relative error mode */                                              \
-        round_binary64_normal_x##size(a, binary64_precision);                  \
+        round_binary64_normal_##size##x(a, binary64_precision);                \
       }                                                                        \
     }                                                                          \
   }
@@ -1046,80 +1047,34 @@ static inline float _vprec_binary32_binary_op(float a, float b,
   return res;
 }
 
-static inline void _vprec_binary32_binary_op_vector(const int size, float *a,
-                                                    float *b, float *c,
-                                                    const vprec_operation op,
-                                                    void *context) {
-  switch (size)
-    {
-    case 2:
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
-        _vprec_round_binary32_2x(a, 1, context, VPRECLIB_BINARY32_RANGE,
-                                 VPRECLIB_BINARY32_PRECISION);
-        _vprec_round_binary32_2x(b, 1, context, VPRECLIB_BINARY32_RANGE,
-                                 VPRECLIB_BINARY32_PRECISION);
-      }
-          
-      perform_binary_op_2x(float, op, c, a, b);
+#define define_vprec_binary32_binary_op_vector(size)                           \
+  static inline void _vprec_binary32_binary_op_##size##x(float##size *a,       \
+                                                         float##size *b,       \
+                                                         float##size *c,       \
+                                                         const                 \
+                                                         vprec_operation op,   \
+                                                         void *context) {      \
+    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
+        (VPRECLIB_MODE == vprecmode_ib)) {                                     \
+      _vprec_round_binary32_##size##x(a, 1, context, VPRECLIB_BINARY32_RANGE,  \
+                                      VPRECLIB_BINARY32_PRECISION);            \
+      _vprec_round_binary32_##size##x(b, 1, context, VPRECLIB_BINARY32_RANGE,  \
+                                      VPRECLIB_BINARY32_PRECISION);            \
+    }                                                                          \
+                                                                               \
+    perform_vector_binary_op(op, c, a, b);                                     \
+                                                                               \
+    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
+        (VPRECLIB_MODE == vprecmode_ob)) {                                     \
+      _vprec_round_binary32_##size##x(c, 0, context, VPRECLIB_BINARY32_RANGE,  \
+                                      VPRECLIB_BINARY32_PRECISION);            \
+    }                                                                          \
+  }
 
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
-        _vprec_round_binary32_2x(c, 0, context, VPRECLIB_BINARY32_RANGE,
-                                 VPRECLIB_BINARY32_PRECISION);
-      }
-        
-      break;
-    case 4:
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
-        _vprec_round_binary32_4x(a, 1, context, VPRECLIB_BINARY32_RANGE,
-                                 VPRECLIB_BINARY32_PRECISION);
-        _vprec_round_binary32_4x(b, 1, context, VPRECLIB_BINARY32_RANGE,
-                                 VPRECLIB_BINARY32_PRECISION);
-      }
-          
-      perform_binary_op_4x(float, op, c, a, b);
-
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
-        _vprec_round_binary32_4x(c, 0, context, VPRECLIB_BINARY32_RANGE,
-                                 VPRECLIB_BINARY32_PRECISION);
-      }
-        
-      break;
-    case 8:
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
-        _vprec_round_binary32_8x(a, 1, context, VPRECLIB_BINARY32_RANGE,
-                                 VPRECLIB_BINARY32_PRECISION);
-        _vprec_round_binary32_8x(b, 1, context, VPRECLIB_BINARY32_RANGE,
-                                 VPRECLIB_BINARY32_PRECISION);
-      }
-          
-      perform_binary_op_8x(float, op, c, a, b);
-
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
-        _vprec_round_binary32_8x(c, 0, context, VPRECLIB_BINARY32_RANGE,
-                                 VPRECLIB_BINARY32_PRECISION);
-      }
-        
-      break;
-    case 16:
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
-        _vprec_round_binary32_16x(a, 1, context, VPRECLIB_BINARY32_RANGE,
-                                  VPRECLIB_BINARY32_PRECISION);
-        _vprec_round_binary32_16x(b, 1, context, VPRECLIB_BINARY32_RANGE,
-                                  VPRECLIB_BINARY32_PRECISION);
-      }
-          
-      perform_binary_op_16x(float, op, c, a, b);
-
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
-        _vprec_round_binary32_16x(c, 0, context, VPRECLIB_BINARY32_RANGE,
-                                  VPRECLIB_BINARY32_PRECISION);
-      }
-        
-      break;
-    default:
-      break;
-    }
-}
+define_vprec_binary32_binary_op_vector(2);
+define_vprec_binary32_binary_op_vector(4);
+define_vprec_binary32_binary_op_vector(8);
+define_vprec_binary32_binary_op_vector(16);
 
 static inline double _vprec_binary64_binary_op(double a, double b,
                                                const vprec_operation op,
@@ -1143,80 +1098,34 @@ static inline double _vprec_binary64_binary_op(double a, double b,
   return res;
 }
 
-static inline void _vprec_binary64_binary_op_vector(const int size, double *a,
-                                                    double *b, double *c,
-                                                    const vprec_operation op,
-                                                    void *context) {
-  switch (size)
-    {
-    case 2:
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
-        _vprec_round_binary64_2x(a, 1, context, VPRECLIB_BINARY64_RANGE,
-                                 VPRECLIB_BINARY64_PRECISION);
-        _vprec_round_binary64_2x(b, 1, context, VPRECLIB_BINARY64_RANGE,
-                                 VPRECLIB_BINARY64_PRECISION);
-      }
-          
-      perform_binary_op_2x(double, op, c, a, b);
+#define define_vprec_binary64_binary_op_vector(size)                           \
+  static inline void _vprec_binary64_binary_op_##size##x(double##size *a,      \
+                                                         double##size *b,      \
+                                                         double##size *c,      \
+                                                         const                 \
+                                                         vprec_operation op,   \
+                                                         void *context) {      \
+    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
+        (VPRECLIB_MODE == vprecmode_ib)) {                                     \
+      _vprec_round_binary64_##size##x(a, 1, context, VPRECLIB_BINARY64_RANGE,  \
+                                      VPRECLIB_BINARY64_PRECISION);            \
+      _vprec_round_binary64_##size##x(b, 1, context, VPRECLIB_BINARY64_RANGE,  \
+                                      VPRECLIB_BINARY64_PRECISION);            \
+    }                                                                          \
+                                                                               \
+    perform_vector_binary_op(op, c, a, b);                                     \
+                                                                               \
+    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
+        (VPRECLIB_MODE == vprecmode_ob)) {                                     \
+      _vprec_round_binary64_##size##x(c, 0, context, VPRECLIB_BINARY64_RANGE,  \
+                                      VPRECLIB_BINARY64_PRECISION);            \
+    }                                                                          \
+  }
 
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
-        _vprec_round_binary64_2x(c, 0, context, VPRECLIB_BINARY64_RANGE,
-                                 VPRECLIB_BINARY64_PRECISION);
-      }
-        
-      break;
-    case 4:
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
-        _vprec_round_binary64_4x(a, 1, context, VPRECLIB_BINARY64_RANGE,
-                                 VPRECLIB_BINARY64_PRECISION);
-        _vprec_round_binary64_4x(b, 1, context, VPRECLIB_BINARY64_RANGE,
-                                 VPRECLIB_BINARY64_PRECISION);
-      }
-          
-      perform_binary_op_4x(double, op, c, a, b);
-
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
-        _vprec_round_binary64_4x(c, 0, context, VPRECLIB_BINARY64_RANGE,
-                                 VPRECLIB_BINARY64_PRECISION);
-      }
-        
-      break;
-    case 8:
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
-        _vprec_round_binary64_8x(a, 1, context, VPRECLIB_BINARY64_RANGE,
-                                 VPRECLIB_BINARY64_PRECISION);
-        _vprec_round_binary64_8x(b, 1, context, VPRECLIB_BINARY64_RANGE,
-                                 VPRECLIB_BINARY64_PRECISION);
-      }
-          
-      perform_binary_op_8x(double, op, c, a, b);
-
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
-        _vprec_round_binary64_8x(c, 0, context, VPRECLIB_BINARY64_RANGE,
-                                 VPRECLIB_BINARY64_PRECISION);
-      }
-        
-      break;
-    case 16:
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ib)) {
-        _vprec_round_binary64_16x(a, 1, context, VPRECLIB_BINARY64_RANGE,
-                                  VPRECLIB_BINARY64_PRECISION);
-        _vprec_round_binary64_16x(b, 1, context, VPRECLIB_BINARY64_RANGE,
-                                  VPRECLIB_BINARY64_PRECISION);
-      }
-          
-      perform_binary_op_16x(double, op, c, a, b);
-
-      if ((VPRECLIB_MODE == vprecmode_full) || (VPRECLIB_MODE == vprecmode_ob)) {
-        _vprec_round_binary64_16x(c, 0, context, VPRECLIB_BINARY64_RANGE,
-                                  VPRECLIB_BINARY64_PRECISION);
-      }
-        
-      break;
-    default:
-      break;
-    }
-}
+define_vprec_binary64_binary_op_vector(2);
+define_vprec_binary64_binary_op_vector(4);
+define_vprec_binary64_binary_op_vector(8);
+define_vprec_binary64_binary_op_vector(16);
 
 /******************** VPREC INSTRUMENTATION FUNCTIONS ********************
  * The following set of functions is used to apply vprec on instrumented
@@ -1849,25 +1758,35 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
   *c = _vprec_binary32_binary_op(a, b, vprec_div, context);
 }
 
-static void _interflop_add_float_vector(const int size, float *a, float *b,
-                                        float *c, void *context) {
-  _vprec_binary32_binary_op_vector(size, a, b, c, vprec_add, context);
+/* Macro to define all float vector interfop functions */
+#define define_interflop_binary32_op_vector(size, op)                          \
+  static void _interflop_##op##_float_##size##x(float##size *a,                \
+                                                float##size *b,                \
+                                                float##size *c,                \
+                                                void *context) {               \
+    _vprec_binary32_binary_op_##size##x(a, b, c, vprec_##op, context);         \
 }
 
-static void _interflop_sub_float_vector(const int size, float *a, float *b,
-                                        float *c, void *context) {
-  _vprec_binary32_binary_op_vector(size, a, b, c, vprec_sub, context);
-}
+/* Define here all float vector interflop functions */
+define_interflop_binary32_op_vector(2, add);
+define_interflop_binary32_op_vector(2, sub);
+define_interflop_binary32_op_vector(2, mul);
+define_interflop_binary32_op_vector(2, div);
 
-static void _interflop_mul_float_vector(const int size, float *a, float *b,
-                                        float *c, void *context) {
-  _vprec_binary32_binary_op_vector(size, a, b, c, vprec_mul, context);
-}
+define_interflop_binary32_op_vector(4, add);
+define_interflop_binary32_op_vector(4, sub);
+define_interflop_binary32_op_vector(4, mul);
+define_interflop_binary32_op_vector(4, div);
 
-static void _interflop_div_float_vector(const int size, float *a, float *b,
-                                        float *c, void *context) {
-  _vprec_binary32_binary_op_vector(size, a, b, c, vprec_div, context);
-}
+define_interflop_binary32_op_vector(8, add);
+define_interflop_binary32_op_vector(8, sub);
+define_interflop_binary32_op_vector(8, mul);
+define_interflop_binary32_op_vector(8, div);
+
+define_interflop_binary32_op_vector(16, add);
+define_interflop_binary32_op_vector(16, sub);
+define_interflop_binary32_op_vector(16, mul);
+define_interflop_binary32_op_vector(16, div);
 
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
@@ -1889,25 +1808,35 @@ static void _interflop_div_double(double a, double b, double *c,
   *c = _vprec_binary64_binary_op(a, b, vprec_div, context);
 }
 
-static void _interflop_add_double_vector(const int size, double *a, double *b,
-                                         double *c, void *context) {
-  _vprec_binary64_binary_op_vector(size, a, b, c, vprec_add, context);
-}
+/* Macro to define all double vector interfop functions */
+#define define_interflop_binary64_op_vector(size, op)                          \
+  static void _interflop_##op##_double_##size##x(double##size *a,              \
+                                                 double##size *b,              \
+                                                 double##size *c,              \
+                                                 void *context) {              \
+    _vprec_binary64_binary_op_##size##x(a, b, c, vprec_##op, context);         \
+  }
 
-static void _interflop_sub_double_vector(const int size, double *a, double *b,
-                                         double *c, void *context) {
-  _vprec_binary64_binary_op_vector(size, a, b, c, vprec_sub, context);
-}
+/* Define here all double vector interflop functions */
+define_interflop_binary64_op_vector(2, add);
+define_interflop_binary64_op_vector(2, sub);
+define_interflop_binary64_op_vector(2, mul);
+define_interflop_binary64_op_vector(2, div);
 
-static void _interflop_mul_double_vector(const int size, double *a, double *b,
-                                         double *c, void *context) {
-  _vprec_binary64_binary_op_vector(size, a, b, c, vprec_mul, context);
-}
+define_interflop_binary64_op_vector(4, add);
+define_interflop_binary64_op_vector(4, sub);
+define_interflop_binary64_op_vector(4, mul);
+define_interflop_binary64_op_vector(4, div);
 
-static void _interflop_div_double_vector(const int size, double *a, double *b,
-                                         double *c, void *context) {
-  _vprec_binary64_binary_op_vector(size, a, b, c, vprec_div, context);
-}
+define_interflop_binary64_op_vector(8, add);
+define_interflop_binary64_op_vector(8, sub);
+define_interflop_binary64_op_vector(8, mul);
+define_interflop_binary64_op_vector(8, div);
+
+define_interflop_binary64_op_vector(16, add);
+define_interflop_binary64_op_vector(16, sub);
+define_interflop_binary64_op_vector(16, mul);
+define_interflop_binary64_op_vector(16, div);
 
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
@@ -2211,20 +2140,50 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_mul_float,
       _interflop_div_float,
       NULL,
-      _interflop_add_float_vector,
-      _interflop_sub_float_vector,
-      _interflop_mul_float_vector,
-      _interflop_div_float_vector,
+      _interflop_add_float_2x,
+      _interflop_sub_float_2x,
+      _interflop_mul_float_2x,
+      _interflop_div_float_2x,
+      NULL,
+      _interflop_add_float_4x,
+      _interflop_sub_float_4x,
+      _interflop_mul_float_4x,
+      _interflop_div_float_4x,
+      NULL,
+      _interflop_add_float_8x,
+      _interflop_sub_float_8x,
+      _interflop_mul_float_8x,
+      _interflop_div_float_8x,
+      NULL,
+      _interflop_add_float_16x,
+      _interflop_sub_float_16x,
+      _interflop_mul_float_16x,
+      _interflop_div_float_16x,
       NULL,
       _interflop_add_double,
       _interflop_sub_double,
       _interflop_mul_double,
       _interflop_div_double,
       NULL,
-      _interflop_add_double_vector,
-      _interflop_sub_double_vector,
-      _interflop_mul_double_vector,
-      _interflop_div_double_vector,
+      _interflop_add_double_2x,
+      _interflop_sub_double_2x,
+      _interflop_mul_double_2x,
+      _interflop_div_double_2x,
+      NULL,
+      _interflop_add_double_4x,
+      _interflop_sub_double_4x,
+      _interflop_mul_double_4x,
+      _interflop_div_double_4x,
+      NULL,
+      _interflop_add_double_8x,
+      _interflop_sub_double_8x,
+      _interflop_mul_double_8x,
+      _interflop_div_double_8x,
+      NULL,
+      _interflop_add_double_16x,
+      _interflop_sub_double_16x,
+      _interflop_mul_double_16x,
+      _interflop_div_double_16x,
       NULL,
       _interflop_enter_function,
       _interflop_exit_function,

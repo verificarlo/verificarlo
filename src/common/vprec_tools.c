@@ -63,25 +63,29 @@ inline float round_binary32_normal(float x, int precision) {
  * Macro which define vector function to round binary32 normal
  */
 #define define_round_binary32_normal_vector(size)                              \
-  void round_binary32_normal_x##size(float *x, int##size precision) {          \
-    float##size a = *(float##size *)x;                                         \
+  void round_binary32_normal_##size##x(float##size *x, int##size precision) {  \
     /* build 1/2 ulp and add it  before truncation for faithfull rounding */   \
                                                                                \
-    /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other words,\
-       there remain VPRECLIB_PREC bits in the mantissa */                      \
-    const int##size mask = 0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision);        \
+    /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other       \
+       words, there remain VPRECLIB_PREC bits in the mantissa */               \
+    const uint32_##size##x mask =                                              \
+      ((uint32_##size##x)0xFFFFFFFF <<                                         \
+       ((uint32_##size##x)FLOAT_PMAN_SIZE - precision));                       \
                                                                                \
     /* position to the end of the target prec-1 */                             \
-    const int##size target_position = FLOAT_PMAN_SIZE - precision - 1;         \
+    const uint32_##size##x target_position =                                   \
+      (uint32_##size##x)FLOAT_PMAN_SIZE - precision - (uint32_##size##x)1;     \
                                                                                \
-    binary32_##size##x b32x = {.f32 = a};                                      \
-    FLOAT_SET_PMAN(b32x.ieee.mantissa, 0, size);                               \
-    binary32_##size##x half_ulp = {.f32 = a};                                  \
-    FLOAT_SET_PMAN(half_ulp.ieee.mantissa, 1 << target_position, size);        \
+    binary32_##size##x b32x = {.f32 = *x};                                     \
+    b32x.ieee.mantissa = (uint32_##size##x)0;                                  \
+    binary32_##size##x half_ulp = {.f32 = *x};                                 \
+    half_ulp.ieee.mantissa =                                                   \
+      (uint32_##size##x)((uint32_##size##x)1 << target_position);              \
                                                                                \
-    b32x.f32 = a + (half_ulp.f32 - b32x.f32);                                  \
+    b32x.f32 = *x + (half_ulp.f32 - b32x.f32);                                 \
     b32x.u32 &= mask;                                                          \
-    x = (float *)&a;                                                           \
+                                                                               \
+    *x = b32x.f32;                                                             \
   }
 
 /* Using above macro */
@@ -124,25 +128,30 @@ inline double round_binary64_normal(double x, int precision) {
  * Macro which define vector function to round binary64 normal
  */
 #define define_round_binary64_normal_vector(size)                              \
-  void round_binary64_normal_x##size(double *x, int64_##size##x precision) {   \
-    double##size a = *(double##size *)x;                                       \
+  void round_binary64_normal_##size##x(double##size *x,                        \
+                                       int64_##size##x precision) {            \
     /* build 1/2 ulp and add it  before truncation for faithfull rounding */   \
                                                                                \
-    /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other words,\
-       there remain VPRECLIB_PREC bits in the mantissa */                      \
-    const int64_##size##x mask = 0xFFFFFFFF << (DOUBLE_PMAN_SIZE - precision); \
+    /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other       \
+       words, there remain VPRECLIB_PREC bits in the mantissa */               \
+    const uint64_##size##x mask =                                              \
+      ((uint64_##size##x)0xFFFFFFFFFFFFFFFF <<                                 \
+       ((uint64_##size##x)DOUBLE_PMAN_SIZE - precision));                      \
                                                                                \
     /* position to the end of the target prec-1 */                             \
-    const int64_##size##x target_position = DOUBLE_PMAN_SIZE - precision - 1;  \
+    const uint64_##size##x target_position =                                   \
+      (uint64_##size##x)DOUBLE_PMAN_SIZE - precision - (uint64_##size##x)1;    \
                                                                                \
-    binary64_##size##x b64x = {.f64 = a};                                      \
-    DOUBLE_SET_PMAN(b64x.ieee.mantissa, 0, size);                              \
-    binary64_##size##x half_ulp = {.f64 = a};                                  \
-    DOUBLE_SET_PMAN(half_ulp.ieee.mantissa, 1 << target_position, size);       \
+    binary64_##size##x b64x = {.f64 = *x};                                     \
+    b64x.ieee.mantissa = (uint64_##size##x)0;                                  \
+    binary64_##size##x half_ulp = {.f64 = *x};                                 \
+    half_ulp.ieee.mantissa =                                                   \
+      (uint64_##size##x)((uint64_##size##x)1ULL << target_position);           \
                                                                                \
-    b64x.f64 = a + (half_ulp.f64 - b64x.f64);                                  \
+    b64x.f64 = *x + (half_ulp.f64 - b64x.f64);                                 \
     b64x.u64 &= mask;                                                          \
-    x = (double *)&a;                                                          \
+                                                                               \
+    *x = b64x.f64;                                                             \
   }
 
 /* Using above macro */
