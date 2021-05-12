@@ -373,7 +373,7 @@ static void _interflop_cmp_float(const enum FCMP_PREDICATE p, const float a,
   debug_print_float(context, COMPARISON, str, a, b, *c);
 }
 
-/* Define here all double vector interflop functions */
+/* Define here all float vector interflop functions */
 define_interflop_op_vector(2, float, add, +);
 define_interflop_op_vector(2, float, sub, -);
 define_interflop_op_vector(2, float, mul, *);
