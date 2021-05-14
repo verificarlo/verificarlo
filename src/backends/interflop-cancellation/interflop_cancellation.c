@@ -106,6 +106,27 @@ static inline double _noise_binary64(const int exp) {
     }                                                                          \
   })
 
+#define define_interflop_add_sub_vector(size, precision, ops, ope)             \
+  static void _interflop_##ops##_##precision##_##size##x(precision##size *a,   \
+                                                         precision##size *b,   \
+                                                         precision##size *c,   \
+                                                         void *context) {      \
+    (*c) = (*a) ope (*b);                                                      \
+    for (int i = 0; i < size; ++i) {                                           \
+      precision _c = (*c)[i];                                                  \
+      cancell((*a)[i], (*b)[i], &_c);                                          \
+      (*c)[i] = _c;                                                            \
+    }                                                                          \
+  }
+
+#define define_interflop_mul_div_vector(size, precision, ops, ope)             \
+  static void _interflop_##ops##_##precision##_##size##x(precision##size *a,   \
+                                                         precision##size *b,   \
+                                                         precision##size *c,   \
+                                                         void *context) {      \
+    *c = *a ope *b;                                                            \
+  }
+
 /* Cancellations can only happen during additions and substractions */
 static void _interflop_add_float(float a, float b, float *c, void *context) {
   *c = a + b;
@@ -129,37 +150,31 @@ static void _interflop_sub_double(double a, double b, double *c,
   cancell(a, b, c);
 }
 
-static void _interflop_add_float_vector(const int size, float *a, float *b,
-                                        float *c, void *context) {
-  for (int i = 0; i < size; ++i) {
-    c[i] = a[i] + b[i];
-    cancell(a[i], b[i], &(c[i]));
-  }
-}
+/* Define float add and sub vector functions */
+define_interflop_add_sub_vector(2, float, add, +);
+define_interflop_add_sub_vector(2, float, sub, -);
 
-static void _interflop_sub_float_vector(const int size, float *a, float *b,
-                                        float *c, void *context) {
-  for (int i = 0; i < size; ++i) {
-    c[i] = a[i] - b[i];
-    cancell(a[i], b[i], &(c[i]));
-  }
-}
+define_interflop_add_sub_vector(4, float, add, +);
+define_interflop_add_sub_vector(4, float, sub, -);
 
-static void _interflop_add_double_vector(const int size, double *a, double *b,
-                                         double *c, void *context) {
-  for (int i = 0; i < size; ++i) {
-    c[i] = a[i] + b[i];
-    cancell(a[i], b[i], &(c[i]));
-  }
-}
+define_interflop_add_sub_vector(8, float, add, +);
+define_interflop_add_sub_vector(8, float, sub, -);
 
-static void _interflop_sub_double_vector(const int size, double *a, double *b,
-                                         double *c, void *context) {
-  for (int i = 0; i < size; ++i) {
-    c[i] = a[i] - b[i];
-    cancell(a[i], b[i], &(c[i]));
-  }
-}
+define_interflop_add_sub_vector(16, float, add, +);
+define_interflop_add_sub_vector(16, float, sub, -);
+
+/* Define double add and sub vector functions */
+define_interflop_add_sub_vector(2, double, add, +);
+define_interflop_add_sub_vector(2, double, sub, -);
+
+define_interflop_add_sub_vector(4, double, add, +);
+define_interflop_add_sub_vector(4, double, sub, -);
+
+define_interflop_add_sub_vector(8, double, add, +);
+define_interflop_add_sub_vector(8, double, sub, -);
+
+define_interflop_add_sub_vector(16, double, add, +);
+define_interflop_add_sub_vector(16, double, sub, -);
 
 static void _interflop_mul_float(float a, float b, float *c, void *context) {
   *c = a * b;
@@ -179,33 +194,31 @@ static void _interflop_div_double(double a, double b, double *c,
   *c = a / b;
 }
 
-static void _interflop_mul_float_vector(const int size, float *a, float *b,
-                                        float *c, void *context) {
-  for (int i = 0; i < size; ++i) {
-    c[i] = a[i] * b[i];
-  }
-}
+/* Define float mul and div vector functions */
+define_interflop_mul_div_vector(2, float, mul, *);
+define_interflop_mul_div_vector(2, float, div, /);
 
-static void _interflop_div_float_vector(const int size, float *a, float *b,
-                                        float *c, void *context) {
-  for (int i = 0; i < size; ++i) {
-    c[i] = a[i] / b[i];
-  }
-}
+define_interflop_mul_div_vector(4, float, mul, *);
+define_interflop_mul_div_vector(4, float, div, /);
 
-static void _interflop_mul_double_vector(const int size, double *a, double *b,
-                                         double *c, void *context) {
-  for (int i = 0; i < size; ++i) {
-    c[i] = a[i] * b[i];
-  }
-}
+define_interflop_mul_div_vector(8, float, mul, *);
+define_interflop_mul_div_vector(8, float, div, /);
 
-static void _interflop_div_double_vector(const int size, double *a, double *b,
-                                         double *c, void *context) {
-  for (int i = 0; i < size; ++i) {
-    c[i] = a[i] / b[i];
-  }
-}
+define_interflop_mul_div_vector(16, float, mul, *);
+define_interflop_mul_div_vector(16, float, div, /);
+
+/* Define double mul and div vector functions */
+define_interflop_mul_div_vector(2, double, mul, *);
+define_interflop_mul_div_vector(2, double, div, /);
+
+define_interflop_mul_div_vector(4, double, mul, *);
+define_interflop_mul_div_vector(4, double, div, /);
+
+define_interflop_mul_div_vector(8, double, mul, *);
+define_interflop_mul_div_vector(8, double, div, /);
+
+define_interflop_mul_div_vector(16, double, mul, *);
+define_interflop_mul_div_vector(16, double, div, /);
 
 static struct argp_option options[] = {
     {"tolerance", 't', "TOLERANCE", 0, "Select tolerance (TOLERANCE >= 0)", 0},
@@ -275,20 +288,50 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_mul_float,
       _interflop_div_float,
       NULL,
-      _interflop_add_float_vector,
-      _interflop_sub_float_vector,
-      _interflop_mul_float_vector,
-      _interflop_div_float_vector,
+      _interflop_add_float_2x,
+      _interflop_sub_float_2x,
+      _interflop_mul_float_2x,
+      _interflop_div_float_2x,
+      NULL,
+      _interflop_add_float_4x,
+      _interflop_sub_float_4x,
+      _interflop_mul_float_4x,
+      _interflop_div_float_4x,
+      NULL,
+      _interflop_add_float_8x,
+      _interflop_sub_float_8x,
+      _interflop_mul_float_8x,
+      _interflop_div_float_8x,
+      NULL,
+      _interflop_add_float_16x,
+      _interflop_sub_float_16x,
+      _interflop_mul_float_16x,
+      _interflop_div_float_16x,
       NULL,
       _interflop_add_double,
       _interflop_sub_double,
       _interflop_mul_double,
       _interflop_div_double,
       NULL,
-      _interflop_add_double_vector,
-      _interflop_sub_double_vector,
-      _interflop_mul_double_vector,
-      _interflop_div_double_vector,
+      _interflop_add_double_2x,
+      _interflop_sub_double_2x,
+      _interflop_mul_double_2x,
+      _interflop_div_double_2x,
+      NULL,
+      _interflop_add_double_4x,
+      _interflop_sub_double_4x,
+      _interflop_mul_double_4x,
+      _interflop_div_double_4x,
+      NULL,
+      _interflop_add_double_8x,
+      _interflop_sub_double_8x,
+      _interflop_mul_double_8x,
+      _interflop_div_double_8x,
+      NULL,
+      _interflop_add_double_16x,
+      _interflop_sub_double_16x,
+      _interflop_mul_double_16x,
+      _interflop_div_double_16x,
       NULL,
       NULL,
       NULL,
