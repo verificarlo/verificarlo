@@ -274,11 +274,19 @@ static inline void debug_print_double(void *context,
                                                                                \
     *c = *a ope *b;                                                            \
                                                                                \
-    count_vector(my_context, size, ops);                                       \
+    my_context->_##size##x_##ops##_count++;                                    \
                                                                                \
-    for (int i = 0; i < size; ++i) {                                           \
-      debug_print_##precision(context, ARITHMETIC, #ope, (*a)[i], (*b)[i],     \
-                              (*c)[i]);                                        \
+    /* same code as 2 first line of debug_print_precision */                   \
+    /* do this because we just need to test 1 times if the context say us      \
+       to debug */                                                             \
+    bool debug = ((t_context *)context)->debug ? true : false;                 \
+    bool debug_binary = ((t_context *)context)->debug_binary ? true : false;   \
+                                                                               \
+    if (debug || debug_binary) {                                               \
+      for (int i = 0; i < size; ++i) {                                         \
+        debug_print_##precision(context, ARITHMETIC, #ope, (*a)[i], (*b)[i],   \
+                                (*c)[i]);                                      \
+      }                                                                        \
     }                                                                          \
   }
 
@@ -301,34 +309,6 @@ static inline void debug_print_double(void *context,
                               (*c)[i]);                                        \
     }                                                                          \
 }
-
-/* Count vector operations
- * my_context: my_context
- * size: size of vector
- * op: operation (mul, sub, mul, div)
- */
-#define count_vector(my_context, size, op)                                     \
-  switch (size) {                                                              \
-  case 2:                                                                      \
-    if (my_context->count_op)                                                  \
-      my_context->_2x_##op##_count++;                                          \
-    break;                                                                     \
-  case 4:                                                                      \
-    if (my_context->count_op)                                                  \
-      my_context->_4x_##op##_count++;                                          \
-    break;                                                                     \
-  case 8:                                                                      \
-    if (my_context->count_op)                                                  \
-      my_context->_8x_##op##_count++;                                          \
-    break;                                                                     \
-  case 16:                                                                     \
-    if (my_context->count_op)                                                  \
-      my_context->_16x_##op##_count++;                                         \
-    break;                                                                     \
-  default:                                                                     \
-    logger_error("invalid size %d\n", size);                                   \
-    break;                                                                     \
-  }
 
 static void _interflop_add_float(const float a, const float b, float *c,
                                  void *context) {
