@@ -212,12 +212,12 @@ static __float128 _noise_binary128(const int exp) {
 /* Macro function for checking if the value X must be noised */
 #define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
   /* if mode ieee, do not introduce noise */                                   \
-  (MCALIB_MODE == mcamode_ieee) ||					                                   \
-  /* Check that we are not in a special case */				                         \
-  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||	           \
-  /* In RR if the number is representable in current virtual precision, */     \
-  /* do not add any noise if */						                                     \
-  (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
+  (MCALIB_MODE == mcamode_ieee) ||                                             \
+  /* Check that we are not in a special case */                                \
+  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||             \
+    /* In RR if the number is representable in current virtual precision, */   \
+    /* do not add any noise if */                                              \
+    (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP)                                                         \
@@ -355,28 +355,28 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
 }
 
 static void _interflop_add_float_vector(const int size, float *a, float *b,
-					float *c, void *context) {
+                                        float *c, void *context) {
   for (int i = 0; i < size; i++) {
     c[i] = _mca_binary32_binary_op(a[i], b[i], mca_add, context);
   }
 }
 
 static void _interflop_sub_float_vector(const int size, float *a, float *b,
-					float *c, void *context) {
+                                        float *c, void *context) {
   for (int i = 0; i < size; i++) {
     c[i] = _mca_binary32_binary_op(a[i], b[i], mca_sub, context);
   }
 }
 
 static void _interflop_mul_float_vector(const int size, float *a, float *b,
-					float *c, void *context) {
+                                        float *c, void *context) {
   for (int i = 0; i < size; i++) {
     c[i] = _mca_binary32_binary_op(a[i], b[i], mca_mul, context);
   }
 }
 
 static void _interflop_div_float_vector(const int size, float *a, float *b,
-					float *c, void *context) {
+                                        float *c, void *context) {
   for (int i = 0; i < size; i++) {
     c[i] = _mca_binary32_binary_op(a[i], b[i], mca_div, context);
   }
@@ -403,28 +403,28 @@ static void _interflop_div_double(double a, double b, double *c,
 }
 
 static void _interflop_add_double_vector(const int size, double *a, double *b,
-					 double *c, void *context) {
+                                         double *c, void *context) {
   for (int i = 0; i < size; i++) {
     c[i] = _mca_binary64_binary_op(a[i], b[i], mca_add, context);
   }
 }
 
 static void _interflop_sub_double_vector(const int size, double *a, double *b,
-					 double *c, void *context) {
+                                         double *c, void *context) {
   for (int i = 0; i < size; i++) {
     c[i] = _mca_binary64_binary_op(a[i], b[i], mca_sub, context);
   }
 }
 
 static void _interflop_mul_double_vector(const int size, double *a, double *b,
-					 double *c, void *context) {
+                                         double *c, void *context) {
   for (int i = 0; i < size; i++) {
     c[i] = _mca_binary64_binary_op(a[i], b[i], mca_mul, context);
   }
 }
 
 static void _interflop_div_double_vector(const int size, double *a, double *b,
-					 double *c, void *context) {
+                                         double *c, void *context) {
   for (int i = 0; i < size; i++) {
     c[i] = _mca_binary64_binary_op(a[i], b[i], mca_div, context);
   }
