@@ -272,7 +272,7 @@ static inline void debug_print_double(void *context,
                                                          void *context) {      \
     t_context *my_context = (t_context *)context;                              \
                                                                                \
-    *c = *a + *b;                                                              \
+    *c = *a ope *b;                                                            \
                                                                                \
     count_vector(my_context, size, ops);                                       \
                                                                                \
