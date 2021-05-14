@@ -349,17 +349,6 @@ static double _bitmask_binary64_binary_op(double a, double b,
  * point operators
  **********************************************************************/
 
-#define define_interflop_op_vector(size, precision, op)                        \
-  static void _interflop_##op##_##precision##_##size##x(precision##size *a,    \
-                                                        precision##size *b,    \
-                                                        precision##size *c,    \
-                                                        void *context) {       \
-    for (int i = 0; i < size; i++) {                                           \
-      (*c)[i] = _bitmask_binary32_binary_op((*a)[i], (*b)[i], bitmask_##op,    \
-                                            context);                          \
-    }                                                                          \
-  }
-
 static void _interflop_add_float(float a, float b, float *c, void *context) {
   *c = _bitmask_binary32_binary_op(a, b, bitmask_add, context);
 }
@@ -376,26 +365,37 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
   *c = _bitmask_binary32_binary_op(a, b, bitmask_div, context);
 }
 
+#define define_interflop_op_float_vector(size, op)                             \
+  static void _interflop_##op##_float_##size##x(float##size *a,                \
+                                                float##size *b,                \
+                                                float##size *c,                \
+                                                void *context) {               \
+    for (int i = 0; i < size; i++) {                                           \
+      (*c)[i] = _bitmask_binary32_binary_op((*a)[i], (*b)[i], bitmask_##op,    \
+                                            context);                          \
+    }                                                                          \
+  }
+
 /* Define here all float vector interflop functions */
-define_interflop_op_vector(2, float, add);
-define_interflop_op_vector(2, float, sub);
-define_interflop_op_vector(2, float, mul);
-define_interflop_op_vector(2, float, div);
+define_interflop_op_float_vector(2, add);
+define_interflop_op_float_vector(2, sub);
+define_interflop_op_float_vector(2, mul);
+define_interflop_op_float_vector(2, div);
 
-define_interflop_op_vector(4, float, add);
-define_interflop_op_vector(4, float, sub);
-define_interflop_op_vector(4, float, mul);
-define_interflop_op_vector(4, float, div);
+define_interflop_op_float_vector(4, add);
+define_interflop_op_float_vector(4, sub);
+define_interflop_op_float_vector(4, mul);
+define_interflop_op_float_vector(4, div);
 
-define_interflop_op_vector(8, float, add);
-define_interflop_op_vector(8, float, sub);
-define_interflop_op_vector(8, float, mul);
-define_interflop_op_vector(8, float, div);
+define_interflop_op_float_vector(8, add);
+define_interflop_op_float_vector(8, sub);
+define_interflop_op_float_vector(8, mul);
+define_interflop_op_float_vector(8, div);
 
-define_interflop_op_vector(16, float, add);
-define_interflop_op_vector(16, float, sub);
-define_interflop_op_vector(16, float, mul);
-define_interflop_op_vector(16, float, div);
+define_interflop_op_float_vector(16, add);
+define_interflop_op_float_vector(16, sub);
+define_interflop_op_float_vector(16, mul);
+define_interflop_op_float_vector(16, div);
 
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
@@ -417,26 +417,37 @@ static void _interflop_div_double(double a, double b, double *c,
   *c = _bitmask_binary64_binary_op(a, b, bitmask_div, context);
 }
 
+#define define_interflop_op_double_vector(size, op)                            \
+  static void _interflop_##op##_double_##size##x(double##size *a,              \
+                                                 double##size *b,              \
+                                                 double##size *c,              \
+                                                 void *context) {              \
+    for (int i = 0; i < size; i++) {                                           \
+      (*c)[i] = _bitmask_binary64_binary_op((*a)[i], (*b)[i], bitmask_##op,    \
+                                            context);                          \
+    }                                                                          \
+  }
+
 /* Define here all double vector interflop functions */
-define_interflop_op_vector(2, double, add);
-define_interflop_op_vector(2, double, sub);
-define_interflop_op_vector(2, double, mul);
-define_interflop_op_vector(2, double, div);
+define_interflop_op_double_vector(2, add);
+define_interflop_op_double_vector(2, sub);
+define_interflop_op_double_vector(2, mul);
+define_interflop_op_double_vector(2, div);
 
-define_interflop_op_vector(4, double, add);
-define_interflop_op_vector(4, double, sub);
-define_interflop_op_vector(4, double, mul);
-define_interflop_op_vector(4, double, div);
+define_interflop_op_double_vector(4, add);
+define_interflop_op_double_vector(4, sub);
+define_interflop_op_double_vector(4, mul);
+define_interflop_op_double_vector(4, div);
 
-define_interflop_op_vector(8, double, add);
-define_interflop_op_vector(8, double, sub);
-define_interflop_op_vector(8, double, mul);
-define_interflop_op_vector(8, double, div);
+define_interflop_op_double_vector(8, add);
+define_interflop_op_double_vector(8, sub);
+define_interflop_op_double_vector(8, mul);
+define_interflop_op_double_vector(8, div);
 
-define_interflop_op_vector(16, double, add);
-define_interflop_op_vector(16, double, sub);
-define_interflop_op_vector(16, double, mul);
-define_interflop_op_vector(16, double, div);
+define_interflop_op_double_vector(16, add);
+define_interflop_op_double_vector(16, sub);
+define_interflop_op_double_vector(16, mul);
+define_interflop_op_double_vector(16, div);
 
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
