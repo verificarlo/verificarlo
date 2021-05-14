@@ -314,8 +314,7 @@ static void _interflop_add_float(const float a, const float b, float *c,
                                  void *context) {
   t_context *my_context = (t_context *)context;
   *c = a + b;
-  if (my_context->count_op)
-    my_context->add_count++;
+  my_context->add_count++;
   debug_print_float(context, ARITHMETIC, "+", a, b, *c);
 }
 
@@ -323,8 +322,7 @@ static void _interflop_sub_float(const float a, const float b, float *c,
                                  void *context) {
   t_context *my_context = (t_context *)context;
   *c = a - b;
-  if (my_context->count_op)
-    my_context->sub_count++;
+  my_context->sub_count++;
   debug_print_float(context, ARITHMETIC, "-", a, b, *c);
 }
 
@@ -332,8 +330,7 @@ static void _interflop_mul_float(const float a, const float b, float *c,
                                  void *context) {
   t_context *my_context = (t_context *)context;
   *c = a * b;
-  if (my_context->count_op)
-    my_context->mul_count++;
+  my_context->mul_count++;
   debug_print_float(context, ARITHMETIC, "*", a, b, *c);
 }
 
@@ -341,8 +338,7 @@ static void _interflop_div_float(const float a, const float b, float *c,
                                  void *context) {
   t_context *my_context = (t_context *)context;
   *c = a / b;
-  if (my_context->count_op)
-    my_context->div_count++;
+  my_context->div_count++;
   debug_print_float(context, ARITHMETIC, "/", a, b, *c);
 }
 
@@ -383,8 +379,7 @@ static void _interflop_add_double(const double a, const double b, double *c,
                                   void *context) {
   t_context *my_context = (t_context *)context;
   *c = a + b;
-  if (my_context->count_op)
-    my_context->add_count++;
+  my_context->add_count++;
   debug_print_double(context, ARITHMETIC, "+", a, b, *c);
 }
 
@@ -392,8 +387,7 @@ static void _interflop_sub_double(const double a, const double b, double *c,
                                   void *context) {
   t_context *my_context = (t_context *)context;
   *c = a - b;
-  if (my_context->count_op)
-    my_context->sub_count++;
+  my_context->sub_count++;
   debug_print_double(context, ARITHMETIC, "-", a, b, *c);
 }
 
@@ -401,8 +395,7 @@ static void _interflop_mul_double(const double a, const double b, double *c,
                                   void *context) {
   t_context *my_context = (t_context *)context;
   *c = a * b;
-  if (my_context->count_op)
-    my_context->mul_count++;
+  my_context->mul_count++;
   debug_print_double(context, ARITHMETIC, "*", a, b, *c);
 }
 
@@ -410,8 +403,7 @@ static void _interflop_div_double(const double a, const double b, double *c,
                                   void *context) {
   t_context *my_context = (t_context *)context;
   *c = a / b;
-  if (my_context->count_op)
-    my_context->div_count++;
+  my_context->div_count++;
   debug_print_double(context, ARITHMETIC, "/", a, b, *c);
 }
 
