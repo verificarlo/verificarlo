@@ -8,8 +8,9 @@ exit_at_error = True
 
 PRECISION="VERIFICARLO_PRECISION"
 
-input_file="input.txt"
-if len(sys.argv) == 1:
+input_file=sys.argv[1]
+
+if len(sys.argv) == 2:
     mpfr_file="mpfr.txt"
     vprec_file="vprec.txt"
 else:
