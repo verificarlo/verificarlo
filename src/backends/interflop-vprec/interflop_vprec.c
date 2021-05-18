@@ -774,7 +774,7 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     aexp.s32 -= (int32_##size##x)FLOAT_EXP_COMP;                               \
                                                                                \
     /* make a vector test */                                                   \
-    int##size is_overflow = aexp.s32 > emax;                                   \
+    int##size is_overflow = aexp.s32 > (int##size)emax;                        \
                                                                                \
     for (int i = 0; i < size; i++) {                                           \
       /* test if 'a[i]' is a special case */                                   \
@@ -783,20 +783,23 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
         count++;                                                               \
       }                                                                        \
       /* check for overflow in target range */                                 \
-      else if (is_overflow[i] && !set[i]) {                                    \
+      else if (is_overflow[i]) {                                               \
         (*a)[i] = (*a)[i] * INFINITY;                                          \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
       /* check for underflow in target range */                                \
-      else if (aexp.s32[i] < emin && !set[i]) {                                \
+      else if (aexp.s32[i] < emin) {                                           \
         /* underflow case: possibly a denormal */                              \
         if ((currentContext->daz && is_input) ||                               \
             (currentContext->ftz && !is_input)) {                              \
           /* preserve sign */                                                  \
           (*a)[i] = (*a)[i] * 0;                                               \
+          set[i] = 1;                                                          \
+          count++;                                                             \
         } else if (FP_ZERO == fpclassify((*a)[i])) {                           \
-          continue;                                                            \
+          set[i] = 1;                                                          \
+          count++;                                                             \
         } else {                                                               \
           if (currentContext->absErr == true) {                                \
             /* absolute error mode, or both absolute and relative error        \
@@ -813,7 +816,6 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
           }                                                                    \
         }                                                                      \
         set[i] = 1;                                                            \
-        count++;                                                               \
       }                                                                        \
     }                                                                          \
                                                                                \
@@ -823,16 +825,19 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
     } else if (count != 0) {                                                   \
       /* if one element is set we can't vectorized */                          \
       for (int i = 0; i < size; i++) {                                         \
-        /* else, normal case: can be executed even if a                        \
-           previously rounded and truncated as denormal */                     \
-        if (currentContext->absErr == true) {                                  \
-          /* absolute error mode, or both absolute and relative error modes */ \
-          (*a)[i] = handle_binary32_normal_absErr((*a)[i], aexp.s32[i],        \
-                                               binary32_precision,             \
-                                               currentContext);                \
-        } else {                                                               \
-          /* relative error mode */                                            \
-          (*a)[i] = round_binary32_normal((*a)[i], binary32_precision);        \
+        if (!set[i]) {                                                         \
+          /* else, normal case: can be executed even if a                      \
+             previously rounded and truncated as denormal */                   \
+          if (currentContext->absErr == true) {                                \
+            /* absolute error mode, or both absolute and relative error        \
+               modes */                                                        \
+            (*a)[i] = handle_binary32_normal_absErr((*a)[i], aexp.s32[i],      \
+                                                    binary32_precision,        \
+                                                    currentContext);           \
+          } else {                                                             \
+            /* relative error mode */                                          \
+            (*a)[i] = round_binary32_normal((*a)[i], binary32_precision);      \
+          }                                                                    \
         }                                                                      \
       }                                                                        \
     } else {                                                                   \
@@ -932,9 +937,9 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
                                                                                \
     /* round to zero or set to infinity if underflow or overflow compare to */ \
     /* VPRECLIB_BINARY64_RANGE */                                              \
-    int64_t emax = (1 << (binary64_range - 1)) - 1;                            \
+    int emax = (1 << (binary64_range - 1)) - 1;                                \
     /* here emin is the smallest exponent in the *normal* range */             \
-    int64_t emin = 1 - emax;                                                   \
+    int emin = 1 - emax;                                                       \
                                                                                \
     binary64_##size##x aexp = {.f64 = *a};                                     \
     aexp.s64 = (int64_##size##x)((DOUBLE_GET_EXP & aexp.u64));                 \
@@ -942,7 +947,7 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     aexp.s64 -= (int64_##size##x)DOUBLE_EXP_COMP;                              \
                                                                                \
     /* make a vector test */                                                   \
-    int64_##size##x is_overflow = aexp.s64 > emax;                             \
+    int64_##size##x is_overflow = aexp.s64 > (int64_##size##x)emax;            \
                                                                                \
     for (int i = 0; i < size; i++) {                                           \
       /* test if 'a[i]' is a special case */                                   \
@@ -951,20 +956,23 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
         count++;                                                               \
       }                                                                        \
       /* check for overflow in target range */                                 \
-      else if (is_overflow[i] && !set[i]) {                                    \
+      else if (is_overflow[i]) {                                               \
         (*a)[i] = (*a)[i] * INFINITY;                                          \
         set[i] = 1;                                                            \
         count++;                                                               \
       }                                                                        \
       /* check for underflow in target range */                                \
-      else if (aexp.s64[i] < emin && !set[i]) {                                \
+      else if (aexp.s64[i] < emin) {                                           \
         /* underflow case: possibly a denormal */                              \
         if ((currentContext->daz && is_input) ||                               \
             (currentContext->ftz && !is_input)) {                              \
           /* preserve sign */                                                  \
           (*a)[i] = (*a)[i] * 0;                                               \
+          set[i] = 1;                                                          \
+          count++;                                                             \
         } else if (FP_ZERO == fpclassify((*a)[i])) {                           \
-          continue;                                                            \
+          set[i] = 1;                                                          \
+          count++;                                                             \
         } else {                                                               \
           if (currentContext->absErr == true) {                                \
             /* absolute error mode, or both absolute and relative error        \
@@ -981,7 +989,6 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
           }                                                                    \
         }                                                                      \
         set[i] = 1;                                                            \
-        count++;                                                               \
       }                                                                        \
     }                                                                          \
                                                                                \
@@ -991,16 +998,19 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
     } else if (count != 0) {                                                   \
       /* if one element is set we can't vectorized */                          \
       for (int i = 0; i < size; i++) {                                         \
-        /* else, normal case: can be executed even if a                        \
-           previously rounded and truncated as denormal */                     \
-        if (currentContext->absErr == true) {                                  \
-          /* absolute error mode, or both absolute and relative error modes */ \
-          (*a)[i] = handle_binary64_normal_absErr((*a)[i], aexp.s64[i],        \
-                                               binary64_precision,             \
-                                               currentContext);                \
-        } else {                                                               \
-          /* relative error mode */                                            \
-          (*a)[i] = round_binary64_normal((*a)[i], binary64_precision);        \
+        if (!set[i]) {                                                         \
+          /* else, normal case: can be executed even if a                      \
+             previously rounded and truncated as denormal */                   \
+          if (currentContext->absErr == true) {                                \
+            /* absolute error mode, or both absolute and relative error        \
+               modes */                                                        \
+            (*a)[i] = handle_binary64_normal_absErr((*a)[i], aexp.s64[i],      \
+                                                    binary64_precision,        \
+                                                    currentContext);           \
+          } else {                                                             \
+            /* relative error mode */                                          \
+            (*a)[i] = round_binary64_normal((*a)[i], binary64_precision);      \
+          }                                                                    \
         }                                                                      \
       }                                                                        \
     } else {                                                                   \
