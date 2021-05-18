@@ -73,6 +73,11 @@ for TYPE in float double ; do
     run $BINARY
     check "$(test '$(wc -l log)'; echo $?)" "Error no new lines printed"
     
+    DEBUG_MODE="--count-op"
+    OPTIONS=""
+    run $BINARY
+    check "$(grep -vq "add=" log; echo $?)" "Error no counts printed"
+
 done
 
 # Vector type
@@ -116,7 +121,7 @@ for TYPE in float4 double2 ; do
 
     DEBUG_MODE="--count-op"
     OPTIONS=""
-    run
+    run $BINARY
     check "$(grep -vq "add=" log; echo $?)" "Error no counts printed"
 
 done
