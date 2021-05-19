@@ -119,6 +119,11 @@
             <div id="navbar-content" class="navbar-menu">
 
                 <div id="buttons-container" class="navbar-start">
+
+                    <div id="select-repo" style="margin-top: 15px;">
+                    {{ embed(roots.select_repo) }}
+                    </div>
+
                     <a class="navbar-item is-active" id="compare-runs-button">
                         Compare runs
                     </a>
@@ -129,15 +134,13 @@
                 </div>
 
                 <div class="navbar-end">
-                    {% if git_repo_linked %}
                     <div class="navbar-item">
                         <div class="buttons">
-                            <a class="button is-light" href="{{repo_url}}" target="_blank">
-                                {{repo_name}} on {{git_host}}
+                            <a id="git-repo-link" class="button is-light" href="" target="_blank">
+                                repo_name on git_host
                             </a>
                         </div>
                     </div>
-                    {% endif %}
 
                     <div class="navbar-item">
                         <div class="buttons">
@@ -261,8 +264,6 @@
                         <div id="run-message" style="display: inline;">
                         </div>
 
-                        {% if git_repo_linked %}
-
                         <br>
                         <br>
 
@@ -272,10 +273,8 @@
                         href=""
                         target="_blank"
                         >
-                            View this commit on {{git_host}}
+                            View this commit on
                         </a>
-
-                        {% endif %}
 
                     </div>
 
@@ -329,6 +328,47 @@
         <!-- JAVASCRIPT -->
         <script>
 
+            // Modify the top-right button link to the repository
+            function changeRepository(repoName) {
+
+                gitRepoLink = document.getElementById("git-repo-link");
+
+                repoUrl = repoNamesDict[repoName];
+
+                // If we're lookin at commits not linked to a repo
+                if(repoUrl == "") {
+                    // Hide the link button
+                    gitRepoLink.style.display = "none";
+                }
+
+                // We have selected a valid Git repo
+                else {
+                    // Show the link button
+                    gitRepoLink.style.display = "";
+
+                    // Get the name alone (without owner/branch)
+                    name = repoName.split(/\/|:/)[1];
+
+                    // Get host name (GitHub/GitLab)
+                    let gitHost = "";
+                    if(repoUrl.indexOf("github.com") != -1) {
+                        gitHost = "GitHub";
+                    }
+                    else {
+                        gitHost = "GitLab";
+                    }
+
+                    // Update the button
+                    gitRepoLink.href = repoUrl;
+                    gitRepoLink.innerHTML = name + " on " + gitHost;
+                }
+            }
+
+
+
+            // Helper function to generate the link to a git commit
+
+
             // Listen to clicks on breadcrumb (for responsive header)
             document.getElementById("navbar-burger")
             .addEventListener("click", () => {
@@ -352,7 +392,6 @@
                 let toggledButtonId = classPrefix + "-button";
 
                 for(let i=0; i<buttons.length; i++) {
-                    console.log()
                     if(toggledButtonId == buttons[i].id) {
                         buttons[i].classList.add("is-active");
                     }
@@ -443,6 +482,22 @@
                     }
                 }
 
+
+                // At this point, run is correctly set
+
+                // Generate the commit link and host name
+                let commit_link = "";
+                let gitHost = "";
+                if(run.remote_url.indexOf("github.com") != -1) {
+                    commit_link = run.remote_url + "/commit/" + run.hash;
+                    gitHost = "GitHub";
+                } else {
+                    commit_link = run.remote_url + "/-/commit/" + run.hash;
+                    gitHost = "GitLab";
+                }
+
+
+                // Edit innerHTML with new metadata
                 document.getElementById("run-date").innerHTML = run.date;
 
                 if(run.is_git_commit) {
@@ -453,10 +508,10 @@
                     document.getElementById("run-author").innerHTML = run.author;
                     document.getElementById("run-message").innerHTML = run.message;
 
-                    {% if git_repo_linked %}
                     document.getElementById("git-commit-link")
-                    .setAttribute("href", "{{commit_link}}" + run.hash);
-                    {% endif %}
+                    .setAttribute("href", commit_link);
+                    document.getElementById("git-commit-link")
+                    .innerHTML = "View this commit on " + gitHost;
 
                 } else {
                     document.getElementById("is-git-commit").style.display = "none";
@@ -468,10 +523,18 @@
                 }
             }
 
-            //Object containing metadata from all runs
-            metadata = {{metadata}}
 
-            // Initial run using the template arg
+
+            // Initial function calls using the template args
+            metadata = {{metadata}}
+            repoNamesDict = {{repo_names_dict}}
+
+            // Hide the repo selection if only one is detected
+            if(Object.keys(repoNamesDict).length == 1) {
+                document.getElementById("select-repo").style.display = "none";
+            }
+
+            changeRepository("{{initial_repo}}");
             updateRunMetadata({{initial_timestamp}});
 
         </script>

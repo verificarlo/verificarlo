@@ -12,7 +12,7 @@ import calendar
 import time
 
 # Forcing an older pickle protocol allows backwards compatibility when reading
-# HDF5 written in 3.8+ using an older version of Python
+# HDF5 written in 3.8+ with an older version of Python
 import pickle
 pickle.HIGHEST_PROTOCOL = 4
 
@@ -68,7 +68,7 @@ def read_probes_csv(filepath, backend, warnings, execution_data):
     return results
 
 
-# Wrappers to sd.significant_digits (returns results in base 2)
+# First wrapper to sd.significant_digits (returns results in base 2)
 
 def significant_digits(x):
 
@@ -100,6 +100,8 @@ def significant_digits(x):
     else:
         return -np.log2(np.absolute(x.sigma / x.mu))
 
+
+# First wrapper to sd.significant_digits : assumes s2 has already been computed
 
 def significant_digits_lower_bound(x):
     # If the null hypothesis is rejected, no lower bound
@@ -152,6 +154,8 @@ def generate_metadata(is_git_commit):
     metadata = {
         "timestamp": calendar.timegm(time.gmtime()),
         "is_git_commit": is_git_commit,
+        "remote_url": "",
+        "branch": "",
         "hash": "",
         "author": "",
         "message": ""
@@ -162,6 +166,13 @@ def generate_metadata(is_git_commit):
         from git import Repo
 
         repo = Repo(".")
+
+        remote_url = repo.remotes[0].config_reader.get("url")
+        metadata["remote_url"] = remote_url
+
+        branch = repo.active_branch.name
+        metadata["branch"] = branch
+
         head_commit = repo.head.commit
 
         metadata["timestamp"] = head_commit.authored_date
@@ -247,7 +258,7 @@ def run_tests(config):
 
     return data, warnings
 
-    # Data processing
+    # Data processing : computes all metrics on the dataframe
 
 
 def data_processing(data):
@@ -303,8 +314,7 @@ def show_warnings(warnings):
 
 ##########################################################################
 
-    # Entry point
-
+# Entry point of vfc_ci test
 def run(is_git_commit, export_raw_values, dry_run):
 
     # Get config, metadata and data
@@ -333,7 +343,8 @@ def run(is_git_commit, export_raw_values, dry_run):
     metadata = pd.DataFrame.from_dict([metadata])
     metadata = metadata.set_index("timestamp")
 
-    # NOTE : Exporting to HDF5 requires to install "tables" on the system
+    # WARNING : Exporting to HDF5 implicitly requires to install "tables" on the
+    # system
 
     # Export raw data if needed
     if export_raw_values and not dry_run:

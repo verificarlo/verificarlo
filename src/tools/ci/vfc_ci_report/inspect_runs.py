@@ -530,9 +530,39 @@ class InspectRuns:
         # Communication methods
         # (to send/receive messages to/from master)
 
-    # When received, switch to the run_name in parameter
+    # When received, update data and metadata with the new repo, and update
+    # everything
+
+    def change_repo(self, new_data, new_metadata):
+        self.data = new_data
+        self.metadata = new_metadata
+
+        self.runs_dict = self.gen_runs_selection()
+
+        runs_display = list(self.runs_dict.keys())
+        current_run_display = runs_display[-1]
+
+        # Update widget (and trigger its callback)
+        self.widgets["select_run"].options = runs_display
+        self.widgets["select_run"].value = current_run_display
+
+        filterby = self.widgets["filterby_radio"].labels[
+            self.widgets["filterby_radio"].active
+        ]
+        filterby = self.factors_dict[filterby]
+
+        self.run_data = self.data[self.data["timestamp"] == self.current_run]
+        options = self.run_data.index\
+            .get_level_values(filterby).drop_duplicates().tolist()
+
+        # Update widget (and trigger its callback)
+        self.widgets["select_filter"].options = options
+        self.widgets["select_filter"].value = options[0]
+
+    # When received, switch to run_name
 
     def switch_view(self, run_name):
+        # This will trigger the widget's callback
         self.widgets["select_run"].value = run_name
 
         # Constructor
@@ -563,7 +593,8 @@ class InspectRuns:
         # callbacks). This is required because metadata is not displayed in a
         # Bokeh widget, so we can't update this with a server callback.
         initial_run = helper.get_metadata(self.metadata, self.current_run)
-        self.doc.template_variables["initial_timestamp"] = self.current_run
+        self.doc.template_variables["initial_timestamp"] = initial_run.name
+        self.doc.template_variables["initial_repo"] = initial_run.repo_name
 
         # At this point, everything should have been initialized, so we can
         # show the plots for the first time

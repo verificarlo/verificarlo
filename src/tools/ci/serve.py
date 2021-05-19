@@ -4,16 +4,13 @@
 import os
 
 
-def serve(show, git_directory, git_url, port, allow_origin, logo_url):
+# Entry point of vfc_ci serve
+def run(directory, show, port, allow_origin, logo_url):
 
     # Prepare arguments
-    show = "--show" if show else ""
+    directory = "directory %s" % directory
 
-    git = ""
-    if git_directory is not None:
-        git = "git directory %s" % git_directory
-    if git_url is not None:
-        git = "git url %s" % git_url
+    show = "--show" if show else ""
 
     logo = ""
     if logo_url is not None:
@@ -23,6 +20,6 @@ def serve(show, git_directory, git_url, port, allow_origin, logo_url):
 
     # Call the "bokeh serve" command on the system
     command = "bokeh serve %s/vfc_ci_report %s --allow-websocket-origin=%s:%s --port %s --args %s %s" \
-        % (dirname, show, allow_origin, port, port, git, logo)
+        % (dirname, show, allow_origin, port, port, directory, logo)
 
     os.system(command)

@@ -73,7 +73,7 @@ def argument(*name_or_flags, **kwargs):
 )
 def setup(args):
     import verificarlo.ci.setup
-    verificarlo.ci.setup.setup(args.git_host)
+    verificarlo.ci.setup.run(args.git_host)
 
     # "test" subcommand
 
@@ -108,7 +108,10 @@ def setup(args):
 )
 def test(args):
     import verificarlo.ci.test
-    verificarlo.ci.test.run(args.is_git_commit, args.export_raw_results, args.dry_run)
+    verificarlo.ci.test.run(
+        args.is_git_commit,
+        args.export_raw_results,
+        args.dry_run)
 
     # "serve" subcommand
 
@@ -119,28 +122,20 @@ def test(args):
     """,
     args=[
         argument(
+            "-d", "--data-directory",
+            help="""
+            Specify where to look for the run files.
+            """,
+            type=is_directory,
+            default="."
+        ),
+        argument(
             "-s", "--show",
             help="""
             Specify if the report must be opened in the browser at server
             startup.
             """,
             action="store_true"
-        ),
-        argument(
-            "-gd", "--git-directory",
-            help="""
-            Path to a local Git repository. The report will be linked to the
-            remote URL (GitHub and GitLab are supported).
-            """,
-            type=is_directory
-        ),
-        argument(
-            "-gu", "--git-url",
-            help="""
-            GitHub or GitLab repository URL. The report will be linked to this
-            URL.
-            """,
-            type=str
         ),
         argument(
             "-p", "--port",
@@ -169,19 +164,10 @@ def test(args):
     ]
 )
 def serve(args):
-
-    # git_directory and git_url are supposed to be exclusive
-    if args.git_directory is not None and args.git_url is not None:
-        raise argparse.ArgumentTypeError(
-            "\"-gd\" / \"--git-directory\" and \"-gu\" / \"--git-url\" are "
-            "mutually exclusive. Please make sure to use at most one of them."
-        )
-
     import verificarlo.ci.serve
-    verificarlo.ci.serve.serve(
+    verificarlo.ci.serve.run(
+        args.data_directory,
         args.show,
-        args.git_directory,
-        args.git_url,
         args.port,
         args.allow_origin,
         args.logo

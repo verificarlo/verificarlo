@@ -1,5 +1,6 @@
 # General helper functions for both compare_runs and compare_variables
 
+from urllib.parse import urlparse
 import calendar
 import time
 from itertools import compress
@@ -13,9 +14,39 @@ max_zscore = 3
 ##########################################################################
 
 
+# Generate display repository names from (sorted and equally sized) lists of
+# remote URLs and branch names
+def gen_repo_names(remote_urls, branches):
+
+    repo_names_dict = {}
+
+    for i in range(0, len(remote_urls)):
+
+        if remote_urls[i] == "":
+            repo_names_dict[remote_urls[i]] = "None"
+            continue
+
+        parsed_url = urlparse(remote_urls[i])
+        path = parsed_url.path.split("/")
+
+        repo_name = path[-2] + "/" + path[-1] + ":" + branches[i]
+        repo_names_dict[remote_urls[i]] = repo_name
+
+    return repo_names_dict
+
+
 # From a timestamp, return the associated metadata as a Pandas serie
 def get_metadata(metadata, timestamp):
     return metadata.loc[timestamp]
+
+
+# Returns a boolean to indicate if a timestamp (rather the commit linked to it)
+# belongs to a particular repository
+def filterby_repo(metadata, repo_name, timestamps):
+
+    return timestamps.apply(
+        lambda x: get_metadata(metadata, x) == repo_name
+    )["repo_name"]
 
 
 # Convert a metadata Pandas series to a JS readable dict
@@ -102,7 +133,7 @@ def get_run_name(timestamp, hash):
 
 
 # These external variables will store data about the last generated string to
-# avoid duplicates (assuming the runs are sorted by time)
+# avoid duplicates (assuming the runs are sorted chronologically)
 get_run_name.counter = 0
 get_run_name.previous = ""
 
@@ -135,11 +166,11 @@ def detect_outliers(array, max_zscore=max_zscore):
     if len(array) <= 2:
         return [True] * len(array)
 
-    median = np.median(array)
+    mean = np.mean(array)
     std = np.std(array)
     if std == 0:
         return array
-    distance = abs(array - median)
+    distance = abs(array - mean)
     # Array of booleans with elements to be filtered
     outliers_array = distance < max_zscore * std
 

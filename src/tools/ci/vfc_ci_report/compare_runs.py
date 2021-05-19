@@ -24,7 +24,7 @@ class CompareRuns:
 
     # From an array of timestamps, returns the array of runs names (for the x
     # axis ticks), as well as the metadata (in a dict of arrays) associated to
-    # this array (for the tooltips)
+    # this array (will be used in tooltips)
     def gen_x_series(self, timestamps):
 
         # Initialize the objects to return
@@ -512,6 +512,35 @@ class CompareRuns:
 
     def inspect_run_callback_s10(self, attr, old, new):
         self.inspect_run_callback(new, "s10_source", "s10_x")
+
+        # Communication methods
+        # (to send/receive messages to/from master)
+
+    # When received, update data and metadata with the new repo, and update
+    # everything
+
+    def change_repo(self, new_data, new_metadata):
+        self.data = new_data
+        self.metadata = new_metadata
+
+        # Update widgets(and automatically trigger plot updates)
+        self.tests = self.data\
+            .index.get_level_values("test").drop_duplicates().tolist()
+
+        self.vars = self.data.loc[self.tests[0]]\
+            .index.get_level_values("variable").drop_duplicates().tolist()
+
+        self.backends = self.data.loc[self.tests[0], self.vars[0]]\
+            .index.get_level_values("vfc_backend").drop_duplicates().tolist()
+
+        self.widgets["select_test"].options = self.tests
+        self.widgets["select_test"].value = self.tests[0]
+
+        # If changing repo doesn't affect the selection, trigger the callback
+        # manually
+        old = self.widgets["select_backend"].value
+        if self.widgets["select_backend"].value == old:
+            self.update_plots()
 
         # Constructor
 
