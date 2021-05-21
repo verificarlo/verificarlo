@@ -55,7 +55,7 @@ def read_probes_csv(filepath, backend, warnings, execution_data):
     if len(results) == 0:
         print(
             "Warning [vfc_ci]: Probes empty, it looks like you have dumped "
-            "them without calling vfc_put_probe"
+            "them without calling vfc_probe"
         )
         warnings.append(execution_data)
 

@@ -88,7 +88,7 @@ void validate_probe_key(char *str) {
 
 // Add a new probe. If an issue with the key is detected (forbidden characters
 // or a duplicate key), an error will be thrown.
-int vfc_put_probe(vfc_probes *probes, char *testName, char *varName,
+int vfc_probe(vfc_probes *probes, char *testName, char *varName,
                   double val) {
 
   if (probes == NULL) {
