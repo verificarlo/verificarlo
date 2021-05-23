@@ -609,7 +609,7 @@ vfc_hashmap_t _vprec_func_map;
 // Metadata of arguments
 typedef struct _vprec_argument_data {
   // Identifier of the argument
-  char arg_id[100];
+  char *arg_id;
   // Data type of the argument 0 is float and 1 is double
   short data_type;
   // Minimum rounded value of the argument
@@ -625,7 +625,7 @@ typedef struct _vprec_argument_data {
 // Metadata of function calls
 typedef struct _vprec_inst_function {
   // Id of the function
-  char id[500];
+  char *id;
   // Indicate if the function is from library
   short isLibraryFunction;
   // Indicate if the function is intrinsic
@@ -770,6 +770,7 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
   // if the function is not in the hashtable
   if (function_inst == NULL) {
     function_inst = malloc(sizeof(_vprec_inst_function_t));
+    function_inst->id = malloc(sizeof(char) * strlen(function_info->id));
 
     // initialize the structure
     strcpy(function_inst->id, function_info->id);
@@ -839,6 +840,8 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
     if (new_flag) {
       function_inst->input_args[i].data_type = type;
+      function_inst->input_args[i].arg_id =
+          malloc(sizeof(char) * strlen(arg_id));
       strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
       function_inst->input_args[i].min_range = INT_MAX;
       function_inst->input_args[i].max_range = INT_MIN;
@@ -1055,6 +1058,8 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
     if (new_flag) {
       // initialize arguments data
       function_inst->output_args[i].data_type = type;
+      function_inst->output_args[i].arg_id =
+          malloc(sizeof(char) * strlen(arg_id));
       strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
       function_inst->output_args[i].exponent_length =
           (type == FDOUBLE || type == FDOUBLE_PTR)

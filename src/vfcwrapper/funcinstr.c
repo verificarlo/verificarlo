@@ -34,6 +34,7 @@ vfc_func_table_add(interflop_function_info_t function) {
 
   interflop_function_info_t *ptr =
       (interflop_function_info_t *)malloc(sizeof(interflop_function_info_t));
+  ptr->id = malloc(sizeof(char) * strlen(function.id));
 
   (*ptr) = function;
 
