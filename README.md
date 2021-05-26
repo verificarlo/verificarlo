@@ -141,23 +141,11 @@ Verificarlo includes a set of [postprocessing tools](doc/05-Postprocessing.md) t
 
 ## How to cite Verificarlo
 
-If you use Verificarlo in your research, please cite the following paper:
+If you use Verificarlo in your research, please cite one of the following papers:
 
-    @inproceedings{verificarlo,
-    author    = {Christophe Denis and
-                 Pablo de Oliveira Castro and
-                 Eric Petit},
-    title     = {Verificarlo: Checking Floating Point Accuracy through Monte Carlo
-                 Arithmetic},
-    booktitle = {23nd {IEEE} Symposium on Computer Arithmetic, {ARITH} 2016, Silicon
-                 Valley, CA, USA, July 10-13, 2016},
-    pages     = {55--62},
-    year      = {2016},
-    url       = {http://dx.doi.org/10.1109/ARITH.2016.31},
-    doi       = {10.1109/ARITH.2016.31},
-    }
-
-A preprint is available at https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf.
+- Verificarlo: http://dx.doi.org/10.1109/ARITH.2016.31, preprint available [here](https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf).
+- VPREC Backend: https://hal.archives-ouvertes.fr/hal-02564972
+- VPREC Function Instrumentation and exploration: http://dx.doi.org/10.1109/TETC.2021.3070422
 
 Thanks !
 
