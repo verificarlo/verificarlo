@@ -1,5 +1,13 @@
 ## Backends
 
+  * [IEEE Backend (libinterflop_ieee.so)](#ieee-backend-libinterflop_ieeeso)
+  * [MCA Backend (libinterflop_mca.so)](#mca-backend-libinterflop_mcaso)
+  * [MCA-MPFR Backend (libinterflop_mca_mpfr.so)](#mca-mpfr-backend-libinterflop_mca_mpfrso)
+  * [Bitmask Backend (libinterflop_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
+  * [Cancellation Backend (libinterflop_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
+  * [VPREC Backend (libinterflop_vprec.so)](#vprec-backend-libinterflop_vprecso)
+
+
 Once your program is compiled with Verificarlo, it can be instrumented with
 different floating-point backends.
 At least one backend must be selected when running your application,
