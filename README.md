@@ -8,8 +8,8 @@
 
 A tool for debugging and assessing floating point precision and reproducibility.
 
-   * [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
    * [Installation](#installation)
+   * [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
    * [Usage](#usage)
    * [Branch instrumentation](#branch-instrumentation)
    * [Examples and Tutorial](#examples-and-tutorial)
@@ -21,6 +21,10 @@ A tool for debugging and assessing floating point precision and reproducibility.
    * [Discussion Group](#discussion-group)
    * [License](#license)
 
+
+## Installation
+
+To install Verificarlo please refer to the [installation documentation](doc/01-Install.md).
 
 ## Using Verificarlo through its Docker image
 
@@ -51,10 +55,6 @@ $ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
    verificarlo/verificarlo ./test
 999.99999999999761258
 ```
-
-## Installation
-
-To install Verificarlo please refer to the [installation documentation](doc/01-Install.md).
 
 ## Usage
 
@@ -121,23 +121,28 @@ Verificarlo includes different numerical backends. Please refer to the [backends
   * [Cancellation Backend (libinterflop_cancellation.so)](doc/02-Backends.md#cancellation-backend-libinterflop_cancellationso)
   * [VPREC Backend (libinterflop_vprec.so)](doc/02-Backends.md#vprec-backend-libinterflop_vprecso)
 
-## Delta Debug and inclusion / exclusion options 
+## Inclusion / exclusion options
 
-To pinpoint numerical errors or exclude parts of the code from instrumentation
-please refer to [Delta Debug and inclusion / exclusion options documentation](doc/03-DeltaDebug-inclusion-exclusion.md).
+To inlude only certain parts of the code in the analysis or exclude parts of
+the code from instrumentation please refer to [inclusion / exclusion options documentation](doc/03-inclusion-exclusion.md).
+
+
+## Pinpointing numerical errors with Delta-Debug
+
+To pinpoint numerical errors please refer to the [Delta-Debug documentation](doc/04-DeltaDebug.md).
 
 ## VPREC Function Instrumentation
 
 A function instrumentation pass enables VPREC exploration and optimization at
-the function granularity level. Please refer to the [VPREC Function Instrumentation documentation](doc/04-VPREC-function-instrumentation.md).
+the function granularity level. Please refer to the [VPREC Function Instrumentation documentation](doc/05-VPREC-function-instrumentation.md).
 
 ## Postprocessing
 
-Verificarlo includes a set of [postprocessing tools](doc/05-Postprocessing.md) to help analyse Verificarlo results and produce high-level reports. 
+Verificarlo includes a set of [postprocessing tools](doc/06-Postprocessing.md) to help analyse Verificarlo results and produce high-level reports. 
 
   * [Find Optimal precision with vfc_precexp and vfc_report](doc/05-Postprocessing.md#find-optimal-precision-with-vfc_precexp-and-vfc_report)
-  * [Unstable branch detection](doc/05-Postprocessing.md#unstable-branch-detection)
-  * [VFC-VTK](doc/05-Postprocessing.md#vfc-vtk)
+  * [Unstable branch detection](doc/06-Postprocessing.md#unstable-branch-detection)
+  * [VFC-VTK](doc/06-Postprocessing.md#vfc-vtk)
 
 ## How to cite Verificarlo
 
