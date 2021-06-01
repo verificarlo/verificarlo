@@ -1057,35 +1057,6 @@ static inline float _vprec_binary32_binary_op(float a, float b,
   return res;
 }
 
-#define define_vprec_binary32_binary_op_vector(size)                           \
-  static inline void _vprec_binary32_binary_op_##size##x(float##size *a,       \
-                                                         float##size *b,       \
-                                                         float##size *c,       \
-                                                         const                 \
-                                                         vprec_operation op,   \
-                                                         void *context) {      \
-    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
-        (VPRECLIB_MODE == vprecmode_ib)) {                                     \
-      _vprec_round_binary32_##size##x(a, 1, context, VPRECLIB_BINARY32_RANGE,  \
-                                      VPRECLIB_BINARY32_PRECISION);            \
-      _vprec_round_binary32_##size##x(b, 1, context, VPRECLIB_BINARY32_RANGE,  \
-                                      VPRECLIB_BINARY32_PRECISION);            \
-    }                                                                          \
-                                                                               \
-    perform_vector_binary_op(op, c, a, b);                                     \
-                                                                               \
-    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
-        (VPRECLIB_MODE == vprecmode_ob)) {                                     \
-      _vprec_round_binary32_##size##x(c, 0, context, VPRECLIB_BINARY32_RANGE,  \
-                                      VPRECLIB_BINARY32_PRECISION);            \
-    }                                                                          \
-  }
-
-define_vprec_binary32_binary_op_vector(2);
-define_vprec_binary32_binary_op_vector(4);
-define_vprec_binary32_binary_op_vector(8);
-define_vprec_binary32_binary_op_vector(16);
-
 static inline double _vprec_binary64_binary_op(double a, double b,
                                                const vprec_operation op,
                                                void *context) {
@@ -1107,35 +1078,6 @@ static inline double _vprec_binary64_binary_op(double a, double b,
 
   return res;
 }
-
-#define define_vprec_binary64_binary_op_vector(size)                           \
-  static inline void _vprec_binary64_binary_op_##size##x(double##size *a,      \
-                                                         double##size *b,      \
-                                                         double##size *c,      \
-                                                         const                 \
-                                                         vprec_operation op,   \
-                                                         void *context) {      \
-    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
-        (VPRECLIB_MODE == vprecmode_ib)) {                                     \
-      _vprec_round_binary64_##size##x(a, 1, context, VPRECLIB_BINARY64_RANGE,  \
-                                      VPRECLIB_BINARY64_PRECISION);            \
-      _vprec_round_binary64_##size##x(b, 1, context, VPRECLIB_BINARY64_RANGE,  \
-                                      VPRECLIB_BINARY64_PRECISION);            \
-    }                                                                          \
-                                                                               \
-    perform_vector_binary_op(op, c, a, b);                                     \
-                                                                               \
-    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
-        (VPRECLIB_MODE == vprecmode_ob)) {                                     \
-      _vprec_round_binary64_##size##x(c, 0, context, VPRECLIB_BINARY64_RANGE,  \
-                                      VPRECLIB_BINARY64_PRECISION);            \
-    }                                                                          \
-  }
-
-define_vprec_binary64_binary_op_vector(2);
-define_vprec_binary64_binary_op_vector(4);
-define_vprec_binary64_binary_op_vector(8);
-define_vprec_binary64_binary_op_vector(16);
 
 /******************** VPREC INSTRUMENTATION FUNCTIONS ********************
  * The following set of functions is used to apply vprec on instrumented
@@ -1774,7 +1716,21 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
                                                 float##size *b,                \
                                                 float##size *c,                \
                                                 void *context) {               \
-    _vprec_binary32_binary_op_##size##x(a, b, c, vprec_##op, context);         \
+    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
+        (VPRECLIB_MODE == vprecmode_ib)) {                                     \
+      _vprec_round_binary32_##size##x(a, 1, context, VPRECLIB_BINARY32_RANGE,  \
+                                      VPRECLIB_BINARY32_PRECISION);            \
+      _vprec_round_binary32_##size##x(b, 1, context, VPRECLIB_BINARY32_RANGE,  \
+                                      VPRECLIB_BINARY32_PRECISION);            \
+    }                                                                          \
+                                                                               \
+    perform_vector_binary_op(vprec_##op, c, a, b);                             \
+                                                                               \
+    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
+        (VPRECLIB_MODE == vprecmode_ob)) {                                     \
+      _vprec_round_binary32_##size##x(c, 0, context, VPRECLIB_BINARY32_RANGE,  \
+                                      VPRECLIB_BINARY32_PRECISION);            \
+    }                                                                          \
 }
 
 /* Define here all float vector interflop functions */
@@ -1824,7 +1780,21 @@ static void _interflop_div_double(double a, double b, double *c,
                                                  double##size *b,              \
                                                  double##size *c,              \
                                                  void *context) {              \
-    _vprec_binary64_binary_op_##size##x(a, b, c, vprec_##op, context);         \
+    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
+        (VPRECLIB_MODE == vprecmode_ib)) {                                     \
+      _vprec_round_binary64_##size##x(a, 1, context, VPRECLIB_BINARY64_RANGE,  \
+                                      VPRECLIB_BINARY64_PRECISION);            \
+      _vprec_round_binary64_##size##x(b, 1, context, VPRECLIB_BINARY64_RANGE,  \
+                                      VPRECLIB_BINARY64_PRECISION);            \
+    }                                                                          \
+                                                                               \
+    perform_vector_binary_op(vprec_##op, c, a, b);                             \
+                                                                               \
+    if ((VPRECLIB_MODE == vprecmode_full) ||                                   \
+        (VPRECLIB_MODE == vprecmode_ob)) {                                     \
+      _vprec_round_binary64_##size##x(c, 0, context, VPRECLIB_BINARY64_RANGE,  \
+                                      VPRECLIB_BINARY64_PRECISION);            \
+    }                                                                          \
   }
 
 /* Define here all double vector interflop functions */
