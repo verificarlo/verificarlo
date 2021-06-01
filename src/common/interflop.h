@@ -1,7 +1,5 @@
 /* interflop backend interface */
 
-#include <stdint.h>
-
 #include "float_type.h"
 
 /* interflop float compare predicates, follows the same order than
