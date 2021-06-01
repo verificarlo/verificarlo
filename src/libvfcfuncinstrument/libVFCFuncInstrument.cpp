@@ -383,7 +383,7 @@ struct VfclibFunc : public ModulePass {
 
   VfclibFunc() : ModulePass(ID) { inst_cpt = 1; }
 
-  virtual bool runOnModule(Module &M) {
+  virtual bool runOnModule(Module &M) override {
     TargetLibraryInfoWrapperPass TLIWP;
 
     FloatTy = Type::getFloatTy(M.getContext());
