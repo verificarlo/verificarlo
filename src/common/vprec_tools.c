@@ -63,7 +63,8 @@ inline float round_binary32_normal(float x, int precision) {
  * Macro which define vector function to round binary32 normal
  */
 #define define_round_binary32_normal_vector(size)                              \
-  void round_binary32_normal_##size##x(float##size *x, int##size precision) {  \
+  inline void round_binary32_normal_##size##x(float##size *x,                  \
+                                              int##size precision) {           \
     /* build 1/2 ulp and add it  before truncation for faithfull rounding */   \
                                                                                \
     /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other       \
@@ -128,8 +129,8 @@ inline double round_binary64_normal(double x, int precision) {
  * Macro which define vector function to round binary64 normal
  */
 #define define_round_binary64_normal_vector(size)                              \
-  void round_binary64_normal_##size##x(double##size *x,                        \
-                                       int64_##size##x precision) {            \
+  inline void round_binary64_normal_##size##x(double##size *x,                 \
+                                              int64_##size##x precision) {     \
     /* build 1/2 ulp and add it  before truncation for faithfull rounding */   \
                                                                                \
     /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other       \

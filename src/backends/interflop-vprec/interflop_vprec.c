@@ -315,6 +315,7 @@ inline int compute_absErr_vprec_binary32(bool isDenormal,
 }
 
 #define define_compute_absErr_vprec_binary32_vector(size)                      \
+  static inline                                                                \
   int##size compute_absErr_vprec_binary32_##size##x(bool isDenormal,           \
                                                     t_context *currentContext, \
                                                     int##size expDiff,         \
@@ -409,6 +410,7 @@ inline int compute_absErr_vprec_binary64(bool isDenormal,
 }
 
 #define define_compute_absErr_vprec_binary64_vector(size)                      \
+  static inline                                                                \
   int64_##size##x compute_absErr_vprec_binary64_##size##x(bool isDenormal,     \
                                                           t_context            \
                                                           *currentContext,     \
@@ -417,7 +419,6 @@ inline int compute_absErr_vprec_binary64(bool isDenormal,
                                                           int64_t              \
                                                           binary64_precision)  \
   {                                                                            \
-                                                                               \
     /* this function is used only when in vprec error mode abs and all,        \
      * so there is no need to handle vprec error mode rel */                   \
     if (isDenormal == true) {                                                  \
@@ -497,6 +498,7 @@ inline float handle_binary32_normal_absErr(float a, int32_t aexp,
 
 // Macro to define vector function for normal absolute error mode
 #define define_handle_binary32_normal_absErr_vector(size)                      \
+  static inline                                                                \
   void handle_binary32_normal_absErr_##size##x(float##size *a,                 \
                                                int##size aexp,                 \
                                                int binary32_precision,         \
@@ -585,6 +587,7 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
 
 // Macro to define vector function for normal absolute error mode
 #define define_handle_binary64_normal_absErr_vector(size)                      \
+  static inline                                                                \
   void handle_binary64_normal_absErr_##size##x(double##size *a,                \
                                                int64_##size##x aexp,           \
                                                int64_t binary64_precision,     \
@@ -674,22 +677,7 @@ define_handle_binary64_normal_absErr_vector(16);
   };
 
 #define perform_vector_binary_op(op, res, a, b)                                \
-  switch (op) {                                                                \
-  case vprec_add:                                                              \
-    *res = (*a) + (*b);                                                        \
-    break;                                                                     \
-  case vprec_mul:                                                              \
-    *res = (*a) * (*b);                                                        \
-    break;                                                                     \
-  case vprec_sub:                                                              \
-    *res = (*a) - (*b);                                                        \
-    break;                                                                     \
-  case vprec_div:                                                              \
-    *res = (*a) / (*b);                                                        \
-    break;                                                                     \
-  default:                                                                     \
-    logger_error("invalid operator %c", op);                                   \
-  };
+  perform_binary_op(op, *res, *a, *b)
 
 // Round the float with the given precision
 static float _vprec_round_binary32(float a, char is_input, void *context,
@@ -753,11 +741,11 @@ static float _vprec_round_binary32(float a, char is_input, void *context,
 
 // Round the float vector with the given precision
 #define define_vprec_round_binary32_vector(size)                               \
-  static void _vprec_round_binary32_##size##x(float##size *a,                  \
-                                              char is_input,                   \
-                                              void *context,                   \
-                                              int binary32_range,              \
-                                              int binary32_precision) {        \
+  static inline void _vprec_round_binary32_##size##x(float##size *a,           \
+                                                     char is_input,            \
+                                                     void *context,            \
+                                                     int binary32_range,       \
+                                                     int binary32_precision) { \
     t_context *currentContext = (t_context *)context;                          \
     int##size set = 0;                                                         \
     int count = 0;                                                             \
@@ -926,11 +914,11 @@ static double _vprec_round_binary64(double a, char is_input, void *context,
 
 // Round the double vector with the given precision
 #define define_vprec_round_binary64_vector(size)                               \
-  static void _vprec_round_binary64_##size##x(double##size *a,                 \
-                                              char is_input,                   \
-                                              void *context,                   \
-                                              int binary64_range,              \
-                                              int binary64_precision) {        \
+  static inline void _vprec_round_binary64_##size##x(double##size *a,          \
+                                                     char is_input,            \
+                                                     void *context,            \
+                                                     int binary64_range,       \
+                                                     int binary64_precision) { \
     t_context *currentContext = (t_context *)context;                          \
     int##size set = 0;                                                         \
     int count = 0;                                                             \
