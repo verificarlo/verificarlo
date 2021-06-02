@@ -1,5 +1,5 @@
 archimedes: archimedes.c
-	verificarlo-c --ddebug -O0 -g archimedes.c -o archimedes -lm
+	verificarlo-c --ddebug -O0 -g archimedes.c -o archimedes -lm --show-cmd --save-temps
 
 dd: archimedes
 	rm -rf dd.line/

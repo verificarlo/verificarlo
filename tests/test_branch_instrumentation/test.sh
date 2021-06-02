@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-rm -f *.2.ll
-verificarlo-c -c test.c -emit-llvm --save-temps
+rm -f *.ll
+verificarlo-c -c test.c -emit-llvm --save-temps --show-cmd --verbose
 
 if grep "fcmp ogt" test.*.2.ll || grep "fcmp ole" test.*.2.ll ; then
   echo "comparison operations not instrumented"
@@ -11,8 +11,8 @@ else
   exit 1
 fi
 
-rm -f *.2.ll
-verificarlo-c --inst-fcmp -c test.c -emit-llvm --save-temps
+rm -f *.ll
+verificarlo-c --inst-fcmp -c test.c -emit-llvm --save-temps --show-cmd --verbose
 
 if grep "fcmp ogt" test.*.2.ll || grep "fcmp ole" test.*.2.ll ; then
   echo "comparison operations NOT instrumented with --inst-fcmp"
@@ -29,9 +29,16 @@ else
 fi
 
 # Test correct interposition for scalar and vector cases
-verificarlo-c --inst-fcmp run.c -o run
-VFC_BACKENDS="libinterflop_ieee.so --debug" ./run
-verificarlo-c --inst-fcmp -O2 run.c -o run
-VFC_BACKENDS="libinterflop_ieee.so --debug" ./run
+verificarlo-c --inst-fcmp run.c -o run 
+VFC_BACKENDS="libinterflop_ieee.so --debug" ./run | sort -n 2> scalar.log
 
-exit 0
+verificarlo-c --inst-fcmp -O2 run.c -o run
+VFC_BACKENDS="libinterflop_ieee.so --debug" ./run | sort -n 2> vector.log
+
+if diff scalar.log vector.log; then
+    echo "Test successed"
+    exit 0
+else
+    echo "Test failed"
+    exit 1
+fi

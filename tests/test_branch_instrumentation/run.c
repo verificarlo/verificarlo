@@ -13,6 +13,7 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < 100; i++) {
     tabc[i] = taba[i] > tabb[i];
+    // fprintf(stderr, "tabc[%d]=%d\n", i, tabc[i]);
   }
 
   assert(!tabc[0]);

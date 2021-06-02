@@ -1,5 +1,17 @@
 Verificarlo CHANGELOG
 
+# [Unreleased]
+
+## Added
+  * Add test for checking vectorization instrumentation
+
+## Fixed
+  * Fix vector instrumentation for unsupported vector instructions
+  * Fix libVFCFuncInstrument.cpp compilation with llvm-4.0
+
+## Changed
+  * Remove test.sh.in in tests to use test.sh by sourcing paths.sh file
+
 # [v0.4.2] 2021/02/15
 
 ## Added

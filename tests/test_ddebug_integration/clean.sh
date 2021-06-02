@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -Rf *~ dd.line test.log unitTest
+rm -Rf *~ dd.line test.log unitTest *.ll *.o

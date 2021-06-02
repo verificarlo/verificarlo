@@ -51,24 +51,44 @@
 #define CALL_OP_SIZE 4
 #endif
 
-typedef double double2 __attribute__((ext_vector_type(2)));
-typedef double double4 __attribute__((ext_vector_type(4)));
-typedef double double8 __attribute__((ext_vector_type(8)));
-typedef double double16 __attribute__((ext_vector_type(16)));
-typedef float float2 __attribute__((ext_vector_type(2)));
-typedef float float4 __attribute__((ext_vector_type(4)));
-typedef float float8 __attribute__((ext_vector_type(8)));
-typedef float float16 __attribute__((ext_vector_type(16)));
-typedef int int2 __attribute__((ext_vector_type(2)));
-typedef int int4 __attribute__((ext_vector_type(4)));
-typedef int int8 __attribute__((ext_vector_type(8)));
-typedef int int16 __attribute__((ext_vector_type(16)));
+// typedef int int2 __attribute__((ext_vector_type(2)));
+// typedef int int4 __attribute__((ext_vector_type(4)));
+// typedef int int8 __attribute__((ext_vector_type(8)));
+// typedef int int16 __attribute__((ext_vector_type(16)));
+
+// typedef float float2 __attribute__((ext_vector_type(2)));
+// typedef float float4 __attribute__((ext_vector_type(4)));
+// typedef float float8 __attribute__((ext_vector_type(8)));
+// typedef float float16 __attribute__((ext_vector_type(16)));
+
+// typedef double double2 __attribute__((ext_vector_type(2)));
+// typedef double double4 __attribute__((ext_vector_type(4)));
+// typedef double double8 __attribute__((ext_vector_type(8)));
+// typedef double double16 __attribute__((ext_vector_type(16)));
+
+typedef int int2 __attribute__((__vector_size__(2 * 4)));
+typedef int int4 __attribute__((__vector_size__(4 * 4)));
+typedef int int8 __attribute__((__vector_size__(8 * 4)));
+typedef int int16 __attribute__((__vector_size__(16 * 4)));
+
+typedef float float2 __attribute__((__vector_size__(2 * 4)));
+typedef float float4 __attribute__((__vector_size__(4 * 4)));
+typedef float float8 __attribute__((__vector_size__(8 * 4)));
+typedef float float16 __attribute__((__vector_size__(16 * 4)));
+
+typedef double double2 __attribute__((__vector_size__(2 * 8)));
+typedef double double4 __attribute__((__vector_size__(4 * 8)));
+typedef double double8 __attribute__((__vector_size__(8 * 8)));
+typedef double double16 __attribute__((__vector_size__(16 * 8)));
 
 typedef struct interflop_backend_interface_t (*interflop_init_t)(
     int argc, char **argv, void **context);
 
 #define MAX_BACKENDS 16
 #define MAX_ARGS 256
+
+#define XSTR(X) STR(X)
+#define STR(X) #X
 
 struct interflop_backend_interface_t backends[MAX_BACKENDS];
 void *contexts[MAX_BACKENDS];
@@ -83,9 +103,9 @@ void logger_info(const char *fmt, ...);
 void logger_warning(const char *fmt, ...);
 void logger_error(const char *fmt, ...);
 
-static char *dd_exclude_path = NULL;
-static char *dd_include_path = NULL;
-static char *dd_generate_path = NULL;
+__attribute__((unused)) static char *dd_exclude_path = NULL;
+__attribute__((unused)) static char *dd_include_path = NULL;
+__attribute__((unused)) static char *dd_generate_path = NULL;
 
 /* Function instrumentation prototypes */
 
@@ -157,7 +177,7 @@ void ddebug_generate_inclusion(char *dd_generate_path, vfc_hashmap_t map) {
   if (output == -1) {
     logger_error("cannot open DDEBUG_GEN file %s", dd_generate_path);
   }
-  for (int i = 0; i < map->capacity; i++) {
+  for (size_t i = 0; i < map->capacity; i++) {
     if (get_value_at(map->items, i) != 0 && get_value_at(map->items, i) != 1) {
       pid_t pid = fork();
       if (pid == 0) {
@@ -219,6 +239,7 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
                    "Include one backend in VFC_BACKENDS that provides it");    \
   } while (0)
 
+#if DDEBUG
 /* vfc_read_filter_file reads an inclusion/exclusion ddebug file and returns
  * an address map */
 static void vfc_read_filter_file(const char *dd_filter_path,
@@ -237,6 +258,57 @@ static void vfc_read_filter_file(const char *dd_filter_path,
         logger_error(
             "ddebug: error parsing VFC_DDEBUG_[INCLUDE/EXCLUDE] %s at line %d",
             dd_filter_path, lineno);
+      }
+    }
+  }
+}
+#endif
+
+/* Parse the different VFC_BACKENDS variables per priorty order */
+/* 1- VFC_BACKENDS */
+/* 2- VFC_BACKENDS_FROM_FILE */
+/* Set the backends read in vfc_backends */
+/* Set the name of the environment variable read in vfc_backends_env */
+void parse_vfc_backends_env(char **vfc_backends, const char *extra_name,
+                            char **vfc_backends_env) {
+
+  /* Parse VFC_BACKENDS */
+  *vfc_backends_env = (char *)malloc(sizeof(char) * 256);
+  *vfc_backends = (char *)malloc(sizeof(char) * 256);
+
+  if (extra_name == NULL) {
+    sprintf(*vfc_backends_env, "VFC_BACKENDS");
+  } else {
+    sprintf(*vfc_backends_env, "VFC_BACKENDS_%s", extra_name);
+  }
+
+  *vfc_backends = getenv(*vfc_backends_env);
+
+  /* Parse VFC_BACKENDS_FROM_FILE if VFC_BACKENDS is empty*/
+  if (*vfc_backends == NULL) {
+    if (extra_name == NULL) {
+      sprintf(*vfc_backends_env, "VFC_BACKENDS_FROM_FILE");
+    } else {
+      sprintf(*vfc_backends_env, "VFC_BACKENDS_FROM_FILE_%s", extra_name);
+    }
+    char *vfc_backends_fromfile_file = getenv(*vfc_backends_env);
+    if (vfc_backends_fromfile_file != NULL) {
+      FILE *fi = fopen(vfc_backends_fromfile_file, "r");
+      if (fi == NULL) {
+        logger_error("Error while opening file pointed by %s: %s",
+                     *vfc_backends_env, strerror(errno));
+      } else {
+        size_t len = 0;
+        ssize_t nread;
+        nread = getline(vfc_backends, &len, fi);
+        if (nread == -1) {
+          logger_error("Error while reading file pointed by %s: %s",
+                       *vfc_backends_env, strerror(errno));
+        } else {
+          if ((*vfc_backends)[nread - 1] == '\n') {
+            (*vfc_backends)[nread - 1] = '\0';
+          }
+        }
       }
     }
   }
@@ -267,40 +339,20 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   /* Initialize the logger */
   logger_init();
 
-  /* Parse VFC_BACKENDS_FROM_FILE */
-  char *vfc_backends_fromfile = NULL;
-  char *vfc_backends_fromfile_file = getenv("VFC_BACKENDS_FROM_FILE");
-  if (vfc_backends_fromfile_file != NULL) {
-    FILE *fi = fopen(vfc_backends_fromfile_file, "r");
-    if (fi == NULL) {
-      logger_error(
-          "Error while opening file pointed by VFC_BACKENDS_FROM_FILE: %s",
-          strerror(errno));
-    } else {
-      size_t len = 0;
-      ssize_t nread;
-      nread = getline(&vfc_backends_fromfile, &len, fi);
-      if (nread == -1) {
-        logger_error(
-            "Error while reading file pointed by VFC_BACKENDS_FROM_FILE: %s",
-            strerror(errno));
-      } else {
-        if (vfc_backends_fromfile[nread - 1] == '\n') {
-          vfc_backends_fromfile[nread - 1] = '\0';
-        }
-      }
-    }
+  char *vfc_backends = NULL, *vfc_backends_env = NULL;
+
+#ifdef EXTRA_VFC_BACKEND_ENV
+  parse_vfc_backends_env(&vfc_backends, XSTR(EXTRA_VFC_BACKEND_ENV),
+                         &vfc_backends_env);
+#endif
+
+  if (vfc_backends == NULL) {
+    parse_vfc_backends_env(&vfc_backends, NULL, &vfc_backends_env);
   }
 
-  /* Parse VFC_BACKENDS */
-  char *vfc_backends = getenv("VFC_BACKENDS");
   if (vfc_backends == NULL) {
-    if (vfc_backends_fromfile == NULL) {
-      logger_error(
-          "VFC_BACKENDS is empty, at least one backend should be provided");
-    } else {
-      vfc_backends = vfc_backends_fromfile;
-    }
+    logger_error("%s is empty, at least one backend should be provided",
+                 vfc_backends_env);
   }
 
   /* Environnement variable to disable loading message */
@@ -323,7 +375,7 @@ __attribute__((constructor(0))) static void vfc_init(void) {
     char *arg = strtok_r(token, " ", &spaceptr);
     while (arg) {
       if (backend_argc >= MAX_ARGS) {
-        logger_error("VFC_BACKENDS syntax error: too many arguments");
+        logger_error("%s syntax error: too many arguments", vfc_backends_env);
       }
       backend_argv[backend_argc++] = arg;
       arg = strtok_r(NULL, " ", &spaceptr);
@@ -366,8 +418,8 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   }
 
   if (loaded_backends == 0) {
-    logger_error(
-        "VFC_BACKENDS syntax error: at least one backend should be provided");
+    logger_error("%s syntax error: at least one backend should be provided",
+                 vfc_backends_env);
   }
 
   /* Check that at least one backend implements each required operation */
@@ -482,171 +534,75 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
 
 /* Arithmetic vector wrappers */
 
-#define define_2x_wrapper(precision, operation)                                \
-  precision##2 _2x##precision##operation(precision##2 a, precision##2 b) {     \
-    precision##2 c;                                                            \
-    c[0] = _##precision##operation(a[0], b[0]);                                \
-    c[1] = _##precision##operation(a[1], b[1]);                                \
+#define define_vectorized_arithmetic_wrapper(precision, operation, size)       \
+  precision##size _##size##x##precision##operation(const precision##size a,    \
+                                                   const precision##size b) {  \
+    precision##size c;                                                         \
+                                                                               \
+    _Pragma("unroll") for (int i = 0; i < size; i++) {                         \
+      c[i] = _##precision##operation(a[i], b[i]);                              \
+    }                                                                          \
     return c;                                                                  \
   }
 
-#define define_4x_wrapper(precision, operation)                                \
-  precision##4 _4x##precision##operation(precision##4 a, precision##4 b) {     \
-    precision##4 c;                                                            \
-    c[0] = _##precision##operation(a[0], b[0]);                                \
-    c[1] = _##precision##operation(a[1], b[1]);                                \
-    c[2] = _##precision##operation(a[2], b[2]);                                \
-    c[3] = _##precision##operation(a[3], b[3]);                                \
+/* Define vector of size 2 */
+define_vectorized_arithmetic_wrapper(float, add, 2);
+define_vectorized_arithmetic_wrapper(float, sub, 2);
+define_vectorized_arithmetic_wrapper(float, mul, 2);
+define_vectorized_arithmetic_wrapper(float, div, 2);
+define_vectorized_arithmetic_wrapper(double, add, 2);
+define_vectorized_arithmetic_wrapper(double, sub, 2);
+define_vectorized_arithmetic_wrapper(double, mul, 2);
+define_vectorized_arithmetic_wrapper(double, div, 2);
+
+/* Define vector of size 4 */
+define_vectorized_arithmetic_wrapper(float, add, 4);
+define_vectorized_arithmetic_wrapper(float, sub, 4);
+define_vectorized_arithmetic_wrapper(float, mul, 4);
+define_vectorized_arithmetic_wrapper(float, div, 4);
+define_vectorized_arithmetic_wrapper(double, add, 4);
+define_vectorized_arithmetic_wrapper(double, sub, 4);
+define_vectorized_arithmetic_wrapper(double, mul, 4);
+define_vectorized_arithmetic_wrapper(double, div, 4);
+
+/* Define vector of size 8 */
+define_vectorized_arithmetic_wrapper(float, add, 8);
+define_vectorized_arithmetic_wrapper(float, sub, 8);
+define_vectorized_arithmetic_wrapper(float, mul, 8);
+define_vectorized_arithmetic_wrapper(float, div, 8);
+define_vectorized_arithmetic_wrapper(double, add, 8);
+define_vectorized_arithmetic_wrapper(double, sub, 8);
+define_vectorized_arithmetic_wrapper(double, mul, 8);
+define_vectorized_arithmetic_wrapper(double, div, 8);
+
+/* Define vector of size 16 */
+define_vectorized_arithmetic_wrapper(float, add, 16);
+define_vectorized_arithmetic_wrapper(float, sub, 16);
+define_vectorized_arithmetic_wrapper(float, mul, 16);
+define_vectorized_arithmetic_wrapper(float, div, 16);
+define_vectorized_arithmetic_wrapper(double, add, 16);
+define_vectorized_arithmetic_wrapper(double, sub, 16);
+define_vectorized_arithmetic_wrapper(double, mul, 16);
+define_vectorized_arithmetic_wrapper(double, div, 16);
+
+#define define_vectorized_comparison_wrapper(precision, size)                  \
+  int##size _##size##x##precision##cmp(enum FCMP_PREDICATE p,                  \
+                                       precision##size a, precision##size b) { \
+    volatile int##size c;                                                      \
+    for (int i = 0; i < size; i++) {                                           \
+      c[i] = _##precision##cmp(p, a[i], b[i]);                                 \
+    }                                                                          \
     return c;                                                                  \
   }
 
-#define define_8x_wrapper(precision, operation)                                \
-  precision##8 _8x##precision##operation(precision##8 a, precision##8 b) {     \
-    precision##8 c;                                                            \
-    c[0] = _##precision##operation(a[0], b[0]);                                \
-    c[1] = _##precision##operation(a[1], b[1]);                                \
-    c[2] = _##precision##operation(a[2], b[2]);                                \
-    c[3] = _##precision##operation(a[3], b[3]);                                \
-    c[4] = _##precision##operation(a[4], b[4]);                                \
-    c[5] = _##precision##operation(a[5], b[5]);                                \
-    c[6] = _##precision##operation(a[6], b[6]);                                \
-    c[7] = _##precision##operation(a[7], b[7]);                                \
-    return c;                                                                  \
-  }
+define_vectorized_comparison_wrapper(float, 2);
+define_vectorized_comparison_wrapper(double, 2);
 
-#define define_16x_wrapper(precision, operation)                               \
-  precision##16 _16x##precision##operation(precision##16 a, precision##16 b) { \
-    precision##16 c;                                                           \
-    c[0] = _##precision##operation(a[0], b[0]);                                \
-    c[1] = _##precision##operation(a[1], b[1]);                                \
-    c[2] = _##precision##operation(a[2], b[2]);                                \
-    c[3] = _##precision##operation(a[3], b[3]);                                \
-    c[4] = _##precision##operation(a[4], b[4]);                                \
-    c[5] = _##precision##operation(a[5], b[5]);                                \
-    c[6] = _##precision##operation(a[6], b[6]);                                \
-    c[7] = _##precision##operation(a[7], b[7]);                                \
-    c[8] = _##precision##operation(a[8], b[8]);                                \
-    c[9] = _##precision##operation(a[9], b[9]);                                \
-    c[10] = _##precision##operation(a[10], b[10]);                             \
-    c[11] = _##precision##operation(a[11], b[11]);                             \
-    c[12] = _##precision##operation(a[12], b[12]);                             \
-    c[13] = _##precision##operation(a[13], b[13]);                             \
-    c[14] = _##precision##operation(a[14], b[14]);                             \
-    c[15] = _##precision##operation(a[15], b[15]);                             \
-    return c;                                                                  \
-  }
+define_vectorized_comparison_wrapper(float, 4);
+define_vectorized_comparison_wrapper(double, 4);
 
-define_2x_wrapper(float, add);
-define_2x_wrapper(float, sub);
-define_2x_wrapper(float, mul);
-define_2x_wrapper(float, div);
-define_2x_wrapper(double, add);
-define_2x_wrapper(double, sub);
-define_2x_wrapper(double, mul);
-define_2x_wrapper(double, div);
+define_vectorized_comparison_wrapper(float, 8);
+define_vectorized_comparison_wrapper(double, 8);
 
-define_4x_wrapper(float, add);
-define_4x_wrapper(float, sub);
-define_4x_wrapper(float, mul);
-define_4x_wrapper(float, div);
-define_4x_wrapper(double, add);
-define_4x_wrapper(double, sub);
-define_4x_wrapper(double, mul);
-define_4x_wrapper(double, div);
-
-define_8x_wrapper(float, add);
-define_8x_wrapper(float, sub);
-define_8x_wrapper(float, mul);
-define_8x_wrapper(float, div);
-define_8x_wrapper(double, add);
-define_8x_wrapper(double, sub);
-define_8x_wrapper(double, mul);
-define_8x_wrapper(double, div);
-
-define_16x_wrapper(float, add);
-define_16x_wrapper(float, sub);
-define_16x_wrapper(float, mul);
-define_16x_wrapper(float, div);
-define_16x_wrapper(double, add);
-define_16x_wrapper(double, sub);
-define_16x_wrapper(double, mul);
-define_16x_wrapper(double, div);
-
-int2 _2xdoublecmp(enum FCMP_PREDICATE p, double2 a, double2 b) {
-  int2 c;
-  c[0] = _doublecmp(p, a[0], b[0]);
-  c[1] = _doublecmp(p, a[1], b[1]);
-  return c;
-}
-
-int2 _2xfloatcmp(enum FCMP_PREDICATE p, float2 a, float2 b) {
-  int2 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  return c;
-}
-
-int4 _4xdoublecmp(enum FCMP_PREDICATE p, double4 a, double4 b) {
-  int4 c;
-  c[0] = _doublecmp(p, a[0], b[0]);
-  c[1] = _doublecmp(p, a[1], b[1]);
-  c[2] = _doublecmp(p, a[2], b[2]);
-  c[3] = _doublecmp(p, a[3], b[3]);
-  return c;
-}
-
-int4 _4xfloatcmp(enum FCMP_PREDICATE p, float4 a, float4 b) {
-  int4 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  c[2] = _floatcmp(p, a[2], b[2]);
-  c[3] = _floatcmp(p, a[3], b[3]);
-  return c;
-}
-
-int8 _8xdoublecmp(enum FCMP_PREDICATE p, double8 a, double8 b) {
-  int8 c;
-  c[0] = _doublecmp(p, a[0], b[0]);
-  c[1] = _doublecmp(p, a[1], b[1]);
-  c[2] = _doublecmp(p, a[2], b[2]);
-  c[3] = _doublecmp(p, a[3], b[3]);
-  c[4] = _doublecmp(p, a[4], b[4]);
-  c[5] = _doublecmp(p, a[5], b[5]);
-  c[6] = _doublecmp(p, a[6], b[6]);
-  c[7] = _doublecmp(p, a[7], b[7]);
-  return c;
-}
-
-int8 _8xfloatcmp(enum FCMP_PREDICATE p, float8 a, float8 b) {
-  int8 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  c[2] = _floatcmp(p, a[2], b[2]);
-  c[3] = _floatcmp(p, a[3], b[3]);
-  c[4] = _floatcmp(p, a[4], b[4]);
-  c[5] = _floatcmp(p, a[5], b[5]);
-  c[6] = _floatcmp(p, a[6], b[6]);
-  c[7] = _floatcmp(p, a[7], b[7]);
-  return c;
-}
-
-int16 _16xfloatcmp(enum FCMP_PREDICATE p, float16 a, float16 b) {
-  int16 c;
-  c[0] = _floatcmp(p, a[0], b[0]);
-  c[1] = _floatcmp(p, a[1], b[1]);
-  c[2] = _floatcmp(p, a[2], b[2]);
-  c[3] = _floatcmp(p, a[3], b[3]);
-  c[4] = _floatcmp(p, a[4], b[4]);
-  c[5] = _floatcmp(p, a[5], b[5]);
-  c[6] = _floatcmp(p, a[6], b[6]);
-  c[7] = _floatcmp(p, a[7], b[7]);
-  c[8] = _floatcmp(p, a[8], b[8]);
-  c[9] = _floatcmp(p, a[9], b[9]);
-  c[10] = _floatcmp(p, a[10], b[10]);
-  c[11] = _floatcmp(p, a[11], b[11]);
-  c[12] = _floatcmp(p, a[12], b[12]);
-  c[13] = _floatcmp(p, a[13], b[13]);
-  c[14] = _floatcmp(p, a[14], b[14]);
-  c[15] = _floatcmp(p, a[15], b[15]);
-  return c;
-}
+define_vectorized_comparison_wrapper(float, 16);
+define_vectorized_comparison_wrapper(double, 16);

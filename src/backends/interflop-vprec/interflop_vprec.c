@@ -693,7 +693,7 @@ typedef struct _vprec_inst_function {
 
 // Write the hashmap in the given file
 void _vprec_write_hasmap(FILE *fout) {
-  for (int ii = 0; ii < _vprec_func_map->capacity; ii++) {
+  for (size_t ii = 0; ii < _vprec_func_map->capacity; ii++) {
     if (get_value_at(_vprec_func_map->items, ii) != 0 &&
         get_value_at(_vprec_func_map->items, ii) != 0) {
       _vprec_inst_function_t *function =
@@ -731,8 +731,6 @@ void _vprec_write_hasmap(FILE *fout) {
 // Read and initialize the hashmap from the given file
 void _vprec_read_hasmap(FILE *fin) {
   _vprec_inst_function_t function;
-  int binary64_precision, binary64_range, binary32_precision, binary32_range,
-      type;
 
   while (fscanf(fin, "%s\t%hd\t%hd\t%zu\t%zu\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
                 function.id, &function.isLibraryFunction,
@@ -786,7 +784,7 @@ void _vprec_read_hasmap(FILE *fin) {
 #define _vprec_print_log(_vprec_depth, _vprec_str, ...)                        \
   ({                                                                           \
     if (vprec_log_file != NULL) {                                              \
-      for (int _vprec_d = 0; _vprec_d < _vprec_depth; _vprec_d++)              \
+      for (size_t _vprec_d = 0; _vprec_d < _vprec_depth; _vprec_d++)           \
         fprintf(vprec_log_file, "\t");                                         \
       fprintf(vprec_log_file, _vprec_str, ##__VA_ARGS__);                      \
     }                                                                          \
@@ -872,11 +870,12 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
     // get argument type, id and size
     int type = va_arg(ap, int);
     char *arg_id = va_arg(ap, char *);
+    size_t arg_id_len = strlen(arg_id);
     unsigned int size = va_arg(ap, unsigned int);
 
     if (new_flag) {
       function_inst->input_args[i].data_type = type;
-      strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
+      memcpy(function_inst->input_args[i].arg_id, arg_id, arg_id_len);
       function_inst->input_args[i].min_range = INT_MAX;
       function_inst->input_args[i].max_range = INT_MIN;
       function_inst->input_args[i].exponent_length =
@@ -1087,12 +1086,13 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
   for (int i = 0; i < nb_args; i++) {
     int type = va_arg(ap, int);
     char *arg_id = va_arg(ap, char *);
+    size_t arg_id_len = strlen(arg_id);
     unsigned int size = va_arg(ap, unsigned int);
 
     if (new_flag) {
       // initialize arguments data
       function_inst->output_args[i].data_type = type;
-      strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
+      memcpy(function_inst->output_args[i].arg_id, arg_id, arg_id_len);
       function_inst->output_args[i].exponent_length =
           (type == FDOUBLE || type == FDOUBLE_PTR)
               ? VPREC_RANGE_BINARY64_DEFAULT
@@ -1572,7 +1572,7 @@ void print_information_header(void *context) {
       key_instrument_str, VPREC_INST_MODE_STR[VPREC_INST_MODE]);
 }
 
-void _interflop_finalize(void *context) {
+void _interflop_finalize(__attribute__((unused)) void *context) {
   /* save the hashmap */
   if (vprec_output_file != NULL) {
     FILE *f = fopen(vprec_output_file, "w");

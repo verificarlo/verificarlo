@@ -340,7 +340,8 @@ static struct argp_option options[] = {
     {key_count_op, KEY_COUNT_OP, 0, 0, "enable operation count output", 0},
     {0}};
 
-static error_t parse_opt(int key, char *arg, struct argp_state *state) {
+static error_t parse_opt(int key, __attribute__((unused)) char *arg,
+                         struct argp_state *state) {
   t_context *ctx = (t_context *)state->input;
   switch (key) {
   case KEY_DEBUG:
