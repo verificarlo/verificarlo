@@ -15,7 +15,7 @@ ENV PATH /usr/local/bin:$PATH
 ENV PYTHONPATH /usr/local/lib/python$PYTHON_VERSION/site-packages/:$PYTHONPATH
 
 # Retrieve dependencies
-RUN apt-get -y update && apt-get -y --no-install-recommends install tzdata 
+RUN apt-get -y update && apt-get -y --no-install-recommends install tzdata
 RUN apt-get -y install --no-install-recommends \
     bash ca-certificates make git libmpfr-dev \
     autogen dh-autoreconf autoconf automake autotools-dev libedit-dev libtool libz-dev binutils \
@@ -30,11 +30,17 @@ WORKDIR /build/
 ENV LIBRARY_PATH ${GCC_PATH}:$LIBRARY_PATH
 
 # Install numpy, bigfloat and pandas packages for manipulating MPFR with Python
+# as well as other dependencies for vfc_ci
 RUN ln -s /usr/bin/x86_64-linux-gnu-gcc-7 /usr/bin/x86_64-linux-gnu-gcc && \
     pip3 install --upgrade pip && \
     pip3 install numpy && \
     pip3 install bigfloat && \
-    pip3 install pandas
+    pip3 install pandas && \
+    pip3 install scipy && \
+    pip3 install bokeh && \
+    pip3 install jinja2 && \
+    pip3 install tables && \
+    pip3 install GitPython
 
 # Download and configure verificarlo from git master
 COPY . /build/verificarlo/
