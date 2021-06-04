@@ -511,6 +511,8 @@ if __name__ == "__main__":
         cpt = 1
         for i in range(len(FunctionsFrameCopy.index)):
             print(cpt, "/", len(FunctionsFrameCopy.index))
+            tmp = ArgumentsFrameCopy[(
+                ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
             for j in tmp.index:
                 search_minimum_arguments(	runPath,
                                         cmpPath,
