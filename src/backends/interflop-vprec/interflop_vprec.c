@@ -657,7 +657,7 @@ typedef struct _vprec_inst_function {
 } _vprec_inst_function_t;
 
 // Write the hashmap in the given file
-void _vprec_write_hasmap(FILE *fout) {
+void _vprec_write_hashmap(FILE *fout) {
   for (int ii = 0; ii < _vprec_func_map->capacity; ii++) {
     if (get_value_at(_vprec_func_map->items, ii) != 0 &&
         get_value_at(_vprec_func_map->items, ii) != 0) {
@@ -694,7 +694,7 @@ void _vprec_write_hasmap(FILE *fout) {
 }
 
 // Read and initialize the hashmap from the given file
-void _vprec_read_hasmap(FILE *fin) {
+void _vprec_read_hashmap(FILE *fin) {
   _vprec_inst_function_t function;
   int binary64_precision, binary64_range, binary32_precision, binary32_range,
       type;
@@ -1496,7 +1496,7 @@ void _interflop_finalize(void *context) {
   if (vprec_output_file != NULL) {
     FILE *f = fopen(vprec_output_file, "w");
     if (f != NULL) {
-      _vprec_write_hasmap(f);
+      _vprec_write_hashmap(f);
       fclose(f);
     } else {
       logger_error("Output file can't be written");
@@ -1544,7 +1544,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   if (vprec_input_file != NULL) {
     FILE *f = fopen(vprec_input_file, "r");
     if (f != NULL) {
-      _vprec_read_hasmap(f);
+      _vprec_read_hashmap(f);
       fclose(f);
     } else {
       logger_error("Input file can't be found");
