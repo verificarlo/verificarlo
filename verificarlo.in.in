@@ -185,8 +185,8 @@ def get_tmp_filename(prefix, suffix, args):
 def compiler_mode(sources, options, output, args):
     extra_args = "-static " if args.static else "-fPIC "
 
-    vfcwrapper_ir = ".vfcwrapper.ll"
-    compile_vfcwrapper(vfcwrapper, vfcwrapper_ir,
+    vfcwrapper_ir = get_tmp_filename(".vfcwrapper", ".ll", args)
+    compile_vfcwrapper(vfcwrapper, vfcwrapper_ir.name,
                        options, args, emit_llvm=True)
 
     for source in sources:
@@ -237,7 +237,7 @@ def compiler_mode(sources, options, output, args):
 
         # Apply MCA instrumentation pass
         shell((f'{opt} -S  -load {libvfcinstrument} '
-               f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir} '
+               f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} '
                f' -vfclibinst {extra_args} {selectfunction} '
                f' {ir.name} -o {ins.name}'))
 

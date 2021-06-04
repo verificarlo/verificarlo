@@ -51,35 +51,20 @@
 #define CALL_OP_SIZE 4
 #endif
 
-// typedef int int2 __attribute__((ext_vector_type(2)));
-// typedef int int4 __attribute__((ext_vector_type(4)));
-// typedef int int8 __attribute__((ext_vector_type(8)));
-// typedef int int16 __attribute__((ext_vector_type(16)));
+typedef int int2 __attribute__((ext_vector_type(2)));
+typedef int int4 __attribute__((ext_vector_type(4)));
+typedef int int8 __attribute__((ext_vector_type(8)));
+typedef int int16 __attribute__((ext_vector_type(16)));
 
-// typedef float float2 __attribute__((ext_vector_type(2)));
-// typedef float float4 __attribute__((ext_vector_type(4)));
-// typedef float float8 __attribute__((ext_vector_type(8)));
-// typedef float float16 __attribute__((ext_vector_type(16)));
+typedef float float2 __attribute__((ext_vector_type(2)));
+typedef float float4 __attribute__((ext_vector_type(4)));
+typedef float float8 __attribute__((ext_vector_type(8)));
+typedef float float16 __attribute__((ext_vector_type(16)));
 
-// typedef double double2 __attribute__((ext_vector_type(2)));
-// typedef double double4 __attribute__((ext_vector_type(4)));
-// typedef double double8 __attribute__((ext_vector_type(8)));
-// typedef double double16 __attribute__((ext_vector_type(16)));
-
-typedef int int2 __attribute__((__vector_size__(2 * 4)));
-typedef int int4 __attribute__((__vector_size__(4 * 4)));
-typedef int int8 __attribute__((__vector_size__(8 * 4)));
-typedef int int16 __attribute__((__vector_size__(16 * 4)));
-
-typedef float float2 __attribute__((__vector_size__(2 * 4)));
-typedef float float4 __attribute__((__vector_size__(4 * 4)));
-typedef float float8 __attribute__((__vector_size__(8 * 4)));
-typedef float float16 __attribute__((__vector_size__(16 * 4)));
-
-typedef double double2 __attribute__((__vector_size__(2 * 8)));
-typedef double double4 __attribute__((__vector_size__(4 * 8)));
-typedef double double8 __attribute__((__vector_size__(8 * 8)));
-typedef double double16 __attribute__((__vector_size__(16 * 8)));
+typedef double double2 __attribute__((ext_vector_type(2)));
+typedef double double4 __attribute__((ext_vector_type(4)));
+typedef double double8 __attribute__((ext_vector_type(8)));
+typedef double double16 __attribute__((ext_vector_type(16)));
 
 typedef struct interflop_backend_interface_t (*interflop_init_t)(
     int argc, char **argv, void **context);
