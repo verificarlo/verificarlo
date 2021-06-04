@@ -64,6 +64,11 @@ def shell(cmd, newEnv, maxTimeout=None):
                             env=env)
 
     proc.wait(maxTimeout)
+    
+    try:
+        proc.wait(maxTimeout)
+    except TimeoutExpired:
+        return 42
 
     return proc.returncode
 
@@ -223,7 +228,9 @@ def Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Argume
     """ Save the current state of the exploration in a configuration file, execute the program, return the result of the comparison """
     save(Arguments, Operations, config_file)
 
-    run(runPath, current_dir, env, vfc_maxTimeout)
+    runRetCode = run(runPath, current_dir, env, vfc_maxTimeout)
+    if (runRetCode != 0):
+        return False
 
     return cmp(cmpPath, reference_dir, current_dir, env)
 
