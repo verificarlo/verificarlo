@@ -1,13 +1,37 @@
+#############################################################################
+#                                                                           #
+#  This file is part of Verificarlo.                                        #
+#                                                                           #
+#  Copyright (c) 2015-2021                                                  #
+#     Verificarlo contributors                                              #
+#     Universite de Versailles St-Quentin-en-Yvelines                       #
+#     CMLA, Ecole Normale Superieure de Cachan                              #
+#                                                                           #
+#  Verificarlo is free software: you can redistribute it and/or modify      #
+#  it under the terms of the GNU General Public License as published by     #
+#  the Free Software Foundation, either version 3 of the License, or        #
+#  (at your option) any later version.                                      #
+#                                                                           #
+#  Verificarlo is distributed in the hope that it will be useful,           #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+#  GNU General Public License for more details.                             #
+#                                                                           #
+#  You should have received a copy of the GNU General Public License        #
+#  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.     #
+#                                                                           #
+#############################################################################
+
 # This script reads the vfc_tests_config.json file and executes tests accordingly
 # It will also generate a ... .vfcrunh5 file with the results of the run
 
-import verificarlo.sigdigits as sd
-import scipy.stats
-import numpy as np
+from .test_data_processing import data_processing
 import pandas as pd
 import os
+import subprocess
+import sys
 import json
-
+import tempfile
 import calendar
 import time
 
@@ -18,18 +42,18 @@ pickle.HIGHEST_PROTOCOL = 4
 
 
 # Magic numbers
-min_pvalue = 0.05
-max_zscore = 3
+timeout = 600   # For commands execution
 
 
 ##########################################################################
 
 # Helper functions
 
-# Read a CSV file outputted by vfc_probe as a Pandas dataframe
 def read_probes_csv(filepath, backend, warnings, execution_data):
+    '''Read a CSV file outputted by vfc_probe as a Pandas dataframe'''
 
     try:
+
         results = pd.read_csv(filepath)
 
     except FileNotFoundError:
@@ -68,73 +92,14 @@ def read_probes_csv(filepath, backend, warnings, execution_data):
     return results
 
 
-# First wrapper to sd.significant_digits (returns results in base 2)
-
-def significant_digits(x):
-
-    # If the null hypothesis is rejected, call sigdigits with the General
-    # formula:
-    if x.pvalue < min_pvalue:
-        # In a pandas DF, "values" actually refers to the array of columns, and
-        # not the column named "values"
-        distribution = x.values[3]
-        distribution = distribution.reshape(len(distribution), 1)
-
-        # The distribution's empirical average will be used as the reference
-        mu = np.array([x.mu])
-
-        s = sd.significant_digits(
-            distribution,
-            mu,
-            precision=sd.Precision.Relative,
-            method=sd.Method.General,
-
-            probability=0.9,
-            confidence=0.95
-        )
-
-        # s is returned inside a list
-        return s[0]
-
-    # Else, manually compute sMCA (Stott-Parker formula)
-    else:
-        return -np.log2(np.absolute(x.sigma / x.mu))
-
-
-# First wrapper to sd.significant_digits : assumes s2 has already been computed
-
-def significant_digits_lower_bound(x):
-    # If the null hypothesis is rejected, no lower bound
-    if x.pvalue < min_pvalue:
-        return x.s2
-
-    # Else, the lower bound will be computed with p= .9 alpha-1=.95
-    else:
-        distribution = x.values[3]
-        distribution = distribution.reshape(len(distribution), 1)
-
-        mu = np.array([x.mu])
-
-        s = sd.significant_digits(
-            distribution,
-            mu,
-            precision=sd.Precision.Relative,
-            method=sd.Method.CNH,
-
-            probability=0.9,
-            confidence=0.95
-        )
-
-        return s[0]
-
-
 ##########################################################################
 
     # Main functions
 
 
-# Open and read the tests config file
 def read_config():
+    '''Open and read the tests config file'''
+
     try:
         with open("vfc_tests_config.json", "r") as file:
             data = file.read()
@@ -185,8 +150,10 @@ def generate_metadata(is_git_commit):
     return metadata
 
 
-# Execute tests and collect results in a Pandas dataframe (+ dataprocessing)
 def run_tests(config):
+    '''
+    Execute tests and collect results in a Pandas dataframe
+    '''
 
     # Run the build command
     print("Info [vfc_ci]: Building tests...")
@@ -195,15 +162,12 @@ def run_tests(config):
     # This is an array of Pandas dataframes for now
     data = []
 
-    # Create tmp folder to export results
-    os.system("mkdir .vfcruns.tmp")
-    n_files = 0
-
     # This will contain all executables/repetition numbers from which we could
     # not get any data
     warnings = []
 
-    # Tests execution loop
+    # Tests execution loops
+
     for executable in config["executables"]:
         print("Info [vfc_ci]: Running executable :",
               executable["executable"], "...")
@@ -214,8 +178,9 @@ def run_tests(config):
 
         for backend in executable["vfc_backends"]:
 
-            export_backend = "VFC_BACKENDS=\"" + backend["name"] + "\" "
-            command = "./" + executable["executable"] + " " + parameters
+            os.putenv("VFC_BACKENDS", backend["name"])
+
+            command = "./" + executable["executable"] + parameters
 
             repetitions = 1
             if "repetitions" in backend:
@@ -223,9 +188,18 @@ def run_tests(config):
 
             # Run test repetitions and save results
             for i in range(repetitions):
-                file = ".vfcruns.tmp/%s.csv" % str(n_files)
-                export_output = "VFC_PROBES_OUTPUT=\"%s\" " % file
-                os.system(export_output + export_backend + command)
+                temp = tempfile.NamedTemporaryFile()
+                os.putenv("VFC_PROBES_OUTPUT", temp.name)
+
+                print(command)
+                p = subprocess.Popen(command)
+                try:
+                    p.wait(timeout)
+                except subprocess.TimeoutExpired:
+                    print(
+                        "Warning [vfc_ci]: execution was timed out",
+                        file=sys.stderr)
+                    p.kill()
 
                 # This will only be used if we need to append this exec to the
                 # warnings list
@@ -236,16 +210,13 @@ def run_tests(config):
                 }
 
                 data.append(read_probes_csv(
-                    file,
+                    temp.name,
                     backend["name"],
                     warnings,
                     execution_data
                 ))
 
-                n_files = n_files + 1
-
-    # Clean CSV output files (by deleting the tmp folder)
-    os.system("rm -rf .vfcruns.tmp")
+                temp.close()
 
     # Combine all separate executions in one dataframe
     data = pd.concat(data, sort=False, ignore_index=True)
@@ -258,64 +229,38 @@ def run_tests(config):
 
     return data, warnings
 
-    # Data processing : computes all metrics on the dataframe
-
-
-def data_processing(data):
-
-    data["values"] = data["values"].apply(lambda x: np.array(x).astype(float))
-
-    # Get empirical average, standard deviation and p-value
-    data["mu"] = data["values"].apply(np.average)
-    data["sigma"] = data["values"].apply(np.std)
-    data["pvalue"] = data["values"].apply(
-        lambda x: scipy.stats.shapiro(x).pvalue)
-
-    # Significant digits
-    data["s2"] = data.apply(significant_digits, axis=1)
-    data["s10"] = data["s2"].apply(lambda x: sd.change_base(x, 10))
-
-    # Lower bound of the confidence interval using the sigdigits module
-    data["s2_lower_bound"] = data.apply(significant_digits_lower_bound, axis=1)
-    data["s10_lower_bound"] = data["s2_lower_bound"].apply(
-        lambda x: sd.change_base(x, 10))
-
-    # Compute moments of the distribution
-    # (including a new distribution obtained by filtering outliers)
-    data["values"] = data["values"].apply(np.sort)
-
-    data["mu"] = data["values"].apply(np.average)
-    data["min"] = data["values"].apply(np.min)
-    data["quantile25"] = data["values"].apply(np.quantile, args=(0.25,))
-    data["quantile50"] = data["values"].apply(np.quantile, args=(0.50,))
-    data["quantile75"] = data["values"].apply(np.quantile, args=(0.75,))
-    data["max"] = data["values"].apply(np.max)
-
-    data["nsamples"] = data["values"].apply(len)
-
-    # Display all executions that resulted in a warning
-
 
 def show_warnings(warnings):
+    '''
+    Display all executions that resulted in a warning
+    '''
+
     if len(warnings) > 0:
         print(
             "Warning [vfc_ci]: Some of your runs could not generate any data "
             "(for instance because your code crashed) and resulted in "
-            "warnings. Here is the complete list :"
+            "warnings. Here is the complete list :",
+            file=sys.stderr
         )
 
         for i in range(0, len(warnings)):
-            print("- Warning %s:" % i)
+            print("- Warning %s:" % i, file=sys.stderr)
 
-            print("  Executable: %s" % warnings[i]["executable"])
-            print("  Backend: %s" % warnings[i]["backend"])
-            print("  Repetition: %s" % warnings[i]["repetition"])
+            print(
+                "  Executable: %s" %
+                warnings[i]["executable"],
+                file=sys.stderr)
+            print("  Backend: %s" % warnings[i]["backend"], file=sys.stderr)
+            print(
+                "  Repetition: %s" %
+                warnings[i]["repetition"],
+                file=sys.stderr)
 
 
 ##########################################################################
 
-# Entry point of vfc_ci test
 def run(is_git_commit, export_raw_values, dry_run):
+    '''Entry point of vfc_ci test'''
 
     # Get config, metadata and data
     print("Info [vfc_ci]: Reading tests config file...")
@@ -328,8 +273,7 @@ def run(is_git_commit, export_raw_values, dry_run):
     show_warnings(warnings)
 
     # Data processing
-    print("Info [vfc_ci]: Processing data...")
-    data_processing(data)
+    data = data_processing(data)
 
     # Prepare data for export (by creating a proper index and linking run
     # timestamp)

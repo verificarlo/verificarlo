@@ -5,8 +5,6 @@ dist_bin_SCRIPTS=verificarlo verificarlo-c verificarlo-f verificarlo-c++
 edit_script = $(SED) -e 's,%LIBDIR%,$(libdir),'g $(NULL)
 
 verificarlo: verificarlo.in Makefile
-	git submodule init
-	git submodule update
 	$(AM_V_GEN)rm -f $@ $@.tmp && \
 	$(edit_script) $< >$@.tmp && \
 	chmod a-w $@.tmp && \

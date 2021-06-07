@@ -1,5 +1,29 @@
+#############################################################################
+#                                                                           #
+#  This file is part of Verificarlo.                                        #
+#                                                                           #
+#  Copyright (c) 2015-2021                                                  #
+#     Verificarlo contributors                                              #
+#     Universite de Versailles St-Quentin-en-Yvelines                       #
+#     CMLA, Ecole Normale Superieure de Cachan                              #
+#                                                                           #
+#  Verificarlo is free software: you can redistribute it and/or modify      #
+#  it under the terms of the GNU General Public License as published by     #
+#  the Free Software Foundation, either version 3 of the License, or        #
+#  (at your option) any later version.                                      #
+#                                                                           #
+#  Verificarlo is distributed in the hope that it will be useful,           #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+#  GNU General Public License for more details.                             #
+#                                                                           #
+#  You should have received a copy of the GNU General Public License        #
+#  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.     #
+#                                                                           #
+#############################################################################
+
 # Look for and read all the run files in the current directory (ending with
-# .vfcrunh5), and lanch a Bokeh server for the visualization of this data.
+# .vfcrun.h5), and lanch a Bokeh server for the visualization of this data.
 
 import os
 import sys
@@ -7,6 +31,7 @@ import time
 import json
 
 import pandas as pd
+import numpy as np
 
 from bokeh.plotting import curdoc
 from bokeh.models import Select, CustomJS
@@ -23,10 +48,12 @@ import helper
 # (this is quite easy because Bokeh server is called through a wrapper, so
 # we know exactly what the arguments might be)
 
-directory = "."
 
 has_logo = False
 logo_url = ""
+
+directory = "."
+max_files = 100
 
 
 for i in range(1, len(sys.argv)):
@@ -37,9 +64,13 @@ for i in range(1, len(sys.argv)):
         curdoc().template_variables["logo_url"] = sys.argv[i + 1]
         has_logo = True
 
+    # By default, run files are read from ., look if specified othewise
     if sys.argv[i] == "directory":
         directory = sys.argv[i + 1]
 
+    # By default, the n latest files are selected, but this can be modified
+    if sys.argv[i] == "max_files":
+        max_files = int(sys.argv[i + 1])
 
 curdoc().template_variables["has_logo"] = has_logo
 
@@ -60,13 +91,48 @@ if len(run_files) == 0:
 metadata = []
 data = []
 
+# First run for metadata
 for f in run_files:
-    metadata.append(pd.read_hdf(directory + "/" + f, "metadata"))
-    data.append(pd.read_hdf(directory + "/" + f, "data"))
+    path = os.path.normpath(directory + "/" + f)
+    metadata.append(pd.read_hdf(path, "metadata"))
+    current_metadata = pd.read_hdf(path, "metadata")
 
 metadata = pd.concat(metadata).sort_index()
-data = pd.concat(data).sort_index()
 
+if len(metadata) == 0:
+    print(
+        "Warning [vfc_ci]: No run files matched the specified timeframe. "
+        "This will result in server errors and prevent you from viewing the report."
+        "If you did not expect this, make sure that you have correctly "
+        "specified the directory containing the run files.", file=sys.stderr)
+
+
+# Sort and filter metadata
+
+metadata.sort_index()
+
+# max_files will equal the actual dataframe size if its smaller than the original
+# value
+max_files = min(max_files, len(metadata))
+
+metadata = metadata.head(max_files)
+
+# Minimum acceptable timestamp
+min_timestamp = metadata.iloc[max_files - 1].name
+
+# Second run for data (now that we know which files to load entirely)
+for f in run_files:
+
+    # We have to read the metadata again to get back the timestamp. If
+    # it is most recent than min_timestamp, the data is loaded.
+    path = os.path.normpath(directory + "/" + f)
+    current_metadata = pd.read_hdf(path, "metadata")
+    current_timestamp = current_metadata.iloc[0].name
+
+    if current_timestamp <= min_timestamp:
+        data.append(pd.read_hdf(directory + "/" + f, "data"))
+
+data = pd.concat(data).sort_index()
 
 # Generate the display strings for runs (runs ticks)
 # By doing this in master, we ensure the homogeneity of display strings
@@ -88,12 +154,14 @@ metadata["date"] = metadata.index.to_series().map(
 
 # Setup report views
 
-# Define a ViewsMaster class to allow two-ways communication between views.
-# This approach by classes allows us to have separate scopes for each view and
-# will be useful if we want to add new views at some point in the future
-# (instead of having n views with n-1 references each).
 
 class ViewsMaster:
+    '''
+    The ViewsMaster class allows two-ways communication between views.
+    This approach by classes allows us to have separate scopes for each view
+    and will be useful if we want to add new views at some point in the future
+    (instead of having n views with n-1 references each).
+    '''
 
     # Callbacks
 

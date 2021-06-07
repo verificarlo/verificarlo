@@ -1,3 +1,27 @@
+#############################################################################
+#                                                                           #
+#  This file is part of Verificarlo.                                        #
+#                                                                           #
+#  Copyright (c) 2015-2021                                                  #
+#     Verificarlo contributors                                              #
+#     Universite de Versailles St-Quentin-en-Yvelines                       #
+#     CMLA, Ecole Normale Superieure de Cachan                              #
+#                                                                           #
+#  Verificarlo is free software: you can redistribute it and/or modify      #
+#  it under the terms of the GNU General Public License as published by     #
+#  the Free Software Foundation, either version 3 of the License, or        #
+#  (at your option) any later version.                                      #
+#                                                                           #
+#  Verificarlo is distributed in the hope that it will be useful,           #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+#  GNU General Public License for more details.                             #
+#                                                                           #
+#  You should have received a copy of the GNU General Public License        #
+#  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.     #
+#                                                                           #
+#############################################################################
+
 # General functions for filling plots with data in all report's views
 
 from bokeh.plotting import figure
@@ -13,6 +37,17 @@ def fill_dotplot(
     lines=False,
     lower_bound=False
 ):
+    '''
+    General function for filling dotplots.
+    Here are the possible parameters :
+
+    tooltips: Bokeh Tooltip object to use for the plot
+    tooltips_formatters: Formatter for the tooltip
+    js_tap_callback: CustomJS object for client side click callback
+    server_tap_callback: Callback object for server side click callback
+    lines: Specify if lines should be drawn to connect the dots
+    lower_bound: Specify if a lower bound interval should be displayed
+    '''
 
     # (Optional) Tooltip and tooltip formatters
     if tooltips is not None:
@@ -67,6 +102,16 @@ def fill_boxplot(
     tooltips=None, tooltips_formatters=None,
     js_tap_callback=None, server_tap_callback=None
 ):
+    '''
+    General function for filling boxplots.
+    Here are the possible parameters :
+
+    prefix: specify which prefix to use for the name of data fields
+    tooltips: Bokeh Tooltip object to use for the plot
+    tooltips_formatters: Formatter for the tooltip
+    js_tap_callback: CustomJS object for client side click callback
+    server_tap_callback: Callback object for server side click callback
+    '''
 
     # (Optional) Tooltip and tooltip formatters
     if tooltips is not None:
