@@ -427,12 +427,15 @@ struct VfclibInst : public ModulePass {
 
     Value *op1 = I->getOperand(0);
     Value *op2 = I->getOperand(1);
+    Type *retType = I->getType();
 
     op1 = updateOperand(Builder, F, op1, 0);
     op2 = updateOperand(Builder, F, op2, 1);
 
     CallInst *newInst = Builder.CreateCall(F, {op1, op2});
     newInst->setAttributes(F->getAttributes());
+
+    newInst = dyn_cast<CallInst>(updateReturn(Builder, newInst, retType));
 
     return newInst;
   }
