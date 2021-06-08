@@ -6,6 +6,11 @@
  * VPREC mode of operation and instrumentation mode.
  ***************************************************************/
 
+/* Avoid warning about vector argument of type X without 'set' enabled changes
+   the ABI */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpsabi"
+
 #define define_compute_absErr_vprec_binary32_vector(size)                      \
   static inline                                                                \
   int##size compute_absErr_vprec_binary32_##size##x(bool isDenormal,           \
@@ -578,5 +583,6 @@ define_interflop_binary64_op_vector(16, sub);
 define_interflop_binary64_op_vector(16, mul);
 define_interflop_binary64_op_vector(16, div);
 
+#pragma clang diagnostic pop
 
 #endif // _INTERFLOP_VPREC_VECTOR_H_
