@@ -409,7 +409,7 @@ struct VfclibInst : public ModulePass {
     }
     return operand;
   }
-  
+
   /* Update the return value if type mismatched */
   Value *updateReturn(IRBuilder<> &Builder, CallInst *newInst, Type *retType) {
     Type *retTypeNewInst = newInst->getType();
@@ -420,7 +420,7 @@ struct VfclibInst : public ModulePass {
     }
     return newInst;
   }
-    
+
   /* Replace arithmetic instructions with MCA */
   Value *replaceArithmeticWithMCACall(IRBuilder<> &Builder, Function *F,
                                       Instruction *I) {
