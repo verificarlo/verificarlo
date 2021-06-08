@@ -215,8 +215,6 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
       if (backends[i].interflop_##operation##_##precision##_##size##x) {       \
         res = 1;                                                               \
         break;                                                                 \
-      } else {                                                                 \
-        backends[i].interflop_##operation##_##precision##_##size##x = NULL;    \
       }                                                                        \
     }                                                                          \
     if (res == 0)                                                              \
