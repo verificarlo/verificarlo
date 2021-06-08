@@ -283,9 +283,6 @@ if __name__ == "__main__":
     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
     parser.add_argument('--linker', choices=linkers.keys(), default=default_linker,
                         help="linker to use, {dl} by default".format(dl=default_linker))
-    parser.add_argument('--extra-vfc-backend-name', metavar='name',
-                        help=(f'add an extra VFC_BACKENDS_<name> variable '
-                              'to control backends options. '))
 
     args, other = parser.parse_known_args()
 
