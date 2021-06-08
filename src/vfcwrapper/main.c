@@ -213,7 +213,7 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
     int res = 0;                                                               \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
       if (backends[i].interflop_##operation##_##precision##_##size##x) {       \
-        backends[i].interflop_##operation##_##precision##_##size##x = 0;       \
+        backends[i].interflop_##operation##_##precision##_##size##x = NULL;    \
         res = 1;                                                               \
         break;                                                                 \
       }                                                                        \
