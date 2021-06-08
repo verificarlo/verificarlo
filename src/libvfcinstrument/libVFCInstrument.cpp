@@ -409,7 +409,18 @@ struct VfclibInst : public ModulePass {
     }
     return operand;
   }
-
+  
+  /* Update the return value if type mismatched */
+  Value *updateReturn(IRBuilder<> &Builder, CallInst *newInst, Type *retType) {
+    Type *retTypeNewInst = newInst->getType();
+    if (retType != retTypeNewInst) {
+      if (CastInst::isBitCastable(retTypeNewInst, retType)) {
+        return Builder.CreateBitCast(newInst, retType);
+      }
+    }
+    return newInst;
+  }
+    
   /* Replace arithmetic instructions with MCA */
   Value *replaceArithmeticWithMCACall(IRBuilder<> &Builder, Function *F,
                                       Instruction *I) {
