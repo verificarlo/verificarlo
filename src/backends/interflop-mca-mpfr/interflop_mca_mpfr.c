@@ -333,38 +333,6 @@ static void _interflop_div_float(float a, float b, float *c, void *context) {
   *c = _mca_binary32_binary_op(a, b, (mpfr_bin)MP_DIV, context);
 }
 
-#define define_interflop_op_float_vector(size, op, OP)                         \
-  static void _interflop_##op##_float_##size##x(float##size *a,                \
-                                                float##size *b,                \
-                                                float##size *c,                \
-                                                void *context) {               \
-    for (int i = 0; i < size; i++) {                                           \
-      (*c)[i] = _mca_binary32_binary_op((*a)[i], (*b)[i], (mpfr_bin)MP_##OP,   \
-                                        context);                              \
-    }                                                                          \
-  }
-
-/* Define here all float vector interflop functions */
-define_interflop_op_float_vector(2, add, ADD);
-define_interflop_op_float_vector(2, sub, SUB);
-define_interflop_op_float_vector(2, mul, MUL);
-define_interflop_op_float_vector(2, div, DIV);
-
-define_interflop_op_float_vector(4, add, ADD);
-define_interflop_op_float_vector(4, sub, SUB);
-define_interflop_op_float_vector(4, mul, MUL);
-define_interflop_op_float_vector(4, div, DIV);
-
-define_interflop_op_float_vector(8, add, ADD);
-define_interflop_op_float_vector(8, sub, SUB);
-define_interflop_op_float_vector(8, mul, MUL);
-define_interflop_op_float_vector(8, div, DIV);
-
-define_interflop_op_float_vector(16, add, ADD);
-define_interflop_op_float_vector(16, sub, SUB);
-define_interflop_op_float_vector(16, mul, MUL);
-define_interflop_op_float_vector(16, div, DIV);
-
 static void _interflop_add_double(double a, double b, double *c,
                                   void *context) {
   *c = _mca_binary64_binary_op(a, b, (mpfr_bin)MP_ADD, context);
@@ -384,38 +352,6 @@ static void _interflop_div_double(double a, double b, double *c,
                                   void *context) {
   *c = _mca_binary64_binary_op(a, b, (mpfr_bin)MP_DIV, context);
 }
-
-#define define_interflop_op_double_vector(size, op, OP)                        \
-  static void _interflop_##op##_double_##size##x(double##size *a,              \
-                                                 double##size *b,              \
-                                                 double##size *c,              \
-                                                 void *context) {              \
-    for (int i = 0; i < size; i++) {                                           \
-      (*c)[i] = _mca_binary64_binary_op((*a)[i], (*b)[i], (mpfr_bin)MP_##OP,   \
-                                        context);                              \
-    }                                                                          \
-  }
-
-/* Define here all double vector interflop functions */
-define_interflop_op_double_vector(2, add, ADD);
-define_interflop_op_double_vector(2, sub, SUB);
-define_interflop_op_double_vector(2, mul, MUL);
-define_interflop_op_double_vector(2, div, DIV);
-
-define_interflop_op_double_vector(4, add, ADD);
-define_interflop_op_double_vector(4, sub, SUB);
-define_interflop_op_double_vector(4, mul, MUL);
-define_interflop_op_double_vector(4, div, DIV);
-
-define_interflop_op_double_vector(8, add, ADD);
-define_interflop_op_double_vector(8, sub, SUB);
-define_interflop_op_double_vector(8, mul, MUL);
-define_interflop_op_double_vector(8, div, DIV);
-
-define_interflop_op_double_vector(16, add, ADD);
-define_interflop_op_double_vector(16, sub, SUB);
-define_interflop_op_double_vector(16, mul, MUL);
-define_interflop_op_double_vector(16, div, DIV);
 
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
