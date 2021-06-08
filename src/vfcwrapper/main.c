@@ -213,9 +213,10 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
     int res = 0;                                                               \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
       if (backends[i].interflop_##operation##_##precision##_##size##x) {       \
-        backends[i].interflop_##operation##_##precision##_##size##x = NULL;    \
         res = 1;                                                               \
         break;                                                                 \
+      } else {                                                                 \
+        backends[i].interflop_##operation##_##precision##_##size##x = NULL;    \
       }                                                                        \
     }                                                                          \
     if (res == 0)                                                              \
@@ -552,8 +553,7 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
       if (backends[i].interflop_##operation##_##precision##_##size##x) {       \
         backends[i].interflop_##operation##_##precision##                      \
           _##size##x(&a, &b, &c, contexts[i]);                                 \
-      }                                                                        \
-      else {                                                                   \
+      } else {                                                                 \
         for (unsigned char j = 0; j < size; j++) {                             \
           precision _c = c[j];                                                 \
           backends[i].interflop_##operation##_##precision(a[j], b[j], &_c,     \
@@ -615,8 +615,7 @@ define_vector_arithmetic_wrapper(16, double, div, /);
       if (backends[i].interflop_cmp_##precision##_##size##x) {                 \
         backends[i].interflop_cmp_##precision##_##size##x(p, &a, &b, &c,       \
                                                           contexts[i]);        \
-      }                                                                        \
-      else {                                                                   \
+      } else {                                                                 \
         for (unsigned char j = 0; j < size; j++) {                             \
           int _c = c[j];                                                       \
           backends[i].interflop_cmp_##precision(p, a[j], b[j], &_c,            \
