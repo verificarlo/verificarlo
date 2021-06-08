@@ -213,6 +213,7 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
     int res = 0;                                                               \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
       if (backends[i].interflop_##operation##_##precision##_##size##x) {       \
+        backends[i].interflop_##operation##_##precision##_##size##x = 0;       \
         res = 1;                                                               \
         break;                                                                 \
       }                                                                        \
@@ -222,7 +223,7 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
                      " for " #precision                                        \
                      ".\n"                                                     \
                      "Include one backend in VFC_BACKENDS "                    \
-                     "that provides it");                                      \
+                     "that provides it to enable vectorization");              \
   } while (0)
 
 /* vfc_read_filter_file reads an inclusion/exclusion ddebug file and returns
@@ -552,6 +553,13 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
         backends[i].interflop_##operation##_##precision##                      \
           _##size##x(&a, &b, &c, contexts[i]);                                 \
       }                                                                        \
+      else {                                                                   \
+        for (unsigned char j = 0; j < size; j++) {                             \
+          precision _c = c[j];                                                 \
+          backends[i].interflop_##operation##_##precision(a[j], b[j], &_c,     \
+                                                          contexts[i]);        \
+        }                                                                      \
+      }                                                                        \
     }                                                                          \
     return c;                                                                  \
   }
@@ -607,6 +615,13 @@ define_vector_arithmetic_wrapper(16, double, div, /);
       if (backends[i].interflop_cmp_##precision##_##size##x) {                 \
         backends[i].interflop_cmp_##precision##_##size##x(p, &a, &b, &c,       \
                                                           contexts[i]);        \
+      }                                                                        \
+      else {                                                                   \
+        for (unsigned char j = 0; j < size; j++) {                             \
+          int _c = c[j];                                                       \
+          backends[i].interflop_cmp_##precision(p, a[j], b[j], &_c,            \
+                                                contexts[i]);                  \
+        }                                                                      \
       }                                                                        \
     }                                                                          \
     return c;                                                                  \
