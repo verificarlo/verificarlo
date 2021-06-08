@@ -19,7 +19,7 @@ typedef int int4 __attribute__((ext_vector_type(4)));
 typedef int int8 __attribute__((ext_vector_type(8)));
 typedef int int16 __attribute__((ext_vector_type(16)));
 
-/* Define specialised vector integer types */
+/* Define specialized vector integer types */
 typedef int32_t int32_2x __attribute__((ext_vector_type(2)));
 typedef int32_t int32_4x __attribute__((ext_vector_type(4)));
 typedef int32_t int32_8x __attribute__((ext_vector_type(8)));
