@@ -218,11 +218,11 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
       }                                                                        \
     }                                                                          \
     if (res == 0)                                                              \
-      logger_error("No backend instruments vector " #operation                 \
-                   " for " #precision                                          \
-                   ".\n"                                                       \
-                   "Include one backend in VFC_BACKENDS "                      \
-                   "that provides it");                                        \
+      logger_warning("No backend instruments vector " #operation               \
+                     " for " #precision                                        \
+                     ".\n"                                                     \
+                     "Include one backend in VFC_BACKENDS "                    \
+                     "that provides it");                                      \
   } while (0)
 
 /* vfc_read_filter_file reads an inclusion/exclusion ddebug file and returns
