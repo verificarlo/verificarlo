@@ -53,7 +53,9 @@ has_logo = False
 logo_url = ""
 
 directory = "."
+
 max_files = 100
+ignore_recent = 0
 
 
 for i in range(1, len(sys.argv)):
@@ -71,6 +73,11 @@ for i in range(1, len(sys.argv)):
     # By default, the n latest files are selected, but this can be modified
     if sys.argv[i] == "max_files":
         max_files = int(sys.argv[i + 1])
+
+    # By default, the n latest files are selected, but this can be modified
+    if sys.argv[i] == "ignore_recent":
+        ignore_recent = int(sys.argv[i + 1])
+
 
 curdoc().template_variables["has_logo"] = has_logo
 
@@ -91,7 +98,7 @@ if len(run_files) == 0:
 metadata = []
 data = []
 
-# First run for metadata
+# First pass for metadata
 for f in run_files:
     path = os.path.normpath(directory + "/" + f)
     metadata.append(pd.read_hdf(path, "metadata"))
@@ -111,25 +118,29 @@ if len(metadata) == 0:
 
 metadata.sort_index()
 
-# max_files will equal the actual dataframe size if its smaller than the original
-# value
+# Ignore the most recent files if needed
+if ignore_recent != 0:
+    metadata.drop(metadata.tail(ignore_recent).index, inplace=True)
+
+# max_files will equal the actual dataframe size if its smaller than the
+# original value
 max_files = min(max_files, len(metadata))
 
 metadata = metadata.head(max_files)
 
-# Minimum acceptable timestamp
-min_timestamp = metadata.iloc[max_files - 1].name
+# Maximal acceptable timestamp
+max_timestamp = metadata.iloc[max_files - 1].name
 
-# Second run for data (now that we know which files to load entirely)
+# Second pass for data (now that we know which files to load entirely)
 for f in run_files:
 
-    # We have to read the metadata again to get back the timestamp. If
-    # it is most recent than min_timestamp, the data is loaded.
+    # We have to read the metadata again to get back the timestamp.
+    # Then, depending of the timestamp value, data will be read or dismissed
     path = os.path.normpath(directory + "/" + f)
     current_metadata = pd.read_hdf(path, "metadata")
     current_timestamp = current_metadata.iloc[0].name
 
-    if current_timestamp <= min_timestamp:
+    if current_timestamp <= max_timestamp:
         data.append(pd.read_hdf(directory + "/" + f, "data"))
 
 data = pd.concat(data).sort_index()

@@ -56,6 +56,13 @@ def is_directory(string):
     return string
 
 
+def is_strictly_positive(string):
+    value = int(string)
+    if value <= 0:
+        raise argparse.ArgumentTypeError("Value has to be strictly positive")
+    return value
+
+
 ##########################################################################
 
     # Subcommand decorator
@@ -189,10 +196,20 @@ def test(args):
             "-f", "--max-files",
             help="""
             Specify the maximum number of run files that can be integrated into
-            the report. If the number of detected files exceeds this number, the
-            most recent ones will be kept.
+            the report to avoid performance issues. If the number of detected
+            files exceeds this value, the most recent ones will be kept.
+            Defaults to 100.
             """,
-            type=int
+            type=is_strictly_positive
+        ),
+        argument(
+            "-i", "--ignore-recent",
+            help="""
+            Specify the number of most recent files that should be ignored.
+            Combining this with the --max-files option makes it possible to
+            select any chronological range of files. Defaults to 0.
+            """,
+            type=is_strictly_positive
         )
     ]
 )
@@ -204,7 +221,8 @@ def serve(args):
         args.port,
         args.allow_origin,
         args.logo,
-        args.max_files
+        args.max_files,
+        args.ignore_recent
     )
 
 
