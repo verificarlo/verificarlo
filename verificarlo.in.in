@@ -97,6 +97,7 @@ def shell_escape(argument):
 def parse_extra_args(args):
     sources = []
     options = []
+    libraries = []
 
     for a in args:
         if is_fortran(a):
@@ -110,10 +111,12 @@ def parse_extra_args(args):
             sources.append(a)
         elif is_assembly(a):
             sources.append(a)
+        elif a.startswith('-l'):
+            libraries.append(a)
         else:
             options.append(shell_escape(a))
 
-    return sources, ' '.join(options)
+    return sources, ' '.join(options), ' '.join(libraries)
 
 
 def shell(cmd):
@@ -125,7 +128,7 @@ def shell(cmd):
         fail('command failed:\n' + cmd)
 
 
-def linker_mode(sources, options, output, args):
+def linker_mode(sources, options, libraries, output, args):
     extra_args = "-static " if args.static else "-fPIC "
     extra_args += "-DINST_FCMP " if args.inst_fcmp else ""
     extra_args += "-DDDEBUG " if args.ddebug else ""
@@ -139,15 +142,17 @@ def linker_mode(sources, options, output, args):
 
     f = tempfile.NamedTemporaryFile(mode='w+')
     if args.static:
-        cmd = '{output} {sources} {options} -static .vfcwrapper.o -lmpfr -lgmp -lm -ldl'.format(
-            output=output,
-            sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
-            options=options)
-    else:
-        cmd = '{output} {sources} {options} .vfcwrapper.o {mcalib_options} -ldl'.format(
+        cmd = '{output} {sources} {options} {libraries} -static .vfcwrapper.o -lmpfr -lgmp -lm -ldl'.format(
             output=output,
             sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
             options=options,
+            libraries=libraries)
+    else:
+        cmd = '{output} {sources} {options} {libraries} .vfcwrapper.o {mcalib_options} -ldl'.format(
+            output=output,
+            sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
+            options=options,
+            libraries=libraries,
             mcalib_options=mcalib_options)
 
     f.write(cmd)
@@ -297,7 +302,7 @@ if __name__ == "__main__":
 
     args, other = parser.parse_known_args()
 
-    sources, llvm_options = parse_extra_args(other)
+    sources, llvm_options, libraries = parse_extra_args(other)
 
     # check input files
     if (args.E or args.S or args.c) and len(sources) > 1 and args.o:
@@ -323,4 +328,4 @@ if __name__ == "__main__":
         if len(sources) == 0 and len(llvm_options) == 0:
             fail('no input files')
         compiler_mode(sources, llvm_options, "", args)
-        linker_mode(sources, llvm_options, output, args)
+        linker_mode(sources, llvm_options, libraries, output, args)
