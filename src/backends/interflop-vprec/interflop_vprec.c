@@ -131,6 +131,26 @@ typedef enum {
   preset_PXR24
 } vprec_preset;
 
+typedef enum {
+  preset_precision_binary16 = 10,
+  preset_precision_binary32 = 23,
+  preset_precision_binary64 = 52,
+  preset_precision_bfloat16 = 7,
+  preset_precision_tensorfloat = 10,
+  preset_precision_fp24 = 16,
+  preset_precision_PXR24 = 15
+} vprec_preset_precision;
+
+typedef enum {
+  preset_range_binary16 = 5,
+  preset_range_binary32 = 8,
+  preset_range_binary64 = 11,
+  preset_range_bfloat16 = 8,
+  preset_range_tensorfloat = 8,
+  preset_range_fp24 = 7,
+  preset_range_PXR24 = 8
+} vprec_preset_range;
+
 static const char *VPREC_PRESET_STR[] = {"binary16", "binary32",    "binary64",
                                          "bfloat16", "tensorfloat", "fp24",
                                          "PXR24"};
@@ -1452,26 +1472,26 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_PRESET:
     /* preset */
     if (strcmp(VPREC_PRESET_STR[preset_binary16], arg) == 0) {
-      precision = 10;
-      range = 5;
+      precision = preset_precision_binary16;
+      range = preset_range_binary16;
     } else if (strcmp(VPREC_PRESET_STR[preset_binary32], arg) == 0) {
-      precision = 23;
-      range = 8;
+      precision = preset_precision_binary32;
+      range = preset_range_binary32;
     } else if (strcmp(VPREC_PRESET_STR[preset_binary64], arg) == 0) {
-      precision = 52;
-      range = 11;
+      precision = preset_precision_binary64;
+      range = preset_range_binary64;
     } else if (strcmp(VPREC_PRESET_STR[preset_bfloat16], arg) == 0) {
-      precision = 7;
-      range = 8;
+      precision = preset_precision_bfloat16;
+      range = preset_range_bfloat16;
     } else if (strcmp(VPREC_PRESET_STR[preset_tensorfloat], arg) == 0) {
-      precision = 10;
-      range = 8;
+      precision = preset_precision_tensorfloat;
+      range = preset_range_tensorfloat;
     } else if (strcmp(VPREC_PRESET_STR[preset_fp24], arg) == 0) {
-      precision = 16;
-      range = 7;
+      precision = preset_precision_fp24;
+      range = preset_range_fp24;
     } else if (strcmp(VPREC_PRESET_STR[preset_PXR24], arg) == 0) {
-      precision = 15;
-      range = 8;
+      precision = preset_precision_PXR24;
+      range = preset_range_PXR24;
     } else {
       logger_error("--%s invalid preset provided, must be one of: "
                    "{binary16, binary32, binary64, bfloat16, tensorfloat, "
