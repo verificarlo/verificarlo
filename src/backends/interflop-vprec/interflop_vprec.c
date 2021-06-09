@@ -131,7 +131,7 @@ typedef enum {
   preset_PXR24
 } vprec_preset;
 
-static const char *VPREC_PRESET_STR[] = {"binary16", "binary32", "binary64",
+static const char *VPREC_PRESET_STR[] = {"binary16", "binary32",    "binary64",
                                          "bfloat16", "tensorfloat", "fp24",
                                          "PXR24"};
 
@@ -1295,7 +1295,8 @@ static struct argp_option options[] = {
      0},
     {key_preset_str, KEY_PRESET, "PRESET", 0,
      "select a default PRESET setting among {binary16, binary32, binary64, "
-     "bfloat16, tensorfloat, fp24, PXR24}", 0},
+     "bfloat16, tensorfloat, fp24, PXR24}",
+     0},
     {0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
