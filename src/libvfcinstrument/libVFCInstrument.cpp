@@ -482,6 +482,15 @@ struct VfclibInst : public ModulePass {
     return newVfcWrapperF;
   }
 
+  // Returns true if the caller and the callee agree on how args will be passed
+  // Available in TargetTransformInfoImpl since llvm-8
+  bool areFunctionArgsABICompatible(Function *caller, Function *callee) {
+    return (callee->getFnAttribute("target-features") !=
+            caller->getFnAttribute("target-features")) and
+           (callee->getFnAttribute("target-cpu") !=
+            caller->getFnAttribute("target-cpu"));
+  }
+
   Value *replaceWithMCACall(Module &M, Instruction *I, Fops opCode) {
     if (not isValidInstruction(I)) {
       return nullptr;
@@ -490,8 +499,18 @@ struct VfclibInst : public ModulePass {
     IRBuilder<> Builder(I);
     Type *opType = I->getOperand(0)->getType();
 
+    Function *caller = I->getFunction();
     /* Get the mca function */
     Function *mcaFunction = getMCAFunction(M, opType, opCode);
+
+    // If the caller and the callee (mcaFunction) have different ABI we set the
+    // caller attributes to the callee ones.
+    if (areFunctionArgsABICompatible(caller, mcaFunction)) {
+      auto target_features = mcaFunction->getFnAttribute("target-features");
+      auto target_cpu = mcaFunction->getFnAttribute("target-cpu");
+      caller->addFnAttr(target_features);
+      caller->addFnAttr(target_cpu);
+    }
 
     // We call directly a hardcoded helper function
     // no need to go through the vtable at this stage.

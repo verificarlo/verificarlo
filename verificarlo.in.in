@@ -30,7 +30,6 @@ import os
 import sys
 import subprocess
 import tempfile
-import verificarlo.clang_options_parser as cop
 
 PACKAGE_STRING = "@PACKAGE_STRING@"
 LIBDIR = "%LIBDIR%"
@@ -129,23 +128,22 @@ def shell(cmd):
         fail('command failed:\n' + cmd)
 
 
-def compile_vfcwrapper(source, output, options, args, emit_llvm=False):
+def compile_vfcwrapper(source, output, args, emit_llvm=False):
     extra_args = "-static " if args.static else "-fPIC "
     extra_args += "-DINST_FCMP " if args.inst_fcmp else ""
     extra_args += "-DDDEBUG " if args.ddebug else ""
     extra_args += "-DINST_FUNC " if args.inst_func else ""
-    extra_args += cop.get_target_specific_options(options, as_string=True)
 
     internal_options = (" -S -emit-llvm " if emit_llvm else "") + \
         f" -c -Wno-varargs -I {mcalib_includes} "
-    shell(f'{clang} {internal_options} {extra_args} {source} -o {output} ')
+    shell(f'{clang} -O3 -march=native {internal_options} {extra_args} {source} -o {output} ')
 
 
 def linker_mode(sources, options, output, args):
 
     vfcwrapper_o = ".vfcwrapper.o"
 
-    compile_vfcwrapper(vfcwrapper, vfcwrapper_o, options, args)
+    compile_vfcwrapper(vfcwrapper, vfcwrapper_o, args)
 
     f = tempfile.NamedTemporaryFile(mode='w+')
     sources = ' '.join([os.path.splitext(s)[0]+'.o' for s in sources])
@@ -186,8 +184,7 @@ def compiler_mode(sources, options, output, args):
     extra_args = "-static " if args.static else "-fPIC "
 
     vfcwrapper_ir = get_tmp_filename(".vfcwrapper", ".ll", args)
-    compile_vfcwrapper(vfcwrapper, vfcwrapper_ir.name,
-                       options, args, emit_llvm=True)
+    compile_vfcwrapper(vfcwrapper, vfcwrapper_ir.name, args, emit_llvm=True)
 
     for source in sources:
         basename = os.path.splitext(source)[0]

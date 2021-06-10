@@ -870,12 +870,11 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
     // get argument type, id and size
     int type = va_arg(ap, int);
     char *arg_id = va_arg(ap, char *);
-    size_t arg_id_len = strlen(arg_id);
     unsigned int size = va_arg(ap, unsigned int);
 
     if (new_flag) {
       function_inst->input_args[i].data_type = type;
-      memcpy(function_inst->input_args[i].arg_id, arg_id, arg_id_len);
+      strcpy(function_inst->input_args[i].arg_id, arg_id);
       function_inst->input_args[i].min_range = INT_MAX;
       function_inst->input_args[i].max_range = INT_MIN;
       function_inst->input_args[i].exponent_length =
@@ -1086,13 +1085,12 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
   for (int i = 0; i < nb_args; i++) {
     int type = va_arg(ap, int);
     char *arg_id = va_arg(ap, char *);
-    size_t arg_id_len = strlen(arg_id);
     unsigned int size = va_arg(ap, unsigned int);
 
     if (new_flag) {
       // initialize arguments data
       function_inst->output_args[i].data_type = type;
-      memcpy(function_inst->output_args[i].arg_id, arg_id, arg_id_len);
+      strcpy(function_inst->output_args[i].arg_id, arg_id);
       function_inst->output_args[i].exponent_length =
           (type == FDOUBLE || type == FDOUBLE_PTR)
               ? VPREC_RANGE_BINARY64_DEFAULT
