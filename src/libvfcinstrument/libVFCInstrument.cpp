@@ -36,13 +36,9 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
-#include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include "llvm/Transforms/Utils/ValueMapper.h"
 #include <llvm/IRReader/IRReader.h>
-#include <llvm/Object/ObjectFile.h>
-#include <llvm/Transforms/Utils/Cloning.h>
 #pragma GCC diagnostic pop
 
 #include <cxxabi.h>
