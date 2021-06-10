@@ -254,28 +254,18 @@ static void vfc_read_filter_file(const char *dd_filter_path,
 /* 2- VFC_BACKENDS_FROM_FILE */
 /* Set the backends read in vfc_backends */
 /* Set the name of the environment variable read in vfc_backends_env */
-void parse_vfc_backends_env(char **vfc_backends, const char *extra_name,
-                            char **vfc_backends_env) {
+void parse_vfc_backends_env(char **vfc_backends, char **vfc_backends_env) {
 
   /* Parse VFC_BACKENDS */
   *vfc_backends_env = (char *)malloc(sizeof(char) * 256);
   *vfc_backends = (char *)malloc(sizeof(char) * 256);
 
-  if (extra_name == NULL) {
-    sprintf(*vfc_backends_env, "VFC_BACKENDS");
-  } else {
-    sprintf(*vfc_backends_env, "VFC_BACKENDS_%s", extra_name);
-  }
-
+  sprintf(*vfc_backends_env, "VFC_BACKENDS");
   *vfc_backends = getenv(*vfc_backends_env);
 
   /* Parse VFC_BACKENDS_FROM_FILE if VFC_BACKENDS is empty*/
   if (*vfc_backends == NULL) {
-    if (extra_name == NULL) {
-      sprintf(*vfc_backends_env, "VFC_BACKENDS_FROM_FILE");
-    } else {
-      sprintf(*vfc_backends_env, "VFC_BACKENDS_FROM_FILE_%s", extra_name);
-    }
+    sprintf(*vfc_backends_env, "VFC_BACKENDS_FROM_FILE");
     char *vfc_backends_fromfile_file = getenv(*vfc_backends_env);
     if (vfc_backends_fromfile_file != NULL) {
       FILE *fi = fopen(vfc_backends_fromfile_file, "r");
@@ -325,15 +315,7 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   logger_init();
 
   char *vfc_backends = NULL, *vfc_backends_env = NULL;
-
-#ifdef EXTRA_VFC_BACKEND_ENV
-  parse_vfc_backends_env(&vfc_backends, XSTR(EXTRA_VFC_BACKEND_ENV),
-                         &vfc_backends_env);
-#endif
-
-  if (vfc_backends == NULL) {
-    parse_vfc_backends_env(&vfc_backends, NULL, &vfc_backends_env);
-  }
+  parse_vfc_backends_env(&vfc_backends, NULL, &vfc_backends_env);
 
   if (vfc_backends == NULL) {
     logger_error("%s is empty, at least one backend should be provided",
@@ -518,7 +500,6 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
 }
 
 /* Arithmetic vector wrappers */
-
 #define define_vectorized_arithmetic_wrapper(precision, operation, size)       \
   precision##size _##size##x##precision##operation(const precision##size a,    \
                                                    const precision##size b) {  \
@@ -570,11 +551,12 @@ define_vectorized_arithmetic_wrapper(double, sub, 16);
 define_vectorized_arithmetic_wrapper(double, mul, 16);
 define_vectorized_arithmetic_wrapper(double, div, 16);
 
+/* Comparison vector wrappers */
 #define define_vectorized_comparison_wrapper(precision, size)                  \
   int##size _##size##x##precision##cmp(enum FCMP_PREDICATE p,                  \
                                        precision##size a, precision##size b) { \
-    volatile int##size c;                                                      \
-    for (int i = 0; i < size; i++) {                                           \
+    int##size c;                                                               \
+    _Pragma("unroll") for (int i = 0; i < size; i++) {                         \
       c[i] = _##precision##cmp(p, a[i], b[i]);                                 \
     }                                                                          \
     return c;                                                                  \

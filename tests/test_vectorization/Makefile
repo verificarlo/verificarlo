@@ -7,7 +7,7 @@ gcc:
 	${GCC_PATH} -Wall -Wextra  -O3 -march=native print.c operation.c test.c -g -o test-gcc -I.
 
 mca:
-	verificarlo-c -Wall -Wextra -O3 -march=native print.c operation.c test.c  --verbose -o test-mca --save-temps --show-cmd
+	verificarlo-c -Wall -Wextra -O3 -march=native print.c operation.c test.c  --verbose -o test-mca -I.
 
 clean:
 	rm -f *.o *.ll *.log test-*

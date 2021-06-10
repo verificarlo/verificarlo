@@ -2,34 +2,34 @@
 set -e
 
 rm -f *.ll
-verificarlo-c -c test.c -emit-llvm --save-temps --show-cmd --verbose
+verificarlo-c -c test.c -emit-llvm --save-temps
 
 if grep "fcmp ogt" test.*.2.ll || grep "fcmp ole" test.*.2.ll ; then
-  echo "comparison operations not instrumented"
+    echo "comparison operations not instrumented"
 else
-  echo "comparison operations INSTRUMENTED without --inst-fcmp"
-  exit 1
+    echo "comparison operations INSTRUMENTED without --inst-fcmp"
+    exit 1
 fi
 
 rm -f *.ll
-verificarlo-c --inst-fcmp -c test.c -emit-llvm --save-temps --show-cmd --verbose
+verificarlo-c --inst-fcmp -c test.c -emit-llvm --save-temps
 
 if grep "fcmp ogt" test.*.2.ll || grep "fcmp ole" test.*.2.ll ; then
-  echo "comparison operations NOT instrumented with --inst-fcmp"
-  exit 1
+    echo "comparison operations NOT instrumented with --inst-fcmp"
+    exit 1
 else
-  echo "comparison operations instrumented"
+    echo "comparison operations instrumented"
 fi
 
 if grep "_4xdoublecmp" test.*.2.ll; then
-  echo "vector comparison instrumented"
+    echo "vector comparison instrumented"
 else
-  echo "vector comparison NOT instrumented with --inst-fcmp"
-  exit 1
+    echo "vector comparison NOT instrumented with --inst-fcmp"
+    exit 1
 fi
 
 # Test correct interposition for scalar and vector cases
-verificarlo-c --inst-fcmp run.c -o run 
+verificarlo-c --inst-fcmp run.c -o run
 VFC_BACKENDS="libinterflop_ieee.so --debug" ./run | sort -n 2> scalar.log
 
 verificarlo-c --inst-fcmp -O2 run.c -o run
