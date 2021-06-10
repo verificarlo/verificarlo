@@ -39,6 +39,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/SourceMgr.h>
 #pragma GCC diagnostic pop
 
 #include <cxxabi.h>
