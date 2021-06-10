@@ -1,1 +1,3 @@
-verificarlo-f vfc_probes_test.f90 vfc_probes.so -o vfc_probes_test
+#!/bin/sh
+
+rm -f test_fortran vfc_probes_test.o *.csv

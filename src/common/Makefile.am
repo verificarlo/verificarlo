@@ -17,6 +17,7 @@ libvfc_hashmap_la_SOURCES = \
 
 
 lib_LTLIBRARIES = libvfc_probes.la
+
 libvfc_probes_la_SOURCES = vfc_hashmap.c vfc_probes.c
 if WALL_CFLAGS
 libvfc_probes_la_CFLAGS = -Wall -Wextra
