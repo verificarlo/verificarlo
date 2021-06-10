@@ -28,7 +28,6 @@
 #include "../../config.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -99,8 +98,6 @@ enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_IGNORE };
 // Each instruction can be translated to a string representation
 const std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
 
-std::map<std::string, Function *> vfcwrapperFunctions;
-
 // Separtors for the module name
 const char path_separator = '/';
 const char relative_path_separator = '#';
@@ -115,7 +112,6 @@ const std::set<unsigned> validVectorSizes = {2, 4, 8, 16};
 
 struct VfclibInst : public ModulePass {
   static char ID;
-  std::unique_ptr<const Module> ModuleVfcWrapper;
 
   VfclibInst() : ModulePass(ID) {}
 
