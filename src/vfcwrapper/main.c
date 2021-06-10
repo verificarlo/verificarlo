@@ -315,7 +315,7 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   logger_init();
 
   char *vfc_backends = NULL, *vfc_backends_env = NULL;
-  parse_vfc_backends_env(&vfc_backends, NULL, &vfc_backends_env);
+  parse_vfc_backends_env(&vfc_backends, &vfc_backends_env);
 
   if (vfc_backends == NULL) {
     logger_error("%s is empty, at least one backend should be provided",
