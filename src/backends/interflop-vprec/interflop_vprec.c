@@ -1303,14 +1303,11 @@ static struct argp_option options[] = {
     {key_preset_str, KEY_PRESET, "PRESET", 0,
      "select a default PRESET setting among {binary16, binary32, binary64, "
      "bfloat16, tensorfloat, fp24, PXR24}\n"
-     "Format (range, precision)\n"
-     "binary16    ( 5, 10)\n"
-     "binary32    ( 8, 23)\n"
-     "binary64    (11, 52)\n"
-     "bfloat16    ( 8,  7)\n"
-     "tensorfloat ( 8, 10)\n"
-     "fp24        ( 7, 16)\n"
-     "PXR24       ( 8, 15)",
+     "Format (range, precision) : "
+     "binary16 (5, 10), binary32 (8, 23), "
+     "binary64 (11, 52), bfloat16 (8, 7), "
+     "tensorfloat (8, 10), fp24 (7, 16), "
+     "PXR24 (8, 15)",
      0},
     {key_mode_str, KEY_MODE, "MODE", 0,
      "select VPREC mode among {ieee, full, ib, ob}", 0},
