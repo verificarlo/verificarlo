@@ -63,7 +63,11 @@ def shell(cmd, newEnv, maxTimeout=None):
                             stdout=subprocess.PIPE,
                             env=env)
 
-    proc.wait(maxTimeout)
+    try:
+        proc.wait(maxTimeout)
+    except subprocess.TimeoutExpired:
+        proc.terminate()
+        return 42
 
     return proc.returncode
 
@@ -223,7 +227,9 @@ def Check(runPath, cmpPath, reference_dir, current_dir, config_file, env, Argume
     """ Save the current state of the exploration in a configuration file, execute the program, return the result of the comparison """
     save(Arguments, Operations, config_file)
 
-    run(runPath, current_dir, env, vfc_maxTimeout)
+    runRetCode = run(runPath, current_dir, env, vfc_maxTimeout)
+    if (runRetCode != 0):
+        return False
 
     return cmp(cmpPath, reference_dir, current_dir, env)
 
@@ -511,6 +517,8 @@ if __name__ == "__main__":
         cpt = 1
         for i in range(len(FunctionsFrameCopy.index)):
             print(cpt, "/", len(FunctionsFrameCopy.index))
+            tmp = ArgumentsFrameCopy[(
+                ArgumentsFrameCopy['ID'] == FunctionsFrameCopy.at[i, 'ID'])]
             for j in tmp.index:
                 search_minimum_arguments(	runPath,
                                         cmpPath,
