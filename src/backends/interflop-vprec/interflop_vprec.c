@@ -60,12 +60,12 @@ typedef enum {
   KEY_INPUT_FILE,
   KEY_OUTPUT_FILE,
   KEY_LOG_FILE,
+  KEY_PRESET,
   KEY_MODE = 'm',
   KEY_ERR_MODE = 'e',
   KEY_INSTRUMENT = 'i',
   KEY_DAZ = 'd',
-  KEY_FTZ = 'f',
-  KEY_PRESET,
+  KEY_FTZ = 'f'
 } key_args;
 
 static const char key_prec_b32_str[] = "precision-binary32";
@@ -75,13 +75,13 @@ static const char key_range_b64_str[] = "range-binary64";
 static const char key_input_file_str[] = "prec-input-file";
 static const char key_output_file_str[] = "prec-output-file";
 static const char key_log_file_str[] = "prec-log-file";
+static const char key_preset_str[] = "preset";
 static const char key_mode_str[] = "mode";
 static const char key_err_mode_str[] = "error-mode";
 static const char key_err_exp_str[] = "max-abs-error-exponent";
 static const char key_instrument_str[] = "instrument";
 static const char key_daz_str[] = "daz";
 static const char key_ftz_str[] = "ftz";
-static const char key_preset_str[] = "preset";
 
 typedef struct {
   bool relErr;
@@ -1300,6 +1300,18 @@ static struct argp_option options[] = {
      "output file where the precision profile is written", 0},
     {key_log_file_str, KEY_LOG_FILE, "LOG", 0,
      "log file where input/output informations are written", 0},
+    {key_preset_str, KEY_PRESET, "PRESET", 0,
+     "select a default PRESET setting among {binary16, binary32, binary64, "
+     "bfloat16, tensorfloat, fp24, PXR24}\n"
+     "Format (range, precision)\n"
+     "binary16    ( 5, 10)\n"
+     "binary32    ( 8, 23)\n"
+     "binary64    (11, 52)\n"
+     "bfloat16    ( 8,  7)\n"
+     "tensorfloat ( 8, 10)\n"
+     "fp24        ( 7, 16)\n"
+     "PXR24       ( 8, 15)",
+     0},
     {key_mode_str, KEY_MODE, "MODE", 0,
      "select VPREC mode among {ieee, full, ib, ob}", 0},
     {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
@@ -1312,10 +1324,6 @@ static struct argp_option options[] = {
     {key_daz_str, KEY_DAZ, 0, 0,
      "denormals-are-zero: sets denormals inputs to zero", 0},
     {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero",
-     0},
-    {key_preset_str, KEY_PRESET, "PRESET", 0,
-     "select a default PRESET setting among {binary16, binary32, binary64, "
-     "bfloat16, tensorfloat, fp24, PXR24}",
      0},
     {0}};
 
