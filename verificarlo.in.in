@@ -139,7 +139,7 @@ def compile_vfcwrapper(source, output, args, emit_llvm=False):
     shell(f'{clang} -O3 -march=native {internal_options} {extra_args} {source} -o {output} ')
 
 
-def linker_mode(sources, options, output, args):
+def linker_mode(sources, options, libraries, output, args):
 
     vfcwrapper_o = ".vfcwrapper.o"
 
@@ -148,9 +148,9 @@ def linker_mode(sources, options, output, args):
     f = tempfile.NamedTemporaryFile(mode='w+')
     sources = ' '.join([os.path.splitext(s)[0]+'.o' for s in sources])
     if args.static:
-        cmd = f'{output} {sources} {options} {vfcwrapper_o} -static  -lmpfr -lgmp -lm -ldl'
+        cmd = f'{output} {sources} {options} {libraries} {vfcwrapper_o} -static  -lmpfr -lgmp -lm -ldl'
     else:
-        cmd = f'{output} {sources} {options} {vfcwrapper_o} {mcalib_options} -ldl'
+        cmd = f'{output} {sources} {options} {libraries} {vfcwrapper_o} {mcalib_options} -ldl'
 
     f.write(cmd)
     f.flush()
