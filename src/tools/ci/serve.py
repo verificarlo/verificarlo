@@ -51,6 +51,11 @@ def run(
     dirname = os.path.dirname(__file__)
 
     # Call the "bokeh serve" command on the system
+
+    # NOTE It's also possible to set this up manually, but would require to
+    # re-write the Tornado server, which means setting up public directories,
+    # generating the Jinja template, etc... => This is an option for a future
+    # commit.
     command = "bokeh serve %s/vfc_ci_report %s --allow-websocket-origin=%s:%s --port %s --args %s %s %s %s" \
         % (dirname, show, allow_origin, port, port, directory, logo, max_files, ignore_recent)
     command = os.path.normpath(command)

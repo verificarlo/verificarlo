@@ -1,5 +1,5 @@
 {
-    "make_command": "verificarlo-c -o test test.c",
+    "make_command": "verificarlo-c test.c -lvfc_probes -o test ",
     "executables": [
         {
             "executable": "test",
