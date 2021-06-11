@@ -13,7 +13,7 @@
       void *context) {                                                         \
     t_context *my_context = (t_context *)context;                              \
                                                                                \
-    (*c) = (*a) ope (*b);                                                      \
+    (*c) = (*a)ope(*b);                                                        \
                                                                                \
     my_context->_##size##x_##ops##_count++;                                    \
                                                                                \

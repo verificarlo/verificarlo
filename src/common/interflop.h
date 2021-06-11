@@ -47,19 +47,19 @@ typedef struct interflop_function_stack {
 
 #define define_interflop_vector(size, precision)                               \
   void (*interflop_add_##precision##_##size##x)(                               \
-      precision##size *a, precision##size *b, precision##size *c,              \
+      precision##size * a, precision##size * b, precision##size * c,           \
       void *context);                                                          \
   void (*interflop_sub_##precision##_##size##x)(                               \
-      precision##size *a, precision##size *b, precision##size *c,              \
+      precision##size * a, precision##size * b, precision##size * c,           \
       void *context);                                                          \
   void (*interflop_mul_##precision##_##size##x)(                               \
-      precision##size *a, precision##size *b, precision##size *c,              \
-                                                void *context);                \
+      precision##size * a, precision##size * b, precision##size * c,           \
+      void *context);                                                          \
   void (*interflop_div_##precision##_##size##x)(                               \
-      precision##size *a, precision##size *b, precision##size *c,              \
+      precision##size * a, precision##size * b, precision##size * c,           \
       void *context);                                                          \
   void (*interflop_cmp_##precision##_##size##x)(                               \
-      enum FCMP_PREDICATE p, precision##size *a, precision##size *b,           \
+      enum FCMP_PREDICATE p, precision##size * a, precision##size * b,         \
       int##size *c, void *context);
 
 struct interflop_backend_interface_t {

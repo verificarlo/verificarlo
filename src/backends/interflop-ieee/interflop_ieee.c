@@ -387,7 +387,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   if (my_context->_##size##x_##op##_count == 0)                                \
     op##_pourcent_##size##x = 0.0;
 
-
 void _interflop_finalize(void *context) {
 
   t_context *my_context = (t_context *)context;
@@ -618,4 +617,3 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
 
   return interflop_backend_ieee;
 }
-
