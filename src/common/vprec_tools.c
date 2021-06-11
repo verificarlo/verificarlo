@@ -25,9 +25,9 @@
  *****************************************************************************/
 
 #include "vprec_tools.h"
-#include "float_type.h"
 #include "float_const.h"
 #include "float_struct.h"
+#include "float_type.h"
 
 /**
  * The following include enable vector operations.

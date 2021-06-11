@@ -8,15 +8,12 @@
  * ope: operator (+, -, *, /)
  */
 #define define_interflop_op_vector(size, precision, ops, ope)                  \
-  static void _interflop_##ops##_##precision##_##size##x(const                 \
-                                                         precision##size *a,   \
-                                                         const                 \
-                                                         precision##size *b,   \
-                                                         precision##size *c,   \
-                                                         void *context) {      \
+  static void _interflop_##ops##_##precision##_##size##x(                      \
+      const precision##size *a, const precision##size *b, precision##size *c,  \
+      void *context) {                                                         \
     t_context *my_context = (t_context *)context;                              \
                                                                                \
-    *c = *a ope *b;                                                            \
+    (*c) = (*a) ope (*b);                                                      \
                                                                                \
     my_context->_##size##x_##ops##_count++;                                    \
                                                                                \
@@ -39,12 +36,9 @@
  * precision: floating point format (float or double)
  */
 #define define_interflop_cmp_vector(size, precision)                           \
-  static void _interflop_cmp_##precision##_##size##x(const                     \
-                                                     enum FCMP_PREDICATE p,    \
-                                                     const precision##size *a, \
-                                                     const precision##size *b, \
-                                                     int##size *c,             \
-                                                     void *context) {          \
+  static void _interflop_cmp_##precision##_##size##x(                          \
+      const enum FCMP_PREDICATE p, const precision##size *a,                   \
+      const precision##size *b, int##size *c, void *context) {                 \
     for (int i = 0; i < size; ++i) {                                           \
       char *str = "";                                                          \
       int _c = (*c)[i];                                                        \
@@ -52,7 +46,7 @@
       debug_print_##precision(context, COMPARISON, str, (*a)[i], (*b)[i],      \
                               (*c)[i]);                                        \
     }                                                                          \
-}
+  }
 
 /* Define here all float vector interflop functions */
 define_interflop_op_vector(2, float, add, +);

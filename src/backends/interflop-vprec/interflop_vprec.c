@@ -43,9 +43,9 @@
 #include <string.h>
 #include <strings.h>
 
-#include "../../common/float_type.h"
 #include "../../common/float_const.h"
 #include "../../common/float_struct.h"
+#include "../../common/float_type.h"
 #include "../../common/float_utils.h"
 #include "../../common/interflop.h"
 #include "../../common/logger.h"

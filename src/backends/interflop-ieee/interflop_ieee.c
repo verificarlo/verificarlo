@@ -381,8 +381,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
 #define define_specific_pourcent_depend_on_size(op, size)                      \
   double op##_pourcent_##size##x =                                             \
-    ((double)my_context->_##size##x_##op##_count * 100)                        \
-    / (double)total_##op##_count;                                              \
+      ((double)my_context->_##size##x_##op##_count * 100) /                    \
+      (double)total_##op##_count;                                              \
                                                                                \
   if (my_context->_##size##x_##op##_count == 0)                                \
     op##_pourcent_##size##x = 0.0;
@@ -395,63 +395,55 @@ void _interflop_finalize(void *context) {
   if (my_context->count_op) {
     // Total vector count
     unsigned long long total_vector_mul_count =
-      my_context->_2x_mul_count
-      + my_context->_4x_mul_count
-      + my_context->_8x_mul_count
-      + my_context->_16x_mul_count;
+        my_context->_2x_mul_count + my_context->_4x_mul_count +
+        my_context->_8x_mul_count + my_context->_16x_mul_count;
 
     unsigned long long total_vector_div_count =
-      my_context->_2x_div_count
-      + my_context->_4x_div_count
-      + my_context->_8x_div_count
-      + my_context->_16x_div_count;
+        my_context->_2x_div_count + my_context->_4x_div_count +
+        my_context->_8x_div_count + my_context->_16x_div_count;
 
     unsigned long long total_vector_add_count =
-      my_context->_2x_add_count
-      + my_context->_4x_add_count
-      + my_context->_8x_add_count
-      + my_context->_16x_add_count;
+        my_context->_2x_add_count + my_context->_4x_add_count +
+        my_context->_8x_add_count + my_context->_16x_add_count;
 
     unsigned long long total_vector_sub_count =
-      my_context->_2x_sub_count
-      + my_context->_4x_sub_count
-      + my_context->_8x_sub_count
-      + my_context->_16x_sub_count;
+        my_context->_2x_sub_count + my_context->_4x_sub_count +
+        my_context->_8x_sub_count + my_context->_16x_sub_count;
 
     // Total count
     unsigned long long total_mul_count =
-      my_context->mul_count + total_vector_mul_count;
+        my_context->mul_count + total_vector_mul_count;
 
     unsigned long long total_div_count =
-      my_context->div_count + total_vector_div_count;
+        my_context->div_count + total_vector_div_count;
 
     unsigned long long total_add_count =
-      my_context->add_count + total_vector_add_count;
+        my_context->add_count + total_vector_add_count;
 
     unsigned long long total_sub_count =
-      my_context->sub_count + total_vector_sub_count;
+        my_context->sub_count + total_vector_sub_count;
 
     // Vectorized %
     double mul_pourcent_vectorized =
-      ((double)total_vector_mul_count * 100) / (double)total_mul_count;
+        ((double)total_vector_mul_count * 100) / (double)total_mul_count;
 
     if (total_mul_count == 0)
       mul_pourcent_vectorized = 0.0;
 
     double div_pourcent_vectorized =
-      ((double)total_vector_div_count / (double)total_div_count) * 100;
+        ((double)total_vector_div_count / (double)total_div_count) * 100;
 
     if (total_div_count == 0)
       div_pourcent_vectorized = 0.0;
 
     double add_pourcent_vectorized =
-      ((double)total_vector_add_count * 100) / (double)total_add_count;
+        ((double)total_vector_add_count * 100) / (double)total_add_count;
 
     if (total_add_count == 0)
       add_pourcent_vectorized = 0.0;
 
     double sub_pourcent_vectorized =
-      ((double)total_vector_sub_count / (double)total_sub_count) * 100;
+        ((double)total_vector_sub_count / (double)total_sub_count) * 100;
 
     if (total_sub_count == 0)
       sub_pourcent_vectorized = 0.0;
@@ -481,24 +473,32 @@ void _interflop_finalize(void *context) {
     fprintf(stderr, "operations count:\n");
     fprintf(stderr, "\t mul = %lld total count; %6.2f%% vectorized\n",
             total_mul_count, mul_pourcent_vectorized);
-    fprintf(stderr, "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
-            " %6.2f%% 16x\n", mul_pourcent_2x, mul_pourcent_4x,
-            mul_pourcent_8x, mul_pourcent_16x);
+    fprintf(stderr,
+            "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n",
+            mul_pourcent_2x, mul_pourcent_4x, mul_pourcent_8x,
+            mul_pourcent_16x);
     fprintf(stderr, "\t div = %lld total count; %6.2f%% vectorized\n",
             total_div_count, div_pourcent_vectorized);
-    fprintf(stderr, "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
-            " %6.2f%% 16x\n", div_pourcent_2x, div_pourcent_4x,
-            div_pourcent_8x, div_pourcent_16x);
+    fprintf(stderr,
+            "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n",
+            div_pourcent_2x, div_pourcent_4x, div_pourcent_8x,
+            div_pourcent_16x);
     fprintf(stderr, "\t add = %lld total count; %6.2f%% vectorized\n",
             total_add_count, add_pourcent_vectorized);
-    fprintf(stderr, "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
-            " %6.2f%% 16x\n", add_pourcent_2x, add_pourcent_4x,
-            add_pourcent_8x, add_pourcent_16x);
+    fprintf(stderr,
+            "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n",
+            add_pourcent_2x, add_pourcent_4x, add_pourcent_8x,
+            add_pourcent_16x);
     fprintf(stderr, "\t sub = %lld total count; %6.2f%% vectorized\n",
             total_sub_count, sub_pourcent_vectorized);
-    fprintf(stderr, "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
-            " %6.2f%% 16x\n", sub_pourcent_2x, sub_pourcent_4x,
-            sub_pourcent_8x, sub_pourcent_16x);
+    fprintf(stderr,
+            "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n",
+            sub_pourcent_2x, sub_pourcent_4x, sub_pourcent_8x,
+            sub_pourcent_16x);
   };
 }
 
@@ -536,7 +536,6 @@ static void init_context(t_context *context) {
   context->_16x_div_count = 0;
   context->_16x_add_count = 0;
   context->_16x_sub_count = 0;
-
 }
 
 static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
@@ -616,7 +615,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_finalize};
 
 #pragma clang diagnostic pop
-  
+
   return interflop_backend_ieee;
 }
 

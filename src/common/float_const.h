@@ -126,6 +126,7 @@
 // Set double precison exponent
 #define DOUBLE_SET_EXP(a, e, size) (a = (uint64_##size##x)(e & DOUBLE_GET_EXP))
 // Set double precison pseudo mantissa
-#define DOUBLE_SET_PMAN(a, m, size) (a = (uint64_##size##x)(m & DOUBLE_GET_PMAN))
+#define DOUBLE_SET_PMAN(a, m, size)                                            \
+  (a = (uint64_##size##x)(m & DOUBLE_GET_PMAN))
 
 #endif /* __FLOAT_CONST_H__ */

@@ -107,11 +107,10 @@ static inline double _noise_binary64(const int exp) {
   })
 
 #define define_interflop_add_sub_vector(size, precision, ops, ope)             \
-  static void _interflop_##ops##_##precision##_##size##x(precision##size *a,   \
-                                                         precision##size *b,   \
-                                                         precision##size *c,   \
-                                                         void *context) {      \
-    (*c) = (*a) ope (*b);                                                      \
+  static void _interflop_##ops##_##precision##_##size##x(                      \
+      precision##size *a, precision##size *b, precision##size *c,              \
+      void *context) {                                                         \
+    (*c) = (*a)ope(*b);                                                        \
     for (int i = 0; i < size; ++i) {                                           \
       precision _c = (*c)[i];                                                  \
       cancell((*a)[i], (*b)[i], &_c);                                          \
@@ -120,11 +119,10 @@ static inline double _noise_binary64(const int exp) {
   }
 
 #define define_interflop_mul_div_vector(size, precision, ops, ope)             \
-  static void _interflop_##ops##_##precision##_##size##x(precision##size *a,   \
-                                                         precision##size *b,   \
-                                                         precision##size *c,   \
-                                                         void *context) {      \
-    *c = *a ope *b;                                                            \
+  static void _interflop_##ops##_##precision##_##size##x(                      \
+      precision##size *a, precision##size *b, precision##size *c,              \
+      void *context) {                                                         \
+    (*c) = (*a)ope(*b);                                                        \
   }
 
 /* Cancellations can only happen during additions and substractions */
