@@ -248,11 +248,11 @@ them or pull your own Docker image.
 
 Generating and accessing the HTML report is done through the `vfc_ci serve`
 subcommand, which should be run from the directory containing your data files.
-By default, this will start a server on port 8080 with the report containing all
-runs from the last 90 days. Moreover, the run files can come from different
-repositories and contain completely different test variables. This subcommand
-has many options to specify on which port to run the server, add a custom logo
-to the report, etc... For more details :
+By default, this will start a server on port 8080 with a report containing
+results from the last 100 run files. Moreover, the run files can come from
+different repositories and contain completely different test variables. This
+subcommand has many options to specify on which port to run the server, add a
+custom logo to the report, etc... For more details :
 
 ```
 vfc_ci serve --help

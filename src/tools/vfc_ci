@@ -1,5 +1,29 @@
 #!/usr/bin/env python3
 
+#############################################################################
+#                                                                           #
+#  This file is part of Verificarlo.                                        #
+#                                                                           #
+#  Copyright (c) 2015-2021                                                  #
+#     Verificarlo contributors                                              #
+#     Universite de Versailles St-Quentin-en-Yvelines                       #
+#     CMLA, Ecole Normale Superieure de Cachan                              #
+#                                                                           #
+#  Verificarlo is free software: you can redistribute it and/or modify      #
+#  it under the terms of the GNU General Public License as published by     #
+#  the Free Software Foundation, either version 3 of the License, or        #
+#  (at your option) any later version.                                      #
+#                                                                           #
+#  Verificarlo is distributed in the hope that it will be useful,           #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+#  GNU General Public License for more details.                             #
+#                                                                           #
+#  You should have received a copy of the GNU General Public License        #
+#  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.     #
+#                                                                           #
+#############################################################################
+
 # This is the entry point of the Verificarlo CI command line interface, which is
 # based on argparse and this article :
 # https://mike.depalatis.net/blog/simplifying-argparse.html
@@ -30,6 +54,13 @@ def is_directory(string):
         raise argparse.ArgumentTypeError("Directory does not exist")
 
     return string
+
+
+def is_strictly_positive(string):
+    value = int(string)
+    if value <= 0:
+        raise argparse.ArgumentTypeError("Value has to be strictly positive")
+    return value
 
 
 ##########################################################################
@@ -160,6 +191,25 @@ def test(args):
             Specify the URL of an image to be displayed in the report header.
             """,
             type=str
+        ),
+        argument(
+            "-f", "--max-files",
+            help="""
+            Specify the maximum number of run files that can be integrated into
+            the report to avoid performance issues. If the number of detected
+            files exceeds this value, the most recent ones will be kept.
+            Defaults to 100.
+            """,
+            type=is_strictly_positive
+        ),
+        argument(
+            "-i", "--ignore-recent",
+            help="""
+            Specify the number of most recent files that should be ignored.
+            Combining this with the --max-files option makes it possible to
+            select any chronological range of files. Defaults to 0.
+            """,
+            type=is_strictly_positive
         )
     ]
 )
@@ -170,7 +220,9 @@ def serve(args):
         args.show,
         args.port,
         args.allow_origin,
-        args.logo
+        args.logo,
+        args.max_files,
+        args.ignore_recent
     )
 
 

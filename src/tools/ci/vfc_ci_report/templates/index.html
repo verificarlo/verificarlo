@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html>
 
-    <head>
-        <title>Verificarlo Report</title>
-        <meta charset="utf8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+    <title>Verificarlo Report</title>
+    <meta charset="utf8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <!-- This template uses Bulma for CSS : https://bulma.io/ -->
-        <!-- Doc : https://bulma.io/documentation/ -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+    <!-- This template uses Bulma for CSS : https://bulma.io/ -->
+    <!-- Doc : https://bulma.io/documentation/ -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
 
-        <style>
-            html, body{
+    <style>
+        html, body{
                 background-color: #f5f5f5;
             }
 
@@ -71,44 +71,33 @@
             		transform: scale(1) translate(-50%, -50%);
             	}
             }
+    </style>
 
-        </style>
+    {% extends base %}
+</head>
 
-        {% extends base %}
-    </head>
-
-
-    <body>
+<body>
     {% block contents %}
 
-
-        <!-- REPORT -->
-        <div id="report" style="display: none;">
+    <!-- REPORT -->
+    <div id="report" style="display: none;">
 
         <!-- HEADER -->
-        <nav class="navbar has-shadow" id="navbar"
-        role="navigation" aria-label="navbar-content">
+        <nav class="navbar has-shadow" id="navbar" role="navigation" aria-label="navbar-content">
 
             <!-- BRAND (left part) -->
             <div class="navbar-brand">
                 {% if has_logo %}
-                <a
-                class="navbar-item" id="logo-link" href="."
-                style="margin-top: 12px;"
-                >
-                    <img id="logo-img" width="85" height="45"
-                    src="{{ logo_url }}">
+                <a class="navbar-item" id="logo-link" href="." style="margin-top: 12px;">
+                    <img id="logo-img" width="85" height="45" src="{{ logo_url }}">
                 </a>
                 {% endif %}
 
                 <a class="navbar-item" id="logo-link" href=".">
-                    <img id="logo-img" width="85" height="45"
-                    src="https://avatars1.githubusercontent.com/u/12033642">
+                    <img id="logo-img" width="85" height="45" src="https://avatars1.githubusercontent.com/u/12033642">
                 </a>
 
-                <a role="button" class="navbar-burger" id="navbar-burger"
-                aria-label="menu" aria-expanded="false"
-                data-target="navbarBasicExample">
+                <a role="button" class="navbar-burger" id="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
                     <span aria-hidden="true"></span>
                     <span aria-hidden="true"></span>
                     <span aria-hidden="true"></span>
@@ -121,7 +110,7 @@
                 <div id="buttons-container" class="navbar-start">
 
                     <div id="select-repo" style="margin-top: 15px;">
-                    {{ embed(roots.select_repo) }}
+                        {{ embed(roots.select_repo) }}
                     </div>
 
                     <a class="navbar-item is-active" id="compare-runs-button">
@@ -144,8 +133,7 @@
 
                     <div class="navbar-item">
                         <div class="buttons">
-                            <a class="button is-light"
-                            href="https://github.com/verificarlo" target="_blank">
+                            <a class="button is-light" href="https://github.com/verificarlo" target="_blank">
                                 Verificarlo on GitHub
                             </a>
                         </div>
@@ -155,7 +143,6 @@
             </div>
         </nav>
 
-
         <!-- CONTENT : COMPARE RUNS -->
         <main class="container" id="compare-runs-container">
             <div class="columns">
@@ -164,29 +151,21 @@
                 <div class="column">
                     <h4 class="title is-4">Selectors</h4>
                     <div id="compare-widgets">
-                        {{ embed(roots.test_filter) }}
-                        {{ embed(roots.select_test) }}
+                        {{ embed(roots.test_filter) }} {{ embed(roots.select_test) }}
+                        <br> {{ embed(roots.select_var) }}
+                        <br> {{ embed(roots.select_backend) }}
+                        <br> {{ embed(roots.outliers_filtering_compare) }}
                         <br>
-                        {{ embed(roots.select_var) }}
-                        <br>
-                        {{ embed(roots.select_backend) }}
-                        <br>
-                        {{ embed(roots.outliers_filtering_compare) }}
-                        <br>
-                        <br>
-                        {{ embed(roots.select_n_runs) }}
-
+                        <br> {{ embed(roots.select_n_runs) }}
 
                         <br>
                         <br>
 
-                        <b>Tip :</b> You can click on any element of the plots
-                        to inspect the corresponding run in details.
+                        <b>Tip :</b> You can click on any element of the plots to inspect the corresponding run in details.
                     </div>
                 </div>
 
                 <div class="is-divider-vertical"></div>
-
 
                 <!-- PLOTS -->
                 <div class="column is-9">
@@ -213,7 +192,6 @@
             </div>
         </main>
 
-
         <!-- CONTENT : INSPECT RUNS -->
         <main class="container" id="inspect-runs-container">
             <div class="columns">
@@ -223,20 +201,11 @@
                     <h4 class="title is-4">Selectors</h4>
                     {{ embed(roots.select_run) }}
 
-                    <br>
+                    <br> Group by : {{ embed(roots.groupby_radio) }}
 
-                    Group by :
-                    {{ embed(roots.groupby_radio) }}
+                    <br> Filter by : {{ embed(roots.filterby_radio) }} {{ embed(roots.select_filter) }}
 
-                    <br>
-
-                    Filter by :
-                    {{ embed(roots.filterby_radio) }}
-                    {{ embed(roots.select_filter) }}
-
-                    <br>
-
-                    {{ embed(roots.outliers_filtering_inspect) }}
+                    <br> {{ embed(roots.outliers_filtering_inspect) }}
 
                     <br>
                     <br>
@@ -252,8 +221,7 @@
                     <div id="is-git-commit">
 
                         <b>Hash :</b>
-                        <div
-                        id="run-hash" style="display: inline;">
+                        <div id="run-hash" style="display: inline;">
                         </div>
                         <br>
                         <b>Author :</b>
@@ -267,12 +235,7 @@
                         <br>
                         <br>
 
-
-                        <a
-                        id="git-commit-link"
-                        href=""
-                        target="_blank"
-                        >
+                        <a id="git-commit-link" href="" target="_blank">
                             View this commit on
                         </a>
 
@@ -286,260 +249,57 @@
 
                 </div>
 
-
                 <!-- PLOTS -->
                 <div class="column is-9">
                     <h3 class="title is-3">Plots</h3>
-                        <div class="card plot-card" style="z-index: 3;">
-                            {{ embed(roots.s_tabs_inspect) }}
-                        </div>
-
-                        <br>
-
-                        <div class="card plot-card" style="z-index: 2;">
-                            {{ embed(roots.sigma_inspect) }}
-                        </div>
-
-                        <br>
-
-                        <div class="card plot-card" style="z-index: 1;">
-                            {{ embed(roots.mu_inspect) }}
-                        </div>
+                    <div class="card plot-card" style="z-index: 3;">
+                        {{ embed(roots.s_tabs_inspect) }}
                     </div>
+
+                    <br>
+
+                    <div class="card plot-card" style="z-index: 2;">
+                        {{ embed(roots.sigma_inspect) }}
+                    </div>
+
+                    <br>
+
+                    <div class="card plot-card" style="z-index: 1;">
+                        {{ embed(roots.mu_inspect) }}
+                    </div>
+                </div>
 
             </div>
         </main>
 
-        </div>
+    </div>
 
+    <!--- LOADER -->
+    <div id="loader">
 
-        <!--- LOADER -->
-        <div id="loader">
+        {% if has_logo %}
+        <img id="loading-logo" src="{{logo_url}}"> {% else %}
+        <img id="loading-logo" src="https://avatars1.githubusercontent.com/u/12033642"> {% endif %}
+    </div>
 
-                {% if has_logo %}
-                <img id="loading-logo" src="{{logo_url}}">
-                {% else %}
-                <img id="loading-logo" src="https://avatars1.githubusercontent.com/u/12033642">
-                {% endif %}
-        </div>
+    <!-- JAVASCRIPT -->
+    <script type="text/javascript" src="vfc_ci_report/static/index.js"></script>
 
+    <script>
+        // Initial function calls using the template args
+        metadata = {{metadata}}
+        repoNamesDict = {{repo_names_dict}}
 
+        // Hide the repo selection if only one is detected
+        if(Object.keys(repoNamesDict).length == 1) {
+            document.getElementById("select-repo").style.display = "none";
+        }
 
-        <!-- JAVASCRIPT -->
-        <script>
-
-            // Modify the top-right button link to the repository
-            function changeRepository(repoName) {
-
-                gitRepoLink = document.getElementById("git-repo-link");
-
-                repoUrl = repoNamesDict[repoName];
-
-                // If we're lookin at commits not linked to a repo
-                if(repoUrl == "") {
-                    // Hide the link button
-                    gitRepoLink.style.display = "none";
-                }
-
-                // We have selected a valid Git repo
-                else {
-                    // Show the link button
-                    gitRepoLink.style.display = "";
-
-                    // Get the name alone (without owner/branch)
-                    name = repoName.split(/\/|:/)[1];
-
-                    // Get host name (GitHub/GitLab)
-                    let gitHost = "";
-                    if(repoUrl.indexOf("github.com") != -1) {
-                        gitHost = "GitHub";
-                    }
-                    else {
-                        gitHost = "GitLab";
-                    }
-
-                    // Update the button
-                    gitRepoLink.href = repoUrl;
-                    gitRepoLink.innerHTML = name + " on " + gitHost;
-                }
-            }
-
-
-
-            // Helper function to generate the link to a git commit
-
-
-            // Listen to clicks on breadcrumb (for responsive header)
-            document.getElementById("navbar-burger")
-            .addEventListener("click", () => {
-
-                document.getElementById("navbar-burger")
-                .classList.toggle("is-active");
-
-                document.getElementById("navbar-content")
-                .classList.toggle("is-active");
-
-            })
-
-
-
-            // Helper function to navigate between views
-            function changeView(classPrefix) {
-
-                // Enable/disable the active class on buttons
-                let buttons = document.getElementById("buttons-container")
-                .childNodes;
-                let toggledButtonId = classPrefix + "-button";
-
-                for(let i=0; i<buttons.length; i++) {
-                    if(toggledButtonId == buttons[i].id) {
-                        buttons[i].classList.add("is-active");
-                    }
-                    else if(buttons[i].classList != undefined) {
-                        buttons[i].classList.remove("is-active");
-                    }
-                }
-
-                // Show hide the containers
-                let containers = document.getElementsByTagName("MAIN");
-                let toggledContainerId = classPrefix + "-container"
-
-                for(let i=0; i<containers.length; i++) {
-                    if(toggledContainerId == containers[i].id) {
-                        containers[i].style.display = "block";
-                    }
-                    else {
-                        containers[i].style.display = "none";
-                    }
-                }
-            }
-
-            // Listen to clicks on "Compare runs" button
-            document.getElementById("compare-runs-button")
-            .addEventListener("click", () => {
-                // Nothing else to do for this button
-                changeView("compare-runs");
-            });
-
-            // Listen to clicks on "Inspect runs" button
-            // (dedicated function as this needs to be called in a CustomJS callback)
-            function goToInspectRuns() {
-                window.scrollTo(0, 0);
-
-                changeView("inspect-runs");
-            }
-
-            document.getElementById("inspect-runs-button")
-            .addEventListener("click", goToInspectRuns);
-
-
-
-            // Toggle the display properties of the loader/report
-            function removeLoader() {
-                document.getElementById("loader")
-                .style.display = "none";
-
-                document.getElementById("report")
-                .style.display = "";
-            }
-
-            // To detect the end of Bokeh initialization and remove the loader,
-            // we look at the number of children of a div containing widgets
-            let nChildren = document.getElementById('compare-widgets')
-            .getElementsByTagName('*').length;
-
-            function pollBokehLoading() {
-                let newNChildren = document.getElementById('compare-widgets')
-                .getElementsByTagName('*').length;
-
-                if(newNChildren != nChildren) {
-                    removeLoader();
-                }
-                else {
-                    setTimeout(pollBokehLoading, 100);
-                }
-            }
-            setTimeout(pollBokehLoading, 100);
-
-
-
-            // Update the run metadata (in inspect run mode)
-            function updateRunMetadata(runId) {
-
-                // Assume runId is the run's timestamp
-                let run = metadata[runId];
-
-                // If it is undefined, perform a search by name
-                // (by iterating metadata)
-                if(!run) {
-                    for(let [key, value] of Object.entries(metadata)) {
-
-                        if (!metadata.hasOwnProperty(key)) continue;
-                        if(value.name == runId) {
-                            run = value;
-                            break;
-                        }
-                    }
-                }
-
-
-                // At this point, run is correctly set
-
-                // Generate the commit link and host name
-                let commit_link = "";
-                let gitHost = "";
-                if(run.remote_url.indexOf("github.com") != -1) {
-                    commit_link = run.remote_url + "/commit/" + run.hash;
-                    gitHost = "GitHub";
-                } else {
-                    commit_link = run.remote_url + "/-/commit/" + run.hash;
-                    gitHost = "GitLab";
-                }
-
-
-                // Edit innerHTML with new metadata
-                document.getElementById("run-date").innerHTML = run.date;
-
-                if(run.is_git_commit) {
-                    document.getElementById("is-git-commit").style.display = "";
-                    document.getElementById("not-git-commit").style.display = "none";
-
-                    document.getElementById("run-hash").innerHTML = run.hash;
-                    document.getElementById("run-author").innerHTML = run.author;
-                    document.getElementById("run-message").innerHTML = run.message;
-
-                    document.getElementById("git-commit-link")
-                    .setAttribute("href", commit_link);
-                    document.getElementById("git-commit-link")
-                    .innerHTML = "View this commit on " + gitHost;
-
-                } else {
-                    document.getElementById("is-git-commit").style.display = "none";
-                    document.getElementById("not-git-commit").style.display = "";
-
-                    document.getElementById("run-hash").innerHTML = "";
-                    document.getElementById("run-author").innerHTML = "";
-                    document.getElementById("run-message").innerHTML = "";
-                }
-            }
-
-
-
-            // Initial function calls using the template args
-            metadata = {{metadata}}
-            repoNamesDict = {{repo_names_dict}}
-
-            // Hide the repo selection if only one is detected
-            if(Object.keys(repoNamesDict).length == 1) {
-                document.getElementById("select-repo").style.display = "none";
-            }
-
-            changeRepository("{{initial_repo}}");
-            updateRunMetadata({{initial_timestamp}});
-
-        </script>
+        changeRepository("{{initial_repo}}");
+        updateRunMetadata({{initial_timestamp}});
+    </script>
 
     {% endblock %}
-    </body>
+</body>
 
 </html>

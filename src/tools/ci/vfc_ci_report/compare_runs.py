@@ -1,4 +1,33 @@
+#############################################################################
+#                                                                           #
+#  This file is part of Verificarlo.                                        #
+#                                                                           #
+#  Copyright (c) 2015-2021                                                  #
+#     Verificarlo contributors                                              #
+#     Universite de Versailles St-Quentin-en-Yvelines                       #
+#     CMLA, Ecole Normale Superieure de Cachan                              #
+#                                                                           #
+#  Verificarlo is free software: you can redistribute it and/or modify      #
+#  it under the terms of the GNU General Public License as published by     #
+#  the Free Software Foundation, either version 3 of the License, or        #
+#  (at your option) any later version.                                      #
+#                                                                           #
+#  Verificarlo is distributed in the hope that it will be useful,           #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+#  GNU General Public License for more details.                             #
+#                                                                           #
+#  You should have received a copy of the GNU General Public License        #
+#  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.     #
+#                                                                           #
+#############################################################################
+
 # Manage the view comparing a variable over different runs
+# At its creation, a CompareRuns object will create all the needed Bokeh widgets
+# and plots, setup the callback functions (either server side or client side),
+# initialize widgets selection, and from this selection generate the first plots.
+# Then, when callback functions are triggered, widgets selections are updated,
+# and plots are re-generated with the newly selected data.
 
 import time
 
@@ -22,10 +51,12 @@ class CompareRuns:
 
     # Helper functions related to CompareRuns
 
-    # From an array of timestamps, returns the array of runs names (for the x
-    # axis ticks), as well as the metadata (in a dict of arrays) associated to
-    # this array (will be used in tooltips)
     def gen_x_series(self, timestamps):
+        '''
+        From an array of timestamps, returns the array of runs names (for the x
+        axis ticks), as well as the metadata (in a dict of arrays) associated
+        to this array (will be used in tooltips)
+        '''
 
         # Initialize the objects to return
         x_series = []
@@ -235,8 +266,8 @@ class CompareRuns:
 
     def update_n_runs(self, attrname, old, new):
         # Simply update runs selection (value and string display)
-        self.select_n_runs.value = new
-        self.current_n_runs = self.n_runs_dict[self.select_n_runs.value]
+        self.widgets["select_n_runs"].value = new
+        self.current_n_runs = self.n_runs_dict[self.widgets["select_n_runs"].value]
 
         self.update_plots()
 
@@ -483,23 +514,25 @@ class CompareRuns:
         # Communication methods
         # (to send/receive messages to/from master)
 
-    # Callback to change view of Inspect runs when data is selected
+    # Callback to change view to "Inspect runs" when plot element is clicked
 
     def inspect_run_callback(self, new, source_name, x_name):
 
-        # In case we just unselected everything, then do nothing
-        if new == []:
+        # In case we just unselected everything on the plot, then do nothing
+        if not new:
             return
 
+        # But if an element has been selected, go to the corresponding run
         index = new[-1]
         run_name = self.sources[source_name].data[x_name][index]
 
         self.master.go_to_inspect(run_name)
 
-    # Wrappers for each plot (since new is the index of the clicked element,
-    # it is dependent of the plot because we could have filtered some outliers)
-    # There doesn't seem to be an easy way to add custom parameters to a
-    # Bokeh callback, so using wrappers seems to be the best solution for now
+    # These are wrappers (one for each plot) for the above inspect_run_callback
+    # function. Inside it, new is the index of the clicked element, and is
+    # dependent of the plot because we could have filtered different outliers.
+    # For this reason, we have one callback wrapper for each plot so we get
+    # the correct element.
 
     def inspect_run_callback_boxplot(self, attr, old, new):
         self.inspect_run_callback(new, "boxplot_source", "x")
@@ -513,13 +546,12 @@ class CompareRuns:
     def inspect_run_callback_s10(self, attr, old, new):
         self.inspect_run_callback(new, "s10_source", "s10_x")
 
-        # Communication methods
-        # (to send/receive messages to/from master)
-
-    # When received, update data and metadata with the new repo, and update
-    # everything
-
     def change_repo(self, new_data, new_metadata):
+        '''
+        When received, update data and metadata with the new repo, and update
+        everything
+        '''
+
         self.data = new_data
         self.metadata = new_metadata
 
@@ -545,6 +577,19 @@ class CompareRuns:
         # Constructor
 
     def __init__(self, master, doc, data, metadata):
+        '''
+        Here are the most important attributes of the CompareRuns class
+
+        master : reference to the ViewMaster class
+        doc : an object provided by Bokeh to add elements to the HTML document
+        data : pandas dataframe containing all the tests data
+        metadata : pandas dataframe containing all the tests metadata
+
+        sources : ColumnDataSource object provided by Bokeh, contains current
+        data for the plots (inside the .data attribute)
+        plots : dictionary of Bokeh plots
+        widgets : dictionary of Bokeh widgets
+        '''
 
         self.master = master
 

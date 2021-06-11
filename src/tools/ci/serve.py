@@ -56,7 +56,6 @@ def run(
     # re-write the Tornado server, which means setting up public directories,
     # generating the Jinja template, etc... => This is an option for a future
     # commit.
-
     command = "bokeh serve %s/vfc_ci_report %s --allow-websocket-origin=%s:%s --port %s --args %s %s %s %s" \
         % (dirname, show, allow_origin, port, port, directory, logo, max_files, ignore_recent)
     command = os.path.normpath(command)

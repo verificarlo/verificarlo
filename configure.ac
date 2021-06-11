@@ -189,6 +189,7 @@ AC_CONFIG_FILES([Makefile
                  src/tools/ci/Makefile
                  src/tools/ci/vfc_ci_report/Makefile
                  src/tools/ci/vfc_ci_report/templates/Makefile
+                 src/tools/ci/vfc_ci_report/static/Makefile
                  src/tools/ci/workflow_templates/Makefile
                  src/backends/Makefile
                  src/backends/interflop-ieee/Makefile

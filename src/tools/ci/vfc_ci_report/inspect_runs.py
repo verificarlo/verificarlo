@@ -1,4 +1,35 @@
+#############################################################################
+#                                                                           #
+#  This file is part of Verificarlo.                                        #
+#                                                                           #
+#  Copyright (c) 2015-2021                                                  #
+#     Verificarlo contributors                                              #
+#     Universite de Versailles St-Quentin-en-Yvelines                       #
+#     CMLA, Ecole Normale Superieure de Cachan                              #
+#                                                                           #
+#  Verificarlo is free software: you can redistribute it and/or modify      #
+#  it under the terms of the GNU General Public License as published by     #
+#  the Free Software Foundation, either version 3 of the License, or        #
+#  (at your option) any later version.                                      #
+#                                                                           #
+#  Verificarlo is distributed in the hope that it will be useful,           #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+#  GNU General Public License for more details.                             #
+#                                                                           #
+#  You should have received a copy of the GNU General Public License        #
+#  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.     #
+#                                                                           #
+#############################################################################
+
 # Manage the view comparing the variables of a run
+# Manage the view comparing a variable over different runs
+# At its creation, an InspectRuns object will create all the needed Bokeh widgets
+# and plots, setup the callback functions (either server side or client side),
+# initialize widgets selection, and from this selection generate the first plots.
+# Then, when callback functions are triggered, widgets selections are updated,
+# and plots are re-generated with the newly selected data.
+
 
 from math import pi
 from functools import partial
@@ -22,8 +53,10 @@ class InspectRuns:
 
     # Helper functions related to InspectRun
 
-    # Returns a dictionary mapping user-readable strings to all run timestamps
     def gen_runs_selection(self):
+        '''
+        Returns a dictionary mapping user-readable strings to all run timestamps
+        '''
 
         runs_dict = {}
 
@@ -530,10 +563,12 @@ class InspectRuns:
         # Communication methods
         # (to send/receive messages to/from master)
 
-    # When received, update data and metadata with the new repo, and update
-    # everything
-
     def change_repo(self, new_data, new_metadata):
+        '''
+        When received, update data and metadata with the new repo, and update
+        everything
+        '''
+
         self.data = new_data
         self.metadata = new_metadata
 
@@ -559,15 +594,28 @@ class InspectRuns:
         self.widgets["select_filter"].options = options
         self.widgets["select_filter"].value = options[0]
 
-    # When received, switch to run_name
-
     def switch_view(self, run_name):
+        '''When received, switch selected run to run_name'''
+
         # This will trigger the widget's callback
         self.widgets["select_run"].value = run_name
 
         # Constructor
 
     def __init__(self, master, doc, data, metadata):
+        '''
+        Here are the most important attributes of the InspectRuns class
+
+        master : reference to the ViewMaster class
+        doc : an object provided by Bokeh to add elements to the HTML document
+        data : pandas dataframe containing all the tests data
+        metadata : pandas dataframe containing all the tests metadata
+
+        sources : ColumnDataSource object provided by Bokeh, contains current
+        data for the plots (inside the .data attribute)
+        plots : dictionary of Bokeh plots
+        widgets : dictionary of Bokeh widgets
+        '''
 
         self.master = master
 
