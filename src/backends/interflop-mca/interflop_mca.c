@@ -80,7 +80,8 @@ typedef enum {
   KEY_ERR_MODE = 'e',
   KEY_SEED = 's',
   KEY_DAZ = 'd',
-  KEY_FTZ = 'f'
+  KEY_FTZ = 'f',
+  KEY_SPARSITY = 'n'
 } key_args;
 
 static const char key_prec_b32_str[] = "precision-binary32";
@@ -91,6 +92,7 @@ static const char key_err_exp_str[] = "max-abs-error-exponent";
 static const char key_seed_str[] = "seed";
 static const char key_daz_str[] = "daz";
 static const char key_ftz_str[] = "ftz";
+static const char key_sparsity_str[] = "sparsity";
 
 typedef struct {
   bool relErr;
@@ -100,6 +102,7 @@ typedef struct {
   uint64_t seed;
   bool daz;
   bool ftz;
+  uint64_t sparsity;
 } t_context;
 
 /* define the available MCA modes of operation */
@@ -184,6 +187,14 @@ static tinymt64_t random_state;
 static double _mca_rand(void) {
   /* Returns a random double in the (0,1) open interval */
   return tinymt64_generate_doubleOO(&random_state);
+}
+
+/* sparsity of perturbations to perform */
+int sparsity=1
+
+static bool _mca_sparse_eval(void) {
+  /* Returns a bool for determining whether an operation should be perturbed */
+  return (_mca_rand() > 1/sparsity);
 }
 
 /* noise = rand * 2^(exp) */
@@ -390,6 +401,9 @@ static struct argp_option options[] = {
      "denormals-are-zero: sets denormals inputs to zero", 0},
     {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero",
      0},
+    {key_sparsity_str, KEY_SPARSITY, 0, 0,
+     "sparsity: one in 1/{sparsity} operations will be randomly selected for perturbation",
+     0},
     {0}};
 
 error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -479,6 +493,15 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     /* flush-to-zero */
     ctx->ftz = true;
     break;
+  case KEY_SPARSITY:
+    /* sparse perturbations */
+    errno = 0;
+    ctx->sparsity = strtoull(arg, &endptr, 10);
+    if (errno != 0) {
+      logger_error("--%s invalid value provided, must be an integer",
+                   key_sparsity_str);
+    }
+    break;
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -495,6 +518,7 @@ void init_context(t_context *ctx) {
   ctx->daz = false;
   ctx->ftz = false;
   ctx->seed = 0ULL;
+  ctx->sparsity = 1;
 }
 
 void print_information_header(void *context) {
@@ -507,8 +531,9 @@ void print_information_header(void *context) {
       "%s = %s, "
       "%s = %s, "
       "%s = %d, "
+      "%s = %s, "
       "%s = %s and "
-      "%s = %s"
+      "%s = %d"
       "\n",
       key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str, MCALIB_BINARY64_T,
       key_mode_str, MCA_MODE_STR[MCALIB_MODE], key_err_mode_str,
@@ -520,7 +545,8 @@ void print_information_header(void *context) {
                       ? MCA_ERR_MODE_STR[mca_err_mode_all]
                       : MCA_ERR_MODE_STR[mca_err_mode_rel],
       key_err_exp_str, (ctx->absErr_exp), key_daz_str,
-      ctx->daz ? "true" : "false", key_ftz_str, ctx->ftz ? "true" : "false");
+      ctx->daz ? "true" : "false", key_ftz_str, ctx->ftz ? "true" : "false",
+      key_sparsity_str, ctx->sparsity);
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
@@ -557,8 +583,9 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL};
 
-  /* Initialize the seed */
+  /* Initialize the seed and sparsity */
   _set_mca_seed(ctx->choose_seed, ctx->seed);
+  // TODO set the sparsity value here
 
   return interflop_backend_mca;
 }
