@@ -1,3 +1,4 @@
+
 **/*.o
 **/*.a
 **/*.so
@@ -35,3 +36,6 @@ tests/test_fortran/test.sh
 tests/test_fortran_NAS/test.sh
 !tests/test_fortran_NAS/test.sh.in
 tests/test_fortran_NAS/*/*/gmon.out
+!tests/test_fortran_NAS/**/Makefile
+tests/test_fortran_vfc_probes/test.sh
+!tests/test_fortran_vfc_probes/test.sh.in

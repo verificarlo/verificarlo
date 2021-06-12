@@ -143,13 +143,14 @@ about it,  but if you were to manually execute a program that calls the
 `vfc_dump_probes` function without this variable, you would be notified by a
 runtime warning explaining that your probes canno tbe exported.
 
-`vfc_probes` also comes with a Fortran interface. In order to use it, import the
-`vfc_probes_f` module, as well as [ISO_C_BINDING](https://gcc.gnu.org/onlinedocs/gfortran/ISO_005fC_005fBINDING.html).
-The functions are exactly the same, except that values stored inside probes
-should be of type `REAL(kind=C_DOUBLE)`. Moreover, since Fortran passes all
-functions arguments by address, you don't have to worry about pointers and can
-pass the arguments directly. To build the code, you should still use the shared
-object file `libvfc_probes.so` in the compile command.
+**Fortran specific** : `vfc_probes` also comes with a Fortran interface. In
+order to use it, import the`vfc_probes_f` module, as well as
+[ISO_C_BINDING](https://gcc.gnu.org/onlinedocs/gfortran/ISO_005fC_005fBINDING.html).
+The functions are exactly the same, except that values stored inside probes should be
+of type `REAL(kind=C_DOUBLE)`. Moreover, since Fortran passes all functions arguments
+by address, you don't have to worry about pointers and can pass the arguments directly.
+To build the code, you should link both `libvfc_probes` (as before) and
+`libvfc_probes_f`.
 
 
 ### Configure and run your tests
