@@ -555,8 +555,15 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   register_printf_bit();
 
   /* Remove compiler warning about return type of cmp functions */
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wincompatible-function-pointer-types"
+#elif __GNUC__
+#pragma gcc diagnostic push
+#pragma gcc diagnostic ignored "-Wincompatible-function-pointer-types"
+#else
+#error "Compiler must be gcc or clang"
+#endif
 
   struct interflop_backend_interface_t interflop_backend_ieee = {
       _interflop_add_float,
@@ -613,7 +620,13 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       _interflop_finalize};
 
+#ifdef __clang__
 #pragma clang diagnostic pop
+#elif __GNUC__
+#pragma gcc diagnostic pop
+#else
+#error "Compiler must be gcc or clang"
+#endif
 
   return interflop_backend_ieee;
 }
