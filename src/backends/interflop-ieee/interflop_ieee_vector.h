@@ -1,6 +1,9 @@
 #ifndef _INTERFLOP_IEEE_VECTOR_H_
 #define _INTERFLOP_IEEE_VECTOR_H_
 
+/* Vectorization using OpenCL */
+#ifdef __clang__
+
 /* Define vector operation functions
  * size: size of vector
  * precision: floating point format (float or double)
@@ -99,5 +102,7 @@ define_interflop_cmp_vector(2, double);
 define_interflop_cmp_vector(4, double);
 define_interflop_cmp_vector(8, double);
 define_interflop_cmp_vector(16, double);
+
+#endif // __clang__
 
 #endif // _INTERFLOP_IEEE_VECTOR_H_

@@ -6,17 +6,13 @@
  * VPREC mode of operation and instrumentation mode.
  ***************************************************************/
 
+/* Vectorization using OpenCL */
+#ifdef __clang__
+
 /* Avoid warning about vector argument of type X without 'set' enabled changes
    the ABI */
-#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpsabi"
-#elif __GNUC__
-#pragma gcc diagnostic push
-#pragma gcc diagnostic ignored "-Wpsabi"
-#else
-#error "Compiler must be gcc or clang"
-#endif
 
 #define define_compute_absErr_vprec_binary32_vector(size)                      \
   static inline int##size compute_absErr_vprec_binary32_##size##x(             \
@@ -561,12 +557,6 @@ define_interflop_binary64_op_vector(16, sub);
 define_interflop_binary64_op_vector(16, mul);
 define_interflop_binary64_op_vector(16, div);
 
-#ifdef __clang__
-#pragma clang diagnostic pop
-#elif __GNUC__
-#pragma gcc diagnostic pop
-#else
-#error "Compiler must be gcc or clang"
-#endif
+#endif // __clang__
 
 #endif // _INTERFLOP_VPREC_VECTOR_H_

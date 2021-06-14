@@ -554,16 +554,12 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* register %b format */
   register_printf_bit();
 
-  /* Remove compiler warning about return type of cmp functions */
+  /* Vectorization using OpenCL */
 #ifdef __clang__
+  
+  /* Remove compiler warning about return type of cmp functions */
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wincompatible-function-pointer-types"
-#elif __GNUC__
-#pragma gcc diagnostic push
-#pragma gcc diagnostic ignored "-Wincompatible-function-pointer-types"
-#else
-#error "Compiler must be gcc or clang"
-#endif
 
   struct interflop_backend_interface_t interflop_backend_ieee = {
       _interflop_add_float,
@@ -620,12 +616,67 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       _interflop_finalize};
 
-#ifdef __clang__
-#pragma clang diagnostic pop
 #elif __GNUC__
-#pragma gcc diagnostic pop
+
+  struct interflop_backend_interface_t interflop_backend_ieee = {
+      _interflop_add_float,
+      _interflop_sub_float,
+      _interflop_mul_float,
+      _interflop_div_float,
+      _interflop_cmp_float,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      _interflop_add_double,
+      _interflop_sub_double,
+      _interflop_mul_double,
+      _interflop_div_double,
+      _interflop_cmp_double,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      _interflop_finalize};
+
 #else
+
 #error "Compiler must be gcc or clang"
+
 #endif
 
   return interflop_backend_ieee;

@@ -1,6 +1,9 @@
 #ifndef _VPREC_TOOLS_VECTOR_H_
 #define _VPREC_TOOLS_VECTOR_H_
 
+/* Vectorization using OpenCL */
+#ifdef __clang__
+
 /**
  * Macro which define vector function to round binary32 normal
  */
@@ -72,5 +75,7 @@ define_round_binary64_normal_vector(2);
 define_round_binary64_normal_vector(4);
 define_round_binary64_normal_vector(8);
 define_round_binary64_normal_vector(16);
+
+#endif // __clang__
 
 #endif // _VPREC_TOOLS_VECTOR_H_

@@ -1551,6 +1551,9 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
     }
   }
 
+  /* Vectorization using OpenCL */
+#ifdef __clang__
+
   struct interflop_backend_interface_t interflop_backend_vprec = {
       _interflop_add_float,
       _interflop_sub_float,
@@ -1605,6 +1608,69 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_enter_function,
       _interflop_exit_function,
       _interflop_finalize};
+
+#elif __GNUC__
+
+  struct interflop_backend_interface_t interflop_backend_vprec = {
+      _interflop_add_float,
+      _interflop_sub_float,
+      _interflop_mul_float,
+      _interflop_div_float,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      _interflop_add_double,
+      _interflop_sub_double,
+      _interflop_mul_double,
+      _interflop_div_double,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      _interflop_finalize};
+
+#else
+
+#error "Compiler must be gcc or clang"
+
+#endif
 
   return interflop_backend_vprec;
 }
