@@ -190,13 +190,13 @@ static double _mca_rand(void) {
 }
 
 static bool _mca_skip_eval(const int sparsity) {
-  /* Returns a bool for determining whether an operation should skip perturbation */
-  /* false -> perturb; true -> skip. */
+  /* Returns a bool for determining whether an operation should skip */
+  /* perturbation. false -> perturb; true -> skip. */
   if (sparsity == 1) {
     return false;
   }
   /* e.g. for sparsity=10, all random values > 0.1 = true -> no MCA*/
-  return (_mca_rand() > 1/sparsity);
+  return (_mca_rand() > 1 / sparsity);
 }
 
 /* noise = rand * 2^(exp) */
@@ -406,7 +406,7 @@ static struct argp_option options[] = {
     {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero",
      0},
     {key_sparsity_str, KEY_SPARSITY, 0, 0,
-     "sparsity: one in 1/{sparsity} operations will be randomly selected for perturbation",
+     "sparsity: one in 1/{sparsity} operations will be perturbed",
      0},
     {0}};
 
@@ -528,29 +528,29 @@ void init_context(t_context *ctx) {
 void print_information_header(void *context) {
   t_context *ctx = (t_context *)context;
 
-  logger_info(
-      "load backend with "
-      "%s = %d, "
-      "%s = %d, "
-      "%s = %s, "
-      "%s = %s, "
-      "%s = %d, "
-      "%s = %s, "
-      "%s = %s and "
-      "%s = %d"
-      "\n",
-      key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str, MCALIB_BINARY64_T,
-      key_mode_str, MCA_MODE_STR[MCALIB_MODE], key_err_mode_str,
-      (ctx->relErr && !ctx->absErr)
-          ? MCA_ERR_MODE_STR[mca_err_mode_rel]
-          : (!ctx->relErr && ctx->absErr)
-                ? MCA_ERR_MODE_STR[mca_err_mode_abs]
-                : (ctx->relErr && ctx->absErr)
-                      ? MCA_ERR_MODE_STR[mca_err_mode_all]
-                      : MCA_ERR_MODE_STR[mca_err_mode_rel],
-      key_err_exp_str, (ctx->absErr_exp), key_daz_str,
-      ctx->daz ? "true" : "false", key_ftz_str, ctx->ftz ? "true" : "false",
-      key_sparsity_str, ctx->sparsity);
+  logger_info("load backend with "
+              "%s = %d, "
+              "%s = %d, "
+              "%s = %s, "
+              "%s = %s, "
+              "%s = %d, "
+              "%s = %s, "
+              "%s = %s and "
+              "%s = %d"
+              "\n",
+              key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str,
+              MCALIB_BINARY64_T, key_mode_str, MCA_MODE_STR[MCALIB_MODE],
+              key_err_mode_str,
+              (ctx->relErr && !ctx->absErr)
+                  ? MCA_ERR_MODE_STR[mca_err_mode_rel]
+                  : (!ctx->relErr && ctx->absErr)
+                        ? MCA_ERR_MODE_STR[mca_err_mode_abs]
+                        : (ctx->relErr && ctx->absErr)
+                              ? MCA_ERR_MODE_STR[mca_err_mode_all]
+                              : MCA_ERR_MODE_STR[mca_err_mode_rel],
+              key_err_exp_str, (ctx->absErr_exp), key_daz_str,
+              ctx->daz ? "true" : "false", key_ftz_str,
+              ctx->ftz ? "true" : "false", key_sparsity_str, ctx->sparsity);
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
