@@ -556,7 +556,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
 
   /* Vectorization using OpenCL */
 #ifdef __clang__
-  
+
   /* Remove compiler warning about return type of cmp functions */
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wincompatible-function-pointer-types"
