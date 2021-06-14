@@ -1,0 +1,45 @@
+# This workflow will be executed when {{dev_branch}} is updated:
+# it will run the configured tests and upload the results on {{ci_branch}}.
+
+name: "Verificarlo CI ({{dev_branch}})"
+
+on:
+  # Triggers the workflow when {{dev_branch}} is updated
+  push:
+    branches: [ {{dev_branch}} ]
+
+  workflow_dispatch:
+
+
+jobs:
+  run_verificarlo_tests:
+    runs-on: ubuntu-latest
+    container: verificarlo/verificarlo
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+            fetch-depth: 0
+
+      - name: Run tests
+        run: vfc_ci test -g -r
+
+      - name: Commit test results
+        run: |
+          git_hash=$(git rev-parse --short "$GITHUB_SHA")
+
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          git checkout {{ci_branch}}
+          mkdir -p vfcruns
+          mv *.vfcrun.h5 vfcruns
+          git add vfcruns/*
+          git commit -m "[auto] New test results for commit ${git_hash}"
+          git push
+
+      - name: Upload raw results as artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          {% raw %}name: ${{github.sha}}.vfcraw{% endraw %}
+          path: ./*.vfcraw.h5

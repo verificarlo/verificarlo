@@ -1,0 +1,15 @@
+{
+    "make_command": "verificarlo-c test.c -lvfc_probes -o test ",
+    "executables": [
+        {
+            "executable": "test",
+            "parameters" : "",
+            "vfc_backends": [
+                {
+                    "name": "libinterflop_mca.so --precision-binary64=24",
+                    "repetitions": 10
+                }
+            ]
+        }
+    ]
+}
