@@ -196,7 +196,7 @@ static bool _mca_skip_eval(const int sparsity) {
     return false;
   }
   /* e.g. for sparsity=10, all random values > 0.1 = true -> no MCA*/
-  return (_mca_rand() > 1 / sparsity);
+  return (_mca_rand() > 1.0 / sparsity);
 }
 
 /* noise = rand * 2^(exp) */
@@ -405,7 +405,7 @@ static struct argp_option options[] = {
      "denormals-are-zero: sets denormals inputs to zero", 0},
     {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero",
      0},
-    {key_sparsity_str, KEY_SPARSITY, 0, 0,
+    {key_sparsity_str, KEY_SPARSITY, "SPARSITY", 0,
      "sparsity: one in 1/{sparsity} operations will be perturbed", 0},
     {0}};
 
@@ -588,7 +588,6 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
 
   /* Initialize the seed and sparsity */
   _set_mca_seed(ctx->choose_seed, ctx->seed);
-  // TODO set the sparsity value here
 
   return interflop_backend_mca;
 }
