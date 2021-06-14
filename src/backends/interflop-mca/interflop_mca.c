@@ -189,12 +189,9 @@ static double _mca_rand(void) {
   return tinymt64_generate_doubleOO(&random_state);
 }
 
-/* sparsity of perturbations to perform */
-int sparsity=1
-
-static bool _mca_sparse_eval(void) {
+static bool _mca_sparse_eval(void *context) {
   /* Returns a bool for determining whether an operation should be perturbed */
-  return (_mca_rand() > 1/sparsity);
+  return (_mca_rand() > 1/context->sparsity);
 }
 
 /* noise = rand * 2^(exp) */
@@ -239,6 +236,8 @@ static __float128 _noise_binary128(const int exp) {
 #define _INEXACT(X, VIRTUAL_PRECISION, CTX)                                    \
   {                                                                            \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
+      return;                                                                  \
+    } else if (_mca_sparse_eval(CTX)) {                                        \
       return;                                                                  \
     } else {                                                                   \
       if (((t_context *)CTX)->relErr) {                                        \
