@@ -53,10 +53,12 @@ AC_ARG_WITH([flang],
     [use flang located in DIR]),
   [with_flang="$withval"],
   [with_flang=yes])
+AM_CONDITIONAL([BUILD_FLANG], [test "x$with_flang" != "xno"])
 
 if test "x$with_flang" = "xno"; then
    AC_MSG_NOTICE([--with-flang=no was given. Disabling Fortran support.])
 else
+
    if test "x$with_flang" = "xyes"; then
       with_flang_path="$PATH"
    else
@@ -79,6 +81,8 @@ else
 
    AC_DEFINE_UNQUOTED([FLANG_PATH], ["$FLANG"], [The flang path])
    AC_SUBST(FLANG_PATH, $FLANG)
+
+   AC_PROG_FC=$FLANG
 fi
 
 AC_CHECK_LIB([c], [exit], , AC_MSG_ERROR([Could not find c library]))
@@ -163,6 +167,12 @@ fi
 AX_PYTHON_MODULE(numpy, fatal)
 AX_PYTHON_MODULE(bigfloat, fatal)
 AX_PYTHON_MODULE(pandas, fatal)
+AX_PYTHON_MODULE(tables, fatal)
+AX_PYTHON_MODULE(scipy, fatal)
+AX_PYTHON_MODULE(git, fatal)
+AX_PYTHON_MODULE(jinja2, fatal)
+AX_PYTHON_MODULE(bokeh, fatal)
+
 
 AC_ARG_ENABLE(wall, AC_HELP_STRING([--enable-wall], [Enable -Wall compilation flag]), [WALL_CFLAGS="yes"])
 AM_CONDITIONAL([WALL_CFLAGS], [test "x$WALL_CFLAGS" = "xyes"])
@@ -179,6 +189,12 @@ AC_CONFIG_FILES([Makefile
                  src/libvfcinstrument/Makefile
                  src/libvfcfuncinstrument/Makefile
                  src/vfcwrapper/Makefile
+                 src/tools/Makefile
+                 src/tools/ci/Makefile
+                 src/tools/ci/vfc_ci_report/Makefile
+                 src/tools/ci/vfc_ci_report/templates/Makefile
+                 src/tools/ci/vfc_ci_report/static/Makefile
+                 src/tools/ci/workflow_templates/Makefile
                  src/backends/Makefile
                  src/backends/interflop-ieee/Makefile
                  src/backends/interflop-mca/Makefile
@@ -193,8 +209,10 @@ AC_CONFIG_FILES([Makefile
 AC_CONFIG_FILES([verificarlo.in \
 		tests/test_bitmask_backend/test.sh \
 		tests/test_fortran/test.sh \
-		tests/test_fortran_NAS/test.sh],
+		tests/test_fortran_NAS/test.sh \
+    tests/test_fortran_vfc_probes/test.sh],
 		[chmod +x tests/test_bitmask_backend/test.sh \
 		tests/test_fortran/test.sh \
-		tests/test_fortran_NAS/test.sh])
+		tests/test_fortran_NAS/test.sh \
+    tests/test_fortran_vfc_probes/test.sh])
 AC_OUTPUT

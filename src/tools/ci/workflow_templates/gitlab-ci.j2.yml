@@ -1,0 +1,35 @@
+# This workflow will be executed when {{dev_branch}} is updated:
+# it will run the configured tests and upload the results on vfc_ci_master.
+
+image: verificarlo/verificarlo
+
+
+stages:
+  - run_verificarlo_tests
+
+
+run_verificarlo_tests:
+  stage: run_verificarlo_tests
+
+  before_script:
+  - git remote set-url origin https://{{username}}:${CI_PUSH_TOKEN}@{{remote_url}}.git
+  - git config --global user.email "{{email}}"
+  - git config --global user.name "{{username}}"
+
+  script:
+  - vfc_ci test -g -r
+  - git_hash=$(git rev-parse --short "$CI_COMMIT_SHA")
+  - git fetch --all
+  - git checkout -b {{ci_branch}} origin/{{ci_branch}}
+  - mkdir -p vfcruns
+  - mv *.vfcrun.h5 vfcruns
+  - git add vfcruns/*
+  - git commit -m "[auto] New test results for commit ${git_hash}"
+  - git push
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "{{dev_branch}}"'
+
+  artifacts:
+    paths:
+    - "*.vfcraw.h5"
