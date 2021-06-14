@@ -1,34 +1,22 @@
 #!/bin/bash
 #set -e
 
-Timeit() {
-  START="$(date +%s%N)"
-  for i in {1..100}; do
-    ./test 2> /dev/null
-  done
-  DURATION=$[ $(date +%s%N) - ${START} ]
-  echo $DURATION
-}
-
 Check() {
-    for SPARSE in "1" "2" "5" "10" "20" "100"; do 
-	echo -e "\nChecking backend MCA at SPARSITY ${SPARSE}"
-
-	BACKENDSO="libinterflop_mca.so"
-	export VFC_BACKENDS="${BACKENDSO} --sparsity=$SPARSE"
-  Timeit
-
-done
-
-	echo -e "\nChecking backend IEEE backend"
-
-	BACKENDSO="libinterflop_ieee.so"
-	export VFC_BACKENDS="${BACKENDSO}"
-  Timeit
+  START="$(date +%s%N)"
+  for i in `seq 1000` ; do
+      ./test 0x1.fffffffffffffp2  0x1.fffffffffffffp-50 >> log 2> /dev/null
+  done
+  DURATION=$[ ($(date +%s%N) - ${START})/1000000 ]
+  echo "Sparsity: ${sparsity} | $(./parse.py log)% IEEE (Time Elapsed: $DURATION ms)"
 }
 
-echo "Checking"
-verificarlo-c -O0  test.c -o test
-Check 53
+verificarlo-c -O0 test.c -o test
+export VFC_BACKENDS_SILENT_LOAD=True
+export VFC_BACKENDS_LOGGER=False
+export VFC_BACKENDS="libinterflop_mca.so --mode=mca --precision-binary64=24 --sparsity=100"
 
-echo -e "\nsuccess"
+for sparsity in 1 2 4 10 100; do    
+    rm -f log
+    export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary64=1 --sparsity=${sparsity}"
+    Check
+done

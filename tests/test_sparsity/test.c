@@ -1,22 +1,12 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#define REAL double
-#define N_ITER 1000
-
-int main(void) {
-  int i;
-
-  /* initialize random seed */
-  srand(0);
-
-  REAL sum = 0.0;
-
-  /* Sum 0.1 N_ITER time */
-  for (i=0; i<N_ITER; i ++) {
-    sum += 0.1;
+int main(int argc, char *argv[]) {
+  double a = strtod(argv[1], NULL);
+  double b = strtod(argv[2], NULL);
+  double sum = 0.0;
+  for (int i = 0; i < 100; i++) {
+    sum = a + b;
+    printf("%.13a\n", sum);
   }
-
-
-  return 0;
 }

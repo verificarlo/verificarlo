@@ -196,7 +196,7 @@ static bool _mca_skip_eval(const int sparsity) {
     return false;
   }
   /* e.g. for sparsity=10, all random values > 0.1 = true -> no MCA*/
-  return (_mca_rand() > 1.0 / sparsity);
+  return (_mca_rand() > (1.0 / sparsity));
 }
 
 /* noise = rand * 2^(exp) */
