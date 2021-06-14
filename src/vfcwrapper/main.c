@@ -483,6 +483,7 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
           precision _c = c[j];                                                 \
           backends[i].interflop_##operation##_##precision(a[j], b[j], &_c,     \
                                                           contexts[i]);        \
+          c[j] = _c;                                                           \
         }                                                                      \
       }                                                                        \
     }                                                                          \
@@ -544,6 +545,7 @@ define_vector_arithmetic_wrapper(16, double, div, /);
           int _c = c[j];                                                       \
           backends[i].interflop_cmp_##precision(p, a[j], b[j], &_c,            \
                                                 contexts[i]);                  \
+          c[j] = _c;                                                           \
         }                                                                      \
       }                                                                        \
     }                                                                          \
