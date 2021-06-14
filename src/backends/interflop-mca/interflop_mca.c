@@ -406,8 +406,7 @@ static struct argp_option options[] = {
     {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero",
      0},
     {key_sparsity_str, KEY_SPARSITY, 0, 0,
-     "sparsity: one in 1/{sparsity} operations will be perturbed",
-     0},
+     "sparsity: one in 1/{sparsity} operations will be perturbed", 0},
     {0}};
 
 error_t parse_opt(int key, char *arg, struct argp_state *state) {
