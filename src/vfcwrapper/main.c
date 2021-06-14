@@ -206,24 +206,6 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
                    "Include one backend in VFC_BACKENDS that provides it");    \
   } while (0)
 
-/* Checks that a least one of the loaded backend implements the chosen
- * vector operation at a given precision */
-#define check_backends_implements_vector(size, precision, operation)           \
-  do {                                                                         \
-    int res = 0;                                                               \
-    for (unsigned char i = 0; i < loaded_backends; i++) {                      \
-      if (backends[i].interflop_##operation##_##precision##_##size##x) {       \
-        res = 1;                                                               \
-        break;                                                                 \
-      }                                                                        \
-    }                                                                          \
-    if (res == 0)                                                              \
-      logger_warning("No backend instruments vector " #operation               \
-                     " for " #precision ".\n"                                  \
-                     "Include one backend in VFC_BACKENDS "                    \
-                     "that provides it to enable vectorization");              \
-  } while (0)
-
 /* vfc_read_filter_file reads an inclusion/exclusion ddebug file and returns
  * an address map */
 static void vfc_read_filter_file(const char *dd_filter_path,
@@ -387,60 +369,6 @@ __attribute__((constructor(0))) static void vfc_init(void) {
 #ifdef INST_FCMP
   check_backends_implements(float, cmp);
   check_backends_implements(double, cmp);
-#endif
-
-  /* Check that at least one backend implements each required vector
-   * operation */
-  check_backends_implements_vector(2, float, add);
-  check_backends_implements_vector(2, float, sub);
-  check_backends_implements_vector(2, float, mul);
-  check_backends_implements_vector(2, float, div);
-  check_backends_implements_vector(2, double, add);
-  check_backends_implements_vector(2, double, sub);
-  check_backends_implements_vector(2, double, mul);
-  check_backends_implements_vector(2, double, div);
-#ifdef INST_FCMP
-  check_backends_implements_vector(2, float, cmp);
-  check_backends_implements_vector(2, double, cmp);
-#endif
-
-  check_backends_implements_vector(4, float, add);
-  check_backends_implements_vector(4, float, sub);
-  check_backends_implements_vector(4, float, mul);
-  check_backends_implements_vector(4, float, div);
-  check_backends_implements_vector(4, double, add);
-  check_backends_implements_vector(4, double, sub);
-  check_backends_implements_vector(4, double, mul);
-  check_backends_implements_vector(4, double, div);
-#ifdef INST_FCMP
-  check_backends_implements_vector(4, float, cmp);
-  check_backends_implements_vector(4, double, cmp);
-#endif
-
-  check_backends_implements_vector(8, float, add);
-  check_backends_implements_vector(8, float, sub);
-  check_backends_implements_vector(8, float, mul);
-  check_backends_implements_vector(8, float, div);
-  check_backends_implements_vector(8, double, add);
-  check_backends_implements_vector(8, double, sub);
-  check_backends_implements_vector(8, double, mul);
-  check_backends_implements_vector(8, double, div);
-#ifdef INST_FCMP
-  check_backends_implements_vector(8, float, cmp);
-  check_backends_implements_vector(8, double, cmp);
-#endif
-
-  check_backends_implements_vector(16, float, add);
-  check_backends_implements_vector(16, float, sub);
-  check_backends_implements_vector(16, float, mul);
-  check_backends_implements_vector(16, float, div);
-  check_backends_implements_vector(16, double, add);
-  check_backends_implements_vector(16, double, sub);
-  check_backends_implements_vector(16, double, mul);
-  check_backends_implements_vector(16, double, div);
-#ifdef INST_FCMP
-  check_backends_implements_vector(16, float, cmp);
-  check_backends_implements_vector(16, double, cmp);
 #endif
 
 #ifdef DDEBUG
