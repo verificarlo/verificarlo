@@ -4,6 +4,16 @@
 /* Vectorization using OpenCL */
 #ifdef __clang__
 
+void round_binary32_normal_2x(float2 *x, int2 precision);
+void round_binary32_normal_4x(float4 *x, int4 precision);
+void round_binary32_normal_8x(float8 *x, int8 precision);
+void round_binary32_normal_16x(float16 *x, int16 precision);
+
+void round_binary64_normal_2x(double2 *x, int64_2x precision);
+void round_binary64_normal_4x(double4 *x, int64_4x precision);
+void round_binary64_normal_8x(double8 *x, int64_8x precision);
+void round_binary64_normal_16x(double16 *x, int64_16x precision);
+
 /**
  * Macro which define vector function to round binary32 normal
  */

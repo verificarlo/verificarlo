@@ -156,6 +156,8 @@ typedef union {
 
 } binary64;
 
+#ifdef __clang__
+
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 
 #define define_binary64_vector(size)                                           \
@@ -258,6 +260,8 @@ define_binary64_vector(4);
 define_binary64_vector(8);
 define_binary64_vector(16);
 
+#endif // __clang__
+
 typedef union {
 
   float f32;
@@ -282,6 +286,8 @@ typedef union {
   } ieee;
 
 } binary32;
+
+#ifdef __clang__
 
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 
@@ -334,6 +340,8 @@ define_binary32_vector(2);
 define_binary32_vector(4);
 define_binary32_vector(8);
 define_binary32_vector(16);
+
+#endif // __clang__
 
 #define QUADFP_NAN 0
 #define QUADFP_INFINITE 1
