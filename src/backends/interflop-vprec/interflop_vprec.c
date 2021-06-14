@@ -61,6 +61,7 @@ typedef enum {
   KEY_INPUT_FILE,
   KEY_OUTPUT_FILE,
   KEY_LOG_FILE,
+  KEY_PRESET,
   KEY_MODE = 'm',
   KEY_ERR_MODE = 'e',
   KEY_INSTRUMENT = 'i',
@@ -75,6 +76,7 @@ static const char key_range_b64_str[] = "range-binary64";
 static const char key_input_file_str[] = "prec-input-file";
 static const char key_output_file_str[] = "prec-output-file";
 static const char key_log_file_str[] = "prec-log-file";
+static const char key_preset_str[] = "preset";
 static const char key_mode_str[] = "mode";
 static const char key_err_mode_str[] = "error-mode";
 static const char key_err_exp_str[] = "max-abs-error-exponent";
@@ -118,6 +120,41 @@ typedef enum {
   vprec_mul = '*',
   vprec_div = '/',
 } vprec_operation;
+
+/* define the possible VPREC preset */
+typedef enum {
+  preset_binary16,
+  preset_binary32,
+  preset_binary64,
+  preset_bfloat16,
+  preset_tensorfloat,
+  preset_fp24,
+  preset_PXR24
+} vprec_preset;
+
+typedef enum {
+  preset_precision_binary16 = 10,
+  preset_precision_binary32 = 23,
+  preset_precision_binary64 = 52,
+  preset_precision_bfloat16 = 7,
+  preset_precision_tensorfloat = 10,
+  preset_precision_fp24 = 16,
+  preset_precision_PXR24 = 15
+} vprec_preset_precision;
+
+typedef enum {
+  preset_range_binary16 = 5,
+  preset_range_binary32 = 8,
+  preset_range_binary64 = 11,
+  preset_range_bfloat16 = 8,
+  preset_range_tensorfloat = 8,
+  preset_range_fp24 = 7,
+  preset_range_PXR24 = 8
+} vprec_preset_range;
+
+static const char *VPREC_PRESET_STR[] = {"binary16", "binary32",    "binary64",
+                                         "bfloat16", "tensorfloat", "fp24",
+                                         "PXR24"};
 
 /* define default environment variables and default parameters */
 
@@ -1271,6 +1308,15 @@ static struct argp_option options[] = {
      "output file where the precision profile is written", 0},
     {key_log_file_str, KEY_LOG_FILE, "LOG", 0,
      "log file where input/output informations are written", 0},
+    {key_preset_str, KEY_PRESET, "PRESET", 0,
+     "select a default PRESET setting among {binary16, binary32, binary64, "
+     "bfloat16, tensorfloat, fp24, PXR24}\n"
+     "Format (range, precision) : "
+     "binary16 (5, 10), binary32 (8, 23), "
+     "binary64 (11, 52), bfloat16 (8, 7), "
+     "tensorfloat (8, 10), fp24 (7, 16), "
+     "PXR24 (8, 15)",
+     0},
     {key_mode_str, KEY_MODE, "MODE", 0,
      "select VPREC mode among {ieee, full, ib, ob}", 0},
     {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
@@ -1290,6 +1336,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   t_context *ctx = (t_context *)state->input;
   char *endptr;
   int val = -1;
+  int precision = 0;
+  int range = 0;
+
   switch (key) {
   case KEY_PREC_B32:
     /* precision */
@@ -1432,6 +1481,46 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_FTZ:
     /* flush-to-zero */
     ctx->ftz = true;
+    break;
+  case KEY_PRESET:
+    /* preset */
+    if (strcmp(VPREC_PRESET_STR[preset_binary16], arg) == 0) {
+      precision = preset_precision_binary16;
+      range = preset_range_binary16;
+    } else if (strcmp(VPREC_PRESET_STR[preset_binary32], arg) == 0) {
+      precision = preset_precision_binary32;
+      range = preset_range_binary32;
+    } else if (strcmp(VPREC_PRESET_STR[preset_binary64], arg) == 0) {
+      precision = preset_precision_binary64;
+      range = preset_range_binary64;
+    } else if (strcmp(VPREC_PRESET_STR[preset_bfloat16], arg) == 0) {
+      precision = preset_precision_bfloat16;
+      range = preset_range_bfloat16;
+    } else if (strcmp(VPREC_PRESET_STR[preset_tensorfloat], arg) == 0) {
+      precision = preset_precision_tensorfloat;
+      range = preset_range_tensorfloat;
+    } else if (strcmp(VPREC_PRESET_STR[preset_fp24], arg) == 0) {
+      precision = preset_precision_fp24;
+      range = preset_range_fp24;
+    } else if (strcmp(VPREC_PRESET_STR[preset_PXR24], arg) == 0) {
+      precision = preset_precision_PXR24;
+      range = preset_range_PXR24;
+    } else {
+      logger_error("--%s invalid preset provided, must be one of: "
+                   "{binary16, binary32, binary64, bfloat16, tensorfloat, "
+                   "fp24, PXR24}",
+                   key_preset_str);
+      break;
+    }
+
+    /* set precision */
+    _set_vprec_precision_binary32(precision);
+    _set_vprec_precision_binary64(precision);
+
+    /* set range */
+    _set_vprec_range_binary32(range);
+    _set_vprec_range_binary64(range);
+
     break;
   default:
     return ARGP_ERR_UNKNOWN;
