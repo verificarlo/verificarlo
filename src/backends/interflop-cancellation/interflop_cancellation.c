@@ -107,43 +107,47 @@ static inline double _noise_binary64(const int exp) {
   })
 
 /* Cancellations can only happen during additions and substractions */
-static void _interflop_add_float(float a, float b, float *c, void *context) {
+static void _interflop_add_float(float a, float b, float *c,
+                                 __attribute__((unused)) void *context) {
   *c = a + b;
   cancell(a, b, c);
 }
 
-static void _interflop_sub_float(float a, float b, float *c, void *context) {
+static void _interflop_sub_float(float a, float b, float *c,
+                                 __attribute__((unused)) void *context) {
   *c = a - b;
   cancell(a, b, c);
 }
 
 static void _interflop_add_double(double a, double b, double *c,
-                                  void *context) {
+                                  __attribute__((unused)) void *context) {
   *c = a + b;
   cancell(a, b, c);
 }
 
 static void _interflop_sub_double(double a, double b, double *c,
-                                  void *context) {
+                                  __attribute__((unused)) void *context) {
   *c = a - b;
   cancell(a, b, c);
 }
 
-static void _interflop_mul_float(float a, float b, float *c, void *context) {
+static void _interflop_mul_float(float a, float b, float *c,
+                                 __attribute__((unused)) void *context) {
   *c = a * b;
 }
 
-static void _interflop_div_float(float a, float b, float *c, void *context) {
+static void _interflop_div_float(float a, float b, float *c,
+                                 __attribute__((unused)) void *context) {
   *c = a / b;
 }
 
 static void _interflop_mul_double(double a, double b, double *c,
-                                  void *context) {
+                                  __attribute__((unused)) void *context) {
   *c = a * b;
 }
 
 static void _interflop_div_double(double a, double b, double *c,
-                                  void *context) {
+                                  __attribute__((unused)) void *context) {
   *c = a / b;
 }
 

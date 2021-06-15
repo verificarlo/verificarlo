@@ -695,7 +695,7 @@ typedef struct _vprec_inst_function {
 
 // Write the hashmap in the given file
 void _vprec_write_hashmap(FILE *fout) {
-  for (int ii = 0; ii < _vprec_func_map->capacity; ii++) {
+  for (size_t ii = 0; ii < _vprec_func_map->capacity; ii++) {
     if (get_value_at(_vprec_func_map->items, ii) != 0 &&
         get_value_at(_vprec_func_map->items, ii) != 0) {
       _vprec_inst_function_t *function =
@@ -733,8 +733,6 @@ void _vprec_write_hashmap(FILE *fout) {
 // Read and initialize the hashmap from the given file
 void _vprec_read_hashmap(FILE *fin) {
   _vprec_inst_function_t function;
-  int binary64_precision, binary64_range, binary32_precision, binary32_range,
-      type;
 
   while (fscanf(fin, "%s\t%hd\t%hd\t%zu\t%zu\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
                 function.id, &function.isLibraryFunction,
@@ -788,7 +786,7 @@ void _vprec_read_hashmap(FILE *fin) {
 #define _vprec_print_log(_vprec_depth, _vprec_str, ...)                        \
   ({                                                                           \
     if (vprec_log_file != NULL) {                                              \
-      for (int _vprec_d = 0; _vprec_d < _vprec_depth; _vprec_d++)              \
+      for (size_t _vprec_d = 0; _vprec_d < _vprec_depth; _vprec_d++)           \
         fprintf(vprec_log_file, "\t");                                         \
       fprintf(vprec_log_file, _vprec_str, ##__VA_ARGS__);                      \
     }                                                                          \
@@ -878,7 +876,7 @@ void _interflop_enter_function(interflop_function_stack_t *stack, void *context,
 
     if (new_flag) {
       function_inst->input_args[i].data_type = type;
-      strncpy(function_inst->input_args[i].arg_id, arg_id, 100);
+      strcpy(function_inst->input_args[i].arg_id, arg_id);
       function_inst->input_args[i].min_range = INT_MAX;
       function_inst->input_args[i].max_range = INT_MIN;
       function_inst->input_args[i].exponent_length =
@@ -1094,7 +1092,7 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
     if (new_flag) {
       // initialize arguments data
       function_inst->output_args[i].data_type = type;
-      strncpy(function_inst->output_args[i].arg_id, arg_id, 100);
+      strcpy(function_inst->output_args[i].arg_id, arg_id);
       function_inst->output_args[i].exponent_length =
           (type == FDOUBLE || type == FDOUBLE_PTR)
               ? VPREC_RANGE_BINARY64_DEFAULT
@@ -1580,7 +1578,7 @@ void print_information_header(void *context) {
       key_instrument_str, VPREC_INST_MODE_STR[VPREC_INST_MODE]);
 }
 
-void _interflop_finalize(void *context) {
+void _interflop_finalize(__attribute__((unused)) void *context) {
   /* save the hashmap */
   if (vprec_output_file != NULL) {
     FILE *f = fopen(vprec_output_file, "w");

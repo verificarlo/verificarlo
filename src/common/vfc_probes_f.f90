@@ -30,7 +30,7 @@ module vfc_probes_f
     interface
 
         type(vfc_probes) function vfc_init_probes() bind(C, name = "vfc_init_probes")
-
+        import
         end function vfc_init_probes
 
         function vfc_free_probes(probes) bind(C, name = "vfc_free_probes")

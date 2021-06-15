@@ -21,6 +21,9 @@
  ******************************************************************************/
 
 #include "../../config.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "llvm/Analysis/CallGraphSCCPass.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/IR/DataLayout.h"
@@ -39,7 +42,7 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
-
+#pragma GCC diagnostic pop
 #include <fstream>
 #include <iostream>
 #include <set>
@@ -47,6 +50,12 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#if LLVM_VERSION_MAJOR == 4
+typedef llvm::LibFunc::Func _LibFunc;
+#else
+typedef llvm::LibFunc _LibFunc;
+#endif
 
 using namespace llvm;
 
@@ -68,8 +77,7 @@ Value *Types2val[] = {NULL, NULL, NULL, NULL};
 // Fill use_double and use_float with true if the call_inst pi use at least
 // of the managed types
 void haveFloatingPointArithmetic(Instruction *call, Function *f,
-                                 bool is_from_library, bool is_intrinsic,
-                                 bool *use_float, bool *use_double, Module &M) {
+                                 bool *use_float, bool *use_double) {
   Type *ReturnTy;
 
   if (f) {
@@ -158,7 +166,7 @@ unsigned int getSizeOf(Value *V, const Function *F) {
 }
 
 // Get the Name of the given argument V
-std::string getArgName(Function *F, Value *V, unsigned int i) {
+std::string getArgName(Function *F, unsigned int i) {
   for (auto &BB : (*F)) {
     for (auto &I : BB) {
       if (isa<CallInst>(&I)) {
@@ -237,21 +245,21 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     if (args.getType() == DoubleTy) {
       EnterArgs.push_back(Types2val[DOUBLE]);
       EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, &args, args.getArgNo())));
+          getArgName(HookedFunction, args.getArgNo())));
       EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
       EnterArgs.push_back(InputAlloca[input_index]);
       Builder.CreateStore(&args, InputAlloca[input_index++]);
     } else if (args.getType() == FloatTy) {
       EnterArgs.push_back(Types2val[FLOAT]);
       EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, &args, args.getArgNo())));
+          getArgName(HookedFunction, args.getArgNo())));
       EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
       EnterArgs.push_back(InputAlloca[input_index]);
       Builder.CreateStore(&args, InputAlloca[input_index++]);
     } else if (args.getType() == FloatPtrTy && call) {
       EnterArgs.push_back(Types2val[FLOAT_PTR]);
       EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, &args, args.getArgNo())));
+          getArgName(HookedFunction, args.getArgNo())));
       EnterArgs.push_back(
           ConstantInt::get(Int32Ty, getSizeOf(call->getOperand(args.getArgNo()),
                                               call->getParent()->getParent())));
@@ -259,7 +267,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     } else if (args.getType() == DoublePtrTy && call) {
       EnterArgs.push_back(Types2val[DOUBLE_PTR]);
       EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, &args, args.getArgNo())));
+          getArgName(HookedFunction, args.getArgNo())));
       EnterArgs.push_back(
           ConstantInt::get(Int32Ty, getSizeOf(call->getOperand(args.getArgNo()),
                                               call->getParent()->getParent())));
@@ -335,7 +343,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     if (args.getType() == FloatPtrTy && call) {
       ExitArgs.push_back(Types2val[FLOAT_PTR]);
       ExitArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, &args, args.getArgNo())));
+          getArgName(HookedFunction, args.getArgNo())));
       ExitArgs.push_back(
           ConstantInt::get(Int32Ty, getSizeOf(call->getOperand(args.getArgNo()),
                                               call->getParent()->getParent())));
@@ -343,7 +351,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     } else if (args.getType() == DoublePtrTy && call) {
       ExitArgs.push_back(Types2val[DOUBLE_PTR]);
       ExitArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, &args, args.getArgNo())));
+          getArgName(HookedFunction, args.getArgNo())));
       ExitArgs.push_back(
           ConstantInt::get(Type::getInt32Ty(M.getContext()),
                            getSizeOf(call->getOperand(args.getArgNo()),
@@ -450,7 +458,7 @@ struct VfclibFunc : public ModulePass {
       bool use_float, use_double;
 
       // Test if the function use double or float
-      haveFloatingPointArithmetic(NULL, Main, 0, 0, &use_float, &use_double, M);
+      haveFloatingPointArithmetic(NULL, Main, &use_float, &use_double);
 
       // Delete Main Body
       Main->deleteBody();
@@ -519,7 +527,7 @@ struct VfclibFunc : public ModulePass {
                   const TargetLibraryInfo &TLI = TLIWP.getTLI();
 #endif
 
-                  LibFunc libfunc;
+                  _LibFunc libfunc;
 
                   bool is_from_library = TLI.getLibFunc(f->getName(), libfunc);
 
@@ -528,9 +536,7 @@ struct VfclibFunc : public ModulePass {
 
                   // Test if the function use double or float
                   bool use_float, use_double;
-                  haveFloatingPointArithmetic(pi, f, is_from_library,
-                                              is_intrinsic, &use_float,
-                                              &use_double, M);
+                  haveFloatingPointArithmetic(pi, f, &use_float, &use_double);
 
                   // If the called function is an intrinsic function that does
                   // not use float or double, do not instrument it.

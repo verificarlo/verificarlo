@@ -96,7 +96,7 @@ void vfc_free_probes(vfc_probes *probes) {
 
   // Before freeing the map, iterate manually over all items to free the keys
   vfc_probe_node *probe = NULL;
-  for (int i = 0; i < probes->map->capacity; i++) {
+  for (size_t i = 0; i < probes->map->capacity; i++) {
     probe = (vfc_probe_node *)get_value_at(probes->map->items, i);
 
     // Comparing with 1 is also necessary since it will be the value of deleted
@@ -213,7 +213,7 @@ int vfc_dump_probes(vfc_probes *probes) {
 
   // Iterate over all table elements
   vfc_probe_node *probe = NULL;
-  for (int i = 0; i < probes->map->capacity; i++) {
+  for (size_t i = 0; i < probes->map->capacity; i++) {
     probe = (vfc_probe_node *)get_value_at(probes->map->items, i);
     if (probe != NULL) {
       fprintf(fp, "%s,%a\n", probe->key, probe->value);

@@ -57,6 +57,9 @@ typedef struct interflop_backend_interface_t (*interflop_init_t)(
 #define MAX_BACKENDS 16
 #define MAX_ARGS 256
 
+#define XSTR(X) STR(X)
+#define STR(X) #X
+
 struct interflop_backend_interface_t backends[MAX_BACKENDS];
 void *contexts[MAX_BACKENDS];
 unsigned char loaded_backends = 0;
@@ -70,9 +73,9 @@ void logger_info(const char *fmt, ...);
 void logger_warning(const char *fmt, ...);
 void logger_error(const char *fmt, ...);
 
-static char *dd_exclude_path = NULL;
-static char *dd_include_path = NULL;
-static char *dd_generate_path = NULL;
+__attribute__((unused)) static char *dd_exclude_path = NULL;
+__attribute__((unused)) static char *dd_include_path = NULL;
+__attribute__((unused)) static char *dd_generate_path = NULL;
 
 /* Function instrumentation prototypes */
 
@@ -144,7 +147,7 @@ void ddebug_generate_inclusion(char *dd_generate_path, vfc_hashmap_t map) {
   if (output == -1) {
     logger_error("cannot open DDEBUG_GEN file %s", dd_generate_path);
   }
-  for (int i = 0; i < map->capacity; i++) {
+  for (size_t i = 0; i < map->capacity; i++) {
     if (get_value_at(map->items, i) != 0 && get_value_at(map->items, i) != 1) {
       pid_t pid = fork();
       if (pid == 0) {
@@ -206,6 +209,7 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
                    "Include one backend in VFC_BACKENDS that provides it");    \
   } while (0)
 
+#if DDEBUG
 /* vfc_read_filter_file reads an inclusion/exclusion ddebug file and returns
  * an address map */
 static void vfc_read_filter_file(const char *dd_filter_path,
@@ -224,6 +228,47 @@ static void vfc_read_filter_file(const char *dd_filter_path,
         logger_error(
             "ddebug: error parsing VFC_DDEBUG_[INCLUDE/EXCLUDE] %s at line %d",
             dd_filter_path, lineno);
+      }
+    }
+  }
+}
+#endif
+
+/* Parse the different VFC_BACKENDS variables per priorty order */
+/* 1- VFC_BACKENDS */
+/* 2- VFC_BACKENDS_FROM_FILE */
+/* Set the backends read in vfc_backends */
+/* Set the name of the environment variable read in vfc_backends_env */
+void parse_vfc_backends_env(char **vfc_backends, char **vfc_backends_env) {
+
+  /* Parse VFC_BACKENDS */
+  *vfc_backends_env = (char *)malloc(sizeof(char) * 256);
+  *vfc_backends = (char *)malloc(sizeof(char) * 256);
+
+  sprintf(*vfc_backends_env, "VFC_BACKENDS");
+  *vfc_backends = getenv(*vfc_backends_env);
+
+  /* Parse VFC_BACKENDS_FROM_FILE if VFC_BACKENDS is empty*/
+  if (*vfc_backends == NULL) {
+    sprintf(*vfc_backends_env, "VFC_BACKENDS_FROM_FILE");
+    char *vfc_backends_fromfile_file = getenv(*vfc_backends_env);
+    if (vfc_backends_fromfile_file != NULL) {
+      FILE *fi = fopen(vfc_backends_fromfile_file, "r");
+      if (fi == NULL) {
+        logger_error("Error while opening file pointed by %s: %s",
+                     *vfc_backends_env, strerror(errno));
+      } else {
+        size_t len = 0;
+        ssize_t nread;
+        nread = getline(vfc_backends, &len, fi);
+        if (nread == -1) {
+          logger_error("Error while reading file pointed by %s: %s",
+                       *vfc_backends_env, strerror(errno));
+        } else {
+          if ((*vfc_backends)[nread - 1] == '\n') {
+            (*vfc_backends)[nread - 1] = '\0';
+          }
+        }
       }
     }
   }
@@ -254,40 +299,12 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   /* Initialize the logger */
   logger_init();
 
-  /* Parse VFC_BACKENDS_FROM_FILE */
-  char *vfc_backends_fromfile = NULL;
-  char *vfc_backends_fromfile_file = getenv("VFC_BACKENDS_FROM_FILE");
-  if (vfc_backends_fromfile_file != NULL) {
-    FILE *fi = fopen(vfc_backends_fromfile_file, "r");
-    if (fi == NULL) {
-      logger_error(
-          "Error while opening file pointed by VFC_BACKENDS_FROM_FILE: %s",
-          strerror(errno));
-    } else {
-      size_t len = 0;
-      ssize_t nread;
-      nread = getline(&vfc_backends_fromfile, &len, fi);
-      if (nread == -1) {
-        logger_error(
-            "Error while reading file pointed by VFC_BACKENDS_FROM_FILE: %s",
-            strerror(errno));
-      } else {
-        if (vfc_backends_fromfile[nread - 1] == '\n') {
-          vfc_backends_fromfile[nread - 1] = '\0';
-        }
-      }
-    }
-  }
+  char *vfc_backends = NULL, *vfc_backends_env = NULL;
+  parse_vfc_backends_env(&vfc_backends, &vfc_backends_env);
 
-  /* Parse VFC_BACKENDS */
-  char *vfc_backends = getenv("VFC_BACKENDS");
   if (vfc_backends == NULL) {
-    if (vfc_backends_fromfile == NULL) {
-      logger_error(
-          "VFC_BACKENDS is empty, at least one backend should be provided");
-    } else {
-      vfc_backends = vfc_backends_fromfile;
-    }
+    logger_error("%s is empty, at least one backend should be provided",
+                 vfc_backends_env);
   }
 
   /* Environnement variable to disable loading message */
@@ -310,7 +327,7 @@ __attribute__((constructor(0))) static void vfc_init(void) {
     char *arg = strtok_r(token, " ", &spaceptr);
     while (arg) {
       if (backend_argc >= MAX_ARGS) {
-        logger_error("VFC_BACKENDS syntax error: too many arguments");
+        logger_error("%s syntax error: too many arguments", vfc_backends_env);
       }
       backend_argv[backend_argc++] = arg;
       arg = strtok_r(NULL, " ", &spaceptr);
@@ -353,8 +370,8 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   }
 
   if (loaded_backends == 0) {
-    logger_error(
-        "VFC_BACKENDS syntax error: at least one backend should be provided");
+    logger_error("%s syntax error: at least one backend should be provided",
+                 vfc_backends_env);
   }
 
   /* Check that at least one backend implements each required operation */
@@ -466,8 +483,6 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
   }
   return c;
 }
-
-/* Arithmetic vector wrappers */
 
 #define define_vector_arithmetic_wrapper(size, precision, operation, operator) \
   precision##size _##size##x##precision##operation(precision##size a,          \

@@ -26,6 +26,8 @@
  ******************************************************************************/
 
 #include "../../config.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -35,6 +37,9 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/SourceMgr.h>
+#pragma GCC diagnostic pop
 
 #include <cxxabi.h>
 #include <fstream>
@@ -44,30 +49,10 @@
 #include <sstream>
 #include <utility>
 
-#if LLVM_VERSION_MAJOR < 5
-#define CREATE_CALL3(func, op1, op2, op3)                                      \
-  (Builder.CreateCall(func, {op1, op2, op3}, ""))
-#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
-#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
-#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
-  M.getOrInsertFunction(name, res, __VA_ARGS__, (Type *)NULL)
-typedef llvm::Constant *_LLVMFunctionType;
-#elif LLVM_VERSION_MAJOR < 9
-#define CREATE_CALL3(func, op1, op2, op3)                                      \
-  (Builder.CreateCall(func, {op1, op2, op3}, ""))
-#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
-#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
-#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
-  M.getOrInsertFunction(name, res, __VA_ARGS__)
-typedef llvm::Constant *_LLVMFunctionType;
+#if LLVM_VERSION_MAJOR < 11
+#define GET_VECTOR_TYPE(ty, size) VectorType::get(ty, size)
 #else
-#define CREATE_CALL3(func, op1, op2, op3)                                      \
-  (Builder.CreateCall(func, {op1, op2, op3}, ""))
-#define CREATE_CALL2(func, op1, op2) (Builder.CreateCall(func, {op1, op2}, ""))
-#define CREATE_STRUCT_GEP(t, i, p) (Builder.CreateStructGEP(t, i, p, ""))
-#define GET_OR_INSERT_FUNCTION(M, name, res, ...)                              \
-  M.getOrInsertFunction(name, res, __VA_ARGS__)
-typedef llvm::FunctionCallee _LLVMFunctionType;
+#define GET_VECTOR_TYPE(ty, size) FixedVectorType::get(ty, size)
 #endif
 
 using namespace llvm;
@@ -87,6 +72,11 @@ static cl::opt<std::string> VfclibInstExcludeFile(
     cl::desc("Do not instrument modules / functions in file ExcludeNameFile "),
     cl::value_desc("ExcludeNameFile"), cl::init(""));
 
+static cl::opt<std::string>
+    VfclibInstVfcwrapper("vfclibinst-vfcwrapper-file",
+                         cl::desc("Name of the vfcwrapper IR file "),
+                         cl::value_desc("VfcwrapperIRFile"), cl::init(""));
+
 static cl::opt<bool> VfclibInstVerbose("vfclibinst-verbose",
                                        cl::desc("Activate verbose mode"),
                                        cl::value_desc("Verbose"),
@@ -97,19 +87,28 @@ static cl::opt<bool>
                              cl::desc("Instrument floating point comparisons"),
                              cl::value_desc("InstrumentFCMP"), cl::init(false));
 
+/* pointer that hold the vfcwrapper Module */
+static Module *vfcwrapperM = nullptr;
+
 namespace {
 // Define an enum type to classify the floating points operations
 // that are instrumented by verificarlo
-
 enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_IGNORE };
 
 // Each instruction can be translated to a string representation
-
-std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
+const std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
 
 // Separtors for the module name
 const char path_separator = '/';
 const char relative_path_separator = '#';
+
+/* valid floating-point type to instrument */
+std::map<Type::TypeID, std::string> validTypesMap = {
+    std::pair<Type::TypeID, std::string>(Type::FloatTyID, "float"),
+    std::pair<Type::TypeID, std::string>(Type::DoubleTyID, "double")};
+
+/* valid vector sizes to instrument */
+const std::set<unsigned> validVectorSizes = {2, 4, 8, 16};
 
 struct VfclibInst : public ModulePass {
   static char ID;
@@ -235,8 +234,22 @@ struct VfclibInst : public ModulePass {
     return std::regex(moduleRegex);
   }
 
+  /* Load vfcwrapper.ll Module */
+  void loadVfcwrapperIR(Module &M) {
+    SMDiagnostic err;
+    std::unique_ptr<Module> _M =
+        parseIRFile(VfclibInstVfcwrapper, err, M.getContext());
+    if (_M.get() == nullptr) {
+      err.print(VfclibInstVfcwrapper.c_str(), errs());
+      report_fatal_error("libVFCInstrument fatal error");
+    }
+    vfcwrapperM = _M.release();
+  }
+
   bool runOnModule(Module &M) {
     bool modified = false;
+
+    loadVfcwrapperIR(M);
 
     // Parse both included and excluded function set
     std::regex includeFunctionRgx =
@@ -283,6 +296,57 @@ struct VfclibInst : public ModulePass {
     return modified;
   }
 
+  /* Constructs the mca function name */
+  /* it is built as: */
+  /*  _ <size>x<type><operation> for vector */
+  /*   _<type><operation> for scalar */
+  std::string getMCAFunctionName(Type *opType, Fops opCode) {
+    std::string functionName;
+    std::string size = "";
+
+    Type *baseType = opType->getScalarType();
+    if (VectorType *vecType = dyn_cast<VectorType>(opType)) {
+      size = std::to_string(vecType->getNumElements()) + "x";
+    }
+    auto precision = validTypesMap[baseType->getTypeID()];
+    auto operation = Fops2str[opCode];
+    functionName = "_" + size + precision + operation;
+    return functionName;
+  }
+
+  /* Check if Instruction I is a valid instruction to replace; scalar case */
+  bool isValidScalarInstruction(Type *opType) {
+    bool isValidType =
+        validTypesMap.find(opType->getTypeID()) != validTypesMap.end();
+    if (not isValidType) {
+      errs() << "Unsupported operand type: " << *opType << "\n";
+    }
+    return isValidType;
+  }
+
+  /* Check if Instruction I is a valid instruction to replace; vector case */
+  bool isValidVectorInstruction(Type *opType) {
+    VectorType *vecType = static_cast<VectorType *>(opType);
+    auto baseType = vecType->getScalarType();
+    auto size = vecType->getNumElements();
+    bool isValidSize = validVectorSizes.find(size) != validVectorSizes.end();
+    if (not isValidSize) {
+      errs() << "Unsuported vector size: " << size << "\n";
+      return false;
+    }
+    return isValidScalarInstruction(baseType);
+  }
+
+  /* Check if Instruction I is a valid instruction to replace */
+  bool isValidInstruction(Instruction *I) {
+    Type *opType = I->getOperand(0)->getType();
+    if (opType->isVectorTy()) {
+      return isValidVectorInstruction(opType);
+    } else {
+      return isValidScalarInstruction(opType);
+    }
+  }
+
   bool runOnFunction(Module &M, Function &F) {
     if (VfclibInstVerbose) {
       errs() << "In Function: ";
@@ -297,71 +361,158 @@ struct VfclibInst : public ModulePass {
     return modified;
   }
 
-  Value *replaceWithMCACall(Module &M, Instruction *I, Fops opCode) {
-    IRBuilder<> Builder(I);
-
-    Type *opType = I->getOperand(0)->getType();
-    Type *retType = I->getType();
-    std::string opName = Fops2str[opCode];
-
-    std::string baseTypeName = "";
-    std::string vectorName = "";
-    Type *baseType = opType;
-
-    // Should we add a vector prefix?
-    unsigned size = 1;
-    if (opType->isVectorTy()) {
-      VectorType *t = static_cast<VectorType *>(opType);
-      baseType = t->getElementType();
-      size = t->getNumElements();
-
-      if (size == 2) {
-        vectorName = "2x";
-      } else if (size == 4) {
-        vectorName = "4x";
-      } else if (size == 8) {
-        vectorName = "8x";
-      } else if (size == 16) {
-        vectorName = "16x";
-      } else {
-        errs() << "Unsuported vector size: " << size << "\n";
-        return nullptr;
+  Argument *getArgNo(Function *F, int argNo) {
+    Argument *arg = nullptr;
+#if LLVM_VERSION_MAJOR < 10
+    int i = 0;
+    for (auto &a : F->args()) {
+      if (i++ == argNo) {
+        arg = &a;
+        break;
       }
     }
+#else
+    arg = F->getArg(argNo);
+#endif
+    return arg;
+  }
 
-    // Check the type of the operation
-    if (baseType->isDoubleTy()) {
-      baseTypeName = "double";
-    } else if (baseType->isFloatTy()) {
-      baseTypeName = "float";
-    } else {
-      errs() << "Unsupported operand type: " << *opType << "\n";
+  /* Add extra instructions for operand not matching the signature type */
+  /* Returns the new operand */
+  Value *updateOperand(IRBuilder<> &Builder, Function *F, Value *operand,
+                       int argNo) {
+
+    Type *opType = operand->getType();
+    Argument *arg = getArgNo(F, argNo);
+    Type *sigType = arg->getType();
+
+    /* Check if operand and signature type match */
+    if (opType != sigType) {
+      if (CastInst::isBitCastable(opType, sigType)) {
+        /* Small vectors can be optimzed like <2xfloat> can be casted in double
+         */
+        operand = Builder.CreateBitCast(operand, sigType);
+      } else if (arg->hasByValAttr() and sigType->isPointerTy()) {
+        /* If vectorial registers are not available */
+        /* values are passed by pointer with attribute byval */
+        AllocaInst *alloca = Builder.CreateAlloca(opType);
+        Builder.CreateStore(operand, alloca);
+        operand = alloca;
+      }
+    }
+    return operand;
+  }
+
+  /* Update the return value if type mismatched */
+  Value *updateReturn(IRBuilder<> &Builder, CallInst *newInst, Type *retType) {
+    Type *retTypeNewInst = newInst->getType();
+    if (retType != retTypeNewInst) {
+      if (CastInst::isBitCastable(retTypeNewInst, retType)) {
+        return Builder.CreateBitCast(newInst, retType);
+      }
+    }
+    return newInst;
+  }
+
+  /* Replace arithmetic instructions with MCA */
+  Value *replaceArithmeticWithMCACall(IRBuilder<> &Builder, Function *F,
+                                      Instruction *I) {
+
+    Value *op1 = I->getOperand(0);
+    Value *op2 = I->getOperand(1);
+    Type *retType = I->getType();
+
+    op1 = updateOperand(Builder, F, op1, 0);
+    op2 = updateOperand(Builder, F, op2, 1);
+
+    CallInst *newInst = Builder.CreateCall(F, {op1, op2});
+    newInst->setAttributes(F->getAttributes());
+
+    newInst = dyn_cast<CallInst>(updateReturn(Builder, newInst, retType));
+
+    return newInst;
+  }
+
+  /* Replace comparison instructions with MCA */
+  Value *replaceComparisonWithMCACall(IRBuilder<> &Builder, Function *F,
+                                      Instruction *I) {
+    Type *opType = I->getOperand(0)->getType();
+    Type *retType = I->getType();
+
+    Value *op1 = I->getOperand(0);
+    Value *op2 = I->getOperand(1);
+
+    op1 = updateOperand(Builder, F, op1, 1);
+    op2 = updateOperand(Builder, F, op2, 2);
+
+    FCmpInst *FCI = static_cast<FCmpInst *>(I);
+    Type *res = Builder.getInt32Ty();
+    if (VectorType *vTy = dyn_cast<VectorType>(opType)) {
+      auto size = vTy->getNumElements();
+      res = GET_VECTOR_TYPE(res, size);
+    }
+    Value *newInst = Builder.CreateCall(
+        F, {Builder.getInt32(FCI->getPredicate()), op1, op2});
+    newInst = Builder.CreateIntCast(newInst, retType, true);
+    return newInst;
+  }
+
+  /* Returns the MCA function */
+  Function *getMCAFunction(Module &M, Type *opType, Fops opCode) {
+    const std::string mcaFunctionName = getMCAFunctionName(opType, opCode);
+    Function *vfcwrapperF = vfcwrapperM->getFunction(mcaFunctionName);
+#if LLVM_VERSION_MAJOR < 9
+    Constant *callee =
+        M.getOrInsertFunction(mcaFunctionName, vfcwrapperF->getFunctionType(),
+                              vfcwrapperF->getAttributes());
+    Function *newVfcWrapperF = dyn_cast<Function>(callee);
+#else
+    FunctionCallee callee =
+        M.getOrInsertFunction(mcaFunctionName, vfcwrapperF->getFunctionType(),
+                              vfcwrapperF->getAttributes());
+    Function *newVfcWrapperF = dyn_cast<Function>(callee.getCallee());
+#endif
+    return newVfcWrapperF;
+  }
+
+  // Returns true if the caller and the callee agree on how args will be passed
+  // Available in TargetTransformInfoImpl since llvm-8
+  bool areFunctionArgsABICompatible(Function *caller, Function *callee) {
+    return (callee->getFnAttribute("target-features") !=
+            caller->getFnAttribute("target-features")) and
+           (callee->getFnAttribute("target-cpu") !=
+            caller->getFnAttribute("target-cpu"));
+  }
+
+  Value *replaceWithMCACall(Module &M, Instruction *I, Fops opCode) {
+    if (not isValidInstruction(I)) {
       return nullptr;
     }
 
-    // Build name of the helper function in vfcwrapper
-    std::string mcaFunctionName = "_" + vectorName + baseTypeName + opName;
+    IRBuilder<> Builder(I);
+    Type *opType = I->getOperand(0)->getType();
+
+    Function *caller = I->getFunction();
+    /* Get the mca function */
+    Function *mcaFunction = getMCAFunction(M, opType, opCode);
+
+    // If the caller and the callee (mcaFunction) have different ABI we set the
+    // caller attributes to the callee ones.
+    if (areFunctionArgsABICompatible(caller, mcaFunction)) {
+      auto target_features = mcaFunction->getFnAttribute("target-features");
+      auto target_cpu = mcaFunction->getFnAttribute("target-cpu");
+      caller->addFnAttr(target_features);
+      caller->addFnAttr(target_cpu);
+    }
 
     // We call directly a hardcoded helper function
     // no need to go through the vtable at this stage.
     Value *newInst;
     if (opCode == FOP_CMP) {
-      FCmpInst *FCI = static_cast<FCmpInst *>(I);
-      Type *res = Builder.getInt32Ty();
-      if (size > 1) {
-        res = VectorType::get(res, size);
-      }
-      _LLVMFunctionType hookFunc = GET_OR_INSERT_FUNCTION(
-          M, mcaFunctionName, res, Builder.getInt32Ty(), opType, opType);
-      newInst = CREATE_CALL3(hookFunc, Builder.getInt32(FCI->getPredicate()),
-                             FCI->getOperand(0), FCI->getOperand(1));
-      newInst = Builder.CreateIntCast(newInst, retType, true);
+      newInst = replaceComparisonWithMCACall(Builder, mcaFunction, I);
     } else {
-      _LLVMFunctionType hookFunc =
-          GET_OR_INSERT_FUNCTION(M, mcaFunctionName, retType, opType, opType);
-      newInst = CREATE_CALL2(hookFunc, I->getOperand(0), I->getOperand(1));
+      newInst = replaceArithmeticWithMCACall(Builder, mcaFunction, I);
     }
-
     return newInst;
   }
 
