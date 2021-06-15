@@ -102,7 +102,7 @@ typedef struct {
   uint64_t seed;
   bool daz;
   bool ftz;
-  uint64_t sparsity;
+  float sparsity;
 } t_context;
 
 /* define the available MCA modes of operation */
@@ -189,14 +189,14 @@ static double _mca_rand(void) {
   return tinymt64_generate_doubleOO(&random_state);
 }
 
-static bool _mca_skip_eval(const int sparsity) {
+static inline bool _mca_skip_eval(const float sparsity) {
   /* Returns a bool for determining whether an operation should skip */
   /* perturbation. false -> perturb; true -> skip. */
-  if (sparsity == 1) {
+  if (sparsity >= 1) {
     return false;
   }
-  /* e.g. for sparsity=10, all random values > 0.1 = true -> no MCA*/
-  return (_mca_rand() > (1.0 / sparsity));
+  /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
+  return (_mca_rand() > sparsity);
 }
 
 /* noise = rand * 2^(exp) */
@@ -406,7 +406,7 @@ static struct argp_option options[] = {
     {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero",
      0},
     {key_sparsity_str, KEY_SPARSITY, "SPARSITY", 0,
-     "sparsity: one in 1/{sparsity} operations will be perturbed", 0},
+     "one in {sparsity} operations will be perturbed. 0 < sparsity <= 1.", 0},
     {0}};
 
 error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -499,9 +499,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_SPARSITY:
     /* sparse perturbations */
     errno = 0;
-    ctx->sparsity = strtoull(arg, &endptr, 10);
+    ctx->sparsity = strtod(arg, &endptr);
+    if (ctx->sparsity <= 0) {
+      errno = 1;
+    }
     if (errno != 0) {
-      logger_error("--%s invalid value provided, must be an integer",
+      logger_error("--%s invalid value provided, must be positive",
                    key_sparsity_str);
     }
     break;

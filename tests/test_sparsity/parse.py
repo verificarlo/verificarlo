@@ -7,7 +7,7 @@ from collections import Counter
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("logfile")
-    parser.add_argument("sparsity", type=int)
+    parser.add_argument("sparsity", type=float)
 
     args = parser.parse_args()
 
@@ -16,7 +16,6 @@ if __name__ == '__main__':
 
     percent_ieee = c[8]*100.0/len(x)
     print(percent_ieee)
-    
-    rounded=round(percent_ieee, 0)
-    assert(rounded == 100*(1 - 1.0/args.sparsity)) 
+
+    assert(np.isclose(percent_ieee, 100*(1-args.sparsity), atol=1e-1))
 
