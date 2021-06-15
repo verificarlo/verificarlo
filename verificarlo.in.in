@@ -192,6 +192,7 @@ def compiler_mode(sources, options, output, args):
         ins = get_tmp_filename(basename, '.2.ll', args)
 
         compiler = linkers[args.linker]
+        include = f" -I {mcalib_includes} "
 
         debug = '-g' if args.inst_func else ''
 
@@ -204,7 +205,8 @@ def compiler_mode(sources, options, output, args):
             continue
 
         # Compile to ir (fortran uses flang, c uses clang)
-        shell(f'{compiler} -c -S {debug} {source} -emit-llvm {options} -o {ir.name}')
+        shell(
+            f'{compiler} -c -S {debug} {source} {include} -emit-llvm {options} -o {ir.name}')
 
         selectfunction = ""
         if args.function:
