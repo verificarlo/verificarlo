@@ -65,11 +65,131 @@ llvm::Type *FloatTy, *DoubleTy, *FloatPtrTy, *DoublePtrTy, *Int8Ty, *Int8PtrTy,
 // Array of values
 Value *Types2val[] = {NULL, NULL, NULL, NULL};
 
+void loopOverOpTypes(Type *t1, int *has_float, int *has_double);
+void loopOverStructTypes(Type *t1, int *has_float, int *has_double);
+void handleStructType(Type *opType, size_t &input_cpt, size_t &output_cpt);
+
+void handleEnterArgs(std::vector<Value *> &EnterArgs, IRBuilder<> &Builder,
+                     BasicBlock *B, Type *opType, const CallInst *call,
+                     llvm::Argument *args, Function *HF);
+
+void handleExitArgs(std::vector<Value *> &ExitArgs, IRBuilder<> &Builder,
+                    BasicBlock *B, Type *opType, const CallInst *call,
+                    llvm::Argument *args, Function *HF);
+
+void handleStructType(Type *opType, size_t &input_cpt, size_t &output_cpt) {
+
+  StructType *t = static_cast<StructType *>(opType);
+
+  for (auto it = t->element_begin(); it < t->element_end(); it++) {
+    Type *t1 = *it;
+    llvm::Type::TypeID tid1 = t1->getTypeID();
+    if (t1->isDoubleTy()) {
+      input_cpt++;
+      output_cpt++;
+    } else if (t1->isFloatTy()) {
+      input_cpt++;
+      output_cpt++;
+    } else if (t1->isStructTy()) {
+      handleStructType(t1, input_cpt, output_cpt);
+    } else if (t1->isArrayTy()) {
+      Type *t2 = static_cast<ArrayType *>(t1)->getElementType();
+      if (t2->isFloatTy()) {
+        input_cpt += static_cast<ArrayType *>(t1)->getNumElements();
+        output_cpt += static_cast<ArrayType *>(t1)->getNumElements();
+      } else if (t2->isDoubleTy()) {
+        input_cpt += static_cast<ArrayType *>(t1)->getNumElements();
+        output_cpt += static_cast<ArrayType *>(t1)->getNumElements();
+      }
+    } else if (t1->isVectorTy()) {
+      Type *t2 = static_cast<VectorType *>(t1)->getElementType();
+      if (t2->isFloatTy()) {
+        input_cpt += static_cast<VectorType *>(t1)->getNumElements();
+        output_cpt += static_cast<VectorType *>(t1)->getNumElements();
+      } else if (t2->isDoubleTy()) {
+        input_cpt += static_cast<VectorType *>(t1)->getNumElements();
+        output_cpt += static_cast<VectorType *>(t1)->getNumElements();
+      }
+    } else if (t1->isPointerTy()) {
+      PointerType *pt1 = static_cast<PointerType *>(t1);
+      Type *t2 = pt1->getElementType();
+      if (t2->isDoubleTy()) {
+        // ptr->double
+        input_cpt++;
+        output_cpt++;
+      } else if (t2->isFloatTy()) {
+        // ptr->float
+        input_cpt++;
+        output_cpt++;
+      } else if (t2->isArrayTy()) {
+        Type *t3 = static_cast<ArrayType *>(t2)->getElementType();
+        if (t3->isDoubleTy()) {
+          // ptr->array (double)
+          input_cpt += static_cast<ArrayType *>(t2)->getNumElements();
+          output_cpt += static_cast<ArrayType *>(t2)->getNumElements();
+        } else if (t3->isFloatTy()) {
+          // ptr->array (float)
+          input_cpt += static_cast<ArrayType *>(t2)->getNumElements();
+          output_cpt += static_cast<ArrayType *>(t2)->getNumElements();
+        }
+      } else if (t2->isVectorTy()) {
+        Type *t3 = static_cast<VectorType *>(t2)->getElementType();
+        if (t3->isDoubleTy()) {
+          // ptr->vector (double)
+          input_cpt += static_cast<VectorType *>(t2)->getNumElements();
+          output_cpt += static_cast<VectorType *>(t2)->getNumElements();
+        } else if (t3->isFloatTy()) {
+          // ptr->vector (float)
+          input_cpt += static_cast<VectorType *>(t2)->getNumElements();
+          output_cpt += static_cast<VectorType *>(t2)->getNumElements();
+        }
+      } else if (t2->isPointerTy()) {
+        PointerType *pt3 = static_cast<PointerType *>(t2);
+        Type *t3 = pt3->getElementType();
+        if (t3->isDoubleTy()) {
+          // ptr->ptr->double
+          input_cpt++;
+          output_cpt++;
+        } else if (t3->isFloatTy()) {
+          // ptr->ptr->float
+          input_cpt++;
+          output_cpt++;
+        } else if (t3->isStructTy()) {
+          handleStructType(t3, input_cpt, output_cpt);
+        } else if (t3->isArrayTy()) {
+          Type *t4 = static_cast<ArrayType *>(t3)->getElementType();
+          if (t4->isDoubleTy()) {
+            // ptr->ptr->array (double)
+            input_cpt += static_cast<ArrayType *>(t3)->getNumElements();
+            output_cpt += static_cast<ArrayType *>(t3)->getNumElements();
+          } else if (t4->isFloatTy()) {
+            // ptr->ptr->array (float)
+            input_cpt += static_cast<ArrayType *>(t3)->getNumElements();
+            output_cpt += static_cast<ArrayType *>(t3)->getNumElements();
+          }
+        } else if (t3->isVectorTy()) {
+          Type *t4 = static_cast<VectorType *>(t3)->getElementType();
+          if (t4->isDoubleTy()) {
+            // ptr->ptr->vector (double)
+            input_cpt += static_cast<VectorType *>(t3)->getNumElements();
+            output_cpt += static_cast<VectorType *>(t3)->getNumElements();
+          } else if (t4->isFloatTy()) {
+            // ptr->ptr->vector (float)
+            input_cpt += static_cast<VectorType *>(t3)->getNumElements();
+            output_cpt += static_cast<VectorType *>(t3)->getNumElements();
+          }
+        }
+      }
+    }
+  }
+}
+
 // Fill use_double and use_float with true if the call_inst pi use at least
 // of the managed types
 void haveFloatingPointArithmetic(Instruction *call, Function *f,
                                  bool is_from_library, bool is_intrinsic,
-                                 bool *use_float, bool *use_double, Module &M) {
+                                 bool *use_float, bool *use_double,
+                                 int *has_float, int *has_double, Module &M) {
   Type *ReturnTy;
 
   if (f) {
@@ -103,6 +223,8 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
 
           if (opType == DoubleTy)
             (*use_double) = true;
+
+          loopOverOpTypes(opType, has_float, has_double);
         }
       }
     }
@@ -181,6 +303,332 @@ std::string getArgName(Function *F, Value *V, unsigned int i) {
   return "parameter_" + std::to_string(i + 1);
 }
 
+void handleEnterArgs(std::vector<Value *> &EnterArgs, IRBuilder<> &Builder,
+                     BasicBlock *B, Type *opType, const CallInst *call,
+                     llvm::Argument *args, Function *HF) {
+
+  StructType *t = static_cast<StructType *>(opType);
+
+  for (auto it = t->element_begin(); it < t->element_end(); it++) {
+    Type *t1 = *it;
+    llvm::Type::TypeID tid1 = t1->getTypeID();
+    if (t1->isDoubleTy()) {
+      EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+      EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+          getArgName(HF, args, args->getArgNo())));
+      EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+      EnterArgs.push_back(args);
+    } else if (t1->isFloatTy()) {
+      EnterArgs.push_back(Types2val[FLOAT_PTR]);
+      EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+          getArgName(HF, args, args->getArgNo())));
+      EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+      EnterArgs.push_back(args);
+    } else if (t1->isStructTy()) {
+      handleEnterArgs(EnterArgs, Builder, B, t1, call, args, HF);
+    } else if (t1->isArrayTy()) {
+      Type *t2 = static_cast<ArrayType *>(t1)->getElementType();
+      if (t2->isDoubleTy()) {
+        EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+        EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        EnterArgs.push_back(ConstantInt::get(
+            Int32Ty, static_cast<ArrayType *>(t1)->getNumElements()));
+        EnterArgs.push_back(args);
+      } else if (t2->isFloatTy()) {
+        EnterArgs.push_back(Types2val[FLOAT_PTR]);
+        EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        EnterArgs.push_back(ConstantInt::get(
+            Int32Ty, static_cast<ArrayType *>(t1)->getNumElements()));
+        EnterArgs.push_back(args);
+      }
+    } else if (t1->isVectorTy()) {
+      Type *t2 = static_cast<VectorType *>(t1)->getElementType();
+      if (t2->isDoubleTy()) {
+        EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+        EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        EnterArgs.push_back(ConstantInt::get(
+            Int32Ty, static_cast<VectorType *>(t1)->getNumElements()));
+        EnterArgs.push_back(args);
+      } else if (t2->isFloatTy()) {
+        EnterArgs.push_back(Types2val[FLOAT_PTR]);
+        EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        EnterArgs.push_back(ConstantInt::get(
+            Int32Ty, static_cast<VectorType *>(t1)->getNumElements()));
+        EnterArgs.push_back(args);
+      }
+    } else if (t1->isPointerTy()) {
+      PointerType *pt1 = static_cast<PointerType *>(t1);
+      Type *t2 = pt1->getElementType();
+      if (t2->isDoubleTy()) {
+        EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+        EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+        EnterArgs.push_back(args);
+      } else if (t2->isFloatTy()) {
+        EnterArgs.push_back(Types2val[FLOAT_PTR]);
+        EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+        EnterArgs.push_back(args);
+      } else if (t2->isArrayTy()) {
+        Type *t3 = static_cast<ArrayType *>(t2)->getElementType();
+        if (t3->isDoubleTy()) {
+          EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<ArrayType *>(t2)->getNumElements()));
+          EnterArgs.push_back(args);
+        } else if (t3->isFloatTy()) {
+          EnterArgs.push_back(Types2val[FLOAT_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<ArrayType *>(t2)->getNumElements()));
+          EnterArgs.push_back(args);
+        }
+      } else if (t2->isVectorTy()) {
+        Type *t3 = static_cast<VectorType *>(t2)->getElementType();
+        if (t3->isDoubleTy()) {
+          EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<VectorType *>(t2)->getNumElements()));
+          EnterArgs.push_back(args);
+        } else if (t3->isFloatTy()) {
+          EnterArgs.push_back(Types2val[FLOAT_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<VectorType *>(t2)->getNumElements()));
+          EnterArgs.push_back(args);
+        }
+      } else if (t2->isPointerTy()) {
+        PointerType *pt3 = static_cast<PointerType *>(t2);
+        Type *t3 = pt3->getElementType();
+        if (t3->isDoubleTy()) {
+          EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+          EnterArgs.push_back(args);
+        } else if (t3->isFloatTy()) {
+          EnterArgs.push_back(Types2val[FLOAT_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+          EnterArgs.push_back(args);
+        } else if (t3->isStructTy()) {
+          handleEnterArgs(EnterArgs, Builder, B, t3, call, args, HF);
+        } else if (t3->isArrayTy()) {
+          Type *t4 = static_cast<ArrayType *>(t3)->getElementType();
+          if (t4->isDoubleTy()) {
+            EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+            EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HF, args, args->getArgNo())));
+            EnterArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<ArrayType *>(t3)->getNumElements()));
+            EnterArgs.push_back(args);
+          } else if (t4->isFloatTy()) {
+            EnterArgs.push_back(Types2val[FLOAT_PTR]);
+            EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HF, args, args->getArgNo())));
+            EnterArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<ArrayType *>(t3)->getNumElements()));
+            EnterArgs.push_back(args);
+          }
+        } else if (t3->isVectorTy()) {
+          Type *t4 = static_cast<VectorType *>(t3)->getElementType();
+          if (t4->isDoubleTy()) {
+            EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+            EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HF, args, args->getArgNo())));
+            EnterArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<VectorType *>(t3)->getNumElements()));
+            EnterArgs.push_back(args);
+          } else if (t4->isFloatTy()) {
+            EnterArgs.push_back(Types2val[FLOAT_PTR]);
+            EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HF, args, args->getArgNo())));
+            EnterArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<VectorType *>(t3)->getNumElements()));
+            EnterArgs.push_back(args);
+          }
+        }
+      }
+    }
+  }
+}
+
+void handleExitArgs(std::vector<Value *> &ExitArgs, IRBuilder<> &Builder,
+                    BasicBlock *B, Type *opType, const CallInst *call,
+                    llvm::Argument *args, Function *HF) {
+
+  StructType *t = static_cast<StructType *>(opType);
+
+  for (auto it = t->element_begin(); it < t->element_end(); it++) {
+    Type *t1 = *it;
+    llvm::Type::TypeID tid1 = t1->getTypeID();
+    if (t1->isDoubleTy()) {
+      ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+      ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+          getArgName(HF, args, args->getArgNo())));
+      ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+      ExitArgs.push_back(args);
+    } else if (t1->isFloatTy()) {
+      ExitArgs.push_back(Types2val[FLOAT_PTR]);
+      ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+          getArgName(HF, args, args->getArgNo())));
+      ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+      ExitArgs.push_back(args);
+    } else if (t1->isStructTy()) {
+      handleExitArgs(ExitArgs, Builder, B, t1, call, args, HF);
+    } else if (t1->isArrayTy()) {
+      Type *t2 = static_cast<ArrayType *>(t1)->getElementType();
+      if (t2->isDoubleTy()) {
+        ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+        ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        ExitArgs.push_back(ConstantInt::get(
+            Int32Ty, static_cast<ArrayType *>(t1)->getNumElements()));
+        ExitArgs.push_back(args);
+      } else if (t2->isFloatTy()) {
+        ExitArgs.push_back(Types2val[FLOAT_PTR]);
+        ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        ExitArgs.push_back(ConstantInt::get(
+            Int32Ty, static_cast<ArrayType *>(t1)->getNumElements()));
+        ExitArgs.push_back(args);
+      }
+    } else if (t1->isVectorTy()) {
+      Type *t2 = static_cast<VectorType *>(t1)->getElementType();
+      if (t2->isDoubleTy()) {
+        ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+        ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        ExitArgs.push_back(ConstantInt::get(
+            Int32Ty, static_cast<VectorType *>(t1)->getNumElements()));
+        ExitArgs.push_back(args);
+      } else if (t2->isFloatTy()) {
+        ExitArgs.push_back(Types2val[FLOAT_PTR]);
+        ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        ExitArgs.push_back(ConstantInt::get(
+            Int32Ty, static_cast<VectorType *>(t1)->getNumElements()));
+        ExitArgs.push_back(args);
+      }
+    } else if (t1->isPointerTy()) {
+      PointerType *pt1 = static_cast<PointerType *>(t1);
+      Type *t2 = pt1->getElementType();
+      if (t2->isDoubleTy()) {
+        ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+        ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+        ExitArgs.push_back(args);
+      } else if (t2->isFloatTy()) {
+        ExitArgs.push_back(Types2val[FLOAT_PTR]);
+        ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+            getArgName(HF, args, args->getArgNo())));
+        ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+        ExitArgs.push_back(args);
+      } else if (t2->isArrayTy()) {
+        Type *t3 = static_cast<ArrayType *>(t2)->getElementType();
+        if (t3->isDoubleTy()) {
+          ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<ArrayType *>(t2)->getNumElements()));
+          ExitArgs.push_back(args);
+        } else if (t3->isFloatTy()) {
+          ExitArgs.push_back(Types2val[FLOAT_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<ArrayType *>(t2)->getNumElements()));
+          ExitArgs.push_back(args);
+        }
+      } else if (t2->isVectorTy()) {
+        Type *t3 = static_cast<VectorType *>(t2)->getElementType();
+        if (t3->isDoubleTy()) {
+          ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<VectorType *>(t2)->getNumElements()));
+          ExitArgs.push_back(args);
+        } else if (t3->isFloatTy()) {
+          ExitArgs.push_back(Types2val[FLOAT_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<VectorType *>(t2)->getNumElements()));
+          ExitArgs.push_back(args);
+        }
+      } else if (t2->isPointerTy()) {
+        PointerType *pt3 = static_cast<PointerType *>(t2);
+        Type *t3 = pt3->getElementType();
+        if (t3->isDoubleTy()) {
+          ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+          ExitArgs.push_back(args);
+        } else if (t3->isFloatTy()) {
+          ExitArgs.push_back(Types2val[FLOAT_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HF, args, args->getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+          ExitArgs.push_back(args);
+        } else if (t3->isStructTy()) {
+          handleExitArgs(ExitArgs, Builder, B, t3, call, args, HF);
+        } else if (t3->isArrayTy()) {
+          Type *t4 = static_cast<ArrayType *>(t3)->getElementType();
+          if (t4->isDoubleTy()) {
+            ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+            ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HF, args, args->getArgNo())));
+            ExitArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<ArrayType *>(t3)->getNumElements()));
+            ExitArgs.push_back(args);
+          } else if (t4->isFloatTy()) {
+            ExitArgs.push_back(Types2val[FLOAT_PTR]);
+            ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HF, args, args->getArgNo())));
+            ExitArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<ArrayType *>(t3)->getNumElements()));
+            ExitArgs.push_back(args);
+          }
+        } else if (t3->isVectorTy()) {
+          Type *t4 = static_cast<VectorType *>(t3)->getElementType();
+          if (t4->isDoubleTy()) {
+            ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+            ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HF, args, args->getArgNo())));
+            ExitArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<VectorType *>(t3)->getNumElements()));
+            ExitArgs.push_back(args);
+          } else if (t4->isFloatTy()) {
+            ExitArgs.push_back(Types2val[FLOAT_PTR]);
+            ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HF, args, args->getArgNo())));
+            ExitArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<VectorType *>(t3)->getNumElements()));
+            ExitArgs.push_back(args);
+          }
+        }
+      }
+    }
+  }
+}
+
 void InstrumentFunction(std::vector<Value *> MetaData,
                         Function *CurrentFunction, Function *HookedFunction,
                         const CallInst *call, BasicBlock *B, Module &M) {
@@ -206,7 +654,6 @@ void InstrumentFunction(std::vector<Value *> MetaData,
 
   size_t input_cpt = 0;
   std::vector<Value *> InputAlloca;
-
   for (auto &args : CurrentFunction->args()) {
     if (args.getType() == DoubleTy) {
       InputAlloca.push_back(Builder.CreateAlloca(DoubleTy, nullptr));
@@ -220,6 +667,90 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     } else if (args.getType() == Type::getDoublePtrTy(M.getContext()) && call) {
       input_cpt++;
       output_cpt++;
+    } else {
+      Type *t1 = args.getType();
+      if (t1->isStructTy()) {
+        handleStructType(t1, input_cpt, output_cpt);
+      } else if (t1->isArrayTy()) {
+        Type *t2 = static_cast<ArrayType *>(t1)->getElementType();
+        if (t2->isDoubleTy()) {
+          input_cpt += static_cast<ArrayType *>(t1)->getNumElements();
+          output_cpt += static_cast<ArrayType *>(t1)->getNumElements();
+        } else if (t2->isFloatTy()) {
+          input_cpt += static_cast<ArrayType *>(t1)->getNumElements();
+          output_cpt += static_cast<ArrayType *>(t1)->getNumElements();
+        }
+      } else if (t1->isVectorTy()) {
+        Type *t2 = static_cast<VectorType *>(t1)->getElementType();
+        if (t2->isDoubleTy()) {
+          input_cpt += static_cast<VectorType *>(t1)->getNumElements();
+          output_cpt += static_cast<VectorType *>(t1)->getNumElements();
+        } else if (t2->isFloatTy()) {
+          input_cpt += static_cast<VectorType *>(t1)->getNumElements();
+          output_cpt += static_cast<VectorType *>(t1)->getNumElements();
+        }
+      } else if (t1->isPointerTy()) {
+        PointerType *pt = static_cast<PointerType *>(t1);
+        Type *t2 = pt->getElementType();
+        if (t2->isDoubleTy()) {
+          input_cpt++;
+          output_cpt++;
+        } else if (t2->isFloatTy()) {
+          input_cpt++;
+          output_cpt++;
+        } else if (t2->isStructTy()) {
+          handleStructType(t2, input_cpt, output_cpt);
+        } else if (t2->isArrayTy()) {
+          Type *t3 = static_cast<ArrayType *>(t2)->getElementType();
+          if (t3->isDoubleTy()) {
+            input_cpt += static_cast<ArrayType *>(t2)->getNumElements();
+            output_cpt += static_cast<ArrayType *>(t2)->getNumElements();
+          } else if (t3->isFloatTy()) {
+            input_cpt += static_cast<ArrayType *>(t2)->getNumElements();
+            output_cpt += static_cast<ArrayType *>(t2)->getNumElements();
+          }
+        } else if (t2->isVectorTy()) {
+          Type *t3 = static_cast<VectorType *>(t2)->getElementType();
+          if (t3->isDoubleTy()) {
+            input_cpt += static_cast<VectorType *>(t2)->getNumElements();
+            output_cpt += static_cast<VectorType *>(t2)->getNumElements();
+          } else if (t3->isFloatTy()) {
+            input_cpt += static_cast<VectorType *>(t2)->getNumElements();
+            output_cpt += static_cast<VectorType *>(t2)->getNumElements();
+          }
+        } else if (t2->isPointerTy()) {
+          PointerType *pt2 = static_cast<PointerType *>(t2);
+          Type *t3 = pt2->getElementType();
+          llvm::Type::TypeID tid3 = t3->getTypeID();
+          if (t3->isDoubleTy()) {
+            input_cpt++;
+            output_cpt++;
+          } else if (t3->isFloatTy()) {
+            input_cpt++;
+            output_cpt++;
+          } else if (t3->isStructTy()) {
+            handleStructType(t3, input_cpt, output_cpt);
+          } else if (t3->isArrayTy()) {
+            Type *t4 = static_cast<ArrayType *>(t3)->getElementType();
+            if (t4->isDoubleTy()) {
+              input_cpt += static_cast<ArrayType *>(t3)->getNumElements();
+              output_cpt += static_cast<ArrayType *>(t3)->getNumElements();
+            } else if (t4->isFloatTy()) {
+              input_cpt += static_cast<ArrayType *>(t3)->getNumElements();
+              output_cpt += static_cast<ArrayType *>(t3)->getNumElements();
+            }
+          } else if (t3->isVectorTy()) {
+            Type *t4 = static_cast<VectorType *>(t3)->getElementType();
+            if (t4->isDoubleTy()) {
+              input_cpt += static_cast<VectorType *>(t3)->getNumElements();
+              output_cpt += static_cast<VectorType *>(t3)->getNumElements();
+            } else if (t4->isFloatTy()) {
+              input_cpt += static_cast<VectorType *>(t3)->getNumElements();
+              output_cpt += static_cast<VectorType *>(t3)->getNumElements();
+            }
+          }
+        }
+      }
     }
   }
 
@@ -229,7 +760,8 @@ void InstrumentFunction(std::vector<Value *> MetaData,
   std::vector<Value *> OutputMetaData = MetaData;
   OutputMetaData.push_back(ConstantInt::get(Builder.getInt32Ty(), output_cpt));
 
-  // Step 2: for each function input (arguments), add its type, size, name and
+  // Step 2: for each function input (arguments), add its type, size, name
+  // and
   // address to the list of parameters sent to vfc_enter for processing.
   std::vector<Value *> EnterArgs = InputMetaData;
   size_t input_index = 0;
@@ -264,9 +796,160 @@ void InstrumentFunction(std::vector<Value *> MetaData,
           ConstantInt::get(Int32Ty, getSizeOf(call->getOperand(args.getArgNo()),
                                               call->getParent()->getParent())));
       EnterArgs.push_back(&args);
+    } else {
+      Type *t1 = args.getType();
+      llvm::Type::TypeID tid1 = t1->getTypeID();
+#if defined(VFC_DEBUG)
+      errs() << "S2: .....TypeID " << tid1 << " .....\n";
+#endif
+      if (t1->isStructTy()) {
+        handleEnterArgs(EnterArgs, Builder, B, t1, call, &args, HookedFunction);
+      } else if (t1->isArrayTy()) {
+        Type *t2 = static_cast<ArrayType *>(t1)->getElementType();
+        if (t2->isFloatTy()) {
+          EnterArgs.push_back(Types2val[FLOAT_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<ArrayType *>(t1)->getNumElements()));
+          EnterArgs.push_back(&args);
+
+        } else if (t2->isDoubleTy()) {
+          EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<ArrayType *>(t1)->getNumElements()));
+          EnterArgs.push_back(&args);
+        }
+      } else if (t1->isVectorTy()) {
+        Type *t2 = static_cast<VectorType *>(t1)->getElementType();
+        if (t2->isFloatTy()) {
+          EnterArgs.push_back(Types2val[FLOAT_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<VectorType *>(t1)->getNumElements()));
+          EnterArgs.push_back(&args);
+
+        } else if (t2->isDoubleTy()) {
+          EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<VectorType *>(t1)->getNumElements()));
+          EnterArgs.push_back(&args);
+        }
+      } else if (t1->isPointerTy()) {
+        PointerType *pt = static_cast<PointerType *>(t1);
+        Type *t2 = pt->getElementType();
+        if (t2->isDoubleTy()) {
+          EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+          EnterArgs.push_back(&args);
+        } else if (t2->isFloatTy()) {
+          EnterArgs.push_back(Types2val[FLOAT_PTR]);
+          EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+          EnterArgs.push_back(&args);
+        } else if (t2->isStructTy()) {
+          handleEnterArgs(EnterArgs, Builder, B, t2, call, &args,
+                          HookedFunction);
+        } else if (t2->isArrayTy()) {
+          Type *t3 = static_cast<ArrayType *>(t2)->getElementType();
+          if (t3->isFloatTy()) {
+            EnterArgs.push_back(Types2val[FLOAT_PTR]);
+            EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            EnterArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<ArrayType *>(t2)->getNumElements()));
+            EnterArgs.push_back(&args);
+          } else if (t3->isDoubleTy()) {
+            EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+            EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            EnterArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<ArrayType *>(t2)->getNumElements()));
+            EnterArgs.push_back(&args);
+          }
+        } else if (t2->isVectorTy()) {
+          Type *t3 = static_cast<VectorType *>(t2)->getElementType();
+          if (t3->isFloatTy()) {
+            EnterArgs.push_back(Types2val[FLOAT_PTR]);
+            EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            EnterArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<VectorType *>(t2)->getNumElements()));
+            EnterArgs.push_back(&args);
+          } else if (t3->isDoubleTy()) {
+            EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+            EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            EnterArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<VectorType *>(t2)->getNumElements()));
+            EnterArgs.push_back(&args);
+          }
+        } else if (t2->isPointerTy()) {
+          PointerType *pt2 = static_cast<PointerType *>(t2);
+          Type *t3 = pt2->getElementType();
+          if (t3->isDoubleTy()) {
+            EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+            EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+            EnterArgs.push_back(&args);
+          } else if (t3->isFloatTy()) {
+            EnterArgs.push_back(Types2val[FLOAT_PTR]);
+            EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+            EnterArgs.push_back(&args);
+
+          } else if (t3->isStructTy()) {
+            handleEnterArgs(EnterArgs, Builder, B, t3, call, &args,
+                            HookedFunction);
+          } else if (t3->isArrayTy()) {
+            Type *t4 = static_cast<ArrayType *>(t3)->getElementType();
+            if (t4->isFloatTy()) {
+              EnterArgs.push_back(Types2val[FLOAT_PTR]);
+              EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                  getArgName(HookedFunction, &args, args.getArgNo())));
+              EnterArgs.push_back(ConstantInt::get(
+                  Int32Ty, static_cast<ArrayType *>(t3)->getNumElements()));
+              EnterArgs.push_back(&args);
+            } else if (t4->isDoubleTy()) {
+              EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+              EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                  getArgName(HookedFunction, &args, args.getArgNo())));
+              EnterArgs.push_back(ConstantInt::get(
+                  Int32Ty, static_cast<ArrayType *>(t3)->getNumElements()));
+              EnterArgs.push_back(&args);
+            }
+          } else if (t3->isVectorTy()) {
+            Type *t4 = static_cast<VectorType *>(t3)->getElementType();
+            if (t4->isFloatTy()) {
+              EnterArgs.push_back(Types2val[FLOAT_PTR]);
+              EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                  getArgName(HookedFunction, &args, args.getArgNo())));
+              EnterArgs.push_back(ConstantInt::get(
+                  Int32Ty, static_cast<VectorType *>(t3)->getNumElements()));
+              EnterArgs.push_back(&args);
+            } else if (t4->isDoubleTy()) {
+              EnterArgs.push_back(Types2val[DOUBLE_PTR]);
+              EnterArgs.push_back(Builder.CreateGlobalStringPtr(
+                  getArgName(HookedFunction, &args, args.getArgNo())));
+              EnterArgs.push_back(ConstantInt::get(
+                  Int32Ty, static_cast<VectorType *>(t3)->getNumElements()));
+              EnterArgs.push_back(&args);
+            }
+          }
+        }
+      }
     }
   }
-
   // Step 3: call vfc_enter
   Builder.CreateCall(func_enter, EnterArgs);
 
@@ -301,7 +984,8 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     ret = Builder.Insert(call);
   }
 
-  // Step 6: for each function output (return value, and pointers as argument),
+  // Step 6: for each function output (return value, and pointers as
+  // argument),
   // add its type, size, name and address to the list of parameters sent to
   // vfc_exit for processing.
   std::vector<Value *> ExitArgs = OutputMetaData;
@@ -349,9 +1033,155 @@ void InstrumentFunction(std::vector<Value *> MetaData,
                            getSizeOf(call->getOperand(args.getArgNo()),
                                      call->getParent()->getParent())));
       ExitArgs.push_back(&args);
+    } else {
+      Type *t1 = args.getType();
+      if (t1->isStructTy()) {
+        handleExitArgs(ExitArgs, Builder, B, t1, call, &args, HookedFunction);
+      } else if (t1->isArrayTy()) {
+        Type *t2 = static_cast<ArrayType *>(t1)->getElementType();
+        if (t2->isFloatTy()) {
+          ExitArgs.push_back(Types2val[FLOAT_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<ArrayType *>(t1)->getNumElements()));
+          ExitArgs.push_back(&args);
+
+        } else if (t2->isDoubleTy()) {
+          ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<ArrayType *>(t1)->getNumElements()));
+          ExitArgs.push_back(&args);
+        }
+      } else if (t1->isVectorTy()) {
+        Type *t2 = static_cast<VectorType *>(t1)->getElementType();
+        if (t2->isFloatTy()) {
+          ExitArgs.push_back(Types2val[FLOAT_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<VectorType *>(t1)->getNumElements()));
+          ExitArgs.push_back(&args);
+
+        } else if (t2->isDoubleTy()) {
+          ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(
+              Int32Ty, static_cast<VectorType *>(t1)->getNumElements()));
+          ExitArgs.push_back(&args);
+        }
+      } else if (t1->isPointerTy()) {
+        PointerType *pt = static_cast<PointerType *>(t1);
+        Type *t2 = pt->getElementType();
+        if (t2->isDoubleTy()) {
+          ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+          ExitArgs.push_back(&args);
+        } else if (t2->isFloatTy()) {
+          ExitArgs.push_back(Types2val[FLOAT_PTR]);
+          ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+              getArgName(HookedFunction, &args, args.getArgNo())));
+          ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+          ExitArgs.push_back(&args);
+        } else if (t2->isStructTy()) {
+          handleExitArgs(ExitArgs, Builder, B, t2, call, &args, HookedFunction);
+        } else if (t2->isArrayTy()) {
+          Type *t3 = static_cast<ArrayType *>(t2)->getElementType();
+          if (t3->isFloatTy()) {
+            ExitArgs.push_back(Types2val[FLOAT_PTR]);
+            ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            ExitArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<ArrayType *>(t2)->getNumElements()));
+            ExitArgs.push_back(&args);
+          } else if (t3->isDoubleTy()) {
+            ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+            ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            ExitArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<ArrayType *>(t2)->getNumElements()));
+            ExitArgs.push_back(&args);
+          }
+        } else if (t2->isVectorTy()) {
+          Type *t3 = static_cast<VectorType *>(t2)->getElementType();
+          if (t3->isFloatTy()) {
+            ExitArgs.push_back(Types2val[FLOAT_PTR]);
+            ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            ExitArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<VectorType *>(t2)->getNumElements()));
+            ExitArgs.push_back(&args);
+          } else if (t3->isDoubleTy()) {
+            ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+            ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            ExitArgs.push_back(ConstantInt::get(
+                Int32Ty, static_cast<VectorType *>(t2)->getNumElements()));
+            ExitArgs.push_back(&args);
+          }
+        } else if (t2->isPointerTy()) {
+          PointerType *pt2 = static_cast<PointerType *>(t2);
+          Type *t3 = pt2->getElementType();
+          llvm::Type::TypeID tid3 = t3->getTypeID();
+          if (t3->isDoubleTy()) {
+            ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+            ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+            ExitArgs.push_back(&args);
+          } else if (t3->isFloatTy()) {
+            ExitArgs.push_back(Types2val[FLOAT_PTR]);
+            ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                getArgName(HookedFunction, &args, args.getArgNo())));
+            ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+            ExitArgs.push_back(&args);
+          } else if (t3->isStructTy()) {
+            handleExitArgs(ExitArgs, Builder, B, t3, call, &args,
+                           HookedFunction);
+          } else if (t3->isArrayTy()) {
+            Type *t4 = static_cast<ArrayType *>(t3)->getElementType();
+            if (t4->isFloatTy()) {
+              ExitArgs.push_back(Types2val[FLOAT_PTR]);
+              ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                  getArgName(HookedFunction, &args, args.getArgNo())));
+              ExitArgs.push_back(ConstantInt::get(
+                  Int32Ty, static_cast<ArrayType *>(t3)->getNumElements()));
+              ExitArgs.push_back(&args);
+            } else if (t4->isDoubleTy()) {
+              ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+              ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                  getArgName(HookedFunction, &args, args.getArgNo())));
+              ExitArgs.push_back(ConstantInt::get(
+                  Int32Ty, static_cast<ArrayType *>(t3)->getNumElements()));
+              ExitArgs.push_back(&args);
+            }
+          } else if (t3->isVectorTy()) {
+            Type *t4 = static_cast<VectorType *>(t3)->getElementType();
+            if (t4->isFloatTy()) {
+              ExitArgs.push_back(Types2val[FLOAT_PTR]);
+              ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                  getArgName(HookedFunction, &args, args.getArgNo())));
+              ExitArgs.push_back(ConstantInt::get(
+                  Int32Ty, static_cast<VectorType *>(t3)->getNumElements()));
+              ExitArgs.push_back(&args);
+            } else if (t4->isDoubleTy()) {
+              ExitArgs.push_back(Types2val[DOUBLE_PTR]);
+              ExitArgs.push_back(Builder.CreateGlobalStringPtr(
+                  getArgName(HookedFunction, &args, args.getArgNo())));
+              ExitArgs.push_back(ConstantInt::get(
+                  Int32Ty, static_cast<VectorType *>(t3)->getNumElements()));
+              ExitArgs.push_back(&args);
+            }
+          }
+        }
+      }
     }
   }
-
   // Step 7: call vfc_exit
   Builder.CreateCall(func_exit, ExitArgs);
 
@@ -367,6 +1197,159 @@ void InstrumentFunction(std::vector<Value *> MetaData,
     Builder.CreateRet(ret);
   } else {
     Builder.CreateRetVoid();
+  }
+}
+
+void loopOverStructTypes(Type *opType, int *has_float, int *has_double) {
+  // Input: A struct type
+  // Output: float or double?
+
+  StructType *t = static_cast<StructType *>(opType);
+
+  for (auto it = t->element_begin(); it < t->element_end(); it++) {
+    Type *t1 = *it;
+    if (t1->isDoubleTy()) {
+      (*has_double) += 1;
+    } else if (t1->isFloatTy()) {
+      (*has_float) += 1;
+    } else if (t1->isStructTy()) {
+      loopOverStructTypes(t1, has_float, has_double);
+    } else if (t1->isArrayTy()) {
+      Type *t2 = static_cast<ArrayType *>(t1)->getElementType();
+      if (t2->isFloatTy()) {
+        (*has_float) += static_cast<ArrayType *>(t1)->getNumElements();
+      } else if (t2->isDoubleTy()) {
+        (*has_double) += static_cast<ArrayType *>(t1)->getNumElements();
+      }
+    } else if (t1->isVectorTy()) {
+      Type *t2 = static_cast<VectorType *>(t1)->getElementType();
+      if (t2->isFloatTy()) {
+        (*has_float) += static_cast<VectorType *>(t1)->getNumElements();
+      } else if (t2->isDoubleTy()) {
+        (*has_double) += static_cast<VectorType *>(t1)->getNumElements();
+      }
+    } else if (t1->isPointerTy()) {
+      PointerType *pt1 = static_cast<PointerType *>(t1);
+      Type *t2 = pt1->getElementType();
+      if (t2->isDoubleTy()) {
+        (*has_double) += 1;
+      } else if (t2->isFloatTy()) {
+        (*has_float) += 1;
+      } else if (t2->isArrayTy()) {
+        Type *t3 = static_cast<ArrayType *>(t2)->getElementType();
+        if (t3->isFloatTy()) {
+          (*has_float) += static_cast<ArrayType *>(t2)->getNumElements();
+        } else if (t3->isDoubleTy()) {
+          (*has_double) += static_cast<ArrayType *>(t2)->getNumElements();
+        }
+      } else if (t2->isVectorTy()) {
+        Type *t3 = static_cast<VectorType *>(t2)->getElementType();
+        if (t3->isFloatTy()) {
+          (*has_float) += static_cast<VectorType *>(t2)->getNumElements();
+        } else if (t3->isDoubleTy()) {
+          (*has_double) += static_cast<VectorType *>(t2)->getNumElements();
+        }
+      } else if (t2->isPointerTy()) {
+        PointerType *pt3 = static_cast<PointerType *>(t2);
+        Type *t3 = pt3->getElementType();
+        if (t3->isDoubleTy()) {
+          (*has_double) += 1;
+        } else if (t3->isFloatTy()) {
+          (*has_float) += 1;
+        } else if (t3->isStructTy()) {
+          loopOverStructTypes(t3, has_float, has_double);
+        } else if (t3->isArrayTy()) {
+          Type *t4 = static_cast<ArrayType *>(t3)->getElementType();
+          if (t4->isDoubleTy()) {
+            (*has_double) += static_cast<ArrayType *>(t3)->getNumElements();
+          } else if (t4->isFloatTy()) {
+            (*has_float) += static_cast<ArrayType *>(t3)->getNumElements();
+          }
+        } else if (t3->isVectorTy()) {
+          Type *t4 = static_cast<VectorType *>(t3)->getElementType();
+          if (t4->isDoubleTy()) {
+            (*has_double) += static_cast<VectorType *>(t3)->getNumElements();
+          } else if (t4->isFloatTy()) {
+            (*has_float) += static_cast<VectorType *>(t3)->getNumElements();
+          }
+        }
+      }
+    }
+  }
+}
+
+void loopOverOpTypes(Type *t1, int *has_float, int *has_double) {
+  // Input: A Type
+  // Output: float or double?
+
+  if (t1->isArrayTy()) {
+    Type *t2 = static_cast<ArrayType *>(t1)->getElementType();
+    if (t2->isDoubleTy()) {
+      (*has_double) += static_cast<ArrayType *>(t1)->getNumElements();
+    } else if (t2->isFloatTy()) {
+      (*has_float) += static_cast<ArrayType *>(t1)->getNumElements();
+    }
+  } else if (t1->isVectorTy()) {
+    Type *t2 = static_cast<VectorType *>(t1)->getElementType();
+    if (t2->isDoubleTy()) {
+      (*has_double) += static_cast<VectorType *>(t1)->getNumElements();
+    } else if (t2->isFloatTy()) {
+      (*has_float) += static_cast<VectorType *>(t1)->getNumElements();
+    }
+  } else if (t1->isDoubleTy()) {
+    (*has_double) += 1;
+  } else if (t1->isFloatTy()) {
+    (*has_float) += 1;
+  } else if (t1->isStructTy()) {
+    loopOverStructTypes(t1, has_float, has_double);
+  } else if (t1->isPointerTy()) {
+    PointerType *pt = static_cast<PointerType *>(t1);
+    Type *t2 = pt->getElementType();
+    if (t2->isDoubleTy()) {
+      (*has_double) += 1;
+    } else if (t2->isFloatTy()) {
+      (*has_float) += 1;
+    } else if (t2->isStructTy()) {
+      loopOverStructTypes(t2, has_float, has_double);
+    } else if (t2->isArrayTy()) {
+      Type *t3 = static_cast<ArrayType *>(t2)->getElementType();
+      if (t3->isDoubleTy()) {
+        (*has_double) += static_cast<ArrayType *>(t2)->getNumElements();
+      } else if (t3->isFloatTy()) {
+        (*has_float) += static_cast<ArrayType *>(t2)->getNumElements();
+      }
+    } else if (t2->isVectorTy()) {
+      Type *t3 = static_cast<VectorType *>(t2)->getElementType();
+      if (t3->isDoubleTy()) {
+        (*has_double) += static_cast<VectorType *>(t2)->getNumElements();
+      } else if (t3->isFloatTy()) {
+        (*has_float) += static_cast<VectorType *>(t2)->getNumElements();
+      }
+    } else if (t2->isPointerTy()) {
+      PointerType *pt3 = static_cast<PointerType *>(t2);
+      Type *t3 = pt3->getElementType();
+      if (t3->isDoubleTy()) {
+        (*has_double) += 1;
+      } else if (t3->isFloatTy()) {
+        (*has_float) += 1;
+      } else if (t3->isStructTy()) {
+        loopOverStructTypes(t3, has_float, has_double);
+      } else if (t3->isArrayTy()) {
+        Type *t4 = static_cast<ArrayType *>(t3)->getElementType();
+        if (t4->isDoubleTy()) {
+          (*has_double) += static_cast<ArrayType *>(t3)->getNumElements();
+        } else if (t4->isFloatTy()) {
+          (*has_float) += static_cast<ArrayType *>(t3)->getNumElements();
+        }
+      } else if (t3->isVectorTy()) {
+        Type *t4 = static_cast<VectorType *>(t3)->getElementType();
+        if (t4->isDoubleTy()) {
+          (*has_double) += static_cast<VectorType *>(t3)->getNumElements();
+        } else if (t4->isFloatTy()) {
+          (*has_float) += static_cast<VectorType *>(t3)->getNumElements();
+        }
+      }
+    }
   }
 }
 
@@ -448,9 +1431,14 @@ struct VfclibFunc : public ModulePass {
           File + "//" + Name + "/" + Line + "/" + std::to_string(++inst_cpt);
 
       bool use_float, use_double;
+      int have_float = 0, have_double = 0;
 
       // Test if the function use double or float
-      haveFloatingPointArithmetic(NULL, Main, 0, 0, &use_float, &use_double, M);
+      haveFloatingPointArithmetic(NULL, Main, 0, 0, &use_float, &use_double,
+                                  &have_float, &have_double, M);
+
+      use_float = have_float > 0 ? true : use_float;
+      use_double = have_double > 0 ? true : use_double;
 
       // Delete Main Body
       Main->deleteBody();
@@ -528,9 +1516,14 @@ struct VfclibFunc : public ModulePass {
 
                   // Test if the function use double or float
                   bool use_float, use_double;
-                  haveFloatingPointArithmetic(pi, f, is_from_library,
-                                              is_intrinsic, &use_float,
-                                              &use_double, M);
+                  int have_float = 0, have_double = 0;
+
+                  haveFloatingPointArithmetic(
+                      pi, f, is_from_library, is_intrinsic, &use_float,
+                      &use_double, &have_float, &have_double, M);
+
+                  use_float = have_float > 0 ? true : use_float;
+                  use_double = have_double > 0 ? true : use_double;
 
                   // If the called function is an intrinsic function that does
                   // not use float or double, do not instrument it.
