@@ -51,7 +51,7 @@ interflop_function_info_t *vfc_func_table_get(const char *id) {
 
 // Print the table
 void _vfc_func_table_print(FILE *f) {
-  for (int ii = 0; ii < _vfc_func_map->capacity; ii++) {
+  for (size_t ii = 0; ii < _vfc_func_map->capacity; ii++) {
     if (get_value_at(_vfc_func_map->items, ii) != 0 &&
         get_value_at(_vfc_func_map->items, ii) != 0) {
       interflop_function_info_t *function =
@@ -152,9 +152,10 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
 }
 
 // Function called after each function's call of the code
-void vfc_exit_function(char *func_name, char isLibraryFunction,
-                       char isIntrinsicFunction, size_t useFloat,
-                       size_t useDouble, int n, ...) {
+void vfc_exit_function(__attribute__((unused)) char *func_name,
+                       __attribute__((unused)) char isLibraryFunction,
+                       __attribute__((unused)) char isIntrinsicFunction,
+                       size_t useFloat, size_t useDouble, int n, ...) {
   if ((useFloat != 0) || (useDouble != 0)) {
     va_list ap;
     // n is the number of arguments intercepted, each argument
