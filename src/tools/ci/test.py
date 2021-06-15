@@ -180,7 +180,7 @@ def run_tests(config):
 
             os.putenv("VFC_BACKENDS", backend["name"])
 
-            command = "./" + executable["executable"] + parameters
+            command = "./" + executable["executable"] + " " + parameters
 
             repetitions = 1
             if "repetitions" in backend:
@@ -192,7 +192,7 @@ def run_tests(config):
                 os.putenv("VFC_PROBES_OUTPUT", temp.name)
 
                 print(command)
-                p = subprocess.Popen(command)
+                p = subprocess.Popen(command.split())
                 try:
                     p.wait(timeout)
                 except subprocess.TimeoutExpired:
