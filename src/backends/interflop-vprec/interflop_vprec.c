@@ -1751,8 +1751,8 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL,
       NULL,
-      NULL,
-      NULL,
+      _interflop_enter_function,
+      _interflop_exit_function,
       _interflop_finalize};
 
 #else
