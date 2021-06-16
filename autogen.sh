@@ -1,5 +1,5 @@
 #!/bin/sh
 autoreconf -is
 
-git submodule init
-git submodule update
+rm -rf src/tools/sigdigits/
+git submodule update --init --recursive
