@@ -83,6 +83,8 @@ static const char key_instrument_str[] = "instrument";
 static const char key_daz_str[] = "daz";
 static const char key_ftz_str[] = "ftz";
 
+#define NAME_LENGTH 5000
+
 typedef struct {
   bool relErr;
   bool absErr;
@@ -731,14 +733,18 @@ void _vprec_write_hasmap(FILE *fout) {
 // Read and initialize the hashmap from the given file
 void _vprec_read_hasmap(FILE *fin) {
   _vprec_inst_function_t function;
+  char buffer[NAME_LENGTH];
 
   while (fscanf(fin, "%s\t%hd\t%hd\t%zu\t%zu\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
-                function.id, &function.isLibraryFunction,
+                buffer, &function.isLibraryFunction,
                 &function.isIntrinsicFunction, &function.useFloat,
                 &function.useDouble, &function.OpsPrec64, &function.OpsRange64,
                 &function.OpsPrec32, &function.OpsRange32,
                 &function.nb_input_args, &function.nb_output_args,
                 &function.n_calls) == 12) {
+    function.id = malloc(sizeof(char) * strlen(buffer));
+    strcpy(function.id, buffer);
+
     // allocate space for input arguments
     function.input_args =
         malloc(function.nb_input_args * sizeof(_vprec_argument_data_t));
@@ -748,33 +754,39 @@ void _vprec_read_hasmap(FILE *fin) {
 
     // get input arguments precision
     for (int i = 0; i < function.nb_input_args; i++) {
-      if (!fscanf(fin, "input:\t%s\t%hd\t%d\t%d\t%d\t%d\n",
-                  function.input_args[i].arg_id,
-                  &function.input_args[i].data_type,
-                  &function.input_args[i].mantissa_length,
-                  &function.input_args[i].exponent_length,
-                  &function.input_args[i].min_range,
-                  &function.input_args[i].max_range)) {
+      if (fscanf(fin, "input:\t%s\t%hd\t%d\t%d\t%d\t%d\n", buffer,
+                 &function.input_args[i].data_type,
+                 &function.input_args[i].mantissa_length,
+                 &function.input_args[i].exponent_length,
+                 &function.input_args[i].min_range,
+                 &function.input_args[i].max_range)) {
+        function.input_args[i].arg_id = malloc(sizeof(char) * strlen(buffer));
+        strcpy(function.input_args[i].arg_id, buffer);
+      } else {
         logger_error("Can't read input arguments of %s\n", function.id);
       }
     }
 
     // get output arguments precision
     for (int i = 0; i < function.nb_output_args; i++) {
-      if (!fscanf(fin, "output:\t%s\t%hd\t%d\t%d\t%d\t%d\n",
-                  function.output_args[i].arg_id,
-                  &function.output_args[i].data_type,
-                  &function.output_args[i].mantissa_length,
-                  &function.output_args[i].exponent_length,
-                  &function.output_args[i].min_range,
-                  &function.output_args[i].max_range)) {
+      if (fscanf(fin, "output:\t%s\t%hd\t%d\t%d\t%d\t%d\n", buffer,
+                 &function.output_args[i].data_type,
+                 &function.output_args[i].mantissa_length,
+                 &function.output_args[i].exponent_length,
+                 &function.output_args[i].min_range,
+                 &function.output_args[i].max_range)) {
+        function.output_args[i].arg_id = malloc(sizeof(char) * strlen(buffer));
+        strcpy(function.output_args[i].arg_id, buffer);
+      } else {
         logger_error("Can't read output arguments of %s\n", function.id);
       }
     }
 
     // insert in the hashmap
     _vprec_inst_function_t *address = malloc(sizeof(_vprec_inst_function_t));
+    address->id = malloc(sizeof(char) * strlen(function.id));
     (*address) = function;
+    strcpy(address->id, function.id);
     vfc_hashmap_insert(_vprec_func_map, vfc_hashmap_str_function(function.id),
                        address);
   }
