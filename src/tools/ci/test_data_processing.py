@@ -105,7 +105,8 @@ def apply_data_pocessing(data):
     # Get empirical average, standard deviation and p-value
     data["mu"] = np.average(data["values"])
     data["sigma"] = np.std(data["values"])
-    data["pvalue"] = scipy.stats.shapiro(data["values"]).pvalue
+    # Shapiro returns (statistic, p_value)
+    data["pvalue"] = scipy.stats.shapiro(data["values"])[1]
 
     # Quantiles
     data["min"] = np.min(data["values"])

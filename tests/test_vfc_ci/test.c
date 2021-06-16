@@ -1,7 +1,7 @@
 // Dummy test to make sure that the vfc_probes system works properly
 
 #include <stdio.h>
-#include <vfc_probes.h>
+#include "vfc_probes.h"
 
 int main(void) {
 

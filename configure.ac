@@ -82,7 +82,7 @@ else
    AC_DEFINE_UNQUOTED([FLANG_PATH], ["$FLANG"], [The flang path])
    AC_SUBST(FLANG_PATH, $FLANG)
 
-   AC_PROG_FC=$FLANG
+   AC_SUBST(FC, $FLANG)
 fi
 
 AC_CHECK_LIB([c], [exit], , AC_MSG_ERROR([Could not find c library]))
@@ -206,13 +206,5 @@ AC_CONFIG_FILES([Makefile
                  tests/paths.sh
                 ])
 
-AC_CONFIG_FILES([verificarlo.in \
-		tests/test_bitmask_backend/test.sh \
-		tests/test_fortran/test.sh \
-		tests/test_fortran_NAS/test.sh \
-    tests/test_fortran_vfc_probes/test.sh],
-		[chmod +x tests/test_bitmask_backend/test.sh \
-		tests/test_fortran/test.sh \
-		tests/test_fortran_NAS/test.sh \
-    tests/test_fortran_vfc_probes/test.sh])
+AC_CONFIG_FILES([verificarlo.in])
 AC_OUTPUT
