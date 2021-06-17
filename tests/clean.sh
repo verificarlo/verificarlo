@@ -16,4 +16,4 @@ for t in $tests ; do
     fi
 done
 
-rm -Rf *~ testplan.log testplan.trs test-suite.log
+rm -Rf *~ paths.sh testplan.log testplan.trs test-suite.log
