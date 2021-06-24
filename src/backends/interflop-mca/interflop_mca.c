@@ -225,12 +225,12 @@ static __float128 _noise_binary128(const int exp) {
 /* Macro function for checking if the value X must be noised */
 #define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
   /* if mode ieee, do not introduce noise */                                   \
-  (MCALIB_MODE == mcamode_ieee) ||					                                   \
-  /* Check that we are not in a special case */				                         \
-  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||	           \
-  /* In RR if the number is representable in current virtual precision, */     \
-  /* do not add any noise if */						                                     \
-  (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
+  (MCALIB_MODE == mcamode_ieee) ||                                             \
+  /* Check that we are not in a special case */                                \
+  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||             \
+    /* In RR if the number is representable in current virtual precision, */   \
+    /* do not add any noise if */                                              \
+    (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP)                                                         \
@@ -580,10 +580,50 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_mul_float,
       _interflop_div_float,
       NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
       _interflop_add_double,
       _interflop_sub_double,
       _interflop_mul_double,
       _interflop_div_double,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
       NULL,
       NULL,
       NULL,

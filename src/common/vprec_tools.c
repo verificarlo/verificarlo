@@ -5,7 +5,7 @@
  *  Copyright (c) 2015                                                       *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *     CMLA, Ecole Normale Superieure de Cachan                              *
- *  Copyright (c) 2019-2020						     *
+ *  Copyright (c) 2019-2020                                                  *
  *     Verificarlo contributors                                              *
  *     Universite de Versailles St-Quentin-en-Yvelines                       *
  *                                                                           *
@@ -27,6 +27,12 @@
 #include "vprec_tools.h"
 #include "float_const.h"
 #include "float_struct.h"
+#include "float_type.h"
+
+/**
+ * The following include enable vector operations.
+ */
+#include "vprec_tools_vector.h"
 
 /**
  * round the mantissa of 'x' on the precision specified by 'precision'

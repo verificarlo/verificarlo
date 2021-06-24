@@ -51,21 +51,6 @@
 #define CALL_OP_SIZE 4
 #endif
 
-typedef int int2 __attribute__((ext_vector_type(2)));
-typedef int int4 __attribute__((ext_vector_type(4)));
-typedef int int8 __attribute__((ext_vector_type(8)));
-typedef int int16 __attribute__((ext_vector_type(16)));
-
-typedef float float2 __attribute__((ext_vector_type(2)));
-typedef float float4 __attribute__((ext_vector_type(4)));
-typedef float float8 __attribute__((ext_vector_type(8)));
-typedef float float16 __attribute__((ext_vector_type(16)));
-
-typedef double double2 __attribute__((ext_vector_type(2)));
-typedef double double4 __attribute__((ext_vector_type(4)));
-typedef double double8 __attribute__((ext_vector_type(8)));
-typedef double double16 __attribute__((ext_vector_type(16)));
-
 typedef struct interflop_backend_interface_t (*interflop_init_t)(
     int argc, char **argv, void **context);
 
@@ -499,77 +484,97 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
   return c;
 }
 
-/* Arithmetic vector wrappers */
-#define define_vectorized_arithmetic_wrapper(precision, operation, size)       \
-  precision##size _##size##x##precision##operation(const precision##size a,    \
-                                                   const precision##size b) {  \
-    precision##size c;                                                         \
-                                                                               \
-    _Pragma("unroll") for (int i = 0; i < size; i++) {                         \
-      c[i] = _##precision##operation(a[i], b[i]);                              \
+#define define_vector_arithmetic_wrapper(size, precision, operation, operator) \
+  precision##size _##size##x##precision##operation(precision##size a,          \
+                                                   precision##size b) {        \
+    precision##size c = NAN;                                                   \
+    ddebug(operator);                                                          \
+    for (unsigned char i = 0; i < loaded_backends; i++) {                      \
+      if (backends[i].interflop_##operation##_##precision##_##size##x) {       \
+        backends[i].interflop_##operation##_##precision##_##size##x(           \
+            &a, &b, &c, contexts[i]);                                          \
+      } else {                                                                 \
+        for (unsigned char j = 0; j < size; j++) {                             \
+          precision _c = c[j];                                                 \
+          backends[i].interflop_##operation##_##precision(a[j], b[j], &_c,     \
+                                                          contexts[i]);        \
+          c[j] = _c;                                                           \
+        }                                                                      \
+      }                                                                        \
     }                                                                          \
     return c;                                                                  \
   }
 
-/* Define vector of size 2 */
-define_vectorized_arithmetic_wrapper(float, add, 2);
-define_vectorized_arithmetic_wrapper(float, sub, 2);
-define_vectorized_arithmetic_wrapper(float, mul, 2);
-define_vectorized_arithmetic_wrapper(float, div, 2);
-define_vectorized_arithmetic_wrapper(double, add, 2);
-define_vectorized_arithmetic_wrapper(double, sub, 2);
-define_vectorized_arithmetic_wrapper(double, mul, 2);
-define_vectorized_arithmetic_wrapper(double, div, 2);
+// Define wrapper for vector arithmetic operation for size 2
+define_vector_arithmetic_wrapper(2, float, add, +);
+define_vector_arithmetic_wrapper(2, float, sub, -);
+define_vector_arithmetic_wrapper(2, float, mul, *);
+define_vector_arithmetic_wrapper(2, float, div, /);
+define_vector_arithmetic_wrapper(2, double, add, +);
+define_vector_arithmetic_wrapper(2, double, sub, -);
+define_vector_arithmetic_wrapper(2, double, mul, *);
+define_vector_arithmetic_wrapper(2, double, div, /);
 
-/* Define vector of size 4 */
-define_vectorized_arithmetic_wrapper(float, add, 4);
-define_vectorized_arithmetic_wrapper(float, sub, 4);
-define_vectorized_arithmetic_wrapper(float, mul, 4);
-define_vectorized_arithmetic_wrapper(float, div, 4);
-define_vectorized_arithmetic_wrapper(double, add, 4);
-define_vectorized_arithmetic_wrapper(double, sub, 4);
-define_vectorized_arithmetic_wrapper(double, mul, 4);
-define_vectorized_arithmetic_wrapper(double, div, 4);
+// Define wrapper for vector arithmetic operation for size 4
+define_vector_arithmetic_wrapper(4, float, add, +);
+define_vector_arithmetic_wrapper(4, float, sub, -);
+define_vector_arithmetic_wrapper(4, float, mul, *);
+define_vector_arithmetic_wrapper(4, float, div, /);
+define_vector_arithmetic_wrapper(4, double, add, +);
+define_vector_arithmetic_wrapper(4, double, sub, -);
+define_vector_arithmetic_wrapper(4, double, mul, *);
+define_vector_arithmetic_wrapper(4, double, div, /);
 
-/* Define vector of size 8 */
-define_vectorized_arithmetic_wrapper(float, add, 8);
-define_vectorized_arithmetic_wrapper(float, sub, 8);
-define_vectorized_arithmetic_wrapper(float, mul, 8);
-define_vectorized_arithmetic_wrapper(float, div, 8);
-define_vectorized_arithmetic_wrapper(double, add, 8);
-define_vectorized_arithmetic_wrapper(double, sub, 8);
-define_vectorized_arithmetic_wrapper(double, mul, 8);
-define_vectorized_arithmetic_wrapper(double, div, 8);
+// Define wrapper for vector arithmetic operation for size 8
+define_vector_arithmetic_wrapper(8, float, add, +);
+define_vector_arithmetic_wrapper(8, float, sub, -);
+define_vector_arithmetic_wrapper(8, float, mul, *);
+define_vector_arithmetic_wrapper(8, float, div, /);
+define_vector_arithmetic_wrapper(8, double, add, +);
+define_vector_arithmetic_wrapper(8, double, sub, -);
+define_vector_arithmetic_wrapper(8, double, mul, *);
+define_vector_arithmetic_wrapper(8, double, div, /);
 
-/* Define vector of size 16 */
-define_vectorized_arithmetic_wrapper(float, add, 16);
-define_vectorized_arithmetic_wrapper(float, sub, 16);
-define_vectorized_arithmetic_wrapper(float, mul, 16);
-define_vectorized_arithmetic_wrapper(float, div, 16);
-define_vectorized_arithmetic_wrapper(double, add, 16);
-define_vectorized_arithmetic_wrapper(double, sub, 16);
-define_vectorized_arithmetic_wrapper(double, mul, 16);
-define_vectorized_arithmetic_wrapper(double, div, 16);
+// Define wrapper for vector arithmetic operation for size 16
+define_vector_arithmetic_wrapper(16, float, add, +);
+define_vector_arithmetic_wrapper(16, float, sub, -);
+define_vector_arithmetic_wrapper(16, float, mul, *);
+define_vector_arithmetic_wrapper(16, float, div, /);
+define_vector_arithmetic_wrapper(16, double, add, +);
+define_vector_arithmetic_wrapper(16, double, sub, -);
+define_vector_arithmetic_wrapper(16, double, mul, *);
+define_vector_arithmetic_wrapper(16, double, div, /);
 
 /* Comparison vector wrappers */
-#define define_vectorized_comparison_wrapper(precision, size)                  \
+
+#define define_vector_cmp_wrapper(size, precision)                             \
   int##size _##size##x##precision##cmp(enum FCMP_PREDICATE p,                  \
                                        precision##size a, precision##size b) { \
     int##size c;                                                               \
-    _Pragma("unroll") for (int i = 0; i < size; i++) {                         \
-      c[i] = _##precision##cmp(p, a[i], b[i]);                                 \
+    for (unsigned char i = 0; i < loaded_backends; i++) {                      \
+      if (backends[i].interflop_cmp_##precision##_##size##x) {                 \
+        backends[i].interflop_cmp_##precision##_##size##x(p, &a, &b, &c,       \
+                                                          contexts[i]);        \
+      } else {                                                                 \
+        for (unsigned char j = 0; j < size; j++) {                             \
+          int _c = c[j];                                                       \
+          backends[i].interflop_cmp_##precision(p, a[j], b[j], &_c,            \
+                                                contexts[i]);                  \
+          c[j] = _c;                                                           \
+        }                                                                      \
+      }                                                                        \
     }                                                                          \
     return c;                                                                  \
   }
 
-define_vectorized_comparison_wrapper(float, 2);
-define_vectorized_comparison_wrapper(double, 2);
+define_vector_cmp_wrapper(2, float);
+define_vector_cmp_wrapper(2, double);
 
-define_vectorized_comparison_wrapper(float, 4);
-define_vectorized_comparison_wrapper(double, 4);
+define_vector_cmp_wrapper(4, float);
+define_vector_cmp_wrapper(4, double);
 
-define_vectorized_comparison_wrapper(float, 8);
-define_vectorized_comparison_wrapper(double, 8);
+define_vector_cmp_wrapper(8, float);
+define_vector_cmp_wrapper(8, double);
 
-define_vectorized_comparison_wrapper(float, 16);
-define_vectorized_comparison_wrapper(double, 16);
+define_vector_cmp_wrapper(16, float);
+define_vector_cmp_wrapper(16, double);

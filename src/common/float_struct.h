@@ -2,6 +2,7 @@
 #define __FLOAT_STRUCT_H_
 
 #include "float_const.h"
+#include "float_type.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -155,6 +156,112 @@ typedef union {
 
 } binary64;
 
+#ifdef __clang__
+
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+
+#define define_binary64_vector(size)                                           \
+                                                                               \
+  typedef union {                                                              \
+                                                                               \
+    double##size f64;                                                          \
+    uint64_##size##x u64;                                                      \
+    int64_##size##x s64;                                                       \
+    uint32_##size##x u32[2];                                                   \
+                                                                               \
+    /* Generic fields */                                                       \
+    double##size type;                                                         \
+    uint64_##size##x u;                                                        \
+                                                                               \
+    struct {                                                                   \
+      uint64_##size##x sign;                                                   \
+      uint64_##size##x exponent;                                               \
+      uint64_##size##x mantissa;                                               \
+    } ieee;                                                                    \
+                                                                               \
+    struct {                                                                   \
+      uint32_##size##x sign;                                                   \
+      uint32_##size##x exponent;                                               \
+      uint32_##size##x mantissa_high;                                          \
+      uint32_##size##x mantissa_low;                                           \
+    } ieee32;                                                                  \
+                                                                               \
+  } binary64_##size##x;
+
+#endif
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#if __FLOAT_WORD_ORDER__ == __ORDER_BIG_ENDIAN__
+
+#define define_binary64_vector(size)                                           \
+                                                                               \
+  typedef union {                                                              \
+                                                                               \
+    double##size f64;                                                          \
+    uint64_##size##x u64;                                                      \
+    int64_##size##x s64;                                                       \
+    uint32_##size##x u32[2];                                                   \
+                                                                               \
+    /* Generic fields */                                                       \
+    double##size type;                                                         \
+    uint64_##size##x u;                                                        \
+                                                                               \
+    struct {                                                                   \
+      uint64_##size##x mantissa;                                               \
+      uint64_##size##x exponent;                                               \
+      uint64_##size##x sign;                                                   \
+    } ieee;                                                                    \
+                                                                               \
+    struct {                                                                   \
+      uint32_##size##x mantissa_high;                                          \
+      uint32_##size##x exponent;                                               \
+      uint32_##size##x sign;                                                   \
+      uint32_##size##x mantissa_low;                                           \
+    } ieee32;                                                                  \
+                                                                               \
+  } binary64_##size##x;
+
+#else
+
+#define define_binary64_vector(size)                                           \
+                                                                               \
+  typedef union {                                                              \
+                                                                               \
+    double##size f64;                                                          \
+    uint64_##size##x u64;                                                      \
+    int64_##size##x s64;                                                       \
+    uint32_##size##x u32[2];                                                   \
+                                                                               \
+    /* Generic fields */                                                       \
+    double##size type;                                                         \
+    uint64_##size##x u;                                                        \
+                                                                               \
+    struct {                                                                   \
+      uint64_##size##x mantissa;                                               \
+      uint64_##size##x exponent;                                               \
+      uint64_##size##x sign;                                                   \
+    } ieee;                                                                    \
+                                                                               \
+    struct {                                                                   \
+      uint32_##size##x mantissa_low;                                           \
+      uint32_##size##x mantissa_high;                                          \
+      uint32_##size##x exponent;                                               \
+      uint32_##size##x sign;                                                   \
+    } ieee32;                                                                  \
+                                                                               \
+  } binary64_##size##x;
+
+#endif
+#endif
+
+// Define binary64 vector type
+define_binary64_vector(2);
+define_binary64_vector(4);
+define_binary64_vector(8);
+define_binary64_vector(16);
+
+#endif // __clang__
+
 typedef union {
 
   float f32;
@@ -179,6 +286,62 @@ typedef union {
   } ieee;
 
 } binary32;
+
+#ifdef __clang__
+
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+
+#define define_binary32_vector(size)                                           \
+  typedef union {                                                              \
+                                                                               \
+    float##size f32;                                                           \
+    uint32_##size##x u32;                                                      \
+    int32_##size##x s32;                                                       \
+                                                                               \
+    /* Generic fields */                                                       \
+    float##size type;                                                          \
+    uint32_##size##x u;                                                        \
+                                                                               \
+    struct {                                                                   \
+      uint32_##size##x sign;                                                   \
+      uint32_##size##x exponent;                                               \
+      uint32_##size##x mantissa;                                               \
+    } ieee;                                                                    \
+                                                                               \
+  } binary32_##size##x;
+
+#endif
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+
+#define define_binary32_vector(size)                                           \
+  typedef union {                                                              \
+                                                                               \
+    float##size f32;                                                           \
+    uint32_##size##x u32;                                                      \
+    int32_##size##x s32;                                                       \
+                                                                               \
+    /* Generic fields */                                                       \
+    float##size type;                                                          \
+    uint32_##size##x u;                                                        \
+                                                                               \
+    struct {                                                                   \
+      uint32_##size##x mantissa;                                               \
+      uint32_##size##x exponent;                                               \
+      uint32_##size##x sign;                                                   \
+    } ieee;                                                                    \
+                                                                               \
+  } binary32_##size##x;
+
+#endif
+
+// Define binary32 vector type
+define_binary32_vector(2);
+define_binary32_vector(4);
+define_binary32_vector(8);
+define_binary32_vector(16);
+
+#endif // __clang__
 
 #define QUADFP_NAN 0
 #define QUADFP_INFINITE 1

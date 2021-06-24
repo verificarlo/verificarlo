@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -Rf *~ log test test.log test_options *.ll
+rm -Rf *~ *.o *.ll log test test.log test_options test_options_vector

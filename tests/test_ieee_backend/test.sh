@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
-verificarlo-c --save-temps -O0 test.c -o test
+
+rm -Rf *~ log test *.o *.ll
+
+verificarlo-c -O0 -march=native test.c -o test --save-temps
 
 # Check that all the operations have been instrumented
 for op in fadd fsub fmul fdiv; do

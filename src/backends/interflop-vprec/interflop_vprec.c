@@ -45,6 +45,7 @@
 
 #include "../../common/float_const.h"
 #include "../../common/float_struct.h"
+#include "../../common/float_type.h"
 #include "../../common/float_utils.h"
 #include "../../common/interflop.h"
 #include "../../common/logger.h"
@@ -640,6 +641,7 @@ static inline double _vprec_binary64_binary_op(double a, double b,
  * called before and after the instrumented function and allow us to set
  * the desired precision or to round arguments, depending on the mode.
  *************************************************************************/
+
 // Hashmap for functions metadata
 vfc_hashmap_t _vprec_func_map;
 
@@ -692,7 +694,7 @@ typedef struct _vprec_inst_function {
 } _vprec_inst_function_t;
 
 // Write the hashmap in the given file
-void _vprec_write_hasmap(FILE *fout) {
+void _vprec_write_hashmap(FILE *fout) {
   for (size_t ii = 0; ii < _vprec_func_map->capacity; ii++) {
     if (get_value_at(_vprec_func_map->items, ii) != 0 &&
         get_value_at(_vprec_func_map->items, ii) != 0) {
@@ -729,7 +731,7 @@ void _vprec_write_hasmap(FILE *fout) {
 }
 
 // Read and initialize the hashmap from the given file
-void _vprec_read_hasmap(FILE *fin) {
+void _vprec_read_hashmap(FILE *fin) {
   _vprec_inst_function_t function;
 
   while (fscanf(fin, "%s\t%hd\t%hd\t%zu\t%zu\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
@@ -1240,6 +1242,12 @@ void _interflop_exit_function(interflop_function_stack_t *stack, void *context,
   _vprec_print_log(vprec_log_depth, "\n");
 }
 
+/******************** VPREC VECTOR FUNCTIONS ********************
+ * The following include enable vector operations.
+ ***************************************************************/
+
+#include "interflop_vprec_vector.h"
+
 /************************* FPHOOKS FUNCTIONS *************************
  * These functions correspond to those inserted into the source code
  * during source to source compilation and are replacement to floating
@@ -1575,7 +1583,7 @@ void _interflop_finalize(__attribute__((unused)) void *context) {
   if (vprec_output_file != NULL) {
     FILE *f = fopen(vprec_output_file, "w");
     if (f != NULL) {
-      _vprec_write_hasmap(f);
+      _vprec_write_hashmap(f);
       fclose(f);
     } else {
       logger_error("Output file can't be written");
@@ -1623,12 +1631,15 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   if (vprec_input_file != NULL) {
     FILE *f = fopen(vprec_input_file, "r");
     if (f != NULL) {
-      _vprec_read_hasmap(f);
+      _vprec_read_hashmap(f);
       fclose(f);
     } else {
       logger_error("Input file can't be found");
     }
   }
+
+  /* Vectorization using OpenCL */
+#ifdef __clang__
 
   struct interflop_backend_interface_t interflop_backend_vprec = {
       _interflop_add_float,
@@ -1636,14 +1647,117 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_mul_float,
       _interflop_div_float,
       NULL,
+      _interflop_add_float_2x,
+      _interflop_sub_float_2x,
+      _interflop_mul_float_2x,
+      _interflop_div_float_2x,
+      NULL,
+      _interflop_add_float_4x,
+      _interflop_sub_float_4x,
+      _interflop_mul_float_4x,
+      _interflop_div_float_4x,
+      NULL,
+      _interflop_add_float_8x,
+      _interflop_sub_float_8x,
+      _interflop_mul_float_8x,
+      _interflop_div_float_8x,
+      NULL,
+      _interflop_add_float_16x,
+      _interflop_sub_float_16x,
+      _interflop_mul_float_16x,
+      _interflop_div_float_16x,
+      NULL,
       _interflop_add_double,
       _interflop_sub_double,
       _interflop_mul_double,
       _interflop_div_double,
       NULL,
+      _interflop_add_double_2x,
+      _interflop_sub_double_2x,
+      _interflop_mul_double_2x,
+      _interflop_div_double_2x,
+      NULL,
+      _interflop_add_double_4x,
+      _interflop_sub_double_4x,
+      _interflop_mul_double_4x,
+      _interflop_div_double_4x,
+      NULL,
+      _interflop_add_double_8x,
+      _interflop_sub_double_8x,
+      _interflop_mul_double_8x,
+      _interflop_div_double_8x,
+      NULL,
+      _interflop_add_double_16x,
+      _interflop_sub_double_16x,
+      _interflop_mul_double_16x,
+      _interflop_div_double_16x,
+      NULL,
       _interflop_enter_function,
       _interflop_exit_function,
       _interflop_finalize};
+
+#elif __GNUC__
+
+  struct interflop_backend_interface_t interflop_backend_vprec = {
+      _interflop_add_float,
+      _interflop_sub_float,
+      _interflop_mul_float,
+      _interflop_div_float,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      _interflop_add_double,
+      _interflop_sub_double,
+      _interflop_mul_double,
+      _interflop_div_double,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      _interflop_enter_function,
+      _interflop_exit_function,
+      _interflop_finalize};
+
+#else
+
+#error "Compiler must be gcc or clang"
+
+#endif
 
   return interflop_backend_vprec;
 }

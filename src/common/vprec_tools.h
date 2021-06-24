@@ -27,6 +27,9 @@
 #ifndef __VPREC_TOOLS_H__
 #define __VPREC_TOOLS_H__
 
+#include "float_struct.h"
+#include "float_type.h"
+
 /******************** VPREC ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the VPREC operation. Operands
  * are first correctly rounded to the target precison format if inbound

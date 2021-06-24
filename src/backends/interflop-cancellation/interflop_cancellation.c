@@ -151,6 +151,9 @@ static void _interflop_div_double(double a, double b, double *c,
   *c = a / b;
 }
 
+// Include vector operations
+#include "interflop_cancellation_vector.h"
+
 static struct argp_option options[] = {
     {"tolerance", 't', "TOLERANCE", 0, "Select tolerance (TOLERANCE >= 0)", 0},
     {"warning", 'w', "WARNING", 0, "Enable warning for cancellations", 0},
@@ -213,11 +216,90 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   logger_info("interflop_cancellation: loaded backend with tolerance = %d\n",
               TOLERANCE);
 
+#ifdef __clang__
+
   struct interflop_backend_interface_t interflop_backend_cancellation = {
       _interflop_add_float,
       _interflop_sub_float,
       _interflop_mul_float,
       _interflop_div_float,
+      NULL,
+      _interflop_add_float_2x,
+      _interflop_sub_float_2x,
+      _interflop_mul_float_2x,
+      _interflop_div_float_2x,
+      NULL,
+      _interflop_add_float_4x,
+      _interflop_sub_float_4x,
+      _interflop_mul_float_4x,
+      _interflop_div_float_4x,
+      NULL,
+      _interflop_add_float_8x,
+      _interflop_sub_float_8x,
+      _interflop_mul_float_8x,
+      _interflop_div_float_8x,
+      NULL,
+      _interflop_add_float_16x,
+      _interflop_sub_float_16x,
+      _interflop_mul_float_16x,
+      _interflop_div_float_16x,
+      NULL,
+      _interflop_add_double,
+      _interflop_sub_double,
+      _interflop_mul_double,
+      _interflop_div_double,
+      NULL,
+      _interflop_add_double_2x,
+      _interflop_sub_double_2x,
+      _interflop_mul_double_2x,
+      _interflop_div_double_2x,
+      NULL,
+      _interflop_add_double_4x,
+      _interflop_sub_double_4x,
+      _interflop_mul_double_4x,
+      _interflop_div_double_4x,
+      NULL,
+      _interflop_add_double_8x,
+      _interflop_sub_double_8x,
+      _interflop_mul_double_8x,
+      _interflop_div_double_8x,
+      NULL,
+      _interflop_add_double_16x,
+      _interflop_sub_double_16x,
+      _interflop_mul_double_16x,
+      _interflop_div_double_16x,
+      NULL,
+      NULL,
+      NULL,
+      NULL};
+
+#elif __GNUC__
+
+  struct interflop_backend_interface_t interflop_backend_cancellation = {
+      _interflop_add_float,
+      _interflop_sub_float,
+      _interflop_mul_float,
+      _interflop_div_float,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
       NULL,
       _interflop_add_double,
       _interflop_sub_double,
@@ -226,7 +308,33 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL,
       NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
       NULL};
+
+#else
+
+#error "Compiler must be gcc or clang"
+
+#endif
 
   /* Initialize the seed */
   _set_mca_seed(ctx->choose_seed, ctx->seed);

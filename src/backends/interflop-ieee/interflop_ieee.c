@@ -61,10 +61,26 @@ typedef struct {
   bool print_new_line;
   bool print_subnormal_normalized;
   bool count_op;
-  unsigned long int mul_count;
-  unsigned long int div_count;
-  unsigned long int add_count;
-  unsigned long int sub_count;
+  unsigned long long mul_count;
+  unsigned long long div_count;
+  unsigned long long add_count;
+  unsigned long long sub_count;
+  unsigned long long _2x_mul_count;
+  unsigned long long _2x_div_count;
+  unsigned long long _2x_add_count;
+  unsigned long long _2x_sub_count;
+  unsigned long long _4x_mul_count;
+  unsigned long long _4x_div_count;
+  unsigned long long _4x_add_count;
+  unsigned long long _4x_sub_count;
+  unsigned long long _8x_mul_count;
+  unsigned long long _8x_div_count;
+  unsigned long long _8x_add_count;
+  unsigned long long _8x_sub_count;
+  unsigned long long _16x_mul_count;
+  unsigned long long _16x_div_count;
+  unsigned long long _16x_add_count;
+  unsigned long long _16x_sub_count;
 } t_context;
 
 typedef enum {
@@ -245,8 +261,7 @@ static void _interflop_add_float(const float a, const float b, float *c,
                                  void *context) {
   t_context *my_context = (t_context *)context;
   *c = a + b;
-  if (my_context->count_op)
-    my_context->add_count++;
+  my_context->add_count++;
   debug_print_float(context, ARITHMETIC, "+", a, b, *c);
 }
 
@@ -254,8 +269,7 @@ static void _interflop_sub_float(const float a, const float b, float *c,
                                  void *context) {
   t_context *my_context = (t_context *)context;
   *c = a - b;
-  if (my_context->count_op)
-    my_context->sub_count++;
+  my_context->sub_count++;
   debug_print_float(context, ARITHMETIC, "-", a, b, *c);
 }
 
@@ -263,8 +277,7 @@ static void _interflop_mul_float(const float a, const float b, float *c,
                                  void *context) {
   t_context *my_context = (t_context *)context;
   *c = a * b;
-  if (my_context->count_op)
-    my_context->mul_count++;
+  my_context->mul_count++;
   debug_print_float(context, ARITHMETIC, "*", a, b, *c);
 }
 
@@ -272,8 +285,7 @@ static void _interflop_div_float(const float a, const float b, float *c,
                                  void *context) {
   t_context *my_context = (t_context *)context;
   *c = a / b;
-  if (my_context->count_op)
-    my_context->div_count++;
+  my_context->div_count++;
   debug_print_float(context, ARITHMETIC, "/", a, b, *c);
 }
 
@@ -288,8 +300,7 @@ static void _interflop_add_double(const double a, const double b, double *c,
                                   void *context) {
   t_context *my_context = (t_context *)context;
   *c = a + b;
-  if (my_context->count_op)
-    my_context->add_count++;
+  my_context->add_count++;
   debug_print_double(context, ARITHMETIC, "+", a, b, *c);
 }
 
@@ -297,8 +308,7 @@ static void _interflop_sub_double(const double a, const double b, double *c,
                                   void *context) {
   t_context *my_context = (t_context *)context;
   *c = a - b;
-  if (my_context->count_op)
-    my_context->sub_count++;
+  my_context->sub_count++;
   debug_print_double(context, ARITHMETIC, "-", a, b, *c);
 }
 
@@ -306,8 +316,7 @@ static void _interflop_mul_double(const double a, const double b, double *c,
                                   void *context) {
   t_context *my_context = (t_context *)context;
   *c = a * b;
-  if (my_context->count_op)
-    my_context->mul_count++;
+  my_context->mul_count++;
   debug_print_double(context, ARITHMETIC, "*", a, b, *c);
 }
 
@@ -315,8 +324,7 @@ static void _interflop_div_double(const double a, const double b, double *c,
                                   void *context) {
   t_context *my_context = (t_context *)context;
   *c = a / b;
-  if (my_context->count_op)
-    my_context->div_count++;
+  my_context->div_count++;
   debug_print_double(context, ARITHMETIC, "/", a, b, *c);
 }
 
@@ -326,6 +334,9 @@ static void _interflop_cmp_double(const enum FCMP_PREDICATE p, const double a,
   SELECT_FLOAT_CMP(a, b, c, p, str);
   debug_print_double(context, COMPARISON, str, a, b, *c);
 }
+
+// Include vector operations
+#include "interflop_ieee_vector.h"
 
 static struct argp_option options[] = {
     {key_debug_str, KEY_DEBUG, 0, 0, "enable debug output", 0},
@@ -369,16 +380,125 @@ static error_t parse_opt(int key, __attribute__((unused)) char *arg,
   return 0;
 }
 
+#define define_specific_pourcent_depend_on_size(op, size)                      \
+  double op##_pourcent_##size##x =                                             \
+      ((double)my_context->_##size##x_##op##_count * 100) /                    \
+      (double)total_##op##_count;                                              \
+                                                                               \
+  if (my_context->_##size##x_##op##_count == 0)                                \
+    op##_pourcent_##size##x = 0.0;
+
 void _interflop_finalize(void *context) {
 
   t_context *my_context = (t_context *)context;
 
   if (my_context->count_op) {
+    // Total vector count
+    unsigned long long total_vector_mul_count =
+        my_context->_2x_mul_count + my_context->_4x_mul_count +
+        my_context->_8x_mul_count + my_context->_16x_mul_count;
+
+    unsigned long long total_vector_div_count =
+        my_context->_2x_div_count + my_context->_4x_div_count +
+        my_context->_8x_div_count + my_context->_16x_div_count;
+
+    unsigned long long total_vector_add_count =
+        my_context->_2x_add_count + my_context->_4x_add_count +
+        my_context->_8x_add_count + my_context->_16x_add_count;
+
+    unsigned long long total_vector_sub_count =
+        my_context->_2x_sub_count + my_context->_4x_sub_count +
+        my_context->_8x_sub_count + my_context->_16x_sub_count;
+
+    // Total count
+    unsigned long long total_mul_count =
+        my_context->mul_count + total_vector_mul_count;
+
+    unsigned long long total_div_count =
+        my_context->div_count + total_vector_div_count;
+
+    unsigned long long total_add_count =
+        my_context->add_count + total_vector_add_count;
+
+    unsigned long long total_sub_count =
+        my_context->sub_count + total_vector_sub_count;
+
+    // Vectorized %
+    double mul_pourcent_vectorized =
+        ((double)total_vector_mul_count * 100) / (double)total_mul_count;
+
+    if (total_mul_count == 0)
+      mul_pourcent_vectorized = 0.0;
+
+    double div_pourcent_vectorized =
+        ((double)total_vector_div_count / (double)total_div_count) * 100;
+
+    if (total_div_count == 0)
+      div_pourcent_vectorized = 0.0;
+
+    double add_pourcent_vectorized =
+        ((double)total_vector_add_count * 100) / (double)total_add_count;
+
+    if (total_add_count == 0)
+      add_pourcent_vectorized = 0.0;
+
+    double sub_pourcent_vectorized =
+        ((double)total_vector_sub_count / (double)total_sub_count) * 100;
+
+    if (total_sub_count == 0)
+      sub_pourcent_vectorized = 0.0;
+
+    // Xx %
+    define_specific_pourcent_depend_on_size(mul, 2);
+    define_specific_pourcent_depend_on_size(mul, 4);
+    define_specific_pourcent_depend_on_size(mul, 8);
+    define_specific_pourcent_depend_on_size(mul, 16);
+
+    define_specific_pourcent_depend_on_size(div, 2);
+    define_specific_pourcent_depend_on_size(div, 4);
+    define_specific_pourcent_depend_on_size(div, 8);
+    define_specific_pourcent_depend_on_size(div, 16);
+
+    define_specific_pourcent_depend_on_size(add, 2);
+    define_specific_pourcent_depend_on_size(add, 4);
+    define_specific_pourcent_depend_on_size(add, 8);
+    define_specific_pourcent_depend_on_size(add, 16);
+
+    define_specific_pourcent_depend_on_size(sub, 2);
+    define_specific_pourcent_depend_on_size(sub, 4);
+    define_specific_pourcent_depend_on_size(sub, 8);
+    define_specific_pourcent_depend_on_size(sub, 16);
+
+    // Overview
     fprintf(stderr, "operations count:\n");
-    fprintf(stderr, "\t mul=%ld\n", my_context->mul_count);
-    fprintf(stderr, "\t div=%ld\n", my_context->div_count);
-    fprintf(stderr, "\t add=%ld\n", my_context->add_count);
-    fprintf(stderr, "\t sub=%ld\n", my_context->sub_count);
+    fprintf(stderr, "\t mul = %lld total count; %6.2f%% vectorized\n",
+            total_mul_count, mul_pourcent_vectorized);
+    fprintf(stderr,
+            "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n",
+            mul_pourcent_2x, mul_pourcent_4x, mul_pourcent_8x,
+            mul_pourcent_16x);
+    fprintf(stderr, "\t div = %lld total count; %6.2f%% vectorized\n",
+            total_div_count, div_pourcent_vectorized);
+    fprintf(stderr,
+            "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n",
+            div_pourcent_2x, div_pourcent_4x, div_pourcent_8x,
+            div_pourcent_16x);
+    fprintf(stderr, "\t add = %lld total count; %6.2f%% vectorized\n",
+            total_add_count, add_pourcent_vectorized);
+    fprintf(stderr,
+            "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n",
+            add_pourcent_2x, add_pourcent_4x, add_pourcent_8x,
+            add_pourcent_16x);
+    fprintf(stderr, "\t sub = %lld total count; %6.2f%% vectorized\n",
+            total_sub_count, sub_pourcent_vectorized);
+    fprintf(stderr,
+            "\t       by size: %6.2f%% 2x; %6.2f%% 4x; %6.2f%% 8x;"
+            " %6.2f%% 16x\n",
+            sub_pourcent_2x, sub_pourcent_4x, sub_pourcent_8x,
+            sub_pourcent_16x);
   };
 }
 
@@ -389,10 +509,33 @@ static void init_context(t_context *context) {
   context->print_new_line = false;
   context->print_subnormal_normalized = false;
   context->count_op = false;
+
+  // Scalar
   context->mul_count = 0;
   context->div_count = 0;
   context->add_count = 0;
   context->sub_count = 0;
+
+  // Vector
+  context->_2x_mul_count = 0;
+  context->_2x_div_count = 0;
+  context->_2x_add_count = 0;
+  context->_2x_sub_count = 0;
+
+  context->_4x_mul_count = 0;
+  context->_4x_div_count = 0;
+  context->_4x_add_count = 0;
+  context->_4x_sub_count = 0;
+
+  context->_8x_mul_count = 0;
+  context->_8x_div_count = 0;
+  context->_8x_add_count = 0;
+  context->_8x_sub_count = 0;
+
+  context->_16x_mul_count = 0;
+  context->_16x_div_count = 0;
+  context->_16x_add_count = 0;
+  context->_16x_sub_count = 0;
 }
 
 static struct argp argp = {options, parse_opt, "", "", NULL, NULL, NULL};
@@ -412,12 +555,96 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* register %b format */
   register_printf_bit();
 
+  /* Vectorization using OpenCL */
+#ifdef __clang__
+
+  /* Remove compiler warning about return type of cmp functions */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wincompatible-function-pointer-types"
+
   struct interflop_backend_interface_t interflop_backend_ieee = {
       _interflop_add_float,
       _interflop_sub_float,
       _interflop_mul_float,
       _interflop_div_float,
       _interflop_cmp_float,
+      _interflop_add_float_2x,
+      _interflop_sub_float_2x,
+      _interflop_mul_float_2x,
+      _interflop_div_float_2x,
+      _interflop_cmp_float_2x,
+      _interflop_add_float_4x,
+      _interflop_sub_float_4x,
+      _interflop_mul_float_4x,
+      _interflop_div_float_4x,
+      _interflop_cmp_float_4x,
+      _interflop_add_float_8x,
+      _interflop_sub_float_8x,
+      _interflop_mul_float_8x,
+      _interflop_div_float_8x,
+      _interflop_cmp_float_8x,
+      _interflop_add_float_16x,
+      _interflop_sub_float_16x,
+      _interflop_mul_float_16x,
+      _interflop_div_float_16x,
+      _interflop_cmp_float_16x,
+      _interflop_add_double,
+      _interflop_sub_double,
+      _interflop_mul_double,
+      _interflop_div_double,
+      _interflop_cmp_double,
+      _interflop_add_double_2x,
+      _interflop_sub_double_2x,
+      _interflop_mul_double_2x,
+      _interflop_div_double_2x,
+      _interflop_cmp_double_2x,
+      _interflop_add_double_4x,
+      _interflop_sub_double_4x,
+      _interflop_mul_double_4x,
+      _interflop_div_double_4x,
+      _interflop_cmp_double_4x,
+      _interflop_add_double_8x,
+      _interflop_sub_double_8x,
+      _interflop_mul_double_8x,
+      _interflop_div_double_8x,
+      _interflop_cmp_double_8x,
+      _interflop_add_double_16x,
+      _interflop_sub_double_16x,
+      _interflop_mul_double_16x,
+      _interflop_div_double_16x,
+      _interflop_cmp_double_16x,
+      NULL,
+      NULL,
+      _interflop_finalize};
+
+#elif __GNUC__
+
+  struct interflop_backend_interface_t interflop_backend_ieee = {
+      _interflop_add_float,
+      _interflop_sub_float,
+      _interflop_mul_float,
+      _interflop_div_float,
+      _interflop_cmp_float,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
       _interflop_add_double,
       _interflop_sub_double,
       _interflop_mul_double,
@@ -425,7 +652,33 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_cmp_double,
       NULL,
       NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      NULL,
       _interflop_finalize};
+
+#else
+
+#error "Compiler must be gcc or clang"
+
+#endif
 
   return interflop_backend_ieee;
 }
