@@ -157,9 +157,7 @@ Thanks !
 
 ## Discussion Group
 
-For questions, feedbacks or discussions about Verificarlo you can join our group at,
-
-https://groups.google.com/forum/#!forum/verificarlo
+For questions, feedbacks or discussions about Verificarlo you can use the [Discussions section](https://github.com/verificarlo/verificarlo/discussions) in our github project page.
 
 ## License
 Copyright (c) 2019-2021
