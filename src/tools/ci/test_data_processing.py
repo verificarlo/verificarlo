@@ -43,7 +43,7 @@ def significant_digits(x):
     if x.pvalue < min_pvalue:
         # In a pandas DF, "values" actually refers to the array of columns, and
         # not the column named "values"
-        distribution = x.values[3]
+        distribution = x.values[0]
         distribution = distribution.reshape(len(distribution), 1)
 
         # The distribution's empirical average will be used as the reference
@@ -64,7 +64,7 @@ def significant_digits(x):
 
     # Else, manually compute sMCA (Stott-Parker formula)
     else:
-        return -np.log2(np.absolute(x.sigma / x.mu))
+        return min(-np.log2(np.absolute(x.sigma / x.mu)), 53)
 
 
 def significant_digits_lower_bound(x):
@@ -79,7 +79,7 @@ def significant_digits_lower_bound(x):
 
     # Else, the lower bound will be computed with p= .9 alpha-1=.95
     else:
-        distribution = x.values[3]
+        distribution = x.values[0]
         distribution = distribution.reshape(len(distribution), 1)
 
         mu = np.array([x.mu])
@@ -105,8 +105,7 @@ def apply_data_pocessing(data):
     # Get empirical average, standard deviation and p-value
     data["mu"] = np.average(data["values"])
     data["sigma"] = np.std(data["values"])
-    # Shapiro returns (statistic, p_value)
-    data["pvalue"] = scipy.stats.shapiro(data["values"])[1]
+    data["pvalue"] = scipy.stats.shapiro(data["values"]).pvalue
 
     # Quantiles
     data["min"] = np.min(data["values"])
@@ -114,6 +113,20 @@ def apply_data_pocessing(data):
     data["quantile50"] = np.quantile(data["values"], 0.50)
     data["quantile75"] = np.quantile(data["values"], 0.75)
     data["max"] = np.max(data["values"])
+
+    # Assert validation
+
+    if data["mode"] == "absolute":
+        data["assert"] = True if data["sigma"] < abs(
+            data["accuracy_threshold"]) else False
+
+    elif data["mode"] == "relative":
+        data["assert"] = True if abs(
+            data["sigma"] /
+            data["mu"]) < abs(data["accuracy_threshold"]) else False
+
+    else:
+        data["assert"] = True
 
     return data
 
@@ -141,3 +154,21 @@ def data_processing(data):
     data["nsamples"] = data["values"].apply(len)
 
     return data
+
+
+def validate_deterministic_probe(x):
+    '''
+    This function will be applied to results dataframes of deterministic
+    backends to validate probes depending on if they are absolute or relative
+    '''
+
+    if x["mode"] == "absolute":
+        return True if abs(
+            x["value"] -
+            x["reference_value"]) < abs(x["accuracy_threshold"]) else False
+
+    if x["mode"] == "relative":
+        return True if abs(x["value"] - x["reference_value"]) / \
+            abs(x["reference_value"]) < abs(x["accuracy_threshold"]) else False
+
+    return True

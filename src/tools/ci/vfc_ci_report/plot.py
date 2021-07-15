@@ -26,6 +26,8 @@
 
 from bokeh.plotting import figure
 from bokeh.models import HoverTool, TapTool, CustomJS
+from bokeh.colors import color
+from bokeh.transform import dodge
 
 from math import pi
 
@@ -35,7 +37,9 @@ def fill_dotplot(
     tooltips=None, tooltips_formatters=None,
     js_tap_callback=None, server_tap_callback=None,
     lines=False,
-    lower_bound=False
+    lower_bound=False,
+    second_series=None,
+    custom_colors=None
 ):
     '''
     General function for filling dotplots.
@@ -47,6 +51,10 @@ def fill_dotplot(
     server_tap_callback: Callback object for server side click callback
     lines: Specify if lines should be drawn to connect the dots
     lower_bound: Specify if a lower bound interval should be displayed
+    second_series: Name of a second data series to plot on the same figure. It
+    should also have its own x series with the "_x" prefix.
+    custom_colors: Will plot additional glyphs with a custom color (to display
+    assert errors for instance). Series of colors.
     '''
 
     # (Optional) Tooltip and tooltip formatters
@@ -71,15 +79,38 @@ def fill_dotplot(
             source=source, line_color="black"
         )
 
-    # Draw dots (actually Bokeh circles)
-    circle = plot.circle(
-        name="circle",
-        x="%s_x" % data_field, y=data_field, source=source, size=12
-    )
+    # (Optional) Draw a second data series
+    if second_series is not None:
+        second_circle = plot.circle(
+            name="second_circle",
+            x="%s_x" % data_field, y=second_series, source=source, size=12,
+            fill_color="grey", line_color="grey"
+        )
+
+        if lines:
+            second_line = plot.line(
+                x="%s_x" % data_field, y=second_series, source=source,
+                color="grey", line_dash="dashed"
+            )
 
     # (Optional) Draw lines between dots
     if lines:
         line = plot.line(x="%s_x" % data_field, y=data_field, source=source)
+
+    # Draw dots (actually Bokeh circles)
+    if custom_colors is None:
+        circle = plot.circle(
+            name="circle",
+            x="%s_x" % data_field, y=data_field, source=source, size=12
+        )
+
+    # (Optional) Custom color palette (to display assert errors, for instance)
+    else:
+        circle = plot.circle(
+            name="circle",
+            x="%s_x" % data_field, y=data_field, source=source, size=12,
+            fill_color="custom_colors", line_color="custom_colors"
+        )
 
     # (Optional) Add server tap callback
     if server_tap_callback is not None:
@@ -100,7 +131,8 @@ def fill_boxplot(
     plot, source,
     prefix="",
     tooltips=None, tooltips_formatters=None,
-    js_tap_callback=None, server_tap_callback=None
+    js_tap_callback=None, server_tap_callback=None,
+    custom_colors=False
 ):
     '''
     General function for filling boxplots.
@@ -111,6 +143,8 @@ def fill_boxplot(
     tooltips_formatters: Formatter for the tooltip
     js_tap_callback: CustomJS object for client side click callback
     server_tap_callback: Callback object for server side click callback
+    custom_colors: Will plot additional glyphs with a custom color (to display
+    assert errors for instance). Series of colors.
     '''
 
     # (Optional) Tooltip and tooltip formatters
@@ -146,17 +180,33 @@ def fill_boxplot(
     )
 
     # Boxes
-    full_box = plot.vbar(
-        name="full_box",
-        x="%sx" % prefix, width=0.5,
-        top="%squantile75" % prefix, bottom="%squantile25" % prefix,
-        source=source, line_color="black"
-    )
-    bottom_box = plot.vbar(
-        x="%sx" % prefix, width=0.5,
-        top="%squantile50" % prefix, bottom="%squantile25" % prefix,
-        source=source, line_color="black"
-    )
+
+    if not custom_colors:
+        full_box = plot.vbar(
+            name="full_box",
+            x="%sx" % prefix, width=0.5,
+            top="%squantile75" % prefix, bottom="%squantile25" % prefix,
+            source=source, line_color="black"
+        )
+        bottom_box = plot.vbar(
+            x="%sx" % prefix, width=0.5,
+            top="%squantile50" % prefix, bottom="%squantile25" % prefix,
+            source=source, line_color="black"
+        )
+
+    # (Optional) Custom color palette (to display assert errors, for instance)
+    else:
+        full_box = plot.vbar(
+            name="full_box",
+            x="%sx" % prefix, width=0.5,
+            top="%squantile75" % prefix, bottom="%squantile25" % prefix,
+            source=source, line_color="black", fill_color="custom_colors"
+        )
+        bottom_box = plot.vbar(
+            x="%sx" % prefix, width=0.5,
+            top="%squantile50" % prefix, bottom="%squantile25" % prefix,
+            source=source, line_color="black", fill_color="custom_colors"
+        )
 
     # Mu dot
     mu_dot = plot.dot(
@@ -175,6 +225,90 @@ def fill_boxplot(
             "indices", server_tap_callback)
 
         mu_dot.data_source.selected.on_change("indices", server_tap_callback)
+
+    # Plot appearance
+    plot.xgrid.grid_line_color = None
+    plot.ygrid.grid_line_color = None
+
+    plot.yaxis[0].formatter.power_limit_high = 0
+    plot.yaxis[0].formatter.power_limit_low = 0
+    plot.yaxis[0].formatter.precision = 3
+
+    plot.xaxis[0].major_label_orientation = pi / 8
+
+
+def fill_barplot(
+    plot, source,
+    single_series=None, double_series=None,
+    tooltips=None, tooltips_formatters=None,
+    js_tap_callback=None, server_tap_callback=None,
+):
+    '''
+    General function for filling barplots.
+    Here are the possible parameters :
+
+    single_series: Series that display one value at each x (string)
+    double_series: Series that display two values at each x (list of strings, size 2)
+    columns: Array of columns to display. Size should be coherent with "mode".
+    legend: Array of texts to put in the legend. This should be specified when
+    plotting more than one culum, and its size should be coherent with "mode".
+    tooltips: Bokeh Tooltip object to use for the plot
+    tooltips_formatters: Formatter for the tooltip
+    js_tap_callback: CustomJS object for client side click callback
+    server_tap_callback: Callback object for server side click callback
+    '''
+
+    vbars = []
+    vbars_names = []
+
+    # Draw "single" vbar
+    if single_series is not None:
+        vbar = plot.vbar(
+            name="vbar",
+            x="x", width=0.5,
+            top=single_series,
+            source=source
+        )
+
+        vbars.append(vbar)
+        vbars_names.append("vbar")
+
+    # Draw "double" vbars
+    if double_series is not None:
+        vbar1 = plot.vbar(
+            name="vbar1",
+            x=dodge("x", -0.15, range=plot.x_range), width=0.25,
+            top=double_series[0],
+            source=source
+        )
+
+        vbar2 = plot.vbar(
+            name="vbar2",
+            x=dodge("x", 0.15, range=plot.x_range), width=0.25,
+            top=double_series[1],
+            source=source,
+            line_color="grey",
+            fill_color="grey"
+        )
+
+        vbars.append(vbar1)
+        vbars.append(vbar2)
+        vbars_names.append("vbar1")
+        vbars_names.append("vbar2")
+
+    # (Optional) Tooltip and tooltip formatters
+    if tooltips is not None:
+        hover = HoverTool(tooltips=tooltips, mode="vline", names=vbars_names)
+
+        if tooltips_formatters is not None:
+            hover.formatters = tooltips_formatters
+
+        plot.add_tools(hover)
+
+    # (Optional) Add server tap callback
+    if server_tap_callback is not None:
+        for vbar in vbars:
+            vbar.data_source.selected.on_change("indices", server_tap_callback)
 
     # Plot appearance
     plot.xgrid.grid_line_color = None

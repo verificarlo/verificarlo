@@ -40,10 +40,14 @@
 #endif
 
 // A probe containing a double value as well as its key, which is needed when
-// dumping the probes
+// dumping the probes. Optionally, an accuracy threshold can be defined : it
+// will be re-used in the preprocessing to (un)validate the probe.
 struct vfc_probe_node {
   char *key;
   double value;
+
+  double accuracyThreshold;
+  char *mode;
 };
 
 typedef struct vfc_probe_node vfc_probe_node;
@@ -71,6 +75,10 @@ void validate_probe_key(char *str);
 // or a duplicate key), an error will be thrown.
 int vfc_probe(vfc_probes *probes, char *testName, char *varName, double val);
 
+// Similar to vfc_probe, but with an optional accuracy threshold.
+int vfc_probe_assert(vfc_probes *probes, char *testName, char *varName,
+                     double val, double accuracyThreshold);
+
 // Return the number of probes stored in the hashmap
 unsigned int vfc_num_probes(vfc_probes *probes);
 
@@ -96,7 +104,7 @@ void vfc_free_probes(vfc_probes *probes) {
 
   // Before freeing the map, iterate manually over all items to free the keys
   vfc_probe_node *probe = NULL;
-  for (size_t i = 0; i < probes->map->capacity; i++) {
+  for (int i = 0; i < probes->map->capacity; i++) {
     probe = (vfc_probe_node *)get_value_at(probes->map->items, i);
 
     // Comparing with 1 is also necessary since it will be the value of deleted
@@ -104,6 +112,7 @@ void vfc_free_probes(vfc_probes *probes) {
     if (probe != NULL && probe != (vfc_probe_node *)1) {
       if (probe->key != NULL) {
         free(probe->key);
+        free(probe->mode);
       }
     }
   }
@@ -136,9 +145,10 @@ void validate_probe_key(char *str) {
   }
 }
 
-// Add a new probe. If an issue with the key is detected (forbidden characters
-// or a duplicate key), an error will be thrown.
-int vfc_probe(vfc_probes *probes, char *testName, char *varName, double val) {
+// Probe kernel function that supports asserts and use any mode (relative /
+// absolute). This probably won't be called directly by the user.
+int vfc_probe_kernel(vfc_probes *probes, char *testName, char *varName,
+                     double val, double accuracyThreshold, char *mode) {
 
   if (probes == NULL) {
     return 1;
@@ -170,10 +180,37 @@ int vfc_probe(vfc_probes *probes, char *testName, char *varName, double val) {
   vfc_probe_node *newProbe = (vfc_probe_node *)malloc(sizeof(vfc_probe_node));
   newProbe->key = key;
   newProbe->value = val;
+  newProbe->accuracyThreshold = accuracyThreshold;
+  newProbe->mode = malloc(sizeof(char) * strlen(mode));
+  strcpy(newProbe->mode, mode);
 
   vfc_hashmap_insert(probes->map, vfc_hashmap_str_function(key), newProbe);
 
   return 0;
+}
+
+// Add a new probe. If an issue with the key is detected (forbidden characters
+// or a duplicate key), an error will be thrown.
+int vfc_probe(vfc_probes *probes, char *testName, char *varName, double val) {
+  // Creating a probe without assert is equivalent to setting the accuracy
+  // threshold to 0.
+  return vfc_probe_kernel(probes, testName, varName, val, 0, "none");
+}
+
+// Similar to vfc_probe, but with an optional accuracy threshold (absolute
+// assert).
+int vfc_probe_assert(vfc_probes *probes, char *testName, char *varName,
+                     double val, double accuracyThreshold) {
+  return vfc_probe_kernel(probes, testName, varName, val, accuracyThreshold,
+                          "absolute");
+}
+
+// Similar to vfc_probe, but with an optional accuracy threshold (relative
+// assert).
+int vfc_probe_assert_relative(vfc_probes *probes, char *testName, char *varName,
+                              double val, double accuracyThreshold) {
+  return vfc_probe_kernel(probes, testName, varName, val, accuracyThreshold,
+                          "relative");
 }
 
 // Return the number of probes stored in the hashmap
@@ -209,14 +246,15 @@ int vfc_dump_probes(vfc_probes *probes) {
   }
 
   // First line gives the column names
-  fprintf(fp, "test,variable,value\n");
+  fprintf(fp, "test,variable,value,accuracy_threshold,mode\n");
 
   // Iterate over all table elements
   vfc_probe_node *probe = NULL;
-  for (size_t i = 0; i < probes->map->capacity; i++) {
+  for (int i = 0; i < probes->map->capacity; i++) {
     probe = (vfc_probe_node *)get_value_at(probes->map->items, i);
     if (probe != NULL) {
-      fprintf(fp, "%s,%a\n", probe->key, probe->value);
+      fprintf(fp, "%s,%a,%a,%s\n", probe->key, probe->value,
+              probe->accuracyThreshold, probe->mode);
     }
   }
 
@@ -230,11 +268,21 @@ int vfc_dump_probes(vfc_probes *probes) {
 /*
  * Fortran wrappers : since Fortran arguments are all passed by address, these
  * versions only take pointers as arguments and only call the base fuctions.
- * (as of now, only the vfc_probe function needs its own wrapper, since other
- * functions already use pointers as their arguments).
  */
 
 int vfc_probe_f(vfc_probes *probes, char *testName, char *varName,
                 double *val) {
   return vfc_probe(probes, testName, varName, *val);
+}
+
+int vfc_probe_assert_f(vfc_probes *probes, char *testName, char *varName,
+                       double *val, double *accuracyThreshold) {
+  return vfc_probe_assert(probes, testName, varName, *val, *accuracyThreshold);
+}
+
+int vfc_probe_assert_relative_f(vfc_probes *probes, char *testName,
+                                char *varName, double *val,
+                                double *accuracyThreshold) {
+  return vfc_probe_assert_relative(probes, testName, varName, *val,
+                                   *accuracyThreshold);
 }
