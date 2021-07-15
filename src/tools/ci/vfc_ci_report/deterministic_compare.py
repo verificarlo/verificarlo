@@ -238,7 +238,9 @@ class DeterministicCompare:
             server_tap_callback=self.asserts_callback,
             lines=True,
             second_series="ieee",   # Will be used to display the IEEE results
-            custom_colors=True
+            legend="Backend value",
+            second_legend="IEEE reference value",
+            custom_colors="custom_colors"
         )
 
         self.doc.add_root(self.plots["comparison_plot"])

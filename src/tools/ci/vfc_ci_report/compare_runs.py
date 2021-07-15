@@ -322,7 +322,7 @@ class CompareRuns:
             js_tap_callback=js_tap_callback,
             server_tap_callback=self.inspect_run_callback_sigma,
             lines=True,
-            custom_colors=True
+            custom_colors="custom_colors"
         )
         self.doc.add_root(self.plots["sigma_plot"])
 
@@ -352,7 +352,7 @@ class CompareRuns:
             server_tap_callback=self.inspect_run_callback_s10,
             lines=True,
             lower_bound=True,
-            custom_colors=True
+            custom_colors="custom_colors"
         )
         s10_tab = Panel(child=self.plots["s10_plot"], title="Base 10")
 
@@ -380,7 +380,7 @@ class CompareRuns:
             server_tap_callback=self.inspect_run_callback_s2,
             lines=True,
             lower_bound=True,
-            custom_colors=True
+            custom_colors="custom_colors"
         )
         s2_tab = Panel(child=self.plots["s2_plot"], title="Base 2")
 

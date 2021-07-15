@@ -39,6 +39,8 @@ def fill_dotplot(
     lines=False,
     lower_bound=False,
     second_series=None,
+    legend=None,
+    second_legend=None,
     custom_colors=None
 ):
     '''
@@ -53,8 +55,10 @@ def fill_dotplot(
     lower_bound: Specify if a lower bound interval should be displayed
     second_series: Name of a second data series to plot on the same figure. It
     should also have its own x series with the "_x" prefix.
+    legend: lengend for the first data series
+    second_legend: same for the second optional data series
     custom_colors: Will plot additional glyphs with a custom color (to display
-    assert errors for instance). Series of colors.
+    assert errors for instance). Should be the name of the series of colors.
     '''
 
     # (Optional) Tooltip and tooltip formatters
@@ -81,11 +85,20 @@ def fill_dotplot(
 
     # (Optional) Draw a second data series
     if second_series is not None:
-        second_circle = plot.circle(
-            name="second_circle",
-            x="%s_x" % data_field, y=second_series, source=source, size=12,
-            fill_color="grey", line_color="grey"
-        )
+        # (Optional) Legend for the second data series
+        if second_legend is not None:
+            second_circle = plot.circle(
+                name="second_circle",
+                x="%s_x" % data_field, y=second_series, source=source, size=12,
+                fill_color="grey", line_color="grey",
+                legend_label=second_legend
+            )
+        else:
+            second_circle = plot.circle(
+                name="second_circle",
+                x="%s_x" % data_field, y=second_series, source=source, size=12,
+                fill_color="grey", line_color="grey"
+            )
 
         if lines:
             second_line = plot.line(
@@ -98,19 +111,36 @@ def fill_dotplot(
         line = plot.line(x="%s_x" % data_field, y=data_field, source=source)
 
     # Draw dots (actually Bokeh circles)
-    if custom_colors is None:
-        circle = plot.circle(
-            name="circle",
-            x="%s_x" % data_field, y=data_field, source=source, size=12
-        )
-
     # (Optional) Custom color palette (to display assert errors, for instance)
+    if custom_colors is not None:
+        # (Optional) Legend for the data series
+        if legend is not None:
+            circle = plot.circle(
+                name="circle",
+                x="%s_x" % data_field, y=data_field, source=source, size=12,
+                legend_label=legend,
+                fill_color=custom_colors, line_color=custom_colors
+            )
+        else:
+            circle = plot.circle(
+                name="circle",
+                x="%s_x" % data_field, y=data_field, source=source, size=12,
+                fill_color=custom_colors, line_color=custom_colors
+            )
+
     else:
-        circle = plot.circle(
-            name="circle",
-            x="%s_x" % data_field, y=data_field, source=source, size=12,
-            fill_color="custom_colors", line_color="custom_colors"
-        )
+        # (Optional) Legend for the data series
+        if legend is not None:
+            circle = plot.circle(
+                name="circle",
+                x="%s_x" % data_field, y=data_field, source=source, size=12,
+                legend_label=legend
+            )
+        else:
+            circle = plot.circle(
+                name="circle",
+                x="%s_x" % data_field, y=data_field, source=source, size=12
+            )
 
     # (Optional) Add server tap callback
     if server_tap_callback is not None:
