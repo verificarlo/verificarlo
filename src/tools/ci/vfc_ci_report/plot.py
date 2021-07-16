@@ -26,6 +26,7 @@
 
 from bokeh.plotting import figure
 from bokeh.models import HoverTool, TapTool, CustomJS
+from bokeh.models.annotations import Legend, LegendItem
 from bokeh.colors import color
 from bokeh.transform import dodge
 
@@ -41,7 +42,7 @@ def fill_dotplot(
     second_series=None,
     legend=None,
     second_legend=None,
-    custom_colors=None
+    custom_colors="blue"
 ):
     '''
     General function for filling dotplots.
@@ -85,19 +86,18 @@ def fill_dotplot(
 
     # (Optional) Draw a second data series
     if second_series is not None:
-        # (Optional) Legend for the second data series
         if second_legend is not None:
             second_circle = plot.circle(
                 name="second_circle",
                 x="%s_x" % data_field, y=second_series, source=source, size=12,
-                fill_color="grey", line_color="grey",
+                fill_color="gray", line_color="gray",
                 legend_label=second_legend
             )
         else:
             second_circle = plot.circle(
                 name="second_circle",
                 x="%s_x" % data_field, y=second_series, source=source, size=12,
-                fill_color="grey", line_color="grey"
+                fill_color="gray", line_color="gray",
             )
 
         if lines:
@@ -111,36 +111,19 @@ def fill_dotplot(
         line = plot.line(x="%s_x" % data_field, y=data_field, source=source)
 
     # Draw dots (actually Bokeh circles)
-    # (Optional) Custom color palette (to display assert errors, for instance)
-    if custom_colors is not None:
-        # (Optional) Legend for the data series
-        if legend is not None:
-            circle = plot.circle(
-                name="circle",
-                x="%s_x" % data_field, y=data_field, source=source, size=12,
-                legend_label=legend,
-                fill_color=custom_colors, line_color=custom_colors
-            )
-        else:
-            circle = plot.circle(
-                name="circle",
-                x="%s_x" % data_field, y=data_field, source=source, size=12,
-                fill_color=custom_colors, line_color=custom_colors
-            )
-
+    if legend is not None:
+        circle = plot.circle(
+            name="circle",
+            x="%s_x" % data_field, y=data_field, source=source, size=12,
+            fill_color=custom_colors, line_color=custom_colors,
+            legend_label=legend
+        )
     else:
-        # (Optional) Legend for the data series
-        if legend is not None:
-            circle = plot.circle(
-                name="circle",
-                x="%s_x" % data_field, y=data_field, source=source, size=12,
-                legend_label=legend
-            )
-        else:
-            circle = plot.circle(
-                name="circle",
-                x="%s_x" % data_field, y=data_field, source=source, size=12
-            )
+        circle = plot.circle(
+            name="circle",
+            x="%s_x" % data_field, y=data_field, source=source, size=12,
+            fill_color=custom_colors, line_color=custom_colors
+        )
 
     # (Optional) Add server tap callback
     if server_tap_callback is not None:
@@ -162,7 +145,7 @@ def fill_boxplot(
     prefix="",
     tooltips=None, tooltips_formatters=None,
     js_tap_callback=None, server_tap_callback=None,
-    custom_colors=False
+    custom_colors=""
 ):
     '''
     General function for filling boxplots.
@@ -210,33 +193,17 @@ def fill_boxplot(
     )
 
     # Boxes
-
-    if not custom_colors:
-        full_box = plot.vbar(
-            name="full_box",
-            x="%sx" % prefix, width=0.5,
-            top="%squantile75" % prefix, bottom="%squantile25" % prefix,
-            source=source, line_color="black"
-        )
-        bottom_box = plot.vbar(
-            x="%sx" % prefix, width=0.5,
-            top="%squantile50" % prefix, bottom="%squantile25" % prefix,
-            source=source, line_color="black"
-        )
-
-    # (Optional) Custom color palette (to display assert errors, for instance)
-    else:
-        full_box = plot.vbar(
-            name="full_box",
-            x="%sx" % prefix, width=0.5,
-            top="%squantile75" % prefix, bottom="%squantile25" % prefix,
-            source=source, line_color="black", fill_color="custom_colors"
-        )
-        bottom_box = plot.vbar(
-            x="%sx" % prefix, width=0.5,
-            top="%squantile50" % prefix, bottom="%squantile25" % prefix,
-            source=source, line_color="black", fill_color="custom_colors"
-        )
+    full_box = plot.vbar(
+        name="full_box",
+        x="%sx" % prefix, width=0.5,
+        top="%squantile75" % prefix, bottom="%squantile25" % prefix,
+        source=source, line_color="black", fill_color=custom_colors
+    )
+    bottom_box = plot.vbar(
+        x="%sx" % prefix, width=0.5,
+        top="%squantile50" % prefix, bottom="%squantile25" % prefix,
+        source=source, line_color="black", fill_color=custom_colors
+    )
 
     # Mu dot
     mu_dot = plot.dot(
@@ -317,8 +284,8 @@ def fill_barplot(
             x=dodge("x", 0.15, range=plot.x_range), width=0.25,
             top=double_series[1],
             source=source,
-            line_color="grey",
-            fill_color="grey"
+            line_color="gray",
+            fill_color="gray"
         )
 
         vbars.append(vbar1)

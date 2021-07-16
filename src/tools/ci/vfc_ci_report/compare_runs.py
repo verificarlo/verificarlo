@@ -294,7 +294,7 @@ class CompareRuns:
             tooltips_formatters=box_tooltips_formatters,
             js_tap_callback=js_tap_callback,
             server_tap_callback=self.inspect_run_callback_boxplot,
-            custom_colors=True
+            custom_colors="custom_colors"
         )
         self.doc.add_root(self.plots["boxplot"])
 
