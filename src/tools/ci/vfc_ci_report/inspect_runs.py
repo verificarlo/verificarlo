@@ -132,26 +132,54 @@ class InspectRuns:
 
         # Groupby and aggregate lines belonging to the same group in lists
 
-        groups = self.run_data[
-            self.run_data.index.isin(
-                [self.widgets["select_filter"].value],
-                level=filterby
-            )
-        ].groupby(groupby)
+        if not self.run_data.empty:
+            groups = self.run_data[
+                self.run_data.index.isin(
+                    [self.widgets["select_filter"].value],
+                    level=filterby
+                )
+            ].groupby(groupby)
 
-        groups = groups.agg({
-            "sigma": lambda x: x.tolist(),
-            "s10": lambda x: x.tolist(),
-            "s2": lambda x: x.tolist(),
+            groups = groups.agg({
+                "sigma": lambda x: x.tolist(),
+                "s10": lambda x: x.tolist(),
+                "s2": lambda x: x.tolist(),
 
-            "mu": lambda x: x.tolist(),
+                "mu": lambda x: x.tolist(),
 
-            # Used for mu weighted average first, then will be replaced
-            "nsamples": lambda x: x.tolist()
-        })
+                # Used for mu weighted average first, then will be replaced
+                "nsamples": lambda x: x.tolist()
+            })
 
-        # Compute the new distributions, ...
-        groups = self.data_processing(groups).to_dict("list")
+            # Compute the new distributions, ...
+            groups = self.data_processing(groups).to_dict("list")
+
+        else:
+            groups = {
+                "mu": [],
+                "nsamples": [],
+                "mu_x": [],
+                "sigma_x": [],
+                "sigma_min": [],
+                "sigma_quantile25": [],
+                "sigma_quantile50": [],
+                "sigma_quantile75": [],
+                "sigma_max": [],
+                "sigma_mu": [],
+                "s10_x": [],
+                "s10_min": [],
+                "s10_quantile25": [],
+                "s10_quantile50": [],
+                "s10_quantile75": [],
+                "s10_max": [],
+                "s10_mu": [],
+                "s2_x": [],
+                "s2_min": [],
+                "s2_quantile25": [],
+                "s2_quantile50": [],
+                "s2_quantile75": [],
+                "s2_max": [],
+                "s2_mu": []}
 
         # Update source
 

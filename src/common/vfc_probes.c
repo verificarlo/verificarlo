@@ -246,7 +246,7 @@ int vfc_dump_probes(vfc_probes *probes) {
   }
 
   // First line gives the column names
-  fprintf(fp, "test,variable,value,accuracy_threshold,mode\n");
+  fprintf(fp, "test,variable,value,accuracy_threshold,assert_mode\n");
 
   // Iterate over all table elements
   vfc_probe_node *probe = NULL;

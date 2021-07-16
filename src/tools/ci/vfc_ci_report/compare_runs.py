@@ -54,6 +54,55 @@ class CompareRuns:
     def update_plots(self):
 
         if self.data.empty:
+            # Initialize empty dicts and return
+
+            for stat in ["sigma", "s10", "s2"]:
+                dict = {
+                    "%s_x" % stat: [],
+
+                    "is_git_commit": [],
+                    "date": [],
+                    "hash": [],
+                    "author": [],
+                    "message": [],
+
+                    stat: [],
+
+                    "nsamples": [],
+                    "accuracy_threshold": [],
+
+                    "custom_colors": []
+                }
+
+                if stat == "s10" or stat == "s2":
+                    dict["%s_lower_bound" % stat] = []
+
+                self.sources["%s_source" % stat].data = dict
+
+            # Boxplot dict
+            dict = {
+                "is_git_commit": [],
+                "date": [],
+                "hash": [],
+                "author": [],
+                "message": [],
+
+                "x": [],
+                "min": [],
+                "quantile25": [],
+                "quantile50": [],
+                "quantile75": [],
+                "max": [],
+                "mu": [],
+                "pvalue": [],
+
+                "nsamples": [],
+
+                "custom_colors": []
+            }
+
+            self.sources["boxplot_source"].data = dict
+
             return
 
         # Select all data matching current test/var/backend

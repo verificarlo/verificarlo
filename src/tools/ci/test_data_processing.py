@@ -38,6 +38,9 @@ confidence = 0.95
 def significant_digits(x):
     '''First wrapper to sd.significant_digits (returns results in base 2)'''
 
+    if x.mu == 0:
+        return 53
+
     # If the null hypothesis is rejected, call sigdigits with the General
     # formula:
     if x.pvalue < min_pvalue:
@@ -76,6 +79,9 @@ def significant_digits_lower_bound(x):
     # If the null hypothesis is rejected, no lower bound
     if x.pvalue < min_pvalue:
         return x.s2
+
+    elif x.mu == 0:
+        return 53
 
     # Else, the lower bound will be computed with p= .9 alpha-1=.95
     else:
@@ -116,11 +122,11 @@ def apply_data_pocessing(data):
 
     # Assert validation
 
-    if data["mode"] == "absolute":
+    if data["assert_mode"] == "absolute":
         data["assert"] = True if data["sigma"] < abs(
             data["accuracy_threshold"]) else False
 
-    elif data["mode"] == "relative":
+    elif data["assert_mode"] == "relative":
         data["assert"] = True if abs(
             data["sigma"] /
             data["mu"]) < abs(data["accuracy_threshold"]) else False
@@ -162,12 +168,12 @@ def validate_deterministic_probe(x):
     backends to validate probes depending on if they are absolute or relative
     '''
 
-    if x["mode"] == "absolute":
+    if x["assert_mode"] == "absolute":
         return True if abs(
             x["value"] -
             x["reference_value"]) < abs(x["accuracy_threshold"]) else False
 
-    if x["mode"] == "relative":
+    if x["assert_mode"] == "relative":
         return True if abs(x["value"] - x["reference_value"]) / \
             abs(x["reference_value"]) < abs(x["accuracy_threshold"]) else False
 

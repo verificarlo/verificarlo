@@ -56,15 +56,15 @@ class Asserts:
 
         # Only keep interesting columns
         self.run_data = self.run_data[[
-            "assert", "accuracy_threshold", "mode",
+            "assert", "accuracy_threshold", "assert_mode",
             "mu", "sigma",
         ]]
 
         # Only keep probes that have an assert
         self.run_data = self.run_data[self.run_data.accuracy_threshold != 0]
 
-        # Uppercase first letter of "mode" for display
-        self.run_data["mode"] = self.run_data["mode"].apply(
+        # Uppercase first letter of "assert_mode" for display
+        self.run_data["assert_mode"] = self.run_data["assert_mode"].apply(
             lambda x: x.capitalize())
 
         # Generate the data source object
@@ -83,7 +83,7 @@ class Asserts:
 
         # Only keep interesting columns
         self.deterministic_run_data = self.deterministic_run_data[[
-            "assert", "accuracy_threshold", "mode",
+            "assert", "accuracy_threshold", "assert_mode",
             "value", "reference_value",
         ]]
 
@@ -92,8 +92,8 @@ class Asserts:
             self.deterministic_run_data.accuracy_threshold != 0
         ]
 
-        # Uppercase first letter of "mode" for display
-        self.deterministic_run_data["mode"] = self.deterministic_run_data["mode"].apply(
+        # Uppercase first letter of "assert_mode" for display
+        self.deterministic_run_data["assert_mode"] = self.deterministic_run_data["assert_mode"].apply(
             lambda x: x.capitalize())
 
         # Generate the data source object
@@ -127,12 +127,12 @@ class Asserts:
 
         # Only keep interesting columns
         self.run_data = self.run_data[[
-            "assert", "accuracy_threshold", "mode",
+            "assert", "accuracy_threshold", "assert_mode",
             "mu", "sigma",
         ]]
 
         self.deterministic_run_data = self.deterministic_run_data[[
-            "assert", "accuracy_threshold", "mode",
+            "assert", "accuracy_threshold", "assert_mode",
             "value", "reference_value",
         ]]
 
@@ -143,10 +143,10 @@ class Asserts:
             self.deterministic_run_data.accuracy_threshold != 0
         ]
 
-        # Uppercase first letter of "mode" for display
-        self.run_data["mode"] = self.run_data["mode"].apply(
+        # Uppercase first letter of "assert_mode" for display
+        self.run_data["assert_mode"] = self.run_data["assert_mode"].apply(
             lambda x: x.capitalize())
-        self.deterministic_run_data["mode"] = self.deterministic_run_data["mode"].apply(
+        self.deterministic_run_data["assert_mode"] = self.deterministic_run_data["assert_mode"].apply(
             lambda x: x.capitalize())
 
         # Generate the data source objects
@@ -198,7 +198,7 @@ class Asserts:
             TableColumn(field="variable", title="Variable"),
             TableColumn(field="vfc_backend", title="Backend"),
             TableColumn(field="accuracy_threshold", title="Target precision"),
-            TableColumn(field="mode", title="Assert mode"),
+            TableColumn(field="assert_mode", title="Assert mode"),
             TableColumn(field="mu", title="Emp. avg. μ"),
             TableColumn(field="sigma", title="Std. dev. σ"),
             TableColumn(field="assert", title="Passed")
@@ -218,7 +218,7 @@ class Asserts:
             TableColumn(field="variable", title="Variable"),
             TableColumn(field="vfc_backend", title="Backend"),
             TableColumn(field="accuracy_threshold", title="Target precision"),
-            TableColumn(field="mode", title="Assert mode"),
+            TableColumn(field="assert_mode", title="Assert mode"),
             TableColumn(field="value", title="Backend value"),
             TableColumn(field="reference_value", title="IEEE value"),
             TableColumn(field="assert", title="Passed")
@@ -319,5 +319,19 @@ class Asserts:
         # show the data for the first time
         self.run_data.reset_index(inplace=True)
         self.deterministic_run_data.reset_index(inplace=True)
-        self.sources["non_deterministic"].data = self.run_data
-        self.sources["deterministic"].data = self.deterministic_run_data
+
+        if not self.run_data.empty:
+            self.sources["non_deterministic"].data = self.run_data
+        else:
+            self.sources["non_deterministic"].data = {
+                "assert": [], "accuracy_threshold": [], "assert_mode": [],
+                "mu": [], "sigma": []
+            }
+
+        if not self.deterministic_run_data.empty:
+            self.sources["deterministic"].data = self.deterministic_run_data
+        else:
+            self.sources["deterministic"].data = {
+                "assert": [], "accuracy_threshold": [], "assert_mode": [],
+                "value": [], "reference_value": []
+            }

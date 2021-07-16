@@ -42,7 +42,7 @@ def fill_dotplot(
     second_series=None,
     legend=None,
     second_legend=None,
-    custom_colors="blue"
+    custom_colors="#1f77b4"
 ):
     '''
     General function for filling dotplots.
@@ -103,7 +103,7 @@ def fill_dotplot(
         if lines:
             second_line = plot.line(
                 x="%s_x" % data_field, y=second_series, source=source,
-                color="grey", line_dash="dashed"
+                color="gray", line_dash="dashed"
             )
 
     # (Optional) Draw lines between dots
@@ -145,7 +145,7 @@ def fill_boxplot(
     prefix="",
     tooltips=None, tooltips_formatters=None,
     js_tap_callback=None, server_tap_callback=None,
-    custom_colors=""
+    custom_colors=None
 ):
     '''
     General function for filling boxplots.
@@ -193,17 +193,30 @@ def fill_boxplot(
     )
 
     # Boxes
-    full_box = plot.vbar(
-        name="full_box",
-        x="%sx" % prefix, width=0.5,
-        top="%squantile75" % prefix, bottom="%squantile25" % prefix,
-        source=source, line_color="black", fill_color=custom_colors
-    )
-    bottom_box = plot.vbar(
-        x="%sx" % prefix, width=0.5,
-        top="%squantile50" % prefix, bottom="%squantile25" % prefix,
-        source=source, line_color="black", fill_color=custom_colors
-    )
+    if custom_colors is not None:
+        full_box = plot.vbar(
+            name="full_box",
+            x="%sx" % prefix, width=0.5,
+            top="%squantile75" % prefix, bottom="%squantile25" % prefix,
+            source=source, line_color="black", fill_color=custom_colors
+        )
+        bottom_box = plot.vbar(
+            x="%sx" % prefix, width=0.5,
+            top="%squantile50" % prefix, bottom="%squantile25" % prefix,
+            source=source, line_color="black", fill_color=custom_colors
+        )
+    else:
+        full_box = plot.vbar(
+            name="full_box",
+            x="%sx" % prefix, width=0.5,
+            top="%squantile75" % prefix, bottom="%squantile25" % prefix,
+            source=source, line_color="black"
+        )
+        bottom_box = plot.vbar(
+            x="%sx" % prefix, width=0.5,
+            top="%squantile50" % prefix, bottom="%squantile25" % prefix,
+            source=source, line_color="black"
+        )
 
     # Mu dot
     mu_dot = plot.dot(
@@ -246,9 +259,9 @@ def fill_barplot(
 
     single_series: Series that display one value at each x (string)
     double_series: Series that display two values at each x (list of strings, size 2)
-    columns: Array of columns to display. Size should be coherent with "mode".
+    columns: Array of columns to display. Size should be coherent with "assert_mode".
     legend: Array of texts to put in the legend. This should be specified when
-    plotting more than one culum, and its size should be coherent with "mode".
+    plotting more than one culum, and its size should be coherent with "assert_mode".
     tooltips: Bokeh Tooltip object to use for the plot
     tooltips_formatters: Formatter for the tooltip
     js_tap_callback: CustomJS object for client side click callback

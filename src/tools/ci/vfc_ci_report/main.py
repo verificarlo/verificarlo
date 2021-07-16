@@ -154,21 +154,28 @@ data = pd.concat(data).sort_index()
 deterministic_data = pd.concat(deterministic_data).sort_index()
 
 # If no data/deterministic_data has been found, create an empty dataframe anyway
-# (with column names) to avoid crashes
+# (with column names) to avoid errors further in the code
 if data.empty:
     data = pd.DataFrame(columns=[
         "test", "variable", "backend",
         "sigma", "s10", "s2", "s10_lower_bound", "s2_lower_bound",
         "mu", "quantile25", "quantile50", "quantile75",
-        "accuracy_threshold", "assert",
+        "accuracy_threshold", "assert", "assert_mode",
         "timestamp"
     ])
 
 if deterministic_data.empty:
-    deterministic_data = pd.DataFrame(columns=[
-        "test", "variable", "backend",
-        "value", "accuracy_threshold", "reference_value", "assert", "timestamp"
-    ])
+    deterministic_data = pd.DataFrame(
+        columns=[
+            "test",
+            "variable",
+            "backend",
+            "value",
+            "accuracy_threshold",
+            "reference_value",
+            "assert",
+            "assert_mode",
+            "timestamp"])
 
 # Generate the display strings for runs (runs ticks)
 # By doing this in master, we ensure the homogeneity of display strings

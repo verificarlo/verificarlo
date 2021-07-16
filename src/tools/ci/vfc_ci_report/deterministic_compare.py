@@ -51,6 +51,15 @@ class DeterministicCompare:
     def update_plots(self):
 
         if self.data.empty:
+            # Initialize empty dict and return
+            dict = {
+                "value_x": [],
+                "value": [],
+                "ieee": [],
+                "custom_colors": []
+            }
+            self.source.data = dict
+
             return
 
         # Select all data matching current test/var/backend

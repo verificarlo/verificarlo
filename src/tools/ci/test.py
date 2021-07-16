@@ -101,11 +101,14 @@ def read_probes_csv(filepath, warnings, execution_data):
     results["vfc_backend"] = execution_data["backend"]
 
     # Extract accuracy thresholds data
-    asserts_data = results[["test", "variable",
-                            "vfc_backend", "accuracy_threshold", "mode"]].copy()
+    asserts_data = results[["test",
+                            "variable",
+                            "vfc_backend",
+                            "accuracy_threshold",
+                            "assert_mode"]].copy()
 
     del results["accuracy_threshold"]
-    del results["mode"]
+    del results["assert_mode"]
 
     return results, asserts_data
 
@@ -252,7 +255,7 @@ def run_deterministic(
 
     run_data.rename(columns={"values": "value"}, inplace=True)
     run_data["accuracy_threshold"] = run_asserts_data["accuracy_threshold"]
-    run_data["mode"] = run_asserts_data["mode"]
+    run_data["assert_mode"] = run_asserts_data["assert_mode"]
 
     # If asserts are detected, do a reference run (with IEEE backend)
     if run_data["accuracy_threshold"].sum() != 0:
@@ -385,7 +388,7 @@ def run_tests(config):
 
         # Copy informations about accuracy thresholds to the main dataframe
         data["accuracy_threshold"] = asserts_data["accuracy_threshold"]
-        data["mode"] = asserts_data["mode"]
+        data["assert_mode"] = asserts_data["assert_mode"]
 
     else:
         data = pd.DataFrame()
