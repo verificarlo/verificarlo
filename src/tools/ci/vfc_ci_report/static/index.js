@@ -105,18 +105,18 @@ document.getElementById("inspect-runs-button")
 });
 
 
-// Listen to clicks on "Asserts" non-deterministic button
-let assertsButtons = document.getElementsByClassName("asserts-button");
+// Listen to clicks on "Checks" non-deterministic button
+let checksButtons = document.getElementsByClassName("checks-button");
 
-for (let i=0; i<assertsButtons.length; i++) {
-    assertsButtons[i].addEventListener("click", () => {
-        changeView("non-deterministic-asserts");
+for (let i=0; i<checksButtons.length; i++) {
+    checksButtons[i].addEventListener("click", () => {
+        changeView("non-deterministic-checks");
     });
 }
 
-document.getElementById("asserts-deterministic-button")
+document.getElementById("checks-deterministic-button")
 .addEventListener("click", () => {
-    changeView("deterministic-asserts");
+    changeView("deterministic-checks");
 });
 
 

@@ -45,12 +45,12 @@
                 display : none; /* Hidden by default */
             }
 
-            #deterministic-asserts-container {
+            #deterministic-checks-container {
                 margin-top: 1em;
                 display : none; /* Hidden by default */
             }
 
-            #non-deterministic-asserts-container {
+            #non-deterministic-checks-container {
                 margin-top: 1em;
                 display : none; /* Hidden by default */
             }
@@ -152,15 +152,15 @@
 
                     <div class="navbar-item has-dropdown is-hoverable">
 
-                        <a class="navbar-link asserts-button">
-                            Asserts table
+                        <a class="navbar-link checks-button">
+                            Checks table
                         </a>
 
                         <div class="navbar-dropdown">
-                            <a class="navbar-item asserts-button">
+                            <a class="navbar-item checks-button">
                             Non-deterministic backends
                             </a>
-                            <a class="navbar-item" id="asserts-deterministic-button">
+                            <a class="navbar-item" id="checks-deterministic-button">
                             Deterministic backends
                             </a>
                         </div>
@@ -374,14 +374,14 @@
             </div>
         </main>
 
-        <!-- CONTENT : ASSERTS NON-DETERMINISTIC -->
-        <main class="container" id="non-deterministic-asserts-container">
+        <!-- CONTENT : CHECKS NON-DETERMINISTIC -->
+        <main class="container" id="non-deterministic-checks-container">
             <div class="columns">
 
                 <!-- SELECTORS -->
                 <div class="column">
                     <h4 class="title is-4">Selectors</h4>
-                    {{ embed(roots.select_assert_run_non_deterministic) }}
+                    {{ embed(roots.select_check_run_non_deterministic) }}
 
                     <br>
                     <br>
@@ -389,35 +389,35 @@
                     <h4 class="title is-4">Run metadata</h4>
 
                     <b>Date :</b>
-                    <div id="non-deterministic-asserts-run-date" style="display: inline;">
+                    <div id="non-deterministic-checks-run-date" style="display: inline;">
                     </div>
 
                     <br>
 
-                    <div id="non-deterministic-asserts-is-git-commit">
+                    <div id="non-deterministic-checks-is-git-commit">
 
                         <b>Hash :</b>
-                        <div id="non-deterministic-asserts-run-hash" style="display: inline;">
+                        <div id="non-deterministic-checks-run-hash" style="display: inline;">
                         </div>
                         <br>
                         <b>Author :</b>
-                        <div id="non-deterministic-asserts-run-author" style="display: inline;">
+                        <div id="non-deterministic-checks-run-author" style="display: inline;">
                         </div>
                         <br>
                         <b>Message :</b>
-                        <div id="non-deterministic-asserts-run-message" style="display: inline;">
+                        <div id="non-deterministic-checks-run-message" style="display: inline;">
                         </div>
 
                         <br>
                         <br>
 
-                        <a id="non-deterministic-asserts-git-commit-link" href="" target="_blank">
+                        <a id="non-deterministic-checks-git-commit-link" href="" target="_blank">
                             View this commit on
                         </a>
 
                     </div>
 
-                    <div id="non-deterministic-asserts-not-git-commit">
+                    <div id="non-deterministic-checks-not-git-commit">
 
                         This run is not linked to a Git commit.
 
@@ -428,28 +428,28 @@
                 <!-- PLOTS -->
                 <div class="column is-9">
                     <div style="display: flex; margin-bottom: 24px;">
-                        <h3 class="title is-3" style="margin: 0;">Asserts table</h3>
+                        <h3 class="title is-3" style="margin: 0;">Checks table</h3>
                         <span style="align-self: flex-end; margin-left: 10px;">
                             (non-deterministic backends)
                         </span>
                     </div>
 
                     <div class="card plot-card">
-                        {{ embed(roots.non_deterministic_asserts_table) }}
+                        {{ embed(roots.non_deterministic_checks_table) }}
                     </div>
 
                 </div>
             </div>
         </main>
 
-        <!-- CONTENT : ASSERTS DETERMINISTIC -->
-        <main class="container" id="deterministic-asserts-container">
+        <!-- CONTENT : CHECKS DETERMINISTIC -->
+        <main class="container" id="deterministic-checks-container">
             <div class="columns">
 
                 <!-- SELECTORS -->
                 <div class="column">
                     <h4 class="title is-4">Selectors</h4>
-                    {{ embed(roots.select_assert_run_deterministic) }}
+                    {{ embed(roots.select_check_run_deterministic) }}
 
                     <br>
                     <br>
@@ -457,35 +457,35 @@
                     <h4 class="title is-4">Run metadata</h4>
 
                     <b>Date :</b>
-                    <div id="deterministic-asserts-run-date" style="display: inline;">
+                    <div id="deterministic-checks-run-date" style="display: inline;">
                     </div>
 
                     <br>
 
-                    <div id="deterministic-asserts-is-git-commit">
+                    <div id="deterministic-checks-is-git-commit">
 
                         <b>Hash :</b>
-                        <div id="deterministic-asserts-run-hash" style="display: inline;">
+                        <div id="deterministic-checks-run-hash" style="display: inline;">
                         </div>
                         <br>
                         <b>Author :</b>
-                        <div id="deterministic-asserts-run-author" style="display: inline;">
+                        <div id="deterministic-checks-run-author" style="display: inline;">
                         </div>
                         <br>
                         <b>Message :</b>
-                        <div id="deterministic-asserts-run-message" style="display: inline;">
+                        <div id="deterministic-checks-run-message" style="display: inline;">
                         </div>
 
                         <br>
                         <br>
 
-                        <a id="deterministic-asserts-git-commit-link" href="" target="_blank">
+                        <a id="deterministic-checks-git-commit-link" href="" target="_blank">
                             View this commit on
                         </a>
 
                     </div>
 
-                    <div id="deterministic-asserts-not-git-commit">
+                    <div id="deterministic-checks-not-git-commit">
 
                         This run is not linked to a Git commit.
 
@@ -496,14 +496,14 @@
                 <!-- PLOTS -->
                 <div class="column is-9">
                     <div style="display: flex; margin-bottom: 24px;">
-                        <h3 class="title is-3" style="margin: 0;">Asserts table</h3>
+                        <h3 class="title is-3" style="margin: 0;">Checks table</h3>
                         <span style="align-self: flex-end; margin-left: 10px;">
                             (deterministic backends)
                         </span>
                     </div>
 
                     <div class="card plot-card">
-                        {{ embed(roots.deterministic_asserts_table) }}
+                        {{ embed(roots.deterministic_checks_table) }}
                     </div>
 
                 </div>
@@ -534,8 +534,8 @@
 
         changeRepository("{{initial_repo}}");
         updateRunMetadata({{initial_timestamp}}, "");
-        updateRunMetadata({{initial_timestamp}}, "non-deterministic-asserts-");
-        updateRunMetadata({{initial_timestamp}}, "deterministic-asserts-");
+        updateRunMetadata({{initial_timestamp}}, "non-deterministic-checks-");
+        updateRunMetadata({{initial_timestamp}}, "deterministic-checks-");
     </script>
 
     {% endblock %}

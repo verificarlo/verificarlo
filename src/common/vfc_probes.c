@@ -76,7 +76,7 @@ void validate_probe_key(char *str);
 int vfc_probe(vfc_probes *probes, char *testName, char *varName, double val);
 
 // Similar to vfc_probe, but with an optional accuracy threshold.
-int vfc_probe_assert(vfc_probes *probes, char *testName, char *varName,
+int vfc_probe_check(vfc_probes *probes, char *testName, char *varName,
                      double val, double accuracyThreshold);
 
 // Return the number of probes stored in the hashmap
@@ -145,7 +145,7 @@ void validate_probe_key(char *str) {
   }
 }
 
-// Probe kernel function that supports asserts and use any mode (relative /
+// Probe kernel function that supports checks and use any mode (relative /
 // absolute). This probably won't be called directly by the user.
 int vfc_probe_kernel(vfc_probes *probes, char *testName, char *varName,
                      double val, double accuracyThreshold, char *mode) {
@@ -192,22 +192,22 @@ int vfc_probe_kernel(vfc_probes *probes, char *testName, char *varName,
 // Add a new probe. If an issue with the key is detected (forbidden characters
 // or a duplicate key), an error will be thrown.
 int vfc_probe(vfc_probes *probes, char *testName, char *varName, double val) {
-  // Creating a probe without assert is equivalent to setting the accuracy
+  // Creating a probe without check is equivalent to setting the accuracy
   // threshold to 0.
   return vfc_probe_kernel(probes, testName, varName, val, 0, "none");
 }
 
 // Similar to vfc_probe, but with an optional accuracy threshold (absolute
-// assert).
-int vfc_probe_assert(vfc_probes *probes, char *testName, char *varName,
+// check).
+int vfc_probe_check(vfc_probes *probes, char *testName, char *varName,
                      double val, double accuracyThreshold) {
   return vfc_probe_kernel(probes, testName, varName, val, accuracyThreshold,
                           "absolute");
 }
 
 // Similar to vfc_probe, but with an optional accuracy threshold (relative
-// assert).
-int vfc_probe_assert_relative(vfc_probes *probes, char *testName, char *varName,
+// check).
+int vfc_probe_check_relative(vfc_probes *probes, char *testName, char *varName,
                               double val, double accuracyThreshold) {
   return vfc_probe_kernel(probes, testName, varName, val, accuracyThreshold,
                           "relative");
@@ -246,7 +246,7 @@ int vfc_dump_probes(vfc_probes *probes) {
   }
 
   // First line gives the column names
-  fprintf(fp, "test,variable,value,accuracy_threshold,assert_mode\n");
+  fprintf(fp, "test,variable,value,accuracy_threshold,check_mode\n");
 
   // Iterate over all table elements
   vfc_probe_node *probe = NULL;
@@ -275,14 +275,14 @@ int vfc_probe_f(vfc_probes *probes, char *testName, char *varName,
   return vfc_probe(probes, testName, varName, *val);
 }
 
-int vfc_probe_assert_f(vfc_probes *probes, char *testName, char *varName,
+int vfc_probe_check_f(vfc_probes *probes, char *testName, char *varName,
                        double *val, double *accuracyThreshold) {
-  return vfc_probe_assert(probes, testName, varName, *val, *accuracyThreshold);
+  return vfc_probe_check(probes, testName, varName, *val, *accuracyThreshold);
 }
 
-int vfc_probe_assert_relative_f(vfc_probes *probes, char *testName,
+int vfc_probe_check_relative_f(vfc_probes *probes, char *testName,
                                 char *varName, double *val,
                                 double *accuracyThreshold) {
-  return vfc_probe_assert_relative(probes, testName, varName, *val,
+  return vfc_probe_check_relative(probes, testName, varName, *val,
                                    *accuracyThreshold);
 }

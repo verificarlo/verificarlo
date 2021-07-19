@@ -89,10 +89,10 @@ class DeterministicCompare:
         n = self.current_n_runs
         dict = {key: value[-n:] for key, value in dict.items()}
 
-        # Generate color series for display of failed asserts
-        dict["custom_colors"] = [True] * len(dict["assert"])
-        for i in range(len(dict["assert"])):
-            dict["custom_colors"][i] = "#1f77b4" if dict["assert"][i] else "#cc2b2b"
+        # Generate color series for display of failed checks
+        dict["custom_colors"] = [True] * len(dict["check"])
+        for i in range(len(dict["check"])):
+            dict["custom_colors"][i] = "#1f77b4" if dict["check"][i] else "#cc2b2b"
 
         # Filter outliers if the box is checked
         if len(self.widgets["outliers_filtering_deterministic"].active) > 0:
@@ -107,7 +107,7 @@ class DeterministicCompare:
         dict["ieee"] = [0] * len(dict["value"])
 
         for i in range(len(dict["value"])):
-            if dict["assert"][i]:
+            if dict["check"][i]:
                 dict["ieee"][i] = nan
             else:
                 dict["ieee"][i] = dict["reference_value"][i]
@@ -236,7 +236,7 @@ class DeterministicCompare:
             "@reference_value": "printf"
         }
 
-        js_tap_callback = "changeView(\"asserts\");"
+        js_tap_callback = "changeView(\"checks\");"
 
         plot.fill_dotplot(
             self.plots["comparison_plot"], self.source,
@@ -244,7 +244,7 @@ class DeterministicCompare:
             tooltips=comparison_tooltips,
             tooltips_formatters=comparison_tooltips_formatters,
             js_tap_callback=js_tap_callback,
-            server_tap_callback=self.asserts_callback,
+            server_tap_callback=self.checks_callback,
             lines=True,
             second_series="ieee",   # Will be used to display the IEEE results
             legend="Backend value",
@@ -367,9 +367,9 @@ class DeterministicCompare:
         # Communication methods
         # (to send/receive messages to/from master)
 
-    def asserts_callback(self, attrname, old, new):
+    def checks_callback(self, attrname, old, new):
         '''
-        Callback to change view to "Asserts" view when plot element is clicked
+        Callback to change view to "Checks" view when plot element is clicked
         '''
 
         # In case we just unselected everything on the plot, then do nothing
@@ -380,7 +380,7 @@ class DeterministicCompare:
         index = new[-1]
         run_name = self.source.data["value_x"][index]
 
-        self.master.go_to_asserts(run_name)
+        self.master.go_to_checks(run_name)
 
     def change_repo(self, new_data, new_metadata):
         '''

@@ -40,7 +40,7 @@ from bokeh.models import Select, CustomJS
 import compare_runs
 import deterministic_compare
 import inspect_runs
-import asserts
+import checks
 
 import helper
 
@@ -160,7 +160,7 @@ if data.empty:
         "test", "variable", "backend",
         "sigma", "s10", "s2", "s10_lower_bound", "s2_lower_bound",
         "mu", "quantile25", "quantile50", "quantile75",
-        "accuracy_threshold", "assert", "assert_mode",
+        "accuracy_threshold", "check", "check_mode",
         "timestamp"
     ])
 
@@ -173,8 +173,8 @@ if deterministic_data.empty:
             "value",
             "accuracy_threshold",
             "reference_value",
-            "assert",
-            "assert_mode",
+            "check",
+            "check_mode",
             "timestamp"])
 
 # Generate the display strings for runs (runs ticks)
@@ -234,7 +234,7 @@ class ViewsMaster:
         self.deterministic.change_repo(
             filtered_deterministic_data, filtered_metadata)
         self.inspect.change_repo(filtered_data, filtered_metadata)
-        self.asserts.change_repo(
+        self.checks.change_repo(
             filtered_data, filtered_deterministic_data, filtered_metadata)
 
         # Communication functions
@@ -242,8 +242,8 @@ class ViewsMaster:
     def go_to_inspect(self, run_name):
         self.inspect.switch_view(run_name)
 
-    def go_to_asserts(self, run_name):
-        self.asserts.switch_view(run_name)
+    def go_to_checks(self, run_name):
+        self.checks.switch_view(run_name)
 
         # Constructor
 
@@ -346,8 +346,8 @@ class ViewsMaster:
             metadata=filtered_metadata
         )
 
-        # Initialize asserts table view
-        self.asserts = asserts.Asserts(
+        # Initialize checks table view
+        self.checks = checks.Checks(
             master=self,
             doc=curdoc(),
             data=filtered_data,

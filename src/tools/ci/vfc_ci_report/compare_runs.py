@@ -132,10 +132,10 @@ class CompareRuns:
         n = self.current_n_runs
         main_dict = {key: value[-n:] for key, value in main_dict.items()}
 
-        # Generate color series for display of failed asserts
-        custom_colors = [True] * len(main_dict["assert"])
-        for i in range(len(main_dict["assert"])):
-            custom_colors[i] = "#1f77b4" if main_dict["assert"][i] else "#cc2b2b"
+        # Generate color series for display of failed checks
+        custom_colors = [True] * len(main_dict["check"])
+        for i in range(len(main_dict["check"])):
+            custom_colors[i] = "#1f77b4" if main_dict["check"][i] else "#cc2b2b"
 
         # Generate ColumnDataSources for the 3 dotplots
         for stat in ["sigma", "s10", "s2"]:
@@ -362,7 +362,7 @@ class CompareRuns:
             ("Message", "@message"),
             ("σ", "@sigma"),
             ("Number of samples", "@nsamples"),
-            ("Assert target accuracy", "@accuracy_threshold")
+            ("Check's accuracy target", "@accuracy_threshold")
         ]
 
         plot.fill_dotplot(
@@ -391,7 +391,7 @@ class CompareRuns:
             ("s", "@s10"),
             ("s lower bound", "@s10_lower_bound"),
             ("Number of samples", "@nsamples"),
-            ("Assert target accuracy ", "@accuracy_threshold")
+            ("Check's accuracy target", "@accuracy_threshold")
         ]
 
         plot.fill_dotplot(

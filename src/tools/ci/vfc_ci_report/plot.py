@@ -59,7 +59,7 @@ def fill_dotplot(
     legend: lengend for the first data series
     second_legend: same for the second optional data series
     custom_colors: Will plot additional glyphs with a custom color (to display
-    assert errors for instance). Should be the name of the series of colors.
+    check errors for instance). Should be the name of the series of colors.
     '''
 
     # (Optional) Tooltip and tooltip formatters
@@ -157,7 +157,7 @@ def fill_boxplot(
     js_tap_callback: CustomJS object for client side click callback
     server_tap_callback: Callback object for server side click callback
     custom_colors: Will plot additional glyphs with a custom color (to display
-    assert errors for instance). Series of colors.
+    check errors for instance). Series of colors.
     '''
 
     # (Optional) Tooltip and tooltip formatters
@@ -259,9 +259,9 @@ def fill_barplot(
 
     single_series: Series that display one value at each x (string)
     double_series: Series that display two values at each x (list of strings, size 2)
-    columns: Array of columns to display. Size should be coherent with "assert_mode".
+    columns: Array of columns to display. Size should be coherent with "check_mode".
     legend: Array of texts to put in the legend. This should be specified when
-    plotting more than one culum, and its size should be coherent with "assert_mode".
+    plotting more than one culum, and its size should be coherent with "check_mode".
     tooltips: Bokeh Tooltip object to use for the plot
     tooltips_formatters: Formatter for the tooltip
     js_tap_callback: CustomJS object for client side click callback
