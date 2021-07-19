@@ -120,7 +120,7 @@ def apply_data_pocessing(data):
     data["quantile75"] = np.quantile(data["values"], 0.75)
     data["max"] = np.max(data["values"])
 
-    #Check validation
+    # Check validation
 
     if data["check_mode"] == "absolute":
         data["check"] = True if data["sigma"] < abs(

@@ -86,12 +86,12 @@ int vfc_probe(vfc_probes *probes, char *testName, char *varName, double val);
 // Similar to vfc_probe, but with an optional accuracy threshold (absolute
 // check).
 int vfc_probe_check(vfc_probes *probes, char *testName, char *varName,
-                     double val, double accuracyThreshold);
+                    double val, double accuracyThreshold);
 
 // Similar to vfc_probe, but with an optional accuracy threshold (absolute
 // check).
 int vfc_probe_check_relative(vfc_probes *probes, char *testName, char *varName,
-                              double val, double accuracyThreshold);
+                             double val, double accuracyThreshold);
 
 // Return the number of probes stored in the hashmap
 unsigned int vfc_num_probes(vfc_probes *probes);
@@ -105,8 +105,8 @@ int vfc_dump_probes(vfc_probes *probes);
 int vfc_probe_f(vfc_probes *probes, char *testName, char *varName, double *val);
 
 int vfc_probe_check_f(vfc_probes *probes, char *testName, char *varName,
-                       double *val, double *accuracyThreshold);
+                      double *val, double *accuracyThreshold);
 
 int vfc_probe_check_relative_f(vfc_probes *probes, char *testName,
-                                char *varName, double *val,
-                                double *accuracyThreshold);
+                               char *varName, double *val,
+                               double *accuracyThreshold);
