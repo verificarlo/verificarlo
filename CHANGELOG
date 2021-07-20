@@ -1,16 +1,27 @@
 Verificarlo CHANGELOG
 
-# [Unreleased]
+# [v0.5.0] 2021/06/17
 
 ## Added
   * Add test for checking vectorization instrumentation
+  * Add sparsity option in libinterflop_mca backend to randomly instrument a percentage of FP instructions
+  * Add vfc_ci, a new tool which integrates verificarlo in a CI workflow and generates interactive reports that track numerical errors across the project lifetime.
+  * Add significantdigits submodule dependency
+  * Add cleaner script for tests
+  * Add operation counter for IEEE backend
 
 ## Fixed
+  * Fix dockerhub issue that fails to init submodule
+  * Fix vfc_probes compilation error when compiling for Fortran
   * Fix vector instrumentation for unsupported vector instructions
   * Fix libVFCFuncInstrument.cpp compilation with llvm-4.0
+  * Fix several bugs in vfc_precexp
 
 ## Changed
+  * Use f-strings formatting in verificarlo.in.in, required Python >= 3.6
   * Remove test.sh.in in tests to use test.sh by sourcing paths.sh file
+  * Reorganize documentation layout
+  * Only use mangled names in instrumentation passes
 
 # [v0.4.2] 2021/02/15
 

@@ -1,6 +1,6 @@
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
-## Verificarlo v0.4.2
+## Verificarlo v0.5.0
 
 ![Build Status](https://github.com/verificarlo/verificarlo/workflows/test-docker/badge.svg?branch=master)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
@@ -157,9 +157,7 @@ Thanks !
 
 ## Discussion Group
 
-For questions, feedbacks or discussions about Verificarlo you can join our group at,
-
-https://groups.google.com/forum/#!forum/verificarlo
+For questions, feedbacks or discussions about Verificarlo you can use the [Discussions section](https://github.com/verificarlo/verificarlo/discussions) in our github project page.
 
 ## License
 Copyright (c) 2019-2021
