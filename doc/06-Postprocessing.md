@@ -130,7 +130,7 @@ int vfc_probe(vfc_probes *probes, char *testName, char *varName, double val);
 int vfc_probe_check(vfc_probes *probes, char *testName, char *varName,
                      double val, double accuracyThreshold);
 
-// Similar to vfc_probe, but with an optional accuracy threshold (absolute
+// Similar to vfc_probe, but with an optional accuracy threshold (relative
 // check).
 int vfc_probe_check_relative(vfc_probes *probes, char *testName, char *varName,
                               double val, double accuracyThreshold);
@@ -167,13 +167,12 @@ table :
 |Deterministic|\|IEEE value\| -  \|Backend value\| < Target|(\|IEEE value\| -  \|Backend value\|) / \|IEEE value\| < Target
 
 By default, the standard deviation is used to estimate the error, and must be
-inderior to the accuracy threshold for the probe to pass (or inferior to the
+inferior to the accuracy threshold for the probe to pass (or inferior to the
 std. dev. / avg. quotient in the case of a relative check).
-But in the case of a deterministic backend, it is impossible to compute the standard
-deviation and the average of the probe to estimate the error. Instead , the  
-probe is computed in IEEE standard arithmetic, and this value is used as a
-reference to compute the error introduced by the deterministic backend. The
-status of a probe (passing/failing) can then be consulted in the report (see
+But in the case of a deterministic backend, the standard deviation is undefined.
+Instead, the probe is computed in IEEE standard arithmetic, and this value is
+used as a reference to compute the error introduced by the deterministic backend.
+The status of a probe (passing/failing) can then be consulted in the report (see
 the ["Visualize your test results"](#visualize-your-test-results) part).
 
 **Fortran specific** : `vfc_probes` also comes with a Fortran interface. In
