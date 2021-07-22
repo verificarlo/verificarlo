@@ -121,11 +121,19 @@ Below is a list of the different functions you may use to manipulate the
 `vfc_probes` structure :
 
 ```
-// Add a new probe. If a duplicate test/variable name combination is detected,
-// an error will be thrown.
-int vfc_probe(vfc_probes *probes, char *testName, char *varName,
-                  double val);
+// Add a new probe. If an issue with the key is detected (forbidden characters
+// or a duplicate key), an error will be thrown. (no check)
+int vfc_probe(vfc_probes *probes, char *testName, char *varName, double val);
 
+// Similar to vfc_probe, but with an optional accuracy threshold (absolute
+// check).
+int vfc_probe_check(vfc_probes *probes, char *testName, char *varName,
+                     double val, double accuracyThreshold);
+
+// Similar to vfc_probe, but with an optional accuracy threshold (relative
+// check).
+int vfc_probe_check_relative(vfc_probes *probes, char *testName, char *varName,
+                              double val, double accuracyThreshold);
 // Free all probes
 void vfc_free_probes(vfc_probes *probes);
 
@@ -141,10 +149,34 @@ To export your variables to a file, `vfc_probes` relies on the
 your code through a Verificarlo CI test run, so you usually won't have to care
 about it,  but if you were to manually execute a program that calls the
 `vfc_dump_probes` function without this variable, you would be notified by a
-runtime warning explaining that your probes canno tbe exported.
+runtime warning explaining that your probes cannot be exported.
+
+Finally, probes can be used with an optional "check". Checks are accuracy
+targets that we want to reach on test variables. If a probe is created with a
+check, the tool will estimate its error and compare it to the specified
+accuracy target. However, the definition of this error can vary depending on the
+backend and the check types. Backends are separated in two categories, non-
+deterministic (such as the MCA backend) and deterministic (such as the VPREC backend),
+and checks precision can be absolute (by default) or relative. This results in four
+different conditions to validate the probe, which are summed up in the following
+table :
+
+| |Absolute|Relative|
+--- | --- | ---
+|Non-deterministic|\|Standard deviation\| < Target | \|Standard deviation\| / \|Empirical average\| < Target
+|Deterministic|\|IEEE value\| -  \|Backend value\| < Target|(\|IEEE value\| -  \|Backend value\|) / \|IEEE value\| < Target
+
+By default, the standard deviation is used to estimate the error, and must be
+inferior to the accuracy threshold for the probe to pass (or inferior to the
+std. dev. / avg. quotient in the case of a relative check).
+But in the case of a deterministic backend, the standard deviation is undefined.
+Instead, the probe is computed in IEEE standard arithmetic, and this value is
+used as a reference to compute the error introduced by the deterministic backend.
+The status of a probe (passing/failing) can then be consulted in the report (see
+the ["Visualize your test results"](#visualize-your-test-results) part).
 
 **Fortran specific** : `vfc_probes` also comes with a Fortran interface. In
-order to use it, import the`vfc_probes_f` module, as well as
+order to use it, import the `vfc_probes_f` module, as well as
 [ISO_C_BINDING](https://gcc.gnu.org/onlinedocs/gfortran/ISO_005fC_005fBINDING.html).
 The functions are exactly the same, except that values stored inside probes should be
 of type `REAL(kind=C_DOUBLE)`. Moreover, since Fortran passes all functions arguments
@@ -180,13 +212,19 @@ project. Here is an example showcasing the expected structure of this file :
 ```
 
 The `parameters` field is optional and will default to an empty string when not
- specified. Each executable can be run with different backends, which have
- themselves different numbers of repetitions.
+specified. Each executable can be run with different backends, which have
+themselves different numbers of repetitions.
+
+Moreover, the `repetitions` field can also be omitted. However, the backend will
+then be considered as deterministic, which will result in a different data
+processing pipeline being used. For this reason, you should only omit this
+parameter when using backends that are actually deterministic (such as VPREC),
+and specify it in any other case.
 
 Note that :
 
 - Specifying a high enough number of repetitions is important to obtain reliable
- metrics in the report.
+ metrics in the report (with non-deterministic backends).
 - The path to the executable should be relative to the root of the project.
 
 Once this step is complete, you are ready to execute your first test run. This
@@ -213,7 +251,7 @@ Verificarlo CI takes advantage of
 [GitHub Actions](https://github.com/features/actions) and
 [GitLab CI/CD](https://docs.gitlab.com/ee/ci/) to lauch test runs and save
 their results everytime you push to your repository. The run files are stored
-on a dedicated orphan branch named wit the `vfc_ci_` prefix : if you were to
+on a dedicated orphan branch named with the `vfc_ci_` prefix : if you were to
 integrate Verificarlo CI into a `dev` branch, you could access your run files
 on the `vfc_ci_dev` branch.
 
@@ -259,15 +297,25 @@ custom logo to the report, etc... For more details :
 vfc_ci serve --help
 ```
 
-The report is split into two main functionnalities :
+The report is split into a few main views :
 
 - **Compare runs :** lets you select a test/variable/backend combination, and
 compare the evolution of the corresponding variable over the different runs
-(significant digits, distribution, average, standard deviation).
+(significant digits, distribution, average, standard deviation). Moreover, if
+some probes are associated to a check, fails will appear in red on the
+plots. This view is itself separated into two parts, one for the non-deterministic
+backends, and one for the deterministic backends (which only has a plot to show the
+probe's values).
 - **Inspect runs :** lets you select a specific run. From there you can select
 one factor to group by and one factor to filter by your data (between test,
-variable and backend). For each group, this will create new distribution for
-significants digits, standard deviation, and compute aggregated averages.
+variable and backend). For each group, this will create new distributions for
+significants digits, standard deviation, and compute aggregated averages. This
+view only works for non-deterministic backends.
+- **checks table :** lets you see which probes are associated to a check, and
+which ones are failing. This view is itself separated into two parts, one for the
+non-deterministic backends, and one for the deterministic backends. Depending
+on the backend type, data used for the probe validation will also be shown in
+the table.
 
  > :warning: In the "Inspect runs" mode, you have 6 different selection
 possibilities. Depending on your test setup, all of these combinations might

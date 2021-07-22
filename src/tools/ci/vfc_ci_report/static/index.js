@@ -56,6 +56,7 @@ document.getElementById("navbar-burger")
 
 // Helper function to navigate between views
 function changeView(classPrefix) {
+    window.scrollTo(0, 0);
 
     // Enable/disable the active class on buttons
     let buttons = document.getElementById("buttons-container").childNodes;
@@ -84,22 +85,39 @@ function changeView(classPrefix) {
     }
 }
 
-// Listen to clicks on "Compare runs" button
-document.getElementById("compare-runs-button").addEventListener("click", () => {
-    // Nothing else to do for this button
-    changeView("compare-runs");
-});
+// Listen to clicks on "Compare runs" non-deterministic button
+let compareButtons = document.getElementsByClassName("compare-runs-button");
 
-// Listen to clicks on "Inspect runs" button
-// (dedicated function as this needs to be called in a CustomJS callback)
-function goToInspectRuns() {
-    window.scrollTo(0, 0);
-
-    changeView("inspect-runs");
+for (let i=0; i<compareButtons.length; i++) {
+    compareButtons[i].addEventListener("click", () => {
+        changeView("compare-runs");
+    });
 }
 
+// Listen to clicks on "Compare runs" deterministic button
+document.getElementById("deterministic-button").addEventListener("click", () => {
+    changeView("deterministic");
+});
+
 document.getElementById("inspect-runs-button")
-.addEventListener("click", goToInspectRuns);
+.addEventListener("click", () => {
+    changeView("inspect-runs")
+});
+
+
+// Listen to clicks on "Checks" non-deterministic button
+let checksButtons = document.getElementsByClassName("checks-button");
+
+for (let i=0; i<checksButtons.length; i++) {
+    checksButtons[i].addEventListener("click", () => {
+        changeView("non-deterministic-checks");
+    });
+}
+
+document.getElementById("checks-deterministic-button")
+.addEventListener("click", () => {
+    changeView("deterministic-checks");
+});
 
 
 
@@ -133,7 +151,8 @@ setTimeout(pollBokehLoading, 100);
 
 
 // Update the run metadata (in inspect run mode)
-function updateRunMetadata(runId) {
+// Prefix will be appended to all DOM elements' ids
+function updateRunMetadata(runId, prefix) {
 
     // Assume runId is the run's timestamp
     let run = metadata[runId];
@@ -143,7 +162,7 @@ function updateRunMetadata(runId) {
     if(!run) {
         for(let [key, value] of Object.entries(metadata)) {
 
-            if (!metadata.hasOwnProperty(key)) continue;
+            if(!metadata.hasOwnProperty(key)) continue;
             if(value.name == runId) {
                 run = value;
                 break;
@@ -167,27 +186,27 @@ function updateRunMetadata(runId) {
 
 
     // Edit innerHTML with new metadata
-    document.getElementById("run-date").innerHTML = run.date;
+    document.getElementById(prefix + "run-date").innerHTML = run.date;
 
     if(run.is_git_commit) {
-        document.getElementById("is-git-commit").style.display = "";
-        document.getElementById("not-git-commit").style.display = "none";
+        document.getElementById(prefix + "is-git-commit").style.display = "";
+        document.getElementById(prefix + "not-git-commit").style.display = "none";
 
-        document.getElementById("run-hash").innerHTML = run.hash;
-        document.getElementById("run-author").innerHTML = run.author;
-        document.getElementById("run-message").innerHTML = run.message;
+        document.getElementById(prefix + "run-hash").innerHTML = run.hash;
+        document.getElementById(prefix + "run-author").innerHTML = run.author;
+        document.getElementById(prefix + "run-message").innerHTML = run.message;
 
-        document.getElementById("git-commit-link")
+        document.getElementById(prefix + "git-commit-link")
         .setAttribute("href", commit_link);
-        document.getElementById("git-commit-link")
+        document.getElementById(prefix + "git-commit-link")
         .innerHTML = "View this commit on " + gitHost;
 
     } else {
-        document.getElementById("is-git-commit").style.display = "none";
-        document.getElementById("not-git-commit").style.display = "";
+        document.getElementById(prefix + "is-git-commit").style.display = "none";
+        document.getElementById(prefix + "not-git-commit").style.display = "";
 
-        document.getElementById("run-hash").innerHTML = "";
-        document.getElementById("run-author").innerHTML = "";
-        document.getElementById("run-message").innerHTML = "";
+        document.getElementById(prefix + "run-hash").innerHTML = "";
+        document.getElementById(prefix + "run-author").innerHTML = "";
+        document.getElementById(prefix + "run-message").innerHTML = "";
     }
 }

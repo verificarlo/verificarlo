@@ -49,55 +49,61 @@ import plot
 
 class CompareRuns:
 
-    # Helper functions related to CompareRuns
-
-    def gen_x_series(self, timestamps):
-        '''
-        From an array of timestamps, returns the array of runs names (for the x
-        axis ticks), as well as the metadata (in a dict of arrays) associated
-        to this array (will be used in tooltips)
-        '''
-
-        # Initialize the objects to return
-        x_series = []
-        x_metadata = dict(
-            date=[],
-            is_git_commit=[],
-            hash=[],
-            author=[],
-            message=[]
-        )
-
-        # n == 0 means we want all runs, we also make sure not to go out of
-        # bound if asked for more runs than we have
-        n = self.current_n_runs
-        if n == 0 or n > len(timestamps):
-            n = len(timestamps)
-
-        for i in range(0, n):
-            # Get metadata associated to this run
-            row_metadata = helper.get_metadata(
-                self.metadata, timestamps[-i - 1])
-            date = time.ctime(timestamps[-i - 1])
-
-            # Fill the x series
-            str = row_metadata["name"]
-            x_series.insert(0, helper.get_metadata(
-                self.metadata, timestamps[-i - 1])["name"])
-
-            # Fill the metadata lists
-            x_metadata["date"].insert(0, date)
-            x_metadata["is_git_commit"].insert(
-                0, row_metadata["is_git_commit"])
-            x_metadata["hash"].insert(0, row_metadata["hash"])
-            x_metadata["author"].insert(0, row_metadata["author"])
-            x_metadata["message"].insert(0, row_metadata["message"])
-
-        return x_series, x_metadata
-
-        # Plots update function
+    # Plots update function
 
     def update_plots(self):
+
+        if self.data.empty:
+            # Initialize empty dicts and return
+
+            for stat in ["sigma", "s10", "s2"]:
+                dict = {
+                    "%s_x" % stat: [],
+
+                    "is_git_commit": [],
+                    "date": [],
+                    "hash": [],
+                    "author": [],
+                    "message": [],
+
+                    stat: [],
+
+                    "nsamples": [],
+                    "accuracy_threshold": [],
+
+                    "custom_colors": []
+                }
+
+                if stat == "s10" or stat == "s2":
+                    dict["%s_lower_bound" % stat] = []
+
+                self.sources["%s_source" % stat].data = dict
+
+            # Boxplot dict
+            dict = {
+                "is_git_commit": [],
+                "date": [],
+                "hash": [],
+                "author": [],
+                "message": [],
+
+                "x": [],
+                "min": [],
+                "quantile25": [],
+                "quantile50": [],
+                "quantile75": [],
+                "max": [],
+                "mu": [],
+                "pvalue": [],
+
+                "nsamples": [],
+
+                "custom_colors": []
+            }
+
+            self.sources["boxplot_source"].data = dict
+
+            return
 
         # Select all data matching current test/var/backend
 
@@ -105,8 +111,14 @@ class CompareRuns:
                              self.widgets["select_var"].value,
                              self.widgets["select_backend"].value]
 
+        runs = runs.sort_values(by=["timestamp"])
+
         timestamps = runs["timestamp"]
-        x_series, x_metadata = self.gen_x_series(timestamps.sort_values())
+        x_series, x_metadata = helper.gen_x_series(
+            self.metadata,
+            timestamps.sort_values(),
+            self.current_n_runs
+        )
 
         # Update source
 
@@ -119,6 +131,11 @@ class CompareRuns:
         # Select the last n runs only
         n = self.current_n_runs
         main_dict = {key: value[-n:] for key, value in main_dict.items()}
+
+        # Generate color series for display of failed checks
+        custom_colors = [True] * len(main_dict["check"])
+        for i in range(len(main_dict["check"])):
+            custom_colors[i] = "#1f77b4" if main_dict["check"][i] else "#cc2b2b"
 
         # Generate ColumnDataSources for the 3 dotplots
         for stat in ["sigma", "s10", "s2"]:
@@ -134,6 +151,9 @@ class CompareRuns:
                 stat: main_dict[stat],
 
                 "nsamples": main_dict["nsamples"],
+                "accuracy_threshold": main_dict["accuracy_threshold"],
+
+                "custom_colors": custom_colors
             }
 
             if stat == "s10" or stat == "s2":
@@ -168,7 +188,9 @@ class CompareRuns:
             "mu": main_dict["mu"],
             "pvalue": main_dict["pvalue"],
 
-            "nsamples": main_dict["nsamples"]
+            "nsamples": main_dict["nsamples"],
+
+            "custom_colors": custom_colors
         }
 
         self.sources["boxplot_source"].data = dict
@@ -282,8 +304,7 @@ class CompareRuns:
 
         # Custom JS callback that will be used when tapping on a run
         # Only switches the view, a server callback is required to update plots
-        # (defined inside template to avoid bloating server w/ too much JS code)
-        js_tap_callback = "goToInspectRuns();"
+        js_tap_callback = "changeView(\"inspect-runs\");"
 
         # Box plot
         self.plots["boxplot"] = figure(
@@ -322,6 +343,7 @@ class CompareRuns:
             tooltips_formatters=box_tooltips_formatters,
             js_tap_callback=js_tap_callback,
             server_tap_callback=self.inspect_run_callback_boxplot,
+            custom_colors="custom_colors"
         )
         self.doc.add_root(self.plots["boxplot"])
 
@@ -339,7 +361,8 @@ class CompareRuns:
             ("Author", "@author"),
             ("Message", "@message"),
             ("σ", "@sigma"),
-            ("Number of samples", "@nsamples")
+            ("Number of samples", "@nsamples"),
+            ("Check's accuracy target", "@accuracy_threshold")
         ]
 
         plot.fill_dotplot(
@@ -347,7 +370,8 @@ class CompareRuns:
             tooltips=sigma_tooltips,
             js_tap_callback=js_tap_callback,
             server_tap_callback=self.inspect_run_callback_sigma,
-            lines=True
+            lines=True,
+            custom_colors="custom_colors"
         )
         self.doc.add_root(self.plots["sigma_plot"])
 
@@ -366,7 +390,8 @@ class CompareRuns:
             ("Message", "@message"),
             ("s", "@s10"),
             ("s lower bound", "@s10_lower_bound"),
-            ("Number of samples", "@nsamples")
+            ("Number of samples", "@nsamples"),
+            ("Check's accuracy target", "@accuracy_threshold")
         ]
 
         plot.fill_dotplot(
@@ -375,7 +400,8 @@ class CompareRuns:
             js_tap_callback=js_tap_callback,
             server_tap_callback=self.inspect_run_callback_s10,
             lines=True,
-            lower_bound=True
+            lower_bound=True,
+            custom_colors="custom_colors"
         )
         s10_tab = Panel(child=self.plots["s10_plot"], title="Base 10")
 
@@ -402,7 +428,8 @@ class CompareRuns:
             js_tap_callback=js_tap_callback,
             server_tap_callback=self.inspect_run_callback_s2,
             lines=True,
-            lower_bound=True
+            lower_bound=True,
+            custom_colors="custom_colors"
         )
         s2_tab = Panel(child=self.plots["s2_plot"], title="Base 2")
 
@@ -419,14 +446,20 @@ class CompareRuns:
         # Initial selections
 
         # Test/var/backend combination (we select all first elements at init)
-        self.tests = self.data\
-            .index.get_level_values("test").drop_duplicates().tolist()
+        if not self.data.empty:
+            self.tests = self.data\
+                .index.get_level_values("test").drop_duplicates().tolist()
 
-        self.vars = self.data.loc[self.tests[0]]\
-            .index.get_level_values("variable").drop_duplicates().tolist()
+            self.vars = self.data.loc[self.tests[0]]\
+                .index.get_level_values("variable").drop_duplicates().tolist()
 
-        self.backends = self.data.loc[self.tests[0], self.vars[0]]\
-            .index.get_level_values("vfc_backend").drop_duplicates().tolist()
+            self.backends = self.data.loc[self.tests[0], self.vars[0]]\
+                .index.get_level_values("vfc_backend").drop_duplicates().tolist()
+
+        else:
+            self.tests = ["None"]
+            self.vars = ["None"]
+            self.backends = ["None"]
 
         # Custom JS callback that will be used client side to filter selections
         filter_callback_js = """
@@ -514,9 +547,10 @@ class CompareRuns:
         # Communication methods
         # (to send/receive messages to/from master)
 
-    # Callback to change view to "Inspect runs" when plot element is clicked
-
     def inspect_run_callback(self, new, source_name, x_name):
+        '''
+        Callback to change view to "Inspect runs" when plot element is clicked
+        '''
 
         # In case we just unselected everything on the plot, then do nothing
         if not new:
