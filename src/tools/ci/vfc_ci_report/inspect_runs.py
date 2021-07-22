@@ -53,25 +53,6 @@ class InspectRuns:
 
     # Helper functions related to InspectRun
 
-    def gen_runs_selection(self):
-        '''
-        Returns a dictionary mapping user-readable strings to all run timestamps
-        '''
-
-        runs_dict = {}
-
-        # Iterate over timestamp rows (runs) and fill dict
-        for row in self.metadata.iloc:
-            # The syntax used by pandas makes this part a bit tricky :
-            # row.name is the index of metadata (so it refers to the
-            # timestamp), whereas row["name"] is the column called "name"
-            # (which is the display string used for the run)
-
-            # runs_dict[run's name] = run's timestamp
-            runs_dict[row["name"]] = row.name
-
-        return runs_dict
-
     def gen_boxplot_tooltips(self, prefix):
         return [
             ("Name", "@%s_x" % prefix),
@@ -151,26 +132,54 @@ class InspectRuns:
 
         # Groupby and aggregate lines belonging to the same group in lists
 
-        groups = self.run_data[
-            self.run_data.index.isin(
-                [self.widgets["select_filter"].value],
-                level=filterby
-            )
-        ].groupby(groupby)
+        if not self.run_data.empty:
+            groups = self.run_data[
+                self.run_data.index.isin(
+                    [self.widgets["select_filter"].value],
+                    level=filterby
+                )
+            ].groupby(groupby)
 
-        groups = groups.agg({
-            "sigma": lambda x: x.tolist(),
-            "s10": lambda x: x.tolist(),
-            "s2": lambda x: x.tolist(),
+            groups = groups.agg({
+                "sigma": lambda x: x.tolist(),
+                "s10": lambda x: x.tolist(),
+                "s2": lambda x: x.tolist(),
 
-            "mu": lambda x: x.tolist(),
+                "mu": lambda x: x.tolist(),
 
-            # Used for mu weighted average first, then will be replaced
-            "nsamples": lambda x: x.tolist()
-        })
+                # Used for mu weighted average first, then will be replaced
+                "nsamples": lambda x: x.tolist()
+            })
 
-        # Compute the new distributions, ...
-        groups = self.data_processing(groups).to_dict("list")
+            # Compute the new distributions, ...
+            groups = self.data_processing(groups).to_dict("list")
+
+        else:
+            groups = {
+                "mu": [],
+                "nsamples": [],
+                "mu_x": [],
+                "sigma_x": [],
+                "sigma_min": [],
+                "sigma_quantile25": [],
+                "sigma_quantile50": [],
+                "sigma_quantile75": [],
+                "sigma_max": [],
+                "sigma_mu": [],
+                "s10_x": [],
+                "s10_min": [],
+                "s10_quantile25": [],
+                "s10_quantile50": [],
+                "s10_quantile75": [],
+                "s10_max": [],
+                "s10_mu": [],
+                "s2_x": [],
+                "s2_min": [],
+                "s2_quantile25": [],
+                "s2_quantile50": [],
+                "s2_quantile75": [],
+                "s2_max": [],
+                "s2_mu": []}
 
         # Update source
 
@@ -460,7 +469,7 @@ class InspectRuns:
         # Dict contains all inspectable runs (maps display strings to timestamps)
         # The dict structure allows to get the timestamp from the display string
         # in O(1)
-        self.runs_dict = self.gen_runs_selection()
+        self.runs_dict = helper.gen_runs_selection(self.metadata)
 
         # Dict maps display strings to column names for the different factors
         # (var, backend, test)
@@ -481,7 +490,7 @@ class InspectRuns:
         # This contains only entries matching the run
         self.run_data = self.data[self.data["timestamp"] == self.current_run]
 
-        change_run_callback_js = "updateRunMetadata(cb_obj.value);"
+        change_run_callback_js = "updateRunMetadata(cb_obj.value, \"\");"
 
         self.widgets["select_run"] = Select(
             name="select_run", title="Run :",
@@ -537,8 +546,11 @@ class InspectRuns:
         ]
         filterby = self.factors_dict[filterby]
 
-        options = self.run_data.index\
-            .get_level_values(filterby).drop_duplicates().tolist()
+        if not self.run_data.empty:
+            options = self.run_data.index\
+                .get_level_values(filterby).drop_duplicates().tolist()
+        else:
+            options = ["None"]
 
         self.widgets["select_filter"] = Select(
             # We need a different name to avoid collision in the template with
@@ -572,7 +584,7 @@ class InspectRuns:
         self.data = new_data
         self.metadata = new_metadata
 
-        self.runs_dict = self.gen_runs_selection()
+        self.runs_dict = helper.gen_runs_selection(self.metadata)
 
         runs_display = list(self.runs_dict.keys())
         current_run_display = runs_display[-1]

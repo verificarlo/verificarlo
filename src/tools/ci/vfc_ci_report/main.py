@@ -38,7 +38,10 @@ from bokeh.models import Select, CustomJS
 
 # Local imports from vfc_ci_server
 import compare_runs
+import deterministic_compare
 import inspect_runs
+import checks
+
 import helper
 
 ##########################################################################
@@ -56,7 +59,6 @@ directory = "."
 
 max_files = 100
 ignore_recent = 0
-
 
 for i in range(1, len(sys.argv)):
 
@@ -97,6 +99,7 @@ if len(run_files) == 0:
 # These are arrays of Pandas dataframes for now
 metadata = []
 data = []
+deterministic_data = []
 
 # First pass for metadata
 for f in run_files:
@@ -142,8 +145,37 @@ for f in run_files:
 
     if current_timestamp <= max_timestamp:
         data.append(pd.read_hdf(directory + "/" + f, "data"))
+        deterministic_data.append(
+            pd.read_hdf(
+                directory + "/" + f,
+                "deterministic_data"))
 
 data = pd.concat(data).sort_index()
+deterministic_data = pd.concat(deterministic_data).sort_index()
+
+# If no data/deterministic_data has been found, create an empty dataframe anyway
+# (with column names) to avoid errors further in the code
+if data.empty:
+    data = pd.DataFrame(columns=[
+        "test", "variable", "backend",
+        "sigma", "s10", "s2", "s10_lower_bound", "s2_lower_bound",
+        "mu", "quantile25", "quantile50", "quantile75",
+        "accuracy_threshold", "check", "check_mode",
+        "timestamp"
+    ])
+
+if deterministic_data.empty:
+    deterministic_data = pd.DataFrame(
+        columns=[
+            "test",
+            "variable",
+            "backend",
+            "value",
+            "accuracy_threshold",
+            "reference_value",
+            "check",
+            "check_mode",
+            "timestamp"])
 
 # Generate the display strings for runs (runs ticks)
 # By doing this in master, we ensure the homogeneity of display strings
@@ -159,7 +191,6 @@ helper.reset_run_strings()
 metadata["date"] = metadata.index.to_series().map(
     lambda x: time.ctime(x)
 )
-
 
 ##########################################################################
 
@@ -177,30 +208,51 @@ class ViewsMaster:
     # Callbacks
 
     def change_repo(self, attrname, old, new):
-        filtered_data = self.data[
-            helper.filterby_repo(
-                self.metadata, new, self.data["timestamp"]
-            )
-        ]
+        # Filter metadata by repository
         filtered_metadata = self.metadata[
             self.metadata["repo_name"] == new
         ]
 
+        # Filter data and deterministic_data by repository
+        if not data.empty:
+            filtered_data = self.data[
+                helper.filterby_repo(
+                    self.metadata, new, self.data["timestamp"]
+                )
+            ]
+        else:
+            filtered_data = data
+
+        if not deterministic_data.empty:
+            filtered_deterministic_data = self.deterministic_data[
+                helper.filterby_repo(
+                    self.metadata, new, self.deterministic_data["timestamp"]
+                )
+            ]
+
         self.compare.change_repo(filtered_data, filtered_metadata)
+        self.deterministic.change_repo(
+            filtered_deterministic_data, filtered_metadata)
         self.inspect.change_repo(filtered_data, filtered_metadata)
+        self.checks.change_repo(
+            filtered_data, filtered_deterministic_data, filtered_metadata)
 
         # Communication functions
 
     def go_to_inspect(self, run_name):
         self.inspect.switch_view(run_name)
 
+    def go_to_checks(self, run_name):
+        self.checks.switch_view(run_name)
+
         # Constructor
 
-    def __init__(self, data, metadata):
+    def __init__(self, data, deterministic_data, metadata):
 
         curdoc().title = "Verificarlo Report"
 
         self.data = data
+        self.deterministic_data = deterministic_data
         self.metadata = metadata
 
         # Initialize repository selection
@@ -241,17 +293,32 @@ class ViewsMaster:
         curdoc().template_variables["metadata"] = self.metadata.to_json(
             orient="index")
 
+        # Show the first repository by default
         repo_name = list(repo_names_dict.keys())[0]
 
-        # Filter data and metadata by repository
-        filtered_data = self.data[
-            helper.filterby_repo(
-                self.metadata, repo_name, self.data["timestamp"]
-            )
-        ]
+        # Filter metadata by repository
         filtered_metadata = self.metadata[
             self.metadata["repo_name"] == repo_name
         ]
+
+        # Filter data and deterministic_data by repository
+        if not data.empty:
+            filtered_data = self.data[
+                helper.filterby_repo(
+                    self.metadata, repo_name, self.data["timestamp"]
+                )
+            ]
+        else:
+            filtered_data = data
+
+        if not deterministic_data.empty:
+            filtered_deterministic_data = self.deterministic_data[
+                helper.filterby_repo(
+                    self.metadata, repo_name, self.deterministic_data["timestamp"]
+                )
+            ]
+        else:
+            filtered_deterministic_data = deterministic_data
 
         # Initialize views
 
@@ -260,7 +327,15 @@ class ViewsMaster:
             master=self,
             doc=curdoc(),
             data=filtered_data,
-            metadata=filtered_metadata,
+            metadata=filtered_metadata
+        )
+
+        # Initialize deterministic runs comparison
+        self.deterministic = deterministic_compare.DeterministicCompare(
+            master=self,
+            doc=curdoc(),
+            data=filtered_deterministic_data,
+            metadata=filtered_metadata
         )
 
         # Initialize runs inspection
@@ -268,11 +343,21 @@ class ViewsMaster:
             master=self,
             doc=curdoc(),
             data=filtered_data,
-            metadata=filtered_metadata,
+            metadata=filtered_metadata
+        )
+
+        # Initialize checks table view
+        self.checks = checks.Checks(
+            master=self,
+            doc=curdoc(),
+            data=filtered_data,
+            deterministic_data=filtered_deterministic_data,
+            metadata=filtered_metadata
         )
 
 
 views_master = ViewsMaster(
     data=data,
+    deterministic_data=deterministic_data,
     metadata=metadata
 )

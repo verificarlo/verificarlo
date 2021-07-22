@@ -35,9 +35,24 @@
                 margin-top: 1em;
             }
 
+            #deterministic-container {
+                margin-top: 1em;
+                display : none; /* Hidden by default */
+            }
+
             #inspect-runs-container {
                 margin-top: 1em;
-                display : none; /* This one is hidden by default */
+                display : none; /* Hidden by default */
+            }
+
+            #deterministic-checks-container {
+                margin-top: 1em;
+                display : none; /* Hidden by default */
+            }
+
+            #non-deterministic-checks-container {
+                margin-top: 1em;
+                display : none; /* Hidden by default */
             }
 
             .plot-card {
@@ -107,19 +122,50 @@
             <!-- MENU (content) -->
             <div id="navbar-content" class="navbar-menu">
 
-                <div id="buttons-container" class="navbar-start">
+                <div id="buttons-container" class="navbar-menu">
 
                     <div id="select-repo" style="margin-top: 15px;">
                         {{ embed(roots.select_repo) }}
                     </div>
 
-                    <a class="navbar-item is-active" id="compare-runs-button">
-                        Compare runs
-                    </a>
+                    <div class="navbar-item has-dropdown is-hoverable">
+
+                        <a class="navbar-link compare-runs-button">
+                            Compare runs
+                        </a>
+
+                        <div class="navbar-dropdown">
+                            <a class="navbar-item compare-runs-button">
+                            Non-deterministic backends
+                            </a>
+                            <a class="navbar-item" id="deterministic-button">
+                            Deterministic backends
+                            </a>
+                        </div>
+
+                    </div>
 
                     <a class="navbar-item" id="inspect-runs-button">
                         Inspect runs
                     </a>
+
+
+                    <div class="navbar-item has-dropdown is-hoverable">
+
+                        <a class="navbar-link checks-button">
+                            Checks table
+                        </a>
+
+                        <div class="navbar-dropdown">
+                            <a class="navbar-item checks-button">
+                            Non-deterministic backends
+                            </a>
+                            <a class="navbar-item" id="checks-deterministic-button">
+                            Deterministic backends
+                            </a>
+                        </div>
+
+                    </div>
                 </div>
 
                 <div class="navbar-end">
@@ -143,7 +189,7 @@
             </div>
         </nav>
 
-        <!-- CONTENT : COMPARE RUNS -->
+        <!-- CONTENT : COMPARE RUNS (NON DETERMINISTIC)-->
         <main class="container" id="compare-runs-container">
             <div class="columns">
 
@@ -169,7 +215,13 @@
 
                 <!-- PLOTS -->
                 <div class="column is-9">
-                    <h3 class="title is-3">Plots</h3>
+                    <div style="display: flex; margin-bottom: 24px;">
+                        <h3 class="title is-3" style="margin: 0;">Plots</h3>
+                        <span style="align-self: flex-end; margin-left: 10px;">
+                            (non-deterministic backends)
+                        </span>
+                    </div>
+
                     <div class="container">
                         <div class="card plot-card">
                             {{ embed(roots.s_tabs) }}
@@ -186,6 +238,50 @@
                         <div class="card plot-card">
                             {{ embed(roots.boxplot) }}
                         </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- CONTENT : COMPARE RUNS (DETERMINISTIC)-->
+        <main class="container" id="deterministic-container">
+
+            <div class="columns">
+
+                <!-- SELECTORS -->
+                <div class="column">
+                    <h4 class="title is-4">Selectors</h4>
+                    <div id="compare-widgets">
+                        {{ embed(roots.deterministic_test_filter) }} {{ embed(roots.select_deterministic_test) }}
+                        <br> {{ embed(roots.select_deterministic_var) }}
+                        <br> {{ embed(roots.select_deterministic_backend) }}
+                        <br> {{ embed(roots.outliers_filtering_deterministic) }}
+                        <br>
+                        <br> {{ embed(roots.select_n_deterministic_runs) }}
+
+                        <br>
+                        <br>
+                    </div>
+                </div>
+
+                <div class="is-divider-vertical"></div>
+
+                <!-- PLOTS -->
+                <div class="column is-9">
+                    <div style="display: flex; margin-bottom: 24px;">
+                        <h3 class="title is-3" style="margin: 0;">Plots</h3>
+                        <span style="align-self: flex-end; margin-left: 10px;">
+                            (deterministic backends)
+                        </span>
+                    </div>
+
+                    <div class="container">
+                        <div class="card plot-card">
+                            {{ embed(roots.comparison_plot) }}
+                        </div>
+
+                        <br>
                     </div>
                 </div>
 
@@ -251,7 +347,13 @@
 
                 <!-- PLOTS -->
                 <div class="column is-9">
-                    <h3 class="title is-3">Plots</h3>
+                    <div style="display: flex; margin-bottom: 24px;">
+                        <h3 class="title is-3" style="margin: 0;">Plots</h3>
+                        <span style="align-self: flex-end; margin-left: 10px;">
+                            (runs inspection)
+                        </span>
+                    </div>
+
                     <div class="card plot-card" style="z-index: 3;">
                         {{ embed(roots.s_tabs_inspect) }}
                     </div>
@@ -272,6 +374,141 @@
             </div>
         </main>
 
+        <!-- CONTENT : CHECKS NON-DETERMINISTIC -->
+        <main class="container" id="non-deterministic-checks-container">
+            <div class="columns">
+
+                <!-- SELECTORS -->
+                <div class="column">
+                    <h4 class="title is-4">Selectors</h4>
+                    {{ embed(roots.select_check_run_non_deterministic) }}
+
+                    <br>
+                    <br>
+
+                    <h4 class="title is-4">Run metadata</h4>
+
+                    <b>Date :</b>
+                    <div id="non-deterministic-checks-run-date" style="display: inline;">
+                    </div>
+
+                    <br>
+
+                    <div id="non-deterministic-checks-is-git-commit">
+
+                        <b>Hash :</b>
+                        <div id="non-deterministic-checks-run-hash" style="display: inline;">
+                        </div>
+                        <br>
+                        <b>Author :</b>
+                        <div id="non-deterministic-checks-run-author" style="display: inline;">
+                        </div>
+                        <br>
+                        <b>Message :</b>
+                        <div id="non-deterministic-checks-run-message" style="display: inline;">
+                        </div>
+
+                        <br>
+                        <br>
+
+                        <a id="non-deterministic-checks-git-commit-link" href="" target="_blank">
+                            View this commit on
+                        </a>
+
+                    </div>
+
+                    <div id="non-deterministic-checks-not-git-commit">
+
+                        This run is not linked to a Git commit.
+
+                    </div>
+
+                </div>
+
+                <!-- PLOTS -->
+                <div class="column is-9">
+                    <div style="display: flex; margin-bottom: 24px;">
+                        <h3 class="title is-3" style="margin: 0;">Checks table</h3>
+                        <span style="align-self: flex-end; margin-left: 10px;">
+                            (non-deterministic backends)
+                        </span>
+                    </div>
+
+                    <div class="card plot-card">
+                        {{ embed(roots.non_deterministic_checks_table) }}
+                    </div>
+
+                </div>
+            </div>
+        </main>
+
+        <!-- CONTENT : CHECKS DETERMINISTIC -->
+        <main class="container" id="deterministic-checks-container">
+            <div class="columns">
+
+                <!-- SELECTORS -->
+                <div class="column">
+                    <h4 class="title is-4">Selectors</h4>
+                    {{ embed(roots.select_check_run_deterministic) }}
+
+                    <br>
+                    <br>
+
+                    <h4 class="title is-4">Run metadata</h4>
+
+                    <b>Date :</b>
+                    <div id="deterministic-checks-run-date" style="display: inline;">
+                    </div>
+
+                    <br>
+
+                    <div id="deterministic-checks-is-git-commit">
+
+                        <b>Hash :</b>
+                        <div id="deterministic-checks-run-hash" style="display: inline;">
+                        </div>
+                        <br>
+                        <b>Author :</b>
+                        <div id="deterministic-checks-run-author" style="display: inline;">
+                        </div>
+                        <br>
+                        <b>Message :</b>
+                        <div id="deterministic-checks-run-message" style="display: inline;">
+                        </div>
+
+                        <br>
+                        <br>
+
+                        <a id="deterministic-checks-git-commit-link" href="" target="_blank">
+                            View this commit on
+                        </a>
+
+                    </div>
+
+                    <div id="deterministic-checks-not-git-commit">
+
+                        This run is not linked to a Git commit.
+
+                    </div>
+
+                </div>
+
+                <!-- PLOTS -->
+                <div class="column is-9">
+                    <div style="display: flex; margin-bottom: 24px;">
+                        <h3 class="title is-3" style="margin: 0;">Checks table</h3>
+                        <span style="align-self: flex-end; margin-left: 10px;">
+                            (deterministic backends)
+                        </span>
+                    </div>
+
+                    <div class="card plot-card">
+                        {{ embed(roots.deterministic_checks_table) }}
+                    </div>
+
+                </div>
+            </div>
+        </main>
     </div>
 
     <!--- LOADER -->
@@ -296,7 +533,9 @@
         }
 
         changeRepository("{{initial_repo}}");
-        updateRunMetadata({{initial_timestamp}});
+        updateRunMetadata({{initial_timestamp}}, "");
+        updateRunMetadata({{initial_timestamp}}, "non-deterministic-checks-");
+        updateRunMetadata({{initial_timestamp}}, "deterministic-checks-");
     </script>
 
     {% endblock %}

@@ -25,7 +25,7 @@
 # This script reads the vfc_tests_config.json file and executes tests accordingly
 # It will also generate a ... .vfcrunh5 file with the results of the run
 
-from .test_data_processing import data_processing
+from .test_data_processing import data_processing, validate_deterministic_probe
 import pandas as pd
 import os
 import subprocess
@@ -49,7 +49,7 @@ timeout = 600   # For commands execution
 
 # Helper functions
 
-def read_probes_csv(filepath, backend, warnings, execution_data):
+def read_probes_csv(filepath, warnings, execution_data):
     '''Read a CSV file outputted by vfc_probe as a Pandas dataframe'''
 
     try:
@@ -63,8 +63,12 @@ def read_probes_csv(filepath, backend, warnings, execution_data):
         )
         warnings.append(execution_data)
         return pd.DataFrame(
-            columns=["test", "variable", "values", "vfc_backend"]
-        )
+            columns=[
+                "test",
+                "variable",
+                "values",
+                "accuracy_threshold",
+                "vfc_backend"])
 
     except Exception:
         print(
@@ -73,8 +77,12 @@ def read_probes_csv(filepath, backend, warnings, execution_data):
         )
         warnings.append(execution_data)
         return pd.DataFrame(
-            columns=["test", "variable", "values", "vfc_backend"]
-        )
+            columns=[
+                "test",
+                "variable",
+                "values",
+                "accuracy_threshold",
+                "vfc_backend"])
 
     if len(results) == 0:
         print(
@@ -87,9 +95,22 @@ def read_probes_csv(filepath, backend, warnings, execution_data):
     results["value"] = results["value"].apply(lambda x: float.fromhex(x))
     results.rename(columns={"value": "values"}, inplace=True)
 
-    results["vfc_backend"] = backend
+    results["accuracy_threshold"] = results["accuracy_threshold"].apply(
+        lambda x: float.fromhex(x))
 
-    return results
+    results["vfc_backend"] = execution_data["backend"]
+
+    # Extract accuracy thresholds data
+    checks_data = results[["test",
+                           "variable",
+                           "vfc_backend",
+                           "accuracy_threshold",
+                           "check_mode"]].copy()
+
+    del results["accuracy_threshold"]
+    del results["check_mode"]
+
+    return results, checks_data
 
 
 ##########################################################################
@@ -150,6 +171,136 @@ def generate_metadata(is_git_commit):
     return metadata
 
 
+def run_non_deterministic(
+        command,
+        repetitions,
+        executable,
+        backend,
+        data,
+        checks_data,
+        warnings):
+    '''
+    Loop execution for non-deterministic backends. This will also export checks
+    so they can be merged later with the data (after the likely duplicates have
+    been removed).
+    '''
+
+    # Run test repetitions and save results
+    for i in range(repetitions):
+        temp = tempfile.NamedTemporaryFile()
+        os.putenv("VFC_PROBES_OUTPUT", temp.name)
+
+        p = subprocess.Popen(command.split())
+        try:
+            p.wait(timeout)
+        except subprocess.TimeoutExpired:
+            print(
+                "Warning [vfc_ci]: execution was timed out",
+                file=sys.stderr)
+            p.kill()
+
+        execution_data = {
+            "executable": executable,
+            "backend": backend,
+            "repetition": i + 1
+        }
+
+        run_data, run_check_data = read_probes_csv(
+            temp.name,
+            warnings,
+            execution_data
+        )
+
+        data.append(run_data)
+        checks_data.append(run_check_data)
+
+        temp.close()
+
+
+def run_deterministic(
+        command,
+        executable,
+        backend,
+        deterministic_data,
+        warnings):
+    '''
+    Single execution for deterministic test. If some probes are associated to an
+    check, an IEEE run will also be executed as a reference. The check will be
+    checked directly, since it doesn't really require any data processing.
+    '''
+
+    temp = tempfile.NamedTemporaryFile()
+    os.putenv("VFC_PROBES_OUTPUT", temp.name)
+
+    p = subprocess.Popen(command.split())
+    try:
+        p.wait(timeout)
+    except subprocess.TimeoutExpired:
+        print(
+            "Warning [vfc_ci]: execution was timed out",
+            file=sys.stderr)
+        p.kill()
+
+    execution_data = {
+        "executable": executable,
+        "backend": backend,
+        "repetition": 1
+    }
+
+    run_data, run_checks_data = read_probes_csv(
+        temp.name,
+        warnings,
+        execution_data
+    )
+
+    run_data.rename(columns={"values": "value"}, inplace=True)
+    run_data["accuracy_threshold"] = run_checks_data["accuracy_threshold"]
+    run_data["check_mode"] = run_checks_data["check_mode"]
+
+    # If checks are detected, do a reference run (with IEEE backend)
+    if run_data["accuracy_threshold"].sum() != 0:
+
+        temp.close()
+
+        os.putenv("VFC_BACKENDS", "libinterflop_ieee.so")
+        temp = tempfile.NamedTemporaryFile()
+        os.putenv("VFC_PROBES_OUTPUT", temp.name)
+
+        p = subprocess.Popen(command.split())
+        try:
+            p.wait(timeout)
+        except subprocess.TimeoutExpired:
+            print(
+                "Warning [vfc_ci]: reference execution was timed out",
+                file=sys.stderr)
+            p.kill()
+
+        execution_data = {
+            "executable": executable,
+            "backend": "libinterflop_ieee.so (reference run)",
+            "repetition": 1
+        }
+
+        reference_run_data = read_probes_csv(
+            temp.name,
+            warnings,
+            execution_data
+        )[0]
+
+        run_data["reference_value"] = reference_run_data["values"]
+        run_data["check"] = run_data.apply(
+            lambda x: validate_deterministic_probe(x), axis=1
+        )
+
+    else:
+        run_data["reference_value"] = 0
+        run_data["check"] = True
+
+    deterministic_data.append(run_data)
+
+    temp.close()
+
+
 def run_tests(config):
     '''
     Execute tests and collect results in a Pandas dataframe
@@ -159,15 +310,19 @@ def run_tests(config):
     print("Info [vfc_ci]: Building tests...")
     os.system(config["make_command"])
 
-    # This is an array of Pandas dataframes for now
+    # These are arrays of Pandas dataframes for now
     data = []
+    deterministic_data = []
+
+    # Only for non-deterministic data. Stored separately for now since it is
+    # easier to add this to data after the groupby.
+    checks_data = []
 
     # This will contain all executables/repetition numbers from which we could
     # not get any data
     warnings = []
 
-    # Tests execution loops
-
+    # Executables iteration
     for executable in config["executables"]:
         print("Info [vfc_ci]: Running executable :",
               executable["executable"], "...")
@@ -176,58 +331,79 @@ def run_tests(config):
         if "parameters" in executable:
             parameters = executable["parameters"]
 
+        # Backends iteration
         for backend in executable["vfc_backends"]:
 
             os.putenv("VFC_BACKENDS", backend["name"])
 
             command = "./" + executable["executable"] + " " + parameters
 
-            repetitions = 1
+            # By default, we expect to have a number of repetitions specified
+            # to run the tests in "non-deterministic" mode.
             if "repetitions" in backend:
                 repetitions = backend["repetitions"]
 
-            # Run test repetitions and save results
-            for i in range(repetitions):
-                temp = tempfile.NamedTemporaryFile()
-                os.putenv("VFC_PROBES_OUTPUT", temp.name)
-
-                print(command)
-                p = subprocess.Popen(command.split())
-                try:
-                    p.wait(timeout)
-                except subprocess.TimeoutExpired:
-                    print(
-                        "Warning [vfc_ci]: execution was timed out",
-                        file=sys.stderr)
-                    p.kill()
-
-                # This will only be used if we need to append this exec to the
-                # warnings list
-                execution_data = {
-                    "executable": executable["executable"],
-                    "backend": backend["name"],
-                    "repetition": i + 1
-                }
-
-                data.append(read_probes_csv(
-                    temp.name,
+                run_non_deterministic(
+                    command,
+                    repetitions,
+                    executable["executable"],
                     backend["name"],
-                    warnings,
-                    execution_data
-                ))
+                    data,
+                    checks_data,
+                    warnings)
 
-                temp.close()
-
-    # Combine all separate executions in one dataframe
-    data = pd.concat(data, sort=False, ignore_index=True)
-    data = data.groupby(["test", "vfc_backend", "variable"])\
-        .values.apply(list).reset_index()
+            # However, if it is not specified, we'll assume a deterministic
+            # backend and fall back to this mode (so as to avoid the same data
+            # processing phase used for non-deterministic mode).
+            else:
+                # The run is executed in this helper function
+                run_deterministic(
+                    command,
+                    executable["executable"],
+                    backend["name"],
+                    deterministic_data,
+                    warnings)
 
     # Make sure we have some data to work on
-    assert(len(data) != 0), "Error [vfc_ci]: No data have been generated " \
+    assert(len(data) != 0 or len(deterministic_data) != 0), "Error [vfc_ci]: No data have been generated " \
         "by your tests executions, aborting run without writing results file"
 
-    return data, warnings
+    # Combine all separate executions in one dataframe
+    if len(data) > 0:
+        data = pd.concat(data, sort=False, ignore_index=True)
+        data = data.groupby(["test", "variable", "vfc_backend"]
+                            ).values.apply(list).reset_index()
+
+        data = data.set_index(
+            ["test", "variable", "vfc_backend"]).sort_index()
+        checks_data = pd.concat(
+            checks_data,
+            sort=False,
+            ignore_index=True)
+        checks_data = checks_data.drop_duplicates()
+        checks_data = checks_data.reset_index()
+        del checks_data["index"]
+        checks_data = checks_data.set_index(
+            ["test", "variable", "vfc_backend"]).sort_index()
+
+        # Copy informations about accuracy thresholds to the main dataframe
+        data["accuracy_threshold"] = checks_data["accuracy_threshold"]
+        data["check_mode"] = checks_data["check_mode"]
+
+    else:
+        data = pd.DataFrame()
+
+        # Combine all serparate executions of deterministic backends in one DF
+    if len(deterministic_data) != 0:
+        deterministic_data = pd.concat(
+            deterministic_data,
+            sort=False,
+            ignore_index=True)
+
+    else:
+        deterministic_data = pd.DataFrame()
+
+    return data, deterministic_data, warnings
 
 
 def show_warnings(warnings):
@@ -269,16 +445,20 @@ def run(is_git_commit, export_raw_values, dry_run):
     print("Info [vfc_ci]: Generating run metadata...")
     metadata = generate_metadata(is_git_commit)
 
-    data, warnings = run_tests(config)
+    data, deterministic_data, warnings = run_tests(config)
     show_warnings(warnings)
 
     # Data processing
-    data = data_processing(data)
+    if not data.empty:
+        data = data_processing(data)
 
-    # Prepare data for export (by creating a proper index and linking run
-    # timestamp)
-    data = data.set_index(["test", "variable", "vfc_backend"]).sort_index()
-    data["timestamp"] = metadata["timestamp"]
+        # Link run timestamp
+        data["timestamp"] = metadata["timestamp"]
+
+    if not deterministic_data.empty:
+        deterministic_data = deterministic_data.set_index(
+            ["test", "variable", "vfc_backend"]).sort_index()
+        deterministic_data["timestamp"] = metadata["timestamp"]
 
     filename = metadata["hash"] if is_git_commit else str(
         metadata["timestamp"])
@@ -290,16 +470,27 @@ def run(is_git_commit, export_raw_values, dry_run):
     # WARNING : Exporting to HDF5 implicitly requires to install "tables" on the
     # system
 
-    # Export raw data if needed
-    if export_raw_values and not dry_run:
-        data.to_hdf(filename + ".vfcraw.h5", key="data")
-        metadata.to_hdf(filename + ".vfcraw.h5", key="metadata")
-
-    # Export data
-    del data["values"]
     if not dry_run:
-        data.to_hdf(filename + ".vfcrun.h5", key="data")
+        # Export raw if needed
+        if export_raw_values:
+            data.to_hdf(filename + ".vfcraw.h5", key="data")
+            metadata.to_hdf(filename + ".vfcraw.h5", key="metadata")
+            deterministic_data.to_hdf(
+                filename + ".vfcraw.h5",
+                key="deterministic_data")
+
+        # Export metadata
         metadata.to_hdf(filename + ".vfcrun.h5", key="metadata")
+
+        # Export data
+        if not data.empty:
+            del data["values"]
+        data.to_hdf(filename + ".vfcrun.h5", key="data")
+
+        # Export deterministic data
+        deterministic_data.to_hdf(
+            filename + ".vfcrun.h5",
+            key="deterministic_data")
 
     # Print termination messages
     print(

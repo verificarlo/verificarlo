@@ -28,6 +28,7 @@ from urllib.parse import urlparse
 import calendar
 import time
 from itertools import compress
+from bokeh.models import Range1d
 
 import numpy as np
 
@@ -65,6 +66,51 @@ def get_metadata(metadata, timestamp):
     '''From a timestamp, return the associated metadata as a Pandas serie'''
 
     return metadata.loc[timestamp]
+
+
+def gen_x_series(metadata, timestamps, current_n_runs):
+    '''
+    From an array of timestamps, returns the array of runs names (for the x
+    axis ticks), as well as the metadata (in a dict of arrays) associated
+    to this array (will be used in tooltips)
+    '''
+
+    # Initialize the objects to return
+    x_series = []
+    x_metadata = dict(
+        date=[],
+        is_git_commit=[],
+        hash=[],
+        author=[],
+        message=[]
+    )
+
+    # n == 0 means we want all runs, we also make sure not to go out of
+    # bound if asked for more runs than we have
+    n = current_n_runs
+    if n == 0 or n > len(timestamps):
+        n = len(timestamps)
+
+    for i in range(0, n):
+        # Get metadata associated to this run
+        row_metadata = get_metadata(
+            metadata, timestamps[-i - 1])
+        date = time.ctime(timestamps[-i - 1])
+
+        # Fill the x series
+        str = row_metadata["name"]
+        x_series.insert(0, get_metadata(
+            metadata, timestamps[-i - 1])["name"])
+
+        # Fill the metadata lists
+        x_metadata["date"].insert(0, date)
+        x_metadata["is_git_commit"].insert(
+            0, row_metadata["is_git_commit"])
+        x_metadata["hash"].insert(0, row_metadata["hash"])
+        x_metadata["author"].insert(0, row_metadata["author"])
+        x_metadata["message"].insert(0, row_metadata["message"])
+
+    return x_series, x_metadata
 
 
 def filterby_repo(metadata, repo_name, timestamps):
@@ -239,3 +285,23 @@ def remove_boxplot_outliers(dict, outliers, prefix):
     dict["%s_mu" % prefix] = remove_outliers(dict["%s_mu" % prefix], outliers)
 
     dict["nsamples"] = remove_outliers(dict["nsamples"], outliers)
+
+
+def gen_runs_selection(metadata):
+    '''
+    Returns a dictionary mapping user-readable strings to all run timestamps
+    '''
+
+    runs_dict = {}
+
+    # Iterate over timestamp rows (runs) and fill dict
+    for row in metadata.iloc:
+        # The syntax used by pandas makes this part a bit tricky :
+        # row.name is the index of metadata (so it refers to the
+        # timestamp), whereas row["name"] is the column called "name"
+        # (which is the display string used for the run)
+
+        # runs_dict[run's name] = run's timestamp
+        runs_dict[row["name"]] = row.name
+
+    return runs_dict
