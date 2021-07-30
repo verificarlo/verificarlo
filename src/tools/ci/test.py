@@ -62,13 +62,22 @@ def read_probes_csv(filepath, warnings, execution_data):
             "or you might have forgotten to call vfc_dump_probes"
         )
         warnings.append(execution_data)
-        return pd.DataFrame(
+        results = pd.DataFrame(
             columns=[
                 "test",
                 "variable",
                 "values",
                 "accuracy_threshold",
+                "check_mode",
                 "vfc_backend"])
+
+        checks_data = results[["test",
+                               "variable",
+                               "vfc_backend",
+                               "accuracy_threshold",
+                               "check_mode"]].copy()
+
+        return results, checks_data
 
     except Exception:
         print(
@@ -76,18 +85,27 @@ def read_probes_csv(filepath, warnings, execution_data):
             "reason"
         )
         warnings.append(execution_data)
-        return pd.DataFrame(
+        results = pd.DataFrame(
             columns=[
                 "test",
                 "variable",
                 "values",
                 "accuracy_threshold",
+                "check_mode",
                 "vfc_backend"])
+
+        checks_data = results[["test",
+                               "variable",
+                               "vfc_backend",
+                               "accuracy_threshold",
+                               "check_mode"]].copy()
+
+        return results, checks_data
 
     if len(results) == 0:
         print(
             "Warning [vfc_ci]: Probes empty, it looks like you have dumped "
-            "them without calling vfc_probe"
+            "them without creating any probe"
         )
         warnings.append(execution_data)
 
