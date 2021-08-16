@@ -42,6 +42,10 @@
 #define VAR_NAME(var) #var // Simply returns the name of var into a string
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // A probe containing a double value as well as its key, which is needed when
 // dumping the probes. Optionally, an accuracy threshold can be defined : it
 // will be re-used in the preprocessing to (un)validate the probe.
@@ -110,3 +114,7 @@ int vfc_probe_check_f(vfc_probes *probes, char *testName, char *varName,
 int vfc_probe_check_relative_f(vfc_probes *probes, char *testName,
                                char *varName, double *val,
                                double *accuracyThreshold);
+
+#ifdef __cplusplus
+}
+#endif
