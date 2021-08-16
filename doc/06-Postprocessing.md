@@ -107,8 +107,13 @@ To use `vfc_probes` in your tests, simply include its header file :
 #include <vfc_probes.h>
 ```
 
-... and build your code with the the `-lvfc_probes` flag to link the shared
-library.
+... and build your code with the the `-lvfc_probes` flag to link the library.
+
+**Note** : If you were to compile some `vfc_probes` tests with an other
+compiler than Verificarlo, you would get errors because of undefined references
+to some functions used by `vfc_probes`. If you ever need to write tests that
+could be compiled with or without Verificarlo, you should probably wrap calls
+to `vfc_probes` functions inside preprocessor conditionals.
 
 All your probes will be stored in the `vfc_probes` structure. Here is how it
 should be initialized :
