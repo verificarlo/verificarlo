@@ -438,7 +438,7 @@ def show_warnings(warnings):
         )
 
         for i in range(0, len(warnings)):
-            print("- Warning %s:" % i, file=sys.stderr)
+            print("- Warning %s:" % i + 1, file=sys.stderr)
 
             print(
                 "  Executable: %s" %

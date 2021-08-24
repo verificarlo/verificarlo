@@ -8,7 +8,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
   * flang for Fortran support
   * python3 with the following packages :
     * numpy
-    * scipy
+    * scipy (version 1.5.0 or above)
     * bigfloat
     * pandas
     * tables
