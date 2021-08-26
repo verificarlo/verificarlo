@@ -629,27 +629,22 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
 
   print_information_header(ctx);
 
-  struct interflop_backend_interface_t interflop_backend_mca = {
-      _interflop_add_float,
-      _interflop_sub_float,
-      _interflop_mul_float,
-      _interflop_div_float,
-      NULL,
-      _interflop_add_double,
-      _interflop_sub_double,
-      _interflop_mul_double,
-      _interflop_div_double,
-      NULL,
-      NULL,
-      NULL,
-      _interflop_user_call,
-      NULL};
+  struct interflop_backend_interface_t config=interflop_backend_empty_interface;
+  
+  config.add_float=_interflop_add_float;
+  config.sub_float=_interflop_sub_float;
+  config.mul_float=_interflop_mul_float;
+  config.div_float=_interflop_div_float;
 
+  config.add_double=_interflop_add_double;
+  config.sub_double=_interflop_sub_double;
+  config.mul_double=_interflop_mul_double;
+  config.div_double=_interflop_div_double;
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
   _init_rng_state_struct(&rng_state, ctx->choose_seed,
                          (unsigned long long int)(ctx->seed), false);
 
-  return interflop_backend_mca;
+  return config;
 }
