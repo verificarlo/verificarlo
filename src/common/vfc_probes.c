@@ -181,7 +181,7 @@ int vfc_probe_kernel(vfc_probes *probes, char *testName, char *varName,
   newProbe->key = key;
   newProbe->value = val;
   newProbe->accuracyThreshold = accuracyThreshold;
-  newProbe->mode = malloc(sizeof(char) * strlen(mode));
+  newProbe->mode = malloc(sizeof(char) * (strlen(mode) + 1));
   strcpy(newProbe->mode, mode);
 
   vfc_hashmap_insert(probes->map, vfc_hashmap_str_function(key), newProbe);
