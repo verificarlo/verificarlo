@@ -43,7 +43,7 @@
 // 2019-08-07 Fix memory leak and convert to interflop
 //
 // 2020-02-07 create separated virtual precisions for binary32
-// and binary64. Uses the binary128 structur for easily manipulating bits
+// and binary64. Uses the binary128 structure for easily manipulating bits
 // through bitfields. Removes useless specials cases in qnoise and pow2d.
 // Change return type from int to void for some functions and uses instead
 // errx and warnx for handling errors.
@@ -79,6 +79,7 @@ typedef enum {
   KEY_MODE = 'm',
   KEY_ERR_MODE = 'e',
   KEY_SEED = 's',
+  KEY_RNG_MODE = 'r',
   KEY_DAZ = 'd',
   KEY_FTZ = 'f'
 } key_args;
@@ -89,6 +90,7 @@ static const char key_mode_str[] = "mode";
 static const char key_err_mode_str[] = "error-mode";
 static const char key_err_exp_str[] = "max-abs-error-exponent";
 static const char key_seed_str[] = "seed";
+static const char key_rng_mode_str[] = "rng-mode";
 static const char key_daz_str[] = "daz";
 static const char key_ftz_str[] = "ftz";
 
@@ -122,6 +124,16 @@ typedef enum {
 
 static const char *MCA_ERR_MODE_STR[] = {"rel", "abs", "all"};
 
+/* define the available random number generator options */
+typedef enum {
+  mca_rng_mode_mt,
+  mca_rng_mode_rand,
+  mca_rng_mode_random,
+  mca_rng_mode_drand
+} mca_rng_mode;
+
+static const char *MCA_RNG_MODE_STR[] = {"mt", "rand", "random", "drand"};
+
 /* define default environment variables and default parameters */
 #define MCA_PRECISION_BINARY32_MIN 1
 #define MCA_PRECISION_BINARY64_MIN 1
@@ -130,10 +142,13 @@ static const char *MCA_ERR_MODE_STR[] = {"rel", "abs", "all"};
 #define MCA_PRECISION_BINARY32_DEFAULT 24
 #define MCA_PRECISION_BINARY64_DEFAULT 53
 #define MCA_MODE_DEFAULT mcamode_mca
+#define MCA_RNG_MODE_DEFAULT mca_rng_mode_mt
 
 static mcamode MCALIB_MODE = MCA_MODE_DEFAULT;
 static int MCALIB_BINARY32_T = MCA_PRECISION_BINARY32_DEFAULT;
 static int MCALIB_BINARY64_T = MCA_PRECISION_BINARY64_DEFAULT;
+
+static mca_rng_mode MCALIB_RNG_MODE = MCA_RNG_MODE_DEFAULT;
 
 /* possible operations values */
 typedef enum {
@@ -178,12 +193,18 @@ static void _set_mca_precision_binary64(const int precision) {
  * perturbations used for MCA
  ***************************************************************/
 
-/* random generator internal state */
+/* random number generator internal state */
 static tinymt64_t random_state;
+
+/* random number generator internal state for simple generators */
+static unsigned int random_state_simple;
 
 static double _mca_rand(void) {
   /* Returns a random double in the (0,1) open interval */
-  return tinymt64_generate_doubleOO(&random_state);
+  if(MCALIB_RNG_MODE == mca_rng_mode_mt)
+    return tinymt64_generate_doubleOO(&random_state);
+  else
+    return generate_random_double00(&random_state_simple, (char)MCALIB_RNG_MODE);
 }
 
 /* noise = rand * 2^(exp) */
@@ -264,6 +285,22 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
 /* Set the mca seed */
 static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
   _set_seed_default(&random_state, choose_seed, seed);
+}
+
+/* Set the mca seed for the simple generators */
+static void _set_mca_seed_simple(const bool choose_seed,
+    const unsigned int seed) {
+  _set_seed_simple(&random_state_simple, choose_seed, seed);
+}
+
+/* Set the random number generator to be used */
+static void _set_mca_rng_mode(const mca_rng_mode mode) {
+  if (mode >= mca_rng_mode_drand) {
+    logger_error("--%s invalid value provided, must be one of: "
+                 "{mt, rand, random, drand}.",
+                 key_rng_mode_str);
+  }
+  MCALIB_RNG_MODE = mode;
 }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
@@ -386,6 +423,8 @@ static struct argp_option options[] = {
     {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
      "select magnitude of the maximum absolute error", 0},
     {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed", 0},
+    {key_rng_mode_str, KEY_RNG_MODE, "RNG_MODE", 0,
+     "select rng among {mt, rand, random, drand}", 0},
     {key_daz_str, KEY_DAZ, 0, 0,
      "denormals-are-zero: sets denormals inputs to zero", 0},
     {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero",
@@ -471,6 +510,22 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
                    key_seed_str);
     }
     break;
+  case KEY_RNG_MODE:
+    /* mca error mode */
+    if (strcasecmp(MCA_RNG_MODE_STR[mca_rng_mode_mt], arg) == 0) {
+      _set_mca_rng_mode(mca_rng_mode_mt);
+    } else if (strcasecmp(MCA_RNG_MODE_STR[mca_rng_mode_rand], arg) == 0) {
+      _set_mca_rng_mode(mca_rng_mode_rand);
+    } else if (strcasecmp(MCA_RNG_MODE_STR[mca_rng_mode_random], arg) == 0) {
+      _set_mca_rng_mode(mca_rng_mode_random);
+    } else if (strcasecmp(MCA_RNG_MODE_STR[mca_rng_mode_drand], arg) == 0) {
+      _set_mca_rng_mode(mca_rng_mode_drand);
+    } else {
+      logger_error("--%s invalid value provided, must be one of: "
+                   "{mt, rand, random, drand}.",
+                   key_rng_mode_str);
+    }
+    break;
   case KEY_DAZ:
     /* denormals-are-zero */
     ctx->daz = true;
@@ -506,6 +561,7 @@ void print_information_header(void *context) {
       "%s = %d, "
       "%s = %s, "
       "%s = %s, "
+      "%s = %s, "
       "%s = %d, "
       "%s = %s and "
       "%s = %s"
@@ -519,6 +575,7 @@ void print_information_header(void *context) {
                 : (ctx->relErr && ctx->absErr)
                       ? MCA_ERR_MODE_STR[mca_err_mode_all]
                       : MCA_ERR_MODE_STR[mca_err_mode_rel],
+      key_rng_mode_str, MCA_RNG_MODE_STR[MCALIB_RNG_MODE],
       key_err_exp_str, (ctx->absErr_exp), key_daz_str,
       ctx->daz ? "true" : "false", key_ftz_str, ctx->ftz ? "true" : "false");
 }
@@ -532,6 +589,8 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   _set_mca_precision_binary32(MCA_PRECISION_BINARY32_DEFAULT);
   _set_mca_precision_binary64(MCA_PRECISION_BINARY64_DEFAULT);
   _set_mca_mode(MCA_MODE_DEFAULT);
+
+  _set_mca_rng_mode(MCA_RNG_MODE_DEFAULT);
 
   t_context *ctx = malloc(sizeof(t_context));
   *context = ctx;
@@ -559,6 +618,9 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
 
   /* Initialize the seed */
   _set_mca_seed(ctx->choose_seed, ctx->seed);
+
+  /* Initialize the seed for the simple rngs */
+  _set_mca_seed_simple(ctx->choose_seed, (int)ctx->seed);
 
   return interflop_backend_mca;
 }
