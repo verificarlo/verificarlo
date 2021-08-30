@@ -72,6 +72,10 @@
 #include "../../common/options.h"
 #include "../../common/tinymt64.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 typedef enum {
   KEY_PREC_B32,
   KEY_PREC_B64,
@@ -198,6 +202,9 @@ static tinymt64_t random_state;
 
 /* random number generator internal state for simple generators */
 static unsigned int random_state_simple;
+#ifdef _OPENMP
+  #pragma omp threadprivate(random_state_simple)
+#endif
 
 static double _mca_rand(void) {
   /* Returns a random double in the (0,1) open interval */
@@ -620,7 +627,14 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   _set_mca_seed(ctx->choose_seed, ctx->seed);
 
   /* Initialize the seed for the simple rngs */
+#ifdef _OPENMP
+  #pragma omp parallel
+  {
+    _set_mca_seed_simple(ctx->choose_seed, (int)ctx->seed^omp_get_thread_num());
+  }
+#else
   _set_mca_seed_simple(ctx->choose_seed, (int)ctx->seed);
+#endif
 
   return interflop_backend_mca;
 }
