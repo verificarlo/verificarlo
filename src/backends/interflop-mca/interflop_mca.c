@@ -203,15 +203,16 @@ static tinymt64_t random_state;
 /* random number generator internal state for simple generators */
 static unsigned int random_state_simple;
 #ifdef _OPENMP
-  #pragma omp threadprivate(random_state_simple)
+#pragma omp threadprivate(random_state_simple)
 #endif
 
 static double _mca_rand(void) {
   /* Returns a random double in the (0,1) open interval */
-  if(MCALIB_RNG_MODE == mca_rng_mode_mt)
+  if (MCALIB_RNG_MODE == mca_rng_mode_mt)
     return tinymt64_generate_doubleOO(&random_state);
   else
-    return generate_random_double00(&random_state_simple, (char)MCALIB_RNG_MODE);
+    return generate_random_double00(&random_state_simple,
+                                    (char)MCALIB_RNG_MODE);
 }
 
 /* noise = rand * 2^(exp) */
@@ -296,7 +297,7 @@ static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
 
 /* Set the mca seed for the simple generators */
 static void _set_mca_seed_simple(const bool choose_seed,
-    const unsigned int seed) {
+                                 const unsigned int seed) {
   _set_seed_simple(&random_state_simple, choose_seed, seed);
 }
 
@@ -582,9 +583,9 @@ void print_information_header(void *context) {
                 : (ctx->relErr && ctx->absErr)
                       ? MCA_ERR_MODE_STR[mca_err_mode_all]
                       : MCA_ERR_MODE_STR[mca_err_mode_rel],
-      key_rng_mode_str, MCA_RNG_MODE_STR[MCALIB_RNG_MODE],
-      key_err_exp_str, (ctx->absErr_exp), key_daz_str,
-      ctx->daz ? "true" : "false", key_ftz_str, ctx->ftz ? "true" : "false");
+      key_rng_mode_str, MCA_RNG_MODE_STR[MCALIB_RNG_MODE], key_err_exp_str,
+      (ctx->absErr_exp), key_daz_str, ctx->daz ? "true" : "false", key_ftz_str,
+      ctx->ftz ? "true" : "false");
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
@@ -628,9 +629,10 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
 
   /* Initialize the seed for the simple rngs */
 #ifdef _OPENMP
-  #pragma omp parallel
+#pragma omp parallel
   {
-    _set_mca_seed_simple(ctx->choose_seed, (int)ctx->seed^omp_get_thread_num());
+    _set_mca_seed_simple(ctx->choose_seed,
+                         (int)ctx->seed ^ omp_get_thread_num());
   }
 #else
   _set_mca_seed_simple(ctx->choose_seed, (int)ctx->seed);
