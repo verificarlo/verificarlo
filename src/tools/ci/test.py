@@ -27,6 +27,7 @@
 
 from .test_data_processing import data_processing, validate_deterministic_probe
 import pandas as pd
+import numpy as np
 import os
 import subprocess
 import sys
@@ -398,7 +399,7 @@ def run_tests(config):
             checks_data,
             sort=False,
             ignore_index=True)
-        checks_data = checks_data.drop_duplicates()
+        checks_data = checks_data.drop_duplicates(subset=['test', 'variable', 'vfc_backend'])
         checks_data = checks_data.reset_index()
         del checks_data["index"]
         checks_data = checks_data.set_index(
@@ -438,7 +439,7 @@ def show_warnings(warnings):
         )
 
         for i in range(0, len(warnings)):
-            print("- Warning %s:" % i + 1, file=sys.stderr)
+            print("- Warning %s:" % (i + 1), file=sys.stderr)
 
             print(
                 "  Executable: %s" %
