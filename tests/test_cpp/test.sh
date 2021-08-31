@@ -2,15 +2,15 @@
 
 check_output() {
     if [ $? == 0 ]; then
-	echo "pass"
-	exit 0
+        echo "pass"
+        exit 0
     else
-	echo "fail"
-	exit 1
+        echo "fail"
+        exit 1
     fi
 }
 
-verificarlo-c++ test.cpp -o test --verbose
+verificarlo-c++ --std=c++11 test.cpp -o test --verbose
 check_output
 
 export VFC_BACKENDS="libinterflop_ieee.so --debug"

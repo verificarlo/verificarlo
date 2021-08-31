@@ -293,7 +293,8 @@ static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,
 
 /* Performs mca(mpfr_op a) where a is a binary32 value */
 /* Intermediate computations are performed with precision DOUBLE_PREC */
-static float _mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
+static float __attribute__((unused))
+_mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
   _MCA_UNARY_OP(a, mpfr_op, context);
 }
 
@@ -306,8 +307,8 @@ static double _mca_binary64_binary_op(double a, double b, mpfr_bin mpfr_op,
 
 /* Performs mca(mpfr_op a) where a is a binary32 value */
 /* Intermediate computations are performed with precision QUAD_PREC */
-static double _mca_binary64_unary_op(double a, mpfr_unr mpfr_op,
-                                     void *context) {
+static double __attribute__((unused))
+_mca_binary64_unary_op(double a, mpfr_unr mpfr_op, void *context) {
   _MCA_UNARY_OP(a, mpfr_op, context);
 }
 

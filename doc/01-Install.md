@@ -6,7 +6,15 @@ Please ensure that Verificarlo's dependencies are installed on your system:
   * LLVM, clang and opt from 4.0 up to 11.0.1, http://clang.llvm.org/
   * gcc from 4.9
   * flang for Fortran support
-  * python3 with numpy, bigfloat and pandas packages
+  * python3 with the following packages :
+    * numpy
+    * scipy (version 1.5.0 or above)
+    * bigfloat
+    * pandas
+    * tables
+    * GitPython
+    * jinja2
+    * bokeh
   * autotools (automake, autoconf)
 
 Then run the following command inside verificarlo directory:
@@ -27,7 +35,7 @@ install procedure:
    $ sudo apt-get install libmpfr-dev clang-7 flang-7 llvm-7-dev \
        gcc-7 autoconf automake libtool build-essential python3 python3-numpy \
        python3-pip
-   $ sudo pip3 install bigfloat pandas
+   $ sudo pip3 install bigfloat pandas scipy GitPython tables jinja2 bokeh
    $ cd verificarlo/
    $ ./autogen.sh
    $ ./configure --with-flang CC=gcc-7 CXX=g++-7
@@ -59,4 +67,3 @@ Then you can run the test suite with,
 
 If you disable flang support during configure, Fortran tests will be
 disabled and considered as passing the test.
-
