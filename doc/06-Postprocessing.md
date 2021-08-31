@@ -109,7 +109,7 @@ To use `vfc_probes` in your tests, simply include its header file :
 
 ... and build your code with the the `-lvfc_probes` flag to link the library.
 
-**Note** : If you were to compile some `vfc_probes` tests with an other
+**Note** : If you were to compile some `vfc_probes` tests with another
 compiler than Verificarlo, you would get errors because of undefined references
 to some functions used by `vfc_probes`. If you ever need to write tests that
 could be compiled with or without Verificarlo, you should probably wrap calls
