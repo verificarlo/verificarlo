@@ -128,32 +128,29 @@ def shell(cmd):
         fail('command failed:\n' + cmd)
 
 
-def linker_mode(sources, options, libraries, output, args):
+def compile_vfcwrapper(source, output, args, emit_llvm=False):
     extra_args = "-static " if args.static else "-fPIC "
     extra_args += "-DINST_FCMP " if args.inst_fcmp else ""
     extra_args += "-DDDEBUG " if args.ddebug else ""
     extra_args += "-DINST_FUNC " if args.inst_func else ""
 
-    shell('{clang} -c -O3 -Wno-varargs {extra_args} -o .vfcwrapper.o {vfcwrapper} -I {mcalib_includes}'.format(
-        clang=clang,
-        extra_args=extra_args,
-        vfcwrapper=vfcwrapper,
-        mcalib_includes=mcalib_includes))
+    internal_options = (" -S -emit-llvm " if emit_llvm else "") + \
+        f" -c -Wno-varargs -I {mcalib_includes} "
+    shell(f'{clang} -O3 -march=native {internal_options} {extra_args} {source} -o {output} ')
+
+
+def linker_mode(sources, options, libraries, output, args):
+
+    vfcwrapper_o = ".vfcwrapper.o"
+
+    compile_vfcwrapper(vfcwrapper, vfcwrapper_o, args)
 
     f = tempfile.NamedTemporaryFile(mode='w+')
+    sources = ' '.join([os.path.splitext(s)[0]+'.o' for s in sources])
     if args.static:
-        cmd = '{output} {sources} {options} {libraries} -static .vfcwrapper.o -lmpfr -lgmp -lm -ldl'.format(
-            output=output,
-            sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
-            options=options,
-            libraries=libraries)
+        cmd = f'{output} {sources} {options} {libraries} {vfcwrapper_o} -static  -lmpfr -lgmp -lm -ldl'
     else:
-        cmd = '{output} {sources} {options} {libraries} .vfcwrapper.o {mcalib_options} -ldl'.format(
-            output=output,
-            sources=' '.join([os.path.splitext(s)[0]+'.o' for s in sources]),
-            options=options,
-            libraries=libraries,
-            mcalib_options=mcalib_options)
+        cmd = f'{output} {sources} {options} {libraries} {vfcwrapper_o} {mcalib_options} -ldl'
 
     f.write(cmd)
     f.flush()
@@ -168,11 +165,7 @@ def linker_mode(sources, options, libraries, output, args):
 def compile_only(sources, options, output, args):
     compiler = linkers[args.linker]
     sources = ' '.join(sources)
-    shell('{compiler} {sources} {options} {output}'.format(
-        compiler=compiler,
-        sources=sources,
-        options=options,
-        output=output))
+    shell(f'{compiler} {sources} {options} {output}')
 
 
 def get_tmp_filename(prefix, suffix, args):
@@ -188,12 +181,18 @@ def get_tmp_filename(prefix, suffix, args):
 
 
 def compiler_mode(sources, options, output, args):
+    extra_args = "-static " if args.static else "-fPIC "
+
+    vfcwrapper_ir = get_tmp_filename(".vfcwrapper", ".ll", args)
+    compile_vfcwrapper(vfcwrapper, vfcwrapper_ir.name, args, emit_llvm=True)
+
     for source in sources:
         basename = os.path.splitext(source)[0]
         ir = get_tmp_filename(basename, '.1.ll', args)
         ins = get_tmp_filename(basename, '.2.ll', args)
 
         compiler = linkers[args.linker]
+        include = f" -I {mcalib_includes} "
 
         debug = '-g' if args.inst_func else ''
 
@@ -206,12 +205,8 @@ def compiler_mode(sources, options, output, args):
             continue
 
         # Compile to ir (fortran uses flang, c uses clang)
-        shell('{compiler} -c -S {debug} {source} -emit-llvm {options} -o {ir}'.format(
-            compiler=compiler,
-            debug=debug,
-            source=source,
-            options=options,
-            ir=ir.name))
+        shell(
+            f'{compiler} -c -S {debug} {source} {include} -emit-llvm {options} -o {ir.name}')
 
         selectfunction = ""
         if args.function:
@@ -234,24 +229,16 @@ def compiler_mode(sources, options, output, args):
 
         if args.inst_func:
             # Apply function's instrumentation pass
-            shell('{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir} -o {ins}'.format(
-                opt=opt,
-                libvfcfuncinstrument=libvfcfuncinstrument,
-                ir=ir.name,
-                ins=ins.name
-            ))
+            shell(
+                f'{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}')
             ir = ins
             ins = get_tmp_filename(basename, '.3.ll', args)
 
         # Apply MCA instrumentation pass
-        shell('{opt} -S  -load {libvfcinstrument} -vfclibinst {extra_args} {selectfunction} {ir} -o {ins}'.format(
-            opt=opt,
-            libvfcinstrument=libvfcinstrument,
-            selectfunction=selectfunction,
-            extra_args=extra_args,
-            ir=ir.name,
-            ins=ins.name
-        ))
+        shell((f'{opt} -S  -load {libvfcinstrument} '
+               f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} '
+               f' -vfclibinst {extra_args} {selectfunction} '
+               f' {ir.name} -o {ins.name}'))
 
         if not output:
             basename_output = '-o ' + basename + '.o'
@@ -259,11 +246,7 @@ def compiler_mode(sources, options, output, args):
             basename_output = output
 
         # Produce object file
-        shell('{compiler} -c {output} {ins} {options}'.format(
-            compiler=compiler,
-            output=basename_output,
-            ins=ins.name,
-            options=options))
+        shell(f'{compiler} -c {basename_output} {ins.name} {options}')
 
 
 if __name__ == "__main__":
