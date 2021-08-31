@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -Rf *~ run test.log
+rm -Rf *~ run test.log *.ll

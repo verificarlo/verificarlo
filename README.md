@@ -1,6 +1,6 @@
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
-## Verificarlo v0.4.2
+## Verificarlo v0.5.0
 
 ![Build Status](https://github.com/verificarlo/verificarlo/workflows/test-docker/badge.svg?branch=master)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
@@ -138,11 +138,12 @@ the function granularity level. Please refer to the [VPREC Function Instrumentat
 
 ## Postprocessing
 
-Verificarlo includes a set of [postprocessing tools](doc/06-Postprocessing.md) to help analyse Verificarlo results and produce high-level reports. 
+Verificarlo includes a set of [postprocessing tools](doc/06-Postprocessing.md) to help analyse Verificarlo results and produce high-level reports.
 
   * [Find Optimal precision with vfc_precexp and vfc_report](doc/06-Postprocessing.md#find-optimal-precision-with-vfc_precexp-and-vfc_report)
   * [Unstable branch detection](doc/06-Postprocessing.md#unstable-branch-detection)
   * [VFC-VTK](doc/06-Postprocessing.md#vfc-vtk)
+  * [Verificarlo CI](doc/06-Postprocessing.md#verificarlo-ci)
 
 ## How to cite Verificarlo
 
@@ -156,9 +157,7 @@ Thanks !
 
 ## Discussion Group
 
-For questions, feedbacks or discussions about Verificarlo you can join our group at,
-
-https://groups.google.com/forum/#!forum/verificarlo
+For questions, feedbacks or discussions about Verificarlo you can use the [Discussions section](https://github.com/verificarlo/verificarlo/discussions) in our github project page.
 
 ## License
 Copyright (c) 2019-2021
