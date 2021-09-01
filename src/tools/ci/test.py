@@ -399,7 +399,8 @@ def run_tests(config):
             checks_data,
             sort=False,
             ignore_index=True)
-        checks_data = checks_data.drop_duplicates(subset=['test', 'variable', 'vfc_backend'])
+        checks_data = checks_data.drop_duplicates(
+            subset=['test', 'variable', 'vfc_backend'])
         checks_data = checks_data.reset_index()
         del checks_data["index"]
         checks_data = checks_data.set_index(
