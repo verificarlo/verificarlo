@@ -10,7 +10,7 @@ echo "1..$count"
 test_number=1
 for t in $tests; do
     echo $t
-    if bash -c -l "cd $t && ./test.sh > test.log 2>&1" ; then
+    if bash -c "cd $t && ./test.sh > test.log 2>&1" ; then
     echo
         echo "ok $test_number $t"
     else
