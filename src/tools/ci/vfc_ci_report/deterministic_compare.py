@@ -138,6 +138,11 @@ class DeterministicCompare:
             else:
                 return
 
+        # Speciel case when nex is an empty string, triggered by no data
+        # to show
+        if len(new) == 0:
+            return
+
         if new != self.widgets["select_deterministic_test"].value:
             # The callback will be triggered again with the updated value
             self.widgets["select_deterministic_test"].value = new
@@ -395,14 +400,23 @@ class DeterministicCompare:
         self.tests = self.data\
             .index.get_level_values("test").drop_duplicates().tolist()
 
-        self.vars = self.data.loc[self.tests[0]]\
-            .index.get_level_values("variable").drop_duplicates().tolist()
+        if len(self.tests) != 0:
+            self.vars = self.data.loc[self.tests[0]]\
+                .index.get_level_values("variable").drop_duplicates().tolist()
+        else:
+            self.vars = []
 
-        self.backends = self.data.loc[self.tests[0], self.vars[0]]\
-            .index.get_level_values("vfc_backend").drop_duplicates().tolist()
+        if len(self.vars) != 0:
+            self.backends = self.data.loc[self.tests[0], self.vars[0]]\
+                .index.get_level_values("vfc_backend").drop_duplicates().tolist()
+        else:
+            self.backends = []
 
         self.widgets["select_deterministic_test"].options = self.tests
-        self.widgets["select_deterministic_test"].value = self.tests[0]
+        if len(self.tests) != 0:
+            self.widgets["select_deterministic_test"].value = self.tests[0]
+        else:
+            self.widgets["select_deterministic_test"].value = ""
 
         # If changing repo doesn't affect the selection, trigger the callback
         # manually
