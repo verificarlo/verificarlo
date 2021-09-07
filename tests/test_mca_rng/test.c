@@ -6,8 +6,6 @@
 
 #include "../../src/common/float_const.h"
 
-#include <omp.h>
-
 #include <sys/syscall.h>
 
 
@@ -36,8 +34,8 @@ int main(void) {
         res = a + b;
 
         // printf(fmt, a, b, res, omp_get_thread_num());
-        printf(fmt, a, b, res, getppid(), omp_get_thread_num());
-        // printf(fmt, a, b, res, getppid(), syscall(__NR_gettid));
+        // printf(fmt, a, b, res, getppid(), omp_get_thread_num());
+        printf(fmt, a, b, res, getppid(), syscall(__NR_gettid));
     }
 
     return 0;

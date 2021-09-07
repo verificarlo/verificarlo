@@ -35,8 +35,6 @@
 
 #include "tinymt64.h"
 
-#include <omp.h>
-
 /* Generic set_seed function which is common for most of the backends */
 void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
                        const uint64_t seed) {
@@ -59,9 +57,7 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
 void _set_seed_simple(unsigned int *random_state, const bool choose_seed,
                       const unsigned int seed) {
   if (choose_seed) {
-    // *random_state = seed ^ getpid();
     // *random_state = seed ^ syscall(__NR_gettid);
-    // *random_state = seed ^ omp_get_thread_num();
     *random_state = seed;
   } else {
     const int key_length = 3;
@@ -75,7 +71,8 @@ void _set_seed_simple(unsigned int *random_state, const bool choose_seed,
     init_key[1] = t1.tv_usec;
     init_key[2] = getpid();
 
-    *random_state = t1.tv_sec ^ t1.tv_usec ^ getpid();
+    // *random_state = t1.tv_sec ^ t1.tv_usec ^ getpid();
+    *random_state = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
   }
 }
 

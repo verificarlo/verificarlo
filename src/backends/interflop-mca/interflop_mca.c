@@ -61,6 +61,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <sys/syscall.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -71,10 +72,6 @@
 #include "../../common/logger.h"
 #include "../../common/options.h"
 #include "../../common/tinymt64.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 typedef enum {
   KEY_PREC_B32,
@@ -170,6 +167,9 @@ static float _mca_binary32_binary_op(float a, float b, const mca_operations op,
 static double _mca_binary64_binary_op(double a, double b,
                                       const mca_operations op, void *context);
 
+static void _set_mca_seed_simple(const bool choose_seed,
+                                 const unsigned int seed);
+
 /******************** MCA CONTROL FUNCTIONS *******************
  * The following functions are used to set virtual precision and
  * MCA mode of operation.
@@ -204,28 +204,35 @@ static void _set_mca_precision_binary64(const int precision) {
 static tinymt64_t random_state;
 
 /* random number generator internal state for simple generators */
-static unsigned int random_state_simple;
-#ifdef _OPENMP
-#pragma omp threadprivate(random_state_simple)
-#endif
+// __declspec(thread) static unsigned int random_state_simple;
+// __declspec(thread) static bool random_state_simple_valid;
+static __thread unsigned int random_state_simple;
+static __thread bool random_state_simple_valid = false;
 
-static double _mca_rand(void) {
+static double _mca_rand(void *context) {
   /* Returns a random double in the (0,1) open interval */
   if (MCALIB_RNG_MODE == mca_rng_mode_mt)
     return tinymt64_generate_doubleOO(&random_state);
-  else
+  else {
+    if (random_state_simple_valid == false) {
+      t_context *ctx = (t_context *)context;
+      _set_mca_seed_simple(ctx->choose_seed,
+                         (int)ctx->seed ^ syscall(__NR_gettid));
+      random_state_simple_valid = true;
+    }
     return generate_random_double00(&random_state_simple,
                                     (char)MCALIB_RNG_MODE);
+  }
 }
 
-static inline bool _mca_skip_eval(const float sparsity) {
+static inline bool _mca_skip_eval(const float sparsity, void *context) {
   /* Returns a bool for determining whether an operation should skip */
   /* perturbation. false -> perturb; true -> skip. */
   if (sparsity >= 1.0f) {
     return false;
   }
   /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
-  return (_mca_rand() > sparsity);
+  return (_mca_rand(context) > sparsity);
 }
 
 /* noise = rand * 2^(exp) */
@@ -234,8 +241,8 @@ static inline bool _mca_skip_eval(const float sparsity) {
 /* is comprised between: */
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
-static inline double _noise_binary64(const int exp) {
-  const double d_rand = (_mca_rand() - 0.5);
+static inline double _noise_binary64(const int exp, void *context) {
+  const double d_rand = (_mca_rand(context) - 0.5);
   return _fast_pow2_binary64(exp) * d_rand;
 }
 
@@ -245,9 +252,9 @@ static inline double _noise_binary64(const int exp) {
 /* is comprised between: */
 /* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
-static __float128 _noise_binary128(const int exp) {
+static __float128 _noise_binary128(const int exp, void *context) {
   /* random number in (-0.5, 0.5) */
-  const __float128 noise = (__float128)_mca_rand() - 0.5Q;
+  const __float128 noise = (__float128)_mca_rand(context) - 0.5Q;
   return _fast_pow2_binary128(exp) * noise;
 }
 
@@ -262,8 +269,8 @@ static __float128 _noise_binary128(const int exp) {
   (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
-#define _NOISE(X, EXP)                                                         \
-  _Generic(X, double : _noise_binary64, __float128 : _noise_binary128)(EXP)
+#define _NOISE(X, EXP, CTX)                                                    \
+  _Generic(X, double : _noise_binary64, __float128 : _noise_binary128)(EXP, CTX)
 
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
@@ -271,18 +278,18 @@ static __float128 _noise_binary128(const int exp) {
   {                                                                            \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
-    } else if (_mca_skip_eval(((t_context *)CTX)->sparsity)) {                 \
+    } else if (_mca_skip_eval(((t_context *)CTX)->sparsity, CTX)) {            \
       return;                                                                  \
     } else {                                                                   \
       if (((t_context *)CTX)->relErr) {                                        \
         const int32_t e_a = GET_EXP_FLT(*X);                                   \
         const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel);                      \
+        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, CTX);                 \
         *X = *X + noise_rel;                                                   \
       }                                                                        \
       if (((t_context *)CTX)->absErr) {                                        \
         const int32_t e_n_abs = ((t_context *)CTX)->absErr_exp;                \
-        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs);                      \
+        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, CTX);                 \
         *X = *X + noise_abs;                                                   \
       }                                                                        \
     }                                                                          \
@@ -658,16 +665,9 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* Initialize the seed and sparsity */
   _set_mca_seed(ctx->choose_seed, ctx->seed);
 
-  /* Initialize the seed for the simple rngs */
-#ifdef _OPENMP
-#pragma omp parallel
-  {
-    _set_mca_seed_simple(ctx->choose_seed,
-                         (int)ctx->seed ^ omp_get_thread_num());
-  }
-#else
-  _set_mca_seed_simple(ctx->choose_seed, (int)ctx->seed);
-#endif
+  /* The seed for the simple RNGs is initialized upon the first request for a 
+    random number
+  */
 
   return interflop_backend_mca;
 }
