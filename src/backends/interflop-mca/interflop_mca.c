@@ -56,6 +56,7 @@
 #include <err.h>
 #include <errno.h>
 #include <math.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -169,6 +170,7 @@ static double _mca_binary64_binary_op(double a, double b,
 
 static void _set_mca_seed_simple(const bool choose_seed,
                                  const unsigned int seed);
+static int _get_new_tid(void);
 
 /******************** MCA CONTROL FUNCTIONS *******************
  * The following functions are used to set virtual precision and
@@ -209,6 +211,9 @@ static tinymt64_t random_state;
 static __thread unsigned int random_state_simple;
 static __thread bool random_state_simple_valid = false;
 
+static pthread_mutex_t global_tid_lock;
+static int global_tid;
+
 static double _mca_rand(void *context) {
   /* Returns a random double in the (0,1) open interval */
   if (MCALIB_RNG_MODE == mca_rng_mode_mt)
@@ -216,8 +221,14 @@ static double _mca_rand(void *context) {
   else {
     if (random_state_simple_valid == false) {
       t_context *ctx = (t_context *)context;
-      _set_mca_seed_simple(ctx->choose_seed,
+      if (ctx->choose_seed) {
+        int new_tid = _get_new_tid();
+        _set_mca_seed_simple(ctx->choose_seed,
+                         (int)ctx->seed ^ new_tid);
+      } else {
+        _set_mca_seed_simple(ctx->choose_seed,
                          (int)ctx->seed ^ syscall(__NR_gettid));
+      }
       random_state_simple_valid = true;
     }
     return generate_random_double00(&random_state_simple,
@@ -331,6 +342,18 @@ static void _set_mca_rng_mode(const mca_rng_mode mode) {
                  key_rng_mode_str);
   }
   MCALIB_RNG_MODE = mode;
+}
+
+/* Get a new identifier for the calling thread */
+static int _get_new_tid(void) {
+  int tmp_tid = -1;
+
+  pthread_mutex_lock(&global_tid_lock);
+  tmp_tid = global_tid;
+  global_tid++;
+  pthread_mutex_unlock(&global_tid_lock);
+
+  return tmp_tid;
 }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
@@ -642,7 +665,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   *context = ctx;
   init_context(ctx);
 
-  /* parse backend arguments */
+  /* Parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
 
   print_information_header(ctx);
@@ -665,9 +688,17 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* Initialize the seed and sparsity */
   _set_mca_seed(ctx->choose_seed, ctx->seed);
 
-  /* The seed for the simple RNGs is initialized upon the first request for a 
-    random number
+  /* The seed for the simple RNGs (all except Mersenne Twister) is initialized
+    upon the first request for a random number
   */
+
+  /* Initialize the thread id for use with the parallel noise generation */
+  global_tid = 0;
+  /* Initialize the mutex for the thread id */
+  if (pthread_mutex_init(&global_tid_lock, NULL) != 0) {
+    printf("\n mutex init failed\n");
+    exit(EXIT_FAILURE);
+  }
 
   return interflop_backend_mca;
 }
