@@ -6,12 +6,7 @@ import subprocess
 import shlex
 import warnings
 import sys
-
-
-def sortingFunctionOutputFile(x):
-	y = x.split(' ')[-1]
-	y = y.split('=')[-1].strip()
-	return int(y)
+from collections import Counter
 
 
 def main():
@@ -40,18 +35,22 @@ def main():
 	#close the files
 	run1_file.close()
 	run2_file.close()
- 
-	#sort the two files by their thread id
-	run1_lines.sort(reverse=True, key=sortingFunctionOutputFile)
-	run2_lines.sort(reverse=True, key=sortingFunctionOutputFile)
- 
-	#go through each line in the two files and check if the results
-	#	of the computations match
-	for line1, line2 in zip(run1_lines, run2_lines):
-		res1 = line1.split(',')[2].strip()
-		res2 = line2.split(',')[2].strip()
-		if (res1 != res2):
-			return 1
+
+	#the two lists should have the same length
+	if (len(run1_lines) != len(run2_lines)):
+		return 1
+
+	#generate a simplified version of the two lists, which only contain 
+ 	# the results of the computations
+	run1_lines_simple = [(elem.split()[2]).strip() for elem in run1_lines]
+	run2_lines_simple = [(elem.split()[2]).strip() for elem in run2_lines]
+  
+	#check if the outputs of the two runs contain the same elements,
+	# not necessarily in the same order
+	run1_lines_count = Counter(run1_lines_simple)
+	run2_lines_count = Counter(run2_lines_simple)
+	if (run1_lines_count != run2_lines_count):
+		return 1
     
 	return 0
 
