@@ -168,6 +168,7 @@ Usage: libinterflop_mca.so [OPTION...]
   -d, --daz                  denormals-are-zero: sets denormals inputs to zero
   -f, --ftz                  flush-to-zero: sets denormal output to zero
   -s, --seed=SEED            fix the random generator seed
+  -r, --rng-mode=RNG_MODE    select RNG among {mt, rand}
   -?, --help                 Give this help list
       --usage                Give a short usage message
 ```
@@ -225,6 +226,14 @@ The `--ftz` (**Flush-To-Zero**) flushes subnormal output to 0.
 
 The option `--seed` fixes the random generator seed. It should not generally be used
 except if one to reproduce a particular MCA trace.
+
+The option `--rng-mode` selects the random number generator (RNG) to be used for
+generating the noise. It accepts the following modes:
+
+* `mt`: a fast and efficient implementation of the Mersenne Twister pseudo-random
+number generator
+* `rand`: the `rand_r` a re-entrant pseudo-random number generator, useful for 
+generating noise in multi-threaded applications
 
 ### MCA-MPFR Backend (libinterflop_mca_mpfr.so)
 
