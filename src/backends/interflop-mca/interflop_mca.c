@@ -223,11 +223,10 @@ static double _mca_rand(void *context) {
       t_context *ctx = (t_context *)context;
       if (ctx->choose_seed) {
         int new_tid = _get_new_tid();
-        _set_mca_seed_simple(ctx->choose_seed,
-                         (int)ctx->seed ^ new_tid);
+        _set_mca_seed_simple(ctx->choose_seed, (int)ctx->seed ^ new_tid);
       } else {
         _set_mca_seed_simple(ctx->choose_seed,
-                         (int)ctx->seed ^ syscall(__NR_gettid));
+                             (int)ctx->seed ^ syscall(__NR_gettid));
       }
       random_state_simple_valid = true;
     }
