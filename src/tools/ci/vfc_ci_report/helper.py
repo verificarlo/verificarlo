@@ -184,7 +184,7 @@ def get_run_name(timestamp, hash):
         str = "%s week%s ago"
     # > 1 month
     else:
-        n = diff / 2592000
+        n = int(diff / 2592000)
         str = "%s month%s ago"
 
     plural = ""
