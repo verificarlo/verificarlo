@@ -229,6 +229,14 @@ class ViewsMaster:
                     self.metadata, new, self.deterministic_data["timestamp"]
                 )
             ]
+        else:
+            filtered_deterministic_data = deterministic_data
+            # In some cases, index columns might be missing, so we add them just
+            # in case (here, the dataframe is empty anyway)
+            filtered_deterministic_data = filtered_deterministic_data.assign(
+                test="", variable="", backend="")
+            filtered_deterministic_data.set_index(
+                ["test", "variable", "backend"], inplace=True)
 
         self.compare.change_repo(filtered_data, filtered_metadata)
         self.deterministic.change_repo(
