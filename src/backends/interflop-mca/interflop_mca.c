@@ -72,7 +72,6 @@
 #include "../../common/interflop.h"
 #include "../../common/logger.h"
 #include "../../common/options.h"
-#include "../../common/tinymt64.h"
 
 typedef enum {
   KEY_PREC_B32,
@@ -81,7 +80,6 @@ typedef enum {
   KEY_MODE = 'm',
   KEY_ERR_MODE = 'e',
   KEY_SEED = 's',
-  KEY_RNG_MODE = 'r',
   KEY_DAZ = 'd',
   KEY_FTZ = 'f',
   KEY_SPARSITY = 'n'
@@ -93,7 +91,6 @@ static const char key_mode_str[] = "mode";
 static const char key_err_mode_str[] = "error-mode";
 static const char key_err_exp_str[] = "max-abs-error-exponent";
 static const char key_seed_str[] = "seed";
-static const char key_rng_mode_str[] = "rng-mode";
 static const char key_daz_str[] = "daz";
 static const char key_ftz_str[] = "ftz";
 static const char key_sparsity_str[] = "sparsity";
@@ -129,16 +126,6 @@ typedef enum {
 
 static const char *MCA_ERR_MODE_STR[] = {"rel", "abs", "all"};
 
-/* define the available random number generator options */
-typedef enum {
-  mca_rng_mode_mt,
-  mca_rng_mode_rand,
-  mca_rng_mode_random,
-  mca_rng_mode_drand
-} mca_rng_mode;
-
-static const char *MCA_RNG_MODE_STR[] = {"mt", "rand", "random", "drand"};
-
 /* define default environment variables and default parameters */
 #define MCA_PRECISION_BINARY32_MIN 1
 #define MCA_PRECISION_BINARY64_MIN 1
@@ -147,13 +134,10 @@ static const char *MCA_RNG_MODE_STR[] = {"mt", "rand", "random", "drand"};
 #define MCA_PRECISION_BINARY32_DEFAULT 24
 #define MCA_PRECISION_BINARY64_DEFAULT 53
 #define MCA_MODE_DEFAULT mcamode_mca
-#define MCA_RNG_MODE_DEFAULT mca_rng_mode_mt
 
 static mcamode MCALIB_MODE = MCA_MODE_DEFAULT;
 static int MCALIB_BINARY32_T = MCA_PRECISION_BINARY32_DEFAULT;
 static int MCALIB_BINARY64_T = MCA_PRECISION_BINARY64_DEFAULT;
-
-static mca_rng_mode MCALIB_RNG_MODE = MCA_RNG_MODE_DEFAULT;
 
 /* possible operations values */
 typedef enum {
@@ -203,36 +187,31 @@ static void _set_mca_precision_binary64(const int precision) {
  ***************************************************************/
 
 /* random number generator internal state */
-static tinymt64_t random_state;
-
-/* random number generator internal state for simple generators */
-// __declspec(thread) static unsigned int random_state_simple;
-// __declspec(thread) static bool random_state_simple_valid;
 static __thread unsigned int random_state_simple;
+/* random number generator initialization flag */
 static __thread bool random_state_simple_valid = false;
 
-static pthread_mutex_t global_tid_lock;
-static int global_tid;
+/* global thread id access lock */
+static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
+/* global thread identifier */
+static int global_tid = 0;
 
 static double _mca_rand(void *context) {
   /* Returns a random double in the (0,1) open interval */
-  if (MCALIB_RNG_MODE == mca_rng_mode_mt)
-    return tinymt64_generate_doubleOO(&random_state);
-  else {
-    if (random_state_simple_valid == false) {
-      t_context *ctx = (t_context *)context;
-      if (ctx->choose_seed) {
-        int new_tid = _get_new_tid();
-        _set_mca_seed_simple(ctx->choose_seed, (int)ctx->seed ^ new_tid);
-      } else {
-        _set_mca_seed_simple(ctx->choose_seed,
-                             (int)ctx->seed ^ syscall(__NR_gettid));
-      }
-      random_state_simple_valid = true;
+  if (random_state_simple_valid == false)
+  {
+    t_context *ctx = (t_context *)context;
+    if (ctx->choose_seed) {
+      int new_tid = _get_new_tid();
+      _set_mca_seed_simple(ctx->choose_seed, (int)ctx->seed ^ new_tid);
+    } else {
+      _set_mca_seed_simple(ctx->choose_seed,
+                           (int)ctx->seed ^ syscall(__NR_gettid));
     }
-    return generate_random_double00(&random_state_simple,
-                                    (char)MCALIB_RNG_MODE);
+    random_state_simple_valid = true;
   }
+  return generate_random_double00(&random_state_simple,
+                                  (char)MCALIB_RNG_MODE);
 }
 
 static inline bool _mca_skip_eval(const float sparsity, void *context) {
@@ -323,27 +302,15 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
            : _mca_inexact_binary128)(A, CTX)
 
 /* Set the mca seed */
-static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
-  _set_seed_default(&random_state, choose_seed, seed);
-}
-
-/* Set the mca seed for the simple generators */
 static void _set_mca_seed_simple(const bool choose_seed,
                                  const unsigned int seed) {
   _set_seed_simple(&random_state_simple, choose_seed, seed);
 }
 
-/* Set the random number generator to be used */
-static void _set_mca_rng_mode(const mca_rng_mode mode) {
-  if (mode >= mca_rng_mode_drand) {
-    logger_error("--%s invalid value provided, must be one of: "
-                 "{mt, rand, random, drand}.",
-                 key_rng_mode_str);
-  }
-  MCALIB_RNG_MODE = mode;
-}
-
 /* Get a new identifier for the calling thread */
+/* Generic threads can have inconsistent identifiers, assigned by the system, */
+/* we therefore need to set an order between threads, for the case 
+/* when the seed is fixed, to insure some repeatability between executions */
 static int _get_new_tid(void) {
   int tmp_tid = -1;
 
@@ -475,8 +442,6 @@ static struct argp_option options[] = {
     {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
      "select magnitude of the maximum absolute error", 0},
     {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed", 0},
-    {key_rng_mode_str, KEY_RNG_MODE, "RNG_MODE", 0,
-     "select rng among {mt, rand, random, drand}", 0},
     {key_daz_str, KEY_DAZ, 0, 0,
      "denormals-are-zero: sets denormals inputs to zero", 0},
     {key_ftz_str, KEY_FTZ, 0, 0, "flush-to-zero: sets denormal output to zero",
@@ -564,22 +529,6 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
                    key_seed_str);
     }
     break;
-  case KEY_RNG_MODE:
-    /* mca error mode */
-    if (strcasecmp(MCA_RNG_MODE_STR[mca_rng_mode_mt], arg) == 0) {
-      _set_mca_rng_mode(mca_rng_mode_mt);
-    } else if (strcasecmp(MCA_RNG_MODE_STR[mca_rng_mode_rand], arg) == 0) {
-      _set_mca_rng_mode(mca_rng_mode_rand);
-    } else if (strcasecmp(MCA_RNG_MODE_STR[mca_rng_mode_random], arg) == 0) {
-      _set_mca_rng_mode(mca_rng_mode_random);
-    } else if (strcasecmp(MCA_RNG_MODE_STR[mca_rng_mode_drand], arg) == 0) {
-      _set_mca_rng_mode(mca_rng_mode_drand);
-    } else {
-      logger_error("--%s invalid value provided, must be one of: "
-                   "{mt, rand, random, drand}.",
-                   key_rng_mode_str);
-    }
-    break;
   case KEY_DAZ:
     /* denormals-are-zero */
     ctx->daz = true;
@@ -628,7 +577,6 @@ void print_information_header(void *context) {
       "%s = %d, "
       "%s = %s, "
       "%s = %s, "
-      "%s = %s, "
       "%s = %d, "
       "%s = %s, "
       "%s = %s and "
@@ -643,9 +591,14 @@ void print_information_header(void *context) {
                 : (ctx->relErr && ctx->absErr)
                       ? MCA_ERR_MODE_STR[mca_err_mode_all]
                       : MCA_ERR_MODE_STR[mca_err_mode_rel],
-      key_rng_mode_str, MCA_RNG_MODE_STR[MCALIB_RNG_MODE], key_err_exp_str,
-      (ctx->absErr_exp), key_daz_str, ctx->daz ? "true" : "false", key_ftz_str,
-      ctx->ftz ? "true" : "false", key_sparsity_str, ctx->sparsity);
+      key_err_exp_str, (ctx->absErr_exp), key_daz_str, ctx->daz ? "true" : "false", 
+      key_ftz_str, ctx->ftz ? "true" : "false", key_sparsity_str, ctx->sparsity);
+}
+
+void _interflop_finalize(__attribute__((unused)) void *context) {
+  /* destroy the global thread id access mutex */
+  if (pthread_mutex_destroy(&global_tid_lock) != 0)
+    logger_error("failed to destroy the mutex");
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
@@ -684,20 +637,9 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL};
 
-  /* Initialize the seed and sparsity */
-  _set_mca_seed(ctx->choose_seed, ctx->seed);
-
   /* The seed for the simple RNGs (all except Mersenne Twister) is initialized
     upon the first request for a random number
   */
-
-  /* Initialize the thread id for use with the parallel noise generation */
-  global_tid = 0;
-  /* Initialize the mutex for the thread id */
-  if (pthread_mutex_init(&global_tid_lock, NULL) != 0) {
-    printf("\n mutex init failed\n");
-    exit(EXIT_FAILURE);
-  }
 
   return interflop_backend_mca;
 }
