@@ -595,12 +595,6 @@ void print_information_header(void *context) {
       key_ftz_str, ctx->ftz ? "true" : "false", key_sparsity_str, ctx->sparsity);
 }
 
-void _interflop_finalize(__attribute__((unused)) void *context) {
-  /* destroy the global thread id access mutex */
-  if (pthread_mutex_destroy(&global_tid_lock) != 0)
-    logger_error("failed to destroy the mutex");
-}
-
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
