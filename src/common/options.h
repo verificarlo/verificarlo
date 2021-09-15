@@ -64,8 +64,8 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
                        const uint64_t seed);
 
 /* Simple set_seed function for the basic generators */
-void _set_seed_simple(unsigned int *random_state, const bool choose_seed,
-                      const unsigned int seed);
+void _set_seed(unsigned int *random_state, const bool choose_seed,
+               const unsigned int seed);
 
 /* Output a floating point number r (0.0 <= r < 1.0) */
 double generate_random_double(unsigned int *random_state_simple,

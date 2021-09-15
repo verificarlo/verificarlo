@@ -299,7 +299,7 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
 
 /* Set the mca seed */
 static void _set_mca_seed(const bool choose_seed, const unsigned int seed) {
-  _set_seed_simple(&random_state, choose_seed, seed);
+  _set_seed(&random_state, choose_seed, seed);
 }
 
 /* Get a new identifier for the calling thread */
