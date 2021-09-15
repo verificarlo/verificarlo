@@ -67,23 +67,7 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
 void _set_seed(unsigned int *random_state, const bool choose_seed,
                const unsigned int seed);
 
-/* Output a floating point number r (0.0 <= r < 1.0) */
-double generate_random_double(unsigned int *random_state_simple,
-                              char mca_rng_mode);
-
-/* Output a floating point number r (0.0 <= r < 1.0) */
-double generate_random_double01(unsigned int *random_state_simple,
-                                char mca_rng_mode);
-
-/* Output a floating point number r (1.0 <= r < 2.0) */
-double generate_random_double12(unsigned int *random_state_simple,
-                                char mca_rng_mode);
-
-/* Output a floating point number r (0.0 < r <= 1.0) */
-double generate_random_double0C(unsigned int *random_state_simple,
-                                char mca_rng_mode);
-
 /* Output a floating point number r (0.0 < r < 1.0) */
-double generate_random_double00(unsigned int *random_state_simple);
+double generate_random_double(unsigned int *random_state_simple);
 
 #endif /* __OPTIONS_H__ */

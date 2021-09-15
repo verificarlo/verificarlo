@@ -207,7 +207,7 @@ static double _mca_rand(void *context) {
     }
     random_state_valid = true;
   }
-  return generate_random_double00(&random_state);
+  return generate_random_double(&random_state);
 }
 
 static inline bool _mca_skip_eval(const float sparsity, void *context) {
