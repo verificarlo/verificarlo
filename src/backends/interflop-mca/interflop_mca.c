@@ -198,7 +198,7 @@ static int global_tid = 0;
 
 static double _mca_rand(void *context) {
   /* Returns a random double in the (0,1) open interval */
-  if (random_state_simple_valid == false)
+  if (random_state_valid == false)
   {
     t_context *ctx = (t_context *)context;
     if (ctx->choose_seed) {
