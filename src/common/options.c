@@ -144,30 +144,13 @@ double generate_random_double0C(unsigned int *random_state_simple,
 }
 
 /* Output a floating point number r (0.0 < r < 1.0) */
-double generate_random_double00(unsigned int *random_state_simple,
-                                char mca_rng_mode) {
+double generate_random_double00(unsigned int *random_state_simple) {
+  int tmp = rand_r(random_state_simple);
+  
+  if (tmp == 0)
+    tmp++;
+  else if (tmp == RAND_MAX)
+    tmp--;
 
-  if (mca_rng_mode == 1) {
-    /* rand */
-    int tmp;
-
-    tmp = rand_r(random_state_simple);
-    if (tmp == 0)
-      tmp++;
-    else if (tmp == RAND_MAX)
-      tmp--;
-
-    return ((double)1.0 * tmp) / RAND_MAX;
-  } else if (mca_rng_mode == 2) {
-    /* random - currently unsupported */
-    exit(EXIT_FAILURE);
-  } else if (mca_rng_mode == 3) {
-    /* drand48 - currently unsupported */
-    exit(EXIT_FAILURE);
-  } else {
-    /* unsupported mode */
-    exit(EXIT_FAILURE);
-  }
-
-  return -1;
+  return ((double)1.0 * tmp) / RAND_MAX;
 }

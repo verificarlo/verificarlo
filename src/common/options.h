@@ -84,7 +84,6 @@ double generate_random_double0C(unsigned int *random_state_simple,
                                 char mca_rng_mode);
 
 /* Output a floating point number r (0.0 < r < 1.0) */
-double generate_random_double00(unsigned int *random_state_simple,
-                                char mca_rng_mode);
+double generate_random_double00(unsigned int *random_state_simple);
 
 #endif /* __OPTIONS_H__ */
