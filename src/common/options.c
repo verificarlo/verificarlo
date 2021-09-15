@@ -26,7 +26,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <sys/syscall.h>    // for getting the thread id
+#include <sys/syscall.h> // for getting the thread id
 #include <sys/time.h>
 #include <sys/types.h>
 /* Modern solution for working with threads, since C11 */
