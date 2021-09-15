@@ -55,7 +55,7 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
 
 /* Simple set_seed function for the basic generators */
 void _set_seed(unsigned int *random_state, const bool choose_seed,
-                      const unsigned int seed) {
+               const unsigned int seed) {
   if (choose_seed) {
     *random_state = seed;
   } else {
