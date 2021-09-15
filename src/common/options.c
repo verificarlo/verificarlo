@@ -26,9 +26,12 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <sys/syscall.h>
+#include <sys/syscall.h>    // for getting the thread id
 #include <sys/time.h>
 #include <sys/types.h>
+/* Modern solution for working with threads, since C11 */
+/*  currently, support for threads.h is available from glibc2.28 onwards */
+// #include <threads.h>
 #include <unistd.h>
 
 #include <stdlib.h>
@@ -71,6 +74,8 @@ void _set_seed(unsigned int *random_state, const bool choose_seed,
     init_key[2] = getpid();
 
     *random_state = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
+    /* Modern solution for working with threads, since C11 */
+    // *random_state = t1.tv_sec ^ t1.tv_usec ^ thrd_current();
   }
 }
 
