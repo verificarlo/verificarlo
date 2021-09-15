@@ -152,8 +152,8 @@ static float _mca_binary32_binary_op(float a, float b, const mca_operations op,
 static double _mca_binary64_binary_op(double a, double b,
                                       const mca_operations op, void *context);
 
-static void _set_mca_seed_simple(const bool choose_seed,
-                                 const unsigned int seed);
+static void _set_mca_seed(const bool choose_seed,
+                          const unsigned int seed);
 static int _get_new_tid(void);
 
 /******************** MCA CONTROL FUNCTIONS *******************
@@ -187,9 +187,9 @@ static void _set_mca_precision_binary64(const int precision) {
  ***************************************************************/
 
 /* random number generator internal state */
-static __thread unsigned int random_state_simple;
+static __thread unsigned int random_state;
 /* random number generator initialization flag */
-static __thread bool random_state_simple_valid = false;
+static __thread bool random_state_valid = false;
 
 /* global thread id access lock */
 static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -203,15 +203,13 @@ static double _mca_rand(void *context) {
     t_context *ctx = (t_context *)context;
     if (ctx->choose_seed) {
       int new_tid = _get_new_tid();
-      _set_mca_seed_simple(ctx->choose_seed, (int)ctx->seed ^ new_tid);
+      _set_mca_seed(ctx->choose_seed, (int)ctx->seed ^ new_tid);
     } else {
-      _set_mca_seed_simple(ctx->choose_seed,
-                           (int)ctx->seed ^ syscall(__NR_gettid));
+      _set_mca_seed(ctx->choose_seed, (int)ctx->seed ^ syscall(__NR_gettid));
     }
-    random_state_simple_valid = true;
+    random_state_valid = true;
   }
-  return generate_random_double00(&random_state_simple,
-                                  (char)MCALIB_RNG_MODE);
+  return generate_random_double00(&random_state);
 }
 
 static inline bool _mca_skip_eval(const float sparsity, void *context) {
@@ -302,9 +300,9 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
            : _mca_inexact_binary128)(A, CTX)
 
 /* Set the mca seed */
-static void _set_mca_seed_simple(const bool choose_seed,
-                                 const unsigned int seed) {
-  _set_seed_simple(&random_state_simple, choose_seed, seed);
+static void _set_mca_seed(const bool choose_seed,
+                          const unsigned int seed) {
+  _set_seed_simple(&random_state, choose_seed, seed);
 }
 
 /* Get a new identifier for the calling thread */
@@ -605,8 +603,6 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   _set_mca_precision_binary64(MCA_PRECISION_BINARY64_DEFAULT);
   _set_mca_mode(MCA_MODE_DEFAULT);
 
-  _set_mca_rng_mode(MCA_RNG_MODE_DEFAULT);
-
   t_context *ctx = malloc(sizeof(t_context));
   *context = ctx;
   init_context(ctx);
@@ -631,9 +627,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL};
 
-  /* The seed for the simple RNGs (all except Mersenne Twister) is initialized
-    upon the first request for a random number
-  */
+  /* The seed for the RNG is initialized upon the first request for a random number */
 
   return interflop_backend_mca;
 }
