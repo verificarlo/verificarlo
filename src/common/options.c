@@ -146,7 +146,7 @@ double generate_random_double0C(unsigned int *random_state_simple,
 /* Output a floating point number r (0.0 < r < 1.0) */
 double generate_random_double00(unsigned int *random_state_simple) {
   int tmp = rand_r(random_state_simple);
-  
+
   if (tmp == 0)
     tmp++;
   else if (tmp == RAND_MAX)

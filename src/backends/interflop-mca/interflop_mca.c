@@ -152,8 +152,7 @@ static float _mca_binary32_binary_op(float a, float b, const mca_operations op,
 static double _mca_binary64_binary_op(double a, double b,
                                       const mca_operations op, void *context);
 
-static void _set_mca_seed(const bool choose_seed,
-                          const unsigned int seed);
+static void _set_mca_seed(const bool choose_seed, const unsigned int seed);
 static int _get_new_tid(void);
 
 /******************** MCA CONTROL FUNCTIONS *******************
@@ -198,8 +197,7 @@ static int global_tid = 0;
 
 static double _mca_rand(void *context) {
   /* Returns a random double in the (0,1) open interval */
-  if (random_state_valid == false)
-  {
+  if (random_state_valid == false) {
     t_context *ctx = (t_context *)context;
     if (ctx->choose_seed) {
       int new_tid = _get_new_tid();
@@ -300,14 +298,13 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
            : _mca_inexact_binary128)(A, CTX)
 
 /* Set the mca seed */
-static void _set_mca_seed(const bool choose_seed,
-                          const unsigned int seed) {
+static void _set_mca_seed(const bool choose_seed, const unsigned int seed) {
   _set_seed_simple(&random_state, choose_seed, seed);
 }
 
 /* Get a new identifier for the calling thread */
 /* Generic threads can have inconsistent identifiers, assigned by the system, */
-/* we therefore need to set an order between threads, for the case 
+/* we therefore need to set an order between threads, for the case
 /* when the seed is fixed, to insure some repeatability between executions */
 static int _get_new_tid(void) {
   int tmp_tid = -1;
@@ -569,28 +566,29 @@ void init_context(t_context *ctx) {
 void print_information_header(void *context) {
   t_context *ctx = (t_context *)context;
 
-  logger_info(
-      "load backend with "
-      "%s = %d, "
-      "%s = %d, "
-      "%s = %s, "
-      "%s = %s, "
-      "%s = %d, "
-      "%s = %s, "
-      "%s = %s and "
-      "%s = %f"
-      "\n",
-      key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str, MCALIB_BINARY64_T,
-      key_mode_str, MCA_MODE_STR[MCALIB_MODE], key_err_mode_str,
-      (ctx->relErr && !ctx->absErr)
-          ? MCA_ERR_MODE_STR[mca_err_mode_rel]
-          : (!ctx->relErr && ctx->absErr)
-                ? MCA_ERR_MODE_STR[mca_err_mode_abs]
-                : (ctx->relErr && ctx->absErr)
-                      ? MCA_ERR_MODE_STR[mca_err_mode_all]
-                      : MCA_ERR_MODE_STR[mca_err_mode_rel],
-      key_err_exp_str, (ctx->absErr_exp), key_daz_str, ctx->daz ? "true" : "false", 
-      key_ftz_str, ctx->ftz ? "true" : "false", key_sparsity_str, ctx->sparsity);
+  logger_info("load backend with "
+              "%s = %d, "
+              "%s = %d, "
+              "%s = %s, "
+              "%s = %s, "
+              "%s = %d, "
+              "%s = %s, "
+              "%s = %s and "
+              "%s = %f"
+              "\n",
+              key_prec_b32_str, MCALIB_BINARY32_T, key_prec_b64_str,
+              MCALIB_BINARY64_T, key_mode_str, MCA_MODE_STR[MCALIB_MODE],
+              key_err_mode_str,
+              (ctx->relErr && !ctx->absErr)
+                  ? MCA_ERR_MODE_STR[mca_err_mode_rel]
+                  : (!ctx->relErr && ctx->absErr)
+                        ? MCA_ERR_MODE_STR[mca_err_mode_abs]
+                        : (ctx->relErr && ctx->absErr)
+                              ? MCA_ERR_MODE_STR[mca_err_mode_all]
+                              : MCA_ERR_MODE_STR[mca_err_mode_rel],
+              key_err_exp_str, (ctx->absErr_exp), key_daz_str,
+              ctx->daz ? "true" : "false", key_ftz_str,
+              ctx->ftz ? "true" : "false", key_sparsity_str, ctx->sparsity);
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
@@ -627,7 +625,8 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL};
 
-  /* The seed for the RNG is initialized upon the first request for a random number */
+  /* The seed for the RNG is initialized upon the first request for a random
+   * number */
 
   return interflop_backend_mca;
 }
