@@ -219,7 +219,8 @@ static __thread mca_data_t *mca_data;
 static double _mca_rand(mca_data_t *mca_data) {
   if (*(mca_data->random_state_valid) == false) {
     if (*(mca_data->choose_seed) == true) {
-      _set_mca_seed(*(mca_data->choose_seed), *(mca_data->seed) ^ _get_new_tid());
+      _set_mca_seed(*(mca_data->choose_seed),
+                    *(mca_data->seed) ^ _get_new_tid());
     } else {
       _set_mca_seed(false, 0);
     }
