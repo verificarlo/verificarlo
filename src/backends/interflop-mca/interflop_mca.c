@@ -152,7 +152,7 @@ static float _mca_binary32_binary_op(float a, float b, const mca_operations op,
 static double _mca_binary64_binary_op(double a, double b,
                                       const mca_operations op, void *context);
 
-static void _set_mca_seed(const bool choose_seed, 
+static void _set_mca_seed(const bool choose_seed,
                           const unsigned long long int seed);
 static unsigned long long int _get_new_tid(void);
 
@@ -196,7 +196,8 @@ static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
 /* global thread identifier */
 static unsigned long long int global_tid = 0;
 
-/* helper data structure to centralize the data used for random number generation */
+/* helper data structure to centralize the data used for random number
+ * generation */
 static __thread mca_data_t *mca_data;
 
 // static double _mca_rand(void *context) {
@@ -218,18 +219,13 @@ static __thread mca_data_t *mca_data;
 static double _mca_rand(mca_data_t *mca_data) {
   if (*(mca_data->random_state_valid) == false) {
     if (*(mca_data->choose_seed) == true) {
-      unsigned long long int new_tid = _get_new_tid();
-      // _set_mca_seed(*(mca_data->choose_seed), *(mca_data->seed) ^ _get_new_tid());
-      _set_mca_seed(*(mca_data->choose_seed), *(mca_data->seed) ^ new_tid);
-      // pthread_mutex_lock(&global_tid_lock);
-      // printf("thread %ld has uid %llu and is using seed=%llu and unique seed=%llu\n", syscall(__NR_gettid), new_tid, *(mca_data->seed), *(mca_data->seed) ^ new_tid);
-      // pthread_mutex_unlock(&global_tid_lock);
+      _set_mca_seed(*(mca_data->choose_seed), *(mca_data->seed) ^ _get_new_tid());
     } else {
       _set_mca_seed(false, 0);
     }
     *(mca_data->random_state_valid) = true;
   }
-  
+
   return generate_random_double(mca_data->random_state);
 }
 
@@ -237,11 +233,11 @@ static double _mca_rand(mca_data_t *mca_data) {
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
 static inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
-  
+
   if (sparsity >= 1.0f) {
     return false;
   }
-  
+
   return (_mca_rand(mca_data) > sparsity);
 }
 
@@ -280,7 +276,9 @@ static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, MCA_DATA)                                               \
-  _Generic(X, double : _noise_binary64, __float128 : _noise_binary128)(EXP, MCA_DATA)
+  _Generic(X, double                                                           \
+           : _noise_binary64, __float128                                       \
+           : _noise_binary128)(EXP, MCA_DATA)
 
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
@@ -312,9 +310,8 @@ static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (MCA_DATA == NULL) {                                                    \
       MCA_DATA = get_mca_data_struct(&(TMP_CTX->choose_seed),                  \
-                                     (unsigned long long*)(&(TMP_CTX->seed)),  \
-                                     &RND_STATE_VALID, &RND_STATE              \
-                                    );                                         \
+                                     (unsigned long long *)(&(TMP_CTX->seed)), \
+                                     &RND_STATE_VALID, &RND_STATE);            \
     }                                                                          \
   }
 
@@ -338,7 +335,7 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
            : _mca_inexact_binary128)(A, CTX)
 
 /* Set the mca seed */
-static void _set_mca_seed(const bool choose_seed, 
+static void _set_mca_seed(const bool choose_seed,
                           const unsigned long long int seed) {
   _set_seed(&random_state, choose_seed, seed);
 }
@@ -633,7 +630,7 @@ void print_information_header(void *context) {
 }
 
 void _interflop_finalize(__attribute__((unused)) void *context) {
-  if(mca_data)
+  if (mca_data)
     free(mca_data);
 }
 
@@ -675,7 +672,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
      number */
 
   mca_data = get_mca_data_struct(&(ctx->choose_seed),
-                                 (unsigned long long int*)(&(ctx->seed)),
+                                 (unsigned long long int *)(&(ctx->seed)),
                                  &random_state_valid, &random_state);
 
   return interflop_backend_mca;
