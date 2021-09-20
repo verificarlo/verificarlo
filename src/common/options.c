@@ -24,6 +24,8 @@
  *                                                                           *
  *****************************************************************************/
 
+#include <stdio.h>
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/syscall.h> // for getting the thread id
@@ -37,6 +39,16 @@
 #include <stdlib.h>
 
 #include "tinymt64.h"
+
+
+/* Data type used to hold information required by the RNG used for MCA */
+typedef struct mca_data{
+  bool *choose_seed;
+  unsigned long long int *seed;
+  bool *random_state_valid;
+  unsigned long long int *random_state;
+} mca_data_t;
+
 
 /* Generic set_seed function which is common for most of the backends */
 void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
@@ -57,22 +69,16 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
 }
 
 /* Simple set_seed function for the basic generators */
-void _set_seed(unsigned int *random_state, const bool choose_seed,
-               const unsigned int seed) {
+void _set_seed(unsigned long long int *random_state, const bool choose_seed,
+               const unsigned long long int seed) {
   if (choose_seed) {
     *random_state = seed;
   } else {
-    const int key_length = 3;
-    uint64_t init_key[key_length];
     struct timeval t1;
 
     gettimeofday(&t1, NULL);
 
     /* Hopefully the following seed is good enough for Montercarlo */
-    init_key[0] = t1.tv_sec;
-    init_key[1] = t1.tv_usec;
-    init_key[2] = getpid();
-
     *random_state = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
     /* Modern solution for working with threads, since C11 */
     // *random_state = t1.tv_sec ^ t1.tv_usec ^ thrd_current();
@@ -80,8 +86,10 @@ void _set_seed(unsigned int *random_state, const bool choose_seed,
 }
 
 /* Output a floating point number r (0.0 < r < 1.0) */
-double generate_random_double(unsigned int *random_state_simple) {
-  int tmp = rand_r(random_state_simple);
+double generate_random_double(unsigned long long int *random_state) {
+  unsigned int tmp_state = (unsigned int)(*random_state);
+  int tmp = rand_r(&tmp_state);
+  *random_state = tmp_state;
 
   if (tmp == 0)
     tmp++;
@@ -89,4 +97,19 @@ double generate_random_double(unsigned int *random_state_simple) {
     tmp--;
 
   return ((double)1.0 * tmp) / RAND_MAX;
+}
+
+/* Initialize a data structure used to hold the information required */
+/* by the RNG */
+mca_data_t* get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
+                                bool *random_state_valid,
+                                unsigned long long int *random_state) {
+  mca_data_t *new_data = (mca_data_t *)malloc(sizeof(mca_data_t));
+
+  new_data->choose_seed = choose_seed;
+  new_data->seed = seed;
+  new_data->random_state_valid = random_state_valid;
+  new_data->random_state = random_state;
+
+  return new_data;
 }

@@ -31,6 +31,14 @@
 #include "logger.h"
 #include "tinymt64.h"
 
+/* Data type used to hold information required by the RNG used for MCA */
+typedef struct mca_data{
+  bool *choose_seed;
+  unsigned long long int *seed;
+  bool *random_state_valid;
+  unsigned long long int *random_state;
+} mca_data_t;
+
 /* Generic set_precision macro function which is common with most of the backend
  */
 /* BACKEND   is the name of the backend */
@@ -64,10 +72,16 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
                        const uint64_t seed);
 
 /* Simple set_seed function for the basic generators */
-void _set_seed(unsigned int *random_state, const bool choose_seed,
-               const unsigned int seed);
+void _set_seed(unsigned long long int *random_state, const bool choose_seed,
+               const unsigned long long int seed);
 
 /* Output a floating point number r (0.0 < r < 1.0) */
-double generate_random_double(unsigned int *random_state_simple);
+double generate_random_double(unsigned long long int *random_state_simple);
+
+/* Initialize a data structure used to hold the information required */
+/* by the RNG */
+mca_data_t* get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
+                                bool *random_state_valid,
+                                unsigned long long int *random_state);
 
 #endif /* __OPTIONS_H__ */

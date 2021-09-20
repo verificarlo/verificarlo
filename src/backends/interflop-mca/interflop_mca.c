@@ -152,8 +152,9 @@ static float _mca_binary32_binary_op(float a, float b, const mca_operations op,
 static double _mca_binary64_binary_op(double a, double b,
                                       const mca_operations op, void *context);
 
-static void _set_mca_seed(const bool choose_seed, const unsigned int seed);
-static int _get_new_tid(void);
+static void _set_mca_seed(const bool choose_seed, 
+                          const unsigned long long int seed);
+static unsigned long long int _get_new_tid(void);
 
 /******************** MCA CONTROL FUNCTIONS *******************
  * The following functions are used to set virtual precision and
@@ -186,38 +187,62 @@ static void _set_mca_precision_binary64(const int precision) {
  ***************************************************************/
 
 /* random number generator internal state */
-static __thread unsigned int random_state;
+static __thread unsigned long long int random_state;
 /* random number generator initialization flag */
 static __thread bool random_state_valid = false;
 
 /* global thread id access lock */
 static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
 /* global thread identifier */
-static int global_tid = 0;
+static unsigned long long int global_tid = 0;
 
-static double _mca_rand(void *context) {
-  /* Returns a random double in the (0,1) open interval */
-  if (random_state_valid == false) {
-    t_context *ctx = (t_context *)context;
-    if (ctx->choose_seed) {
-      int new_tid = _get_new_tid();
-      _set_mca_seed(ctx->choose_seed, (int)ctx->seed ^ new_tid);
+/* helper data structure to centralize the data used for random number generation */
+static __thread mca_data_t *mca_data;
+
+// static double _mca_rand(void *context) {
+//   /* Returns a random double in the (0,1) open interval */
+//   if (random_state_valid == false) {
+//     t_context *ctx = (t_context *)context;
+//     if (ctx->choose_seed) {
+//       int new_tid = _get_new_tid();
+//       _set_mca_seed(ctx->choose_seed, (int)ctx->seed ^ new_tid);
+//     } else {
+//       _set_mca_seed(ctx->choose_seed, (int)ctx->seed ^ syscall(__NR_gettid));
+//     }
+//     random_state_valid = true;
+//   }
+//   return generate_random_double(&random_state);
+// }
+
+/* Returns a random double in the (0,1) open interval */
+static double _mca_rand(mca_data_t *mca_data) {
+  if (*(mca_data->random_state_valid) == false) {
+    if (*(mca_data->choose_seed) == true) {
+      unsigned long long int new_tid = _get_new_tid();
+      // _set_mca_seed(*(mca_data->choose_seed), *(mca_data->seed) ^ _get_new_tid());
+      _set_mca_seed(*(mca_data->choose_seed), *(mca_data->seed) ^ new_tid);
+      // pthread_mutex_lock(&global_tid_lock);
+      // printf("thread %ld has uid %llu and is using seed=%llu and unique seed=%llu\n", syscall(__NR_gettid), new_tid, *(mca_data->seed), *(mca_data->seed) ^ new_tid);
+      // pthread_mutex_unlock(&global_tid_lock);
     } else {
-      _set_mca_seed(ctx->choose_seed, (int)ctx->seed ^ syscall(__NR_gettid));
+      _set_mca_seed(false, 0);
     }
-    random_state_valid = true;
+    *(mca_data->random_state_valid) = true;
   }
-  return generate_random_double(&random_state);
+  
+  return generate_random_double(mca_data->random_state);
 }
 
-static inline bool _mca_skip_eval(const float sparsity, void *context) {
-  /* Returns a bool for determining whether an operation should skip */
-  /* perturbation. false -> perturb; true -> skip. */
+/* Returns a bool for determining whether an operation should skip */
+/* perturbation. false -> perturb; true -> skip. */
+/* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
+static inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
+  
   if (sparsity >= 1.0f) {
     return false;
   }
-  /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
-  return (_mca_rand(context) > sparsity);
+  
+  return (_mca_rand(mca_data) > sparsity);
 }
 
 /* noise = rand * 2^(exp) */
@@ -226,8 +251,8 @@ static inline bool _mca_skip_eval(const float sparsity, void *context) {
 /* is comprised between: */
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
-static inline double _noise_binary64(const int exp, void *context) {
-  const double d_rand = (_mca_rand(context) - 0.5);
+static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
+  const double d_rand = (_mca_rand(mca_data) - 0.5);
   return _fast_pow2_binary64(exp) * d_rand;
 }
 
@@ -237,9 +262,9 @@ static inline double _noise_binary64(const int exp, void *context) {
 /* is comprised between: */
 /* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
-static __float128 _noise_binary128(const int exp, void *context) {
+static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
   /* random number in (-0.5, 0.5) */
-  const __float128 noise = (__float128)_mca_rand(context) - 0.5Q;
+  const __float128 noise = (__float128)_mca_rand(mca_data) - 0.5Q;
   return _fast_pow2_binary128(exp) * noise;
 }
 
@@ -254,40 +279,55 @@ static __float128 _noise_binary128(const int exp, void *context) {
   (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
-#define _NOISE(X, EXP, CTX)                                                    \
-  _Generic(X, double : _noise_binary64, __float128 : _noise_binary128)(EXP, CTX)
+#define _NOISE(X, EXP, MCA_DATA)                                               \
+  _Generic(X, double : _noise_binary64, __float128 : _noise_binary128)(EXP, MCA_DATA)
 
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
-#define _INEXACT(X, VIRTUAL_PRECISION, CTX)                                    \
+#define _INEXACT(X, VIRTUAL_PRECISION, CTX, MCA_DATA)                          \
   {                                                                            \
+    t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
-    } else if (_mca_skip_eval(((t_context *)CTX)->sparsity, CTX)) {            \
+    } else if (_mca_skip_eval(TMP_CTX->sparsity, CTX)) {                       \
       return;                                                                  \
     } else {                                                                   \
-      if (((t_context *)CTX)->relErr) {                                        \
+      if (TMP_CTX->relErr) {                                                   \
         const int32_t e_a = GET_EXP_FLT(*X);                                   \
         const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, CTX);                 \
+        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, MCA_DATA);            \
         *X = *X + noise_rel;                                                   \
       }                                                                        \
-      if (((t_context *)CTX)->absErr) {                                        \
-        const int32_t e_n_abs = ((t_context *)CTX)->absErr_exp;                \
-        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, CTX);                 \
+      if (TMP_CTX->absErr) {                                                   \
+        const int32_t e_n_abs = TMP_CTX->absErr_exp;                           \
+        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, MCA_DATA);            \
         *X = *X + noise_abs;                                                   \
       }                                                                        \
     }                                                                          \
   }
 
+/* Macro function that initializes the structure used for managing the RNG */
+#define _INIT_MCA_DATA(CTX, MCA_DATA, RND_STATE, RND_STATE_VALID)              \
+  {                                                                            \
+    t_context *TMP_CTX = (t_context *)CTX;                                     \
+    if (MCA_DATA == NULL) {                                                    \
+      MCA_DATA = get_mca_data_struct(&(TMP_CTX->choose_seed),                  \
+                                     (unsigned long long*)(&(TMP_CTX->seed)),  \
+                                     &RND_STATE_VALID, &RND_STATE              \
+                                    );                                         \
+    }                                                                          \
+  }
+
 /* Adds the mca noise to da */
 static void _mca_inexact_binary64(double *da, void *context) {
-  _INEXACT(da, MCALIB_BINARY32_T, context);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid);
+  _INEXACT(da, MCALIB_BINARY32_T, context, mca_data);
 }
 
 /* Adds the mca noise to qa */
 static void _mca_inexact_binary128(__float128 *qa, void *context) {
-  _INEXACT(qa, MCALIB_BINARY64_T, context);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid);
+  _INEXACT(qa, MCALIB_BINARY64_T, context, mca_data);
 }
 
 /* Generic functions that adds noise to A */
@@ -298,7 +338,8 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
            : _mca_inexact_binary128)(A, CTX)
 
 /* Set the mca seed */
-static void _set_mca_seed(const bool choose_seed, const unsigned int seed) {
+static void _set_mca_seed(const bool choose_seed, 
+                          const unsigned long long int seed) {
   _set_seed(&random_state, choose_seed, seed);
 }
 
@@ -306,8 +347,8 @@ static void _set_mca_seed(const bool choose_seed, const unsigned int seed) {
 /* Generic threads can have inconsistent identifiers, assigned by the system, */
 /* we therefore need to set an order between threads, for the case
 /* when the seed is fixed, to insure some repeatability between executions */
-static int _get_new_tid(void) {
-  int tmp_tid = -1;
+static unsigned long long int _get_new_tid(void) {
+  unsigned long long int tmp_tid = -1;
 
   pthread_mutex_lock(&global_tid_lock);
   tmp_tid = global_tid;
@@ -591,6 +632,11 @@ void print_information_header(void *context) {
               ctx->ftz ? "true" : "false", key_sparsity_str, ctx->sparsity);
 }
 
+void _interflop_finalize(__attribute__((unused)) void *context) {
+  if(mca_data)
+    free(mca_data);
+}
+
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
@@ -626,7 +672,11 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL};
 
   /* The seed for the RNG is initialized upon the first request for a random
-   * number */
+     number */
+
+  mca_data = get_mca_data_struct(&(ctx->choose_seed),
+                                 (unsigned long long int*)(&(ctx->seed)),
+                                 &random_state_valid, &random_state);
 
   return interflop_backend_mca;
 }
