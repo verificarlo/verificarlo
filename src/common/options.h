@@ -32,7 +32,7 @@
 #include "tinymt64.h"
 
 /* Data type used to hold information required by the RNG used for MCA */
-typedef struct mca_data{
+typedef struct mca_data {
   bool *choose_seed;
   unsigned long long int *seed;
   bool *random_state_valid;
@@ -80,7 +80,7 @@ double generate_random_double(unsigned long long int *random_state_simple);
 
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
-mca_data_t* get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
+mca_data_t *get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
                                 bool *random_state_valid,
                                 unsigned long long int *random_state);
 
