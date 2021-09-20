@@ -12,8 +12,8 @@
 #include <string.h>
 
 
-// #define FMT(X) _Generic((X), double : "%.16a", float: "%.7a")
-#define FMT(X) _Generic((X), double : "%.16e", float: "%.7e")
+#define FMT(X) _Generic((X), double : "%.16a", float: "%.7a")
+// #define FMT(X) _Generic((X), double : "%.16e", float: "%.7e")
 #define N 12
 
 typedef struct {
