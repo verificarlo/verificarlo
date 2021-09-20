@@ -15,26 +15,30 @@ SEED=1
 verificarlo-c -fopenmp=libiomp5 -D REAL=float -O0 test_openmp.c -o test_openmp_B32
 
 # set the seed and run the test program
-export VFC_BACKENDS="libinterflop_mca_mpfr.so --mode=rr --precision-binary32=$PREC_B32 --seed=$SEED --rng-mode=rand"
+export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary32=$PREC_B32 --seed=$SEED"
 ./test_openmp_B32 1> out_run_1 2> log_run_1
 
 # run the test program again
-export VFC_BACKENDS="libinterflop_mca_mpfr.so --mode=rr --precision-binary32=$PREC_B32 --seed=$SEED --rng-mode=rand"
+export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary32=$PREC_B32 --seed=$SEED"
 ./test_openmp_B32 1> out_run_2 2> log_run_2
 
 # check if the two runs produce identical results
 ./test_output.py out_run_1 out_run_2
 
+if [ $? -eq 1 ]
+then 
+  exit 1
+fi
 
 # compile the test program for testing on doubles
 verificarlo-c -fopenmp=libiomp5 -D REAL=double -O0 test_openmp.c -o test_openmp_B64
 
 # set the seed and run the test program
-export VFC_BACKENDS="libinterflop_mca_mpfr.so --mode=rr --precision-binary64=$PREC_B64 --seed=$SEED --rng-mode=rand"
+export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary64=$PREC_B64 --seed=$SEED"
 ./test_openmp_B64 1> out_run_3 2> log_run_3
 
 # run the test program again
-export VFC_BACKENDS="libinterflop_mca_mpfr.so --mode=rr --precision-binary64=$PREC_B64 --seed=$SEED --rng-mode=rand"
+export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary64=$PREC_B64 --seed=$SEED"
 ./test_openmp_B64 1> out_run_4 2> log_run_4
 
 # check if the two runs produce identical results
@@ -52,26 +56,31 @@ fi
 verificarlo-c -D REAL=float -O0 test_pthread.c -o test_pthread_B32 -lpthread
 
 # set the seed and run the test program
-export VFC_BACKENDS="libinterflop_mca_mpfr.so --mode=rr --precision-binary32=$PREC_B32 --seed=$SEED --rng-mode=rand"
+export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary32=$PREC_B32 --seed=$SEED"
 ./test_pthread_B32 1> out_run_5 2> log_run_5
 
 # run the test program again
-export VFC_BACKENDS="libinterflop_mca_mpfr.so --mode=rr --precision-binary32=$PREC_B32 --seed=$SEED --rng-mode=rand"
+export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary32=$PREC_B32 --seed=$SEED"
 ./test_pthread_B32 1> out_run_6 2> log_run_6
 
 # check if the two runs produce identical results
 ./test_output.py out_run_5 out_run_6
 
+if [ $? -eq 1 ]
+then 
+  exit 1
+fi
+
 
 # compile the test program for testing on doubles
-verificarlo-c -D REAL=double -O0 test_openmp.c -o test_pthread_B64 -lpthread
+verificarlo-c -D REAL=double -O0 test_pthread.c -o test_pthread_B64 -lpthread
 
 # set the seed and run the test program
-export VFC_BACKENDS="libinterflop_mca_mpfr.so --mode=rr --precision-binary64=$PREC_B64 --seed=$SEED --rng-mode=rand"
+export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary64=$PREC_B64 --seed=$SEED"
 ./test_pthread_B64 1> out_run_7 2> log_run_7
 
 # run the test program again
-export VFC_BACKENDS="libinterflop_mca_mpfr.so --mode=rr --precision-binary64=$PREC_B64 --seed=$SEED --rng-mode=rand"
+export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary64=$PREC_B64 --seed=$SEED"
 ./test_pthread_B64 1> out_run_8 2> log_run_8
 
 # check if the two runs produce identical results
