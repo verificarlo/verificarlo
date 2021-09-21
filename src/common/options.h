@@ -27,6 +27,7 @@
 #ifndef __OPTIONS_H__
 #define __OPTIONS_H__
 
+#include <pthread.h>
 #include "float_const.h"
 #include "logger.h"
 #include "tinymt64.h"
@@ -37,6 +38,8 @@ typedef struct mca_data {
   unsigned long long int *seed;
   bool *random_state_valid;
   unsigned long long int *random_state;
+  pthread_mutex_t * global_tid_lock;
+  unsigned long long int *global_tid;
 } mca_data_t;
 
 /* Generic set_precision macro function which is common with most of the backend
@@ -82,6 +85,15 @@ double generate_random_double(unsigned long long int *random_state_simple);
 /* by the RNG */
 mca_data_t *get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
                                 bool *random_state_valid,
-                                unsigned long long int *random_state);
+                                unsigned long long int *random_state,
+                                pthread_mutex_t * global_tid_lock,
+                                unsigned long long int *global_tid);
+
+double _mca_rand_simple(mca_data_t *mca_data);
+
+bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data);
+
+unsigned long long int _get_new_tid(pthread_mutex_t * global_tid_lock,
+                                           unsigned long long int *global_tid);
 
 #endif /* __OPTIONS_H__ */

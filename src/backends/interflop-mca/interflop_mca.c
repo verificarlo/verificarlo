@@ -154,7 +154,7 @@ static double _mca_binary64_binary_op(double a, double b,
 
 static void _set_mca_seed(const bool choose_seed,
                           const unsigned long long int seed);
-static unsigned long long int _get_new_tid(void);
+// static unsigned long long int _get_new_tid(void);
 
 /******************** MCA CONTROL FUNCTIONS *******************
  * The following functions are used to set virtual precision and
@@ -216,31 +216,31 @@ static __thread mca_data_t *mca_data;
 // }
 
 /* Returns a random double in the (0,1) open interval */
-static double _mca_rand(mca_data_t *mca_data) {
-  if (*(mca_data->random_state_valid) == false) {
-    if (*(mca_data->choose_seed) == true) {
-      _set_mca_seed(*(mca_data->choose_seed),
-                    *(mca_data->seed) ^ _get_new_tid());
-    } else {
-      _set_mca_seed(false, 0);
-    }
-    *(mca_data->random_state_valid) = true;
-  }
+// static double _mca_rand(mca_data_t *mca_data) {
+//   if (*(mca_data->random_state_valid) == false) {
+//     if (*(mca_data->choose_seed) == true) {
+//       _set_mca_seed(*(mca_data->choose_seed),
+//                     *(mca_data->seed) ^ _get_new_tid());
+//     } else {
+//       _set_mca_seed(false, 0);
+//     }
+//     *(mca_data->random_state_valid) = true;
+//   }
 
-  return generate_random_double(mca_data->random_state);
-}
+//   return generate_random_double(mca_data->random_state);
+// }
 
 /* Returns a bool for determining whether an operation should skip */
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
-static inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
+// static inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
 
-  if (sparsity >= 1.0f) {
-    return false;
-  }
+//   if (sparsity >= 1.0f) {
+//     return false;
+//   }
 
-  return (_mca_rand(mca_data) > sparsity);
-}
+//   return (_mca_rand(mca_data) > sparsity);
+// }
 
 /* noise = rand * 2^(exp) */
 /* We can skip special cases since we never met them */
@@ -249,7 +249,7 @@ static inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
-  const double d_rand = (_mca_rand(mca_data) - 0.5);
+  const double d_rand = (_mca_rand_simple(mca_data) - 0.5);
   return _fast_pow2_binary64(exp) * d_rand;
 }
 
@@ -261,7 +261,7 @@ static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
 static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
   /* random number in (-0.5, 0.5) */
-  const __float128 noise = (__float128)_mca_rand(mca_data) - 0.5Q;
+  const __float128 noise = (__float128)_mca_rand_simple(mca_data) - 0.5Q;
   return _fast_pow2_binary128(exp) * noise;
 }
 
@@ -306,25 +306,29 @@ static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
   }
 
 /* Macro function that initializes the structure used for managing the RNG */
-#define _INIT_MCA_DATA(CTX, MCA_DATA, RND_STATE, RND_STATE_VALID)              \
+#define _INIT_MCA_DATA(CTX, MCA_DATA, RND_STATE, RND_STATE_VALID,              \
+                       GLB_TID_LOCK, GLB_TID)                                  \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (MCA_DATA == NULL) {                                                    \
       MCA_DATA = get_mca_data_struct(&(TMP_CTX->choose_seed),                  \
                                      (unsigned long long *)(&(TMP_CTX->seed)), \
-                                     &RND_STATE_VALID, &RND_STATE);            \
+                                     &RND_STATE_VALID, &RND_STATE,             \
+                                     &GLB_TID_LOCK, &GLB_TID);                 \
     }                                                                          \
   }
 
 /* Adds the mca noise to da */
 static void _mca_inexact_binary64(double *da, void *context) {
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+                 global_tid_lock, global_tid);
   _INEXACT(da, MCALIB_BINARY32_T, context, mca_data);
 }
 
 /* Adds the mca noise to qa */
 static void _mca_inexact_binary128(__float128 *qa, void *context) {
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+                 global_tid_lock, global_tid);
   _INEXACT(qa, MCALIB_BINARY64_T, context, mca_data);
 }
 
@@ -345,16 +349,28 @@ static void _set_mca_seed(const bool choose_seed,
 /* Generic threads can have inconsistent identifiers, assigned by the system, */
 /* we therefore need to set an order between threads, for the case
 /* when the seed is fixed, to insure some repeatability between executions */
-static unsigned long long int _get_new_tid(void) {
-  unsigned long long int tmp_tid = -1;
+// static unsigned long long int _get_new_tid(void) {
+//   unsigned long long int tmp_tid = -1;
 
-  pthread_mutex_lock(&global_tid_lock);
-  tmp_tid = global_tid;
-  global_tid++;
-  pthread_mutex_unlock(&global_tid_lock);
+//   pthread_mutex_lock(&global_tid_lock);
+//   tmp_tid = global_tid;
+//   global_tid++;
+//   pthread_mutex_unlock(&global_tid_lock);
 
-  return tmp_tid;
-}
+//   return tmp_tid;
+// }
+
+// static unsigned long long int _get_new_tid(pthread_mutex_t * global_tid_lock,
+//                                            unsigned long long int *global_tid) {
+//   unsigned long long int tmp_tid = -1;
+
+//   pthread_mutex_lock(global_tid_lock);
+//   tmp_tid = *global_tid;
+//   *global_tid++;
+//   pthread_mutex_unlock(global_tid_lock);
+
+//   return tmp_tid;
+// }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the MCA operation. Operands
@@ -674,7 +690,8 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
 
   mca_data = get_mca_data_struct(&(ctx->choose_seed),
                                  (unsigned long long int *)(&(ctx->seed)),
-                                 &random_state_valid, &random_state);
+                                 &random_state_valid, &random_state,
+                                 &global_tid_lock, &global_tid);
 
   return interflop_backend_mca;
 }

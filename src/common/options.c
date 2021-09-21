@@ -24,8 +24,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#include <stdio.h>
-
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/syscall.h> // for getting the thread id
@@ -46,6 +45,8 @@ typedef struct mca_data {
   unsigned long long int *seed;
   bool *random_state_valid;
   unsigned long long int *random_state;
+  pthread_mutex_t *global_tid_lock;
+  unsigned long long int *global_tid;
 } mca_data_t;
 
 /* Generic set_seed function which is common for most of the backends */
@@ -101,13 +102,55 @@ double generate_random_double(unsigned long long int *random_state) {
 /* by the RNG */
 mca_data_t *get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
                                 bool *random_state_valid,
-                                unsigned long long int *random_state) {
+                                unsigned long long int *random_state,
+                                pthread_mutex_t *global_tid_lock,
+                                unsigned long long int *global_tid) {
   mca_data_t *new_data = (mca_data_t *)malloc(sizeof(mca_data_t));
 
   new_data->choose_seed = choose_seed;
   new_data->seed = seed;
   new_data->random_state_valid = random_state_valid;
   new_data->random_state = random_state;
+  new_data->global_tid_lock = global_tid_lock;
+  new_data->global_tid = global_tid;
 
   return new_data;
+}
+
+unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
+                                           unsigned long long int *global_tid) {
+  unsigned long long int tmp_tid = -1;
+
+  pthread_mutex_lock(global_tid_lock);
+  tmp_tid = *global_tid;
+  *global_tid++;
+  pthread_mutex_unlock(global_tid_lock);
+
+  return tmp_tid;
+}
+
+double _mca_rand_simple(mca_data_t *mca_data) {
+
+  if (*(mca_data->random_state_valid) == false) {
+    if (*(mca_data->choose_seed) == true) {
+      _set_seed(mca_data->random_state, *(mca_data->choose_seed),
+                *(mca_data->seed) ^
+                  _get_new_tid(mca_data->global_tid_lock, mca_data->global_tid)
+               );
+    } else {
+      _set_seed(mca_data->random_state, false, 0);
+    }
+    *(mca_data->random_state_valid) = true;
+  }
+
+  return generate_random_double(mca_data->random_state);
+}
+
+inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
+
+  if (sparsity >= 1.0f) {
+    return false;
+  }
+
+  return (_mca_rand_simple(mca_data) > sparsity);
 }
