@@ -118,7 +118,7 @@ mca_data_t *get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
 }
 
 unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
-                                           unsigned long long int *global_tid) {
+                                    unsigned long long int *global_tid) {
   unsigned long long int tmp_tid = -1;
 
   pthread_mutex_lock(global_tid_lock);
@@ -134,9 +134,8 @@ double _mca_rand_simple(mca_data_t *mca_data) {
   if (*(mca_data->random_state_valid) == false) {
     if (*(mca_data->choose_seed) == true) {
       _set_seed(mca_data->random_state, *(mca_data->choose_seed),
-                *(mca_data->seed) ^
-                  _get_new_tid(mca_data->global_tid_lock, mca_data->global_tid)
-               );
+                *(mca_data->seed) ^ _get_new_tid(mca_data->global_tid_lock,
+                                                 mca_data->global_tid));
     } else {
       _set_seed(mca_data->random_state, false, 0);
     }

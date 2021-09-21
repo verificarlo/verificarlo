@@ -233,7 +233,8 @@ static __thread mca_data_t *mca_data;
 /* Returns a bool for determining whether an operation should skip */
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
-// static inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
+// static inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data)
+// {
 
 //   if (sparsity >= 1.0f) {
 //     return false;
@@ -311,10 +312,9 @@ static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (MCA_DATA == NULL) {                                                    \
-      MCA_DATA = get_mca_data_struct(&(TMP_CTX->choose_seed),                  \
-                                     (unsigned long long *)(&(TMP_CTX->seed)), \
-                                     &RND_STATE_VALID, &RND_STATE,             \
-                                     &GLB_TID_LOCK, &GLB_TID);                 \
+      MCA_DATA = get_mca_data_struct(                                          \
+          &(TMP_CTX->choose_seed), (unsigned long long *)(&(TMP_CTX->seed)),   \
+          &RND_STATE_VALID, &RND_STATE, &GLB_TID_LOCK, &GLB_TID);              \
     }                                                                          \
   }
 
@@ -361,7 +361,8 @@ static void _set_mca_seed(const bool choose_seed,
 // }
 
 // static unsigned long long int _get_new_tid(pthread_mutex_t * global_tid_lock,
-//                                            unsigned long long int *global_tid) {
+//                                            unsigned long long int
+//                                            *global_tid) {
 //   unsigned long long int tmp_tid = -1;
 
 //   pthread_mutex_lock(global_tid_lock);
@@ -688,10 +689,9 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  mca_data = get_mca_data_struct(&(ctx->choose_seed),
-                                 (unsigned long long int *)(&(ctx->seed)),
-                                 &random_state_valid, &random_state,
-                                 &global_tid_lock, &global_tid);
+  mca_data = get_mca_data_struct(
+      &(ctx->choose_seed), (unsigned long long int *)(&(ctx->seed)),
+      &random_state_valid, &random_state, &global_tid_lock, &global_tid);
 
   return interflop_backend_mca;
 }
