@@ -67,28 +67,50 @@ static void _set_tolerance(int tolerance) { TOLERANCE = tolerance; }
 static void _set_warning(bool warning) { WARN = warning; }
 
 /* random generator internal state */
-static tinymt64_t random_state;
+// static tinymt64_t random_state;
+
+/* random number generator internal state */
+static __thread unsigned long long int random_state;
+/* random number generator initialization flag */
+static __thread bool random_state_valid = false;
+
+/* global thread id access lock */
+static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
+/* global thread identifier */
+static unsigned long long int global_tid = 0;
+
+/* helper data structure to centralize the data used for random number
+ * generation */
+static __thread mca_data_t *mca_data;
 
 /* Set the mca seed */
-static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
-  _set_seed_default(&random_state, choose_seed, seed);
-}
-
-static double _mca_rand(void) {
-  /* Returns a random double in the (0,1) open interval */
-  return tinymt64_generate_doubleOO(&random_state);
+static void _set_mca_seed(const bool choose_seed,
+                          const unsigned long long int seed) {
+  _set_seed(&random_state, choose_seed, seed);
 }
 
 /* noise = rand * 2^(exp) */
-static inline double _noise_binary64(const int exp) {
-  const double d_rand = (_mca_rand() - 0.5);
+static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
+  const double d_rand = (_mca_rand(mca_data) - 0.5);
   return _fast_pow2_binary64(exp) * d_rand;
 }
+
+/* Macro function that initializes the structure used for managing the RNG */
+#define _INIT_MCA_DATA(CTX, MCA_DATA, RND_STATE, RND_STATE_VALID,              \
+                       GLB_TID_LOCK, GLB_TID)                                  \
+  {                                                                            \
+    t_context *TMP_CTX = (t_context *)CTX;                                     \
+    if (MCA_DATA == NULL) {                                                    \
+      MCA_DATA = get_mca_data_struct(                                          \
+          &(TMP_CTX->choose_seed), (unsigned long long *)(&(TMP_CTX->seed)),   \
+          &RND_STATE_VALID, &RND_STATE, &GLB_TID_LOCK, &GLB_TID);              \
+    }                                                                          \
+  }
 
 /* cancell: detects the cancellation size; and checks if its larger than the
  * chosen tolerance. It reports a warning to the user and adds a MCA noise of
  * the magnitude of the cancelled bits. */
-#define cancell(X, Y, Z)                                                       \
+#define cancell(X, Y, Z, MCA_DATA)                                             \
   ({                                                                           \
     const int32_t e_z = GET_EXP_FLT(*Z);                                       \
     /* computes the difference between the max of both operands and the        \
@@ -102,7 +124,7 @@ static inline double _noise_binary64(const int exp) {
        * This particular version in the case of cancellations does not use     \
        * extended quad types */                                                \
       const int32_t e_n = e_z - (cancellation - 1);                            \
-      *Z = *Z + _noise_binary64(e_n);                                          \
+      *Z = *Z + _noise_binary64(e_n, MCA_DATA);                                \
     }                                                                          \
   })
 
@@ -110,25 +132,33 @@ static inline double _noise_binary64(const int exp) {
 static void _interflop_add_float(float a, float b, float *c,
                                  __attribute__((unused)) void *context) {
   *c = a + b;
-  cancell(a, b, c);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+                 global_tid_lock, global_tid);
+  cancell(a, b, c, mca_data);
 }
 
 static void _interflop_sub_float(float a, float b, float *c,
                                  __attribute__((unused)) void *context) {
   *c = a - b;
-  cancell(a, b, c);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+                 global_tid_lock, global_tid);
+  cancell(a, b, c, mca_data);
 }
 
 static void _interflop_add_double(double a, double b, double *c,
                                   __attribute__((unused)) void *context) {
   *c = a + b;
-  cancell(a, b, c);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+                 global_tid_lock, global_tid);
+  cancell(a, b, c, mca_data);
 }
 
 static void _interflop_sub_double(double a, double b, double *c,
                                   __attribute__((unused)) void *context) {
   *c = a - b;
-  cancell(a, b, c);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+                 global_tid_lock, global_tid);
+  cancell(a, b, c, mca_data);
 }
 
 static void _interflop_mul_float(float a, float b, float *c,
@@ -196,6 +226,11 @@ static void init_context(t_context *ctx) {
   ctx->seed = 0ULL;
 }
 
+void _interflop_finalize(__attribute__((unused)) void *context) {
+  if (mca_data)
+    free(mca_data);
+}
+
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
@@ -228,8 +263,12 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL};
 
-  /* Initialize the seed */
-  _set_mca_seed(ctx->choose_seed, ctx->seed);
+  /* The seed for the RNG is initialized upon the first request for a random
+     number */
+
+  mca_data = get_mca_data_struct(
+      &(ctx->choose_seed), (unsigned long long int *)(&(ctx->seed)),
+      &random_state_valid, &random_state, &global_tid_lock, &global_tid);
 
   return interflop_backend_cancellation;
 }
