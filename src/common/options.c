@@ -145,7 +145,7 @@ double _mca_rand(mca_data_t *mca_data) {
   return generate_random_double(mca_data->random_state);
 }
 
-inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
+bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
 
   if (sparsity >= 1.0f) {
     return false;
