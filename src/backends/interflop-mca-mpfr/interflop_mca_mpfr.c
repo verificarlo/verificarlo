@@ -182,20 +182,39 @@ static void _set_mca_precision_binary64(int precision) {
  ***************************************************************/
 
 /* random generator internal state */
-static tinymt64_t random_state;
+// static tinymt64_t random_state;
 
-static double _mca_rand(void) {
-  /* Returns a random double in the (0,1) open interval */
-  return tinymt64_generate_doubleOO(&random_state);
-}
+/* random number generator internal state */
+static __thread unsigned long long int random_state;
+/* random number generator initialization flag */
+static __thread bool random_state_valid = false;
+
+/* global thread id access lock */
+static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
+/* global thread identifier */
+static unsigned long long int global_tid = 0;
+
+/* helper data structure to centralize the data used for random number
+ * generation */
+static __thread mca_data_t *mca_data;
+
+// static double _mca_rand(void) {
+//   /* Returns a random double in the (0,1) open interval */
+//   return tinymt64_generate_doubleOO(&random_state);
+// }
 
 /* Set the mca seed */
-static void _set_mca_seed(bool choose_seed, uint64_t seed) {
-  _set_seed_default(&random_state, choose_seed, seed);
+// static void _set_mca_seed(bool choose_seed, uint64_t seed) {
+//   _set_seed_default(&random_state, choose_seed, seed);
+// }
+
+static void _set_mca_seed(const bool choose_seed,
+                          const unsigned long long int seed) {
+  _set_seed(&random_state, choose_seed, seed);
 }
 
-/* Macro function that add mca noise to X */
-#define _MCA_INEXACT(X, rnd_mode)                                              \
+/* Macro function that adds mca noise to X */
+#define _MCA_INEXACT(X, rnd_mode, MCA_DATA)                                    \
   do {                                                                         \
     /* if we are in IEEE mode, we return a noise equal to 0 */                 \
     /* if a is NaN, Inf or 0, we don't disturb it */                           \
@@ -218,7 +237,7 @@ static void _set_mca_seed(bool choose_seed, uint64_t seed) {
     mpfr_prec_t p_a = mpfr_get_prec(mpfr_##X);                                 \
     MPFR_DECL_INIT(mpfr_rand, p_a);                                            \
     e_a = e_a - (GET_MCALIB_T(X) - 1);                                         \
-    double d_rand = (_mca_rand() - 0.5);                                       \
+    double d_rand = (_mca_rand(MCA_DATA) - 0.5);                               \
     mpfr_set_d(mpfr_rand, d_rand, rnd_mode);                                   \
     /* rand = rand * 2 ^ (e_a) */                                              \
     mpfr_mul_2si(mpfr_rand, mpfr_rand, e_a, rnd_mode);                         \
@@ -233,7 +252,7 @@ static void _set_mca_seed(bool choose_seed, uint64_t seed) {
  *******************************************************************/
 
 /* Generic macro function that returns mca(X OP Y) */
-#define _MCA_BINARY_OP(X, Y, OP, CTX)                                          \
+#define _MCA_BINARY_OP(X, Y, OP, CTX, MCA_DATA)                                \
   {                                                                            \
     mpfr_prec_t prec = GET_MPFR_PREC(X);                                       \
     mpfr_rnd_t rnd = MPFR_RNDN;                                                \
@@ -246,12 +265,12 @@ static void _set_mca_seed(bool choose_seed, uint64_t seed) {
     MPFR_SET_FLT(X, rnd);                                                      \
     MPFR_SET_FLT(Y, rnd);                                                      \
     if (MCALIB_MODE_TYPE != mcamode_rr) {                                      \
-      _MCA_INEXACT(X, rnd);                                                    \
-      _MCA_INEXACT(Y, rnd);                                                    \
+      _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
+      _MCA_INEXACT(Y, rnd, MCA_DATA);                                          \
     }                                                                          \
     mpfr_op(mpfr_##X, mpfr_##X, mpfr_##Y, rnd);                                \
     if (MCALIB_MODE_TYPE != mcamode_pb) {                                      \
-      _MCA_INEXACT(X, rnd);                                                    \
+      _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
     }                                                                          \
     typeof(X) ret = MPFR_GET_FLT(X, rnd);                                      \
     if (((t_context *)CTX)->ftz) {                                             \
@@ -261,7 +280,7 @@ static void _set_mca_seed(bool choose_seed, uint64_t seed) {
   }
 
 /* Generic macro function that returns mca(OP X) */
-#define _MCA_UNARY_OP(X, OP, CTX)                                              \
+#define _MCA_UNARY_OP(X, OP, CTX, MCA_DATA)                                    \
   {                                                                            \
     mpfr_prec_t prec = GET_MPFR_PREC(X);                                       \
     mpfr_rnd_t rnd = MPFR_RNDN;                                                \
@@ -271,11 +290,11 @@ static void _set_mca_seed(bool choose_seed, uint64_t seed) {
     MPFR_DECL_INIT(mpfr_##X, prec);                                            \
     MPFR_SET_FLT(X, rnd);                                                      \
     if (MCALIB_MODE_TYPE != mcamode_rr) {                                      \
-      _MCA_INEXACT(X, rnd);                                                    \
+      _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
     }                                                                          \
     mpfr_op(mpfr_a, mpfr_a, rnd);                                              \
     if (MCALIB_MODE_TYPE != mcamode_pb) {                                      \
-      _MCA_INEXACT(X, rnd);                                                    \
+      _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
     }                                                                          \
     typeof(X) ret = MPFR_GET_FLT(X, rnd);                                      \
     if (((t_context *)CTX)->ftz) {                                             \
@@ -284,32 +303,52 @@ static void _set_mca_seed(bool choose_seed, uint64_t seed) {
     return ret;                                                                \
   }
 
+/* Macro function that initializes the structure used for managing the RNG */
+#define _INIT_MCA_DATA(CTX, MCA_DATA, RND_STATE, RND_STATE_VALID,              \
+                       GLB_TID_LOCK, GLB_TID)                                  \
+  {                                                                            \
+    t_context *TMP_CTX = (t_context *)CTX;                                     \
+    if (MCA_DATA == NULL) {                                                    \
+      MCA_DATA = get_mca_data_struct(                                          \
+          &(TMP_CTX->choose_seed), (unsigned long long *)(&(TMP_CTX->seed)),   \
+          &RND_STATE_VALID, &RND_STATE, &GLB_TID_LOCK, &GLB_TID);              \
+    }                                                                          \
+  }
+
 /* Performs mca(a mpfr_op b) where a and b are binary32 values */
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,
                                      void *context) {
-  _MCA_BINARY_OP(a, b, mpfr_op, context);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+                 global_tid_lock, global_tid);
+  _MCA_BINARY_OP(a, b, mpfr_op, context, mca_data);
 }
 
 /* Performs mca(mpfr_op a) where a is a binary32 value */
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float __attribute__((unused))
 _mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
-  _MCA_UNARY_OP(a, mpfr_op, context);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+                 global_tid_lock, global_tid);
+  _MCA_UNARY_OP(a, mpfr_op, context, mca_data);
 }
 
 /* Performs mca(a mpfr_op b) where a and b are binary32 values */
 /* Intermediate computations are performed with precision QUAD_PREC */
 static double _mca_binary64_binary_op(double a, double b, mpfr_bin mpfr_op,
                                       void *context) {
-  _MCA_BINARY_OP(a, b, mpfr_op, context);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+                 global_tid_lock, global_tid);
+  _MCA_BINARY_OP(a, b, mpfr_op, context, mca_data);
 }
 
 /* Performs mca(mpfr_op a) where a is a binary32 value */
 /* Intermediate computations are performed with precision QUAD_PREC */
 static double __attribute__((unused))
 _mca_binary64_unary_op(double a, mpfr_unr mpfr_op, void *context) {
-  _MCA_UNARY_OP(a, mpfr_op, context);
+  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+                 global_tid_lock, global_tid);
+  _MCA_UNARY_OP(a, mpfr_op, context, mca_data);
 }
 
 /************************* FPHOOKS FUNCTIONS *************************
@@ -459,6 +498,11 @@ static void print_information_header(void *context) {
               ctx->ftz ? "true" : "false");
 }
 
+void _interflop_finalize(__attribute__((unused)) void *context) {
+  if (mca_data)
+    free(mca_data);
+}
+
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
@@ -493,8 +537,12 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL};
 
-  /* Initialize the seed */
-  _set_mca_seed(ctx->choose_seed, ctx->seed);
+  /* The seed for the RNG is initialized upon the first request for a random
+     number */
+
+  mca_data = get_mca_data_struct(
+      &(ctx->choose_seed), (unsigned long long int *)(&(ctx->seed)),
+      &random_state_valid, &random_state, &global_tid_lock, &global_tid);
 
   return interflop_backend_mca;
 }
