@@ -181,9 +181,6 @@ static void _set_mca_precision_binary64(int precision) {
  * operands
  ***************************************************************/
 
-/* random generator internal state */
-// static tinymt64_t random_state;
-
 /* random number generator internal state */
 static __thread unsigned long long int random_state;
 /* random number generator initialization flag */
@@ -197,16 +194,6 @@ static unsigned long long int global_tid = 0;
 /* helper data structure to centralize the data used for random number
  * generation */
 static __thread mca_data_t *mca_data;
-
-// static double _mca_rand(void) {
-//   /* Returns a random double in the (0,1) open interval */
-//   return tinymt64_generate_doubleOO(&random_state);
-// }
-
-/* Set the mca seed */
-// static void _set_mca_seed(bool choose_seed, uint64_t seed) {
-//   _set_seed_default(&random_state, choose_seed, seed);
-// }
 
 static void _set_mca_seed(const bool choose_seed,
                           const unsigned long long int seed) {
