@@ -129,7 +129,7 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
   return tmp_tid;
 }
 
-double _mca_rand_simple(mca_data_t *mca_data) {
+double _mca_rand(mca_data_t *mca_data) {
 
   if (*(mca_data->random_state_valid) == false) {
     if (*(mca_data->choose_seed) == true) {
@@ -151,5 +151,5 @@ inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
     return false;
   }
 
-  return (_mca_rand_simple(mca_data) > sparsity);
+  return (_mca_rand(mca_data) > sparsity);
 }

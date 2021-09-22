@@ -152,10 +152,6 @@ static float _mca_binary32_binary_op(float a, float b, const mca_operations op,
 static double _mca_binary64_binary_op(double a, double b,
                                       const mca_operations op, void *context);
 
-static void _set_mca_seed(const bool choose_seed,
-                          const unsigned long long int seed);
-// static unsigned long long int _get_new_tid(void);
-
 /******************** MCA CONTROL FUNCTIONS *******************
  * The following functions are used to set virtual precision and
  * MCA mode of operation.
@@ -250,7 +246,7 @@ static __thread mca_data_t *mca_data;
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
-  const double d_rand = (_mca_rand_simple(mca_data) - 0.5);
+  const double d_rand = (_mca_rand(mca_data) - 0.5);
   return _fast_pow2_binary64(exp) * d_rand;
 }
 
@@ -262,7 +258,7 @@ static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
 static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
   /* random number in (-0.5, 0.5) */
-  const __float128 noise = (__float128)_mca_rand_simple(mca_data) - 0.5Q;
+  const __float128 noise = (__float128)_mca_rand(mca_data) - 0.5Q;
   return _fast_pow2_binary128(exp) * noise;
 }
 

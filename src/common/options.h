@@ -89,7 +89,7 @@ mca_data_t *get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
                                 pthread_mutex_t *global_tid_lock,
                                 unsigned long long int *global_tid);
 
-double _mca_rand_simple(mca_data_t *mca_data);
+double _mca_rand(mca_data_t *mca_data);
 
 bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data);
 
