@@ -285,7 +285,7 @@ static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
-    } else if (_mca_skip_eval(TMP_CTX->sparsity, CTX)) {                       \
+    } else if (_mca_skip_eval(TMP_CTX->sparsity, MCA_DATA)) {                  \
       return;                                                                  \
     } else {                                                                   \
       if (TMP_CTX->relErr) {                                                   \
