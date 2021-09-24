@@ -255,7 +255,7 @@ static void _set_mca_seed(const bool choose_seed,
       _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
       _MCA_INEXACT(Y, rnd, MCA_DATA);                                          \
     }                                                                          \
-    mpfr_op(mpfr_##X, mpfr_##X, mpfr_##Y, rnd);                                \
+    OP(mpfr_##X, mpfr_##X, mpfr_##Y, rnd);                                     \
     if (MCALIB_MODE_TYPE != mcamode_pb) {                                      \
       _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
     }                                                                          \
@@ -279,7 +279,7 @@ static void _set_mca_seed(const bool choose_seed,
     if (MCALIB_MODE_TYPE != mcamode_rr) {                                      \
       _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
     }                                                                          \
-    mpfr_op(mpfr_a, mpfr_a, rnd);                                              \
+    OP(mpfr_a, mpfr_a, rnd);                                                   \
     if (MCALIB_MODE_TYPE != mcamode_pb) {                                      \
       _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
     }                                                                          \
