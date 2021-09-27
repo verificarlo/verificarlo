@@ -70,7 +70,7 @@ static void _set_warning(bool warning) { WARN = warning; }
 // static tinymt64_t random_state;
 
 /* random number generator internal state */
-static __thread unsigned long long int random_state;
+static __thread struct drand48_data random_state;
 /* random number generator initialization flag */
 static __thread bool random_state_valid = false;
 

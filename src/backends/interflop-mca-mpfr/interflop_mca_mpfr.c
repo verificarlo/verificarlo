@@ -182,7 +182,7 @@ static void _set_mca_precision_binary64(int precision) {
  ***************************************************************/
 
 /* random number generator internal state */
-static __thread unsigned long long int random_state;
+static __thread struct drand48_data random_state;
 /* random number generator initialization flag */
 static __thread bool random_state_valid = false;
 
@@ -222,7 +222,8 @@ static void _set_mca_seed(const bool choose_seed,
     /* remove one to normalize in [1 2[ like ieee numbers */                   \
     mpfr_exp_t e_a = mpfr_get_exp(mpfr_##X) - 1;                               \
     mpfr_prec_t p_a = mpfr_get_prec(mpfr_##X);                                 \
-    MPFR_DECL_INIT(mpfr_rand, p_a);                                            \
+    /*MPFR_DECL_INIT(mpfr_rand, p_a);*/                                            \
+    MPFR_DECL_INIT(mpfr_rand, GET_MPFR_PREC(X));                                            \
     e_a = e_a - (GET_MCALIB_T(X) - 1);                                         \
     double d_rand = (_mca_rand(MCA_DATA) - 0.5);                               \
     mpfr_set_d(mpfr_rand, d_rand, rnd_mode);                                   \

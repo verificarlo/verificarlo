@@ -44,7 +44,7 @@ typedef struct mca_data {
   bool *choose_seed;
   unsigned long long int *seed;
   bool *random_state_valid;
-  unsigned long long int *random_state;
+  struct drand48_data *random_state;
   pthread_mutex_t *global_tid_lock;
   unsigned long long int *global_tid;
 } mca_data_t;
@@ -68,41 +68,46 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
 }
 
 /* Simple set_seed function for the basic generators */
-void _set_seed(unsigned long long int *random_state, const bool choose_seed,
+void _set_seed(struct drand48_data *random_state, const bool choose_seed,
                const unsigned long long int seed) {
   if (choose_seed) {
-    *random_state = seed;
+    // *random_state = seed;
+    srand48_r((unsigned long int) seed, random_state);
   } else {
     struct timeval t1;
+    unsigned long long int tmp_seed;
+    unsigned short int tmp_seed_vect[3];
 
     gettimeofday(&t1, NULL);
 
     /* Hopefully the following seed is good enough for Montercarlo */
-    *random_state = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
+    // *random_state = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
+    tmp_seed = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
+    tmp_seed_vect[0] = (unsigned short int)(tmp_seed & 0x000000000000FFFF);
+    tmp_seed_vect[1] = (unsigned short int)((tmp_seed & 0x00000000FFFF0000) >> 16);
+    tmp_seed_vect[2] = (unsigned short int)((tmp_seed & 0x0000FFFF00000000) >> 32);
+    seed48_r(tmp_seed_vect, random_state);
     /* Modern solution for working with threads, since C11 */
     // *random_state = t1.tv_sec ^ t1.tv_usec ^ thrd_current();
   }
 }
 
 /* Output a floating point number r (0.0 < r < 1.0) */
-double generate_random_double(unsigned long long int *random_state) {
-  unsigned int tmp_state = (unsigned int)(*random_state);
-  int tmp = rand_r(&tmp_state);
-  *random_state = tmp_state;
+double generate_random_double(struct drand48_data *random_state) {
+  double tmp_rand;
 
-  if (tmp == 0)
-    tmp++;
-  else if (tmp == RAND_MAX)
-    tmp--;
+  drand48_r(random_state, &tmp_rand);
+  while (tmp_rand == 0)
+    drand48_r(random_state, &tmp_rand);
 
-  return ((double)1.0 * tmp) / RAND_MAX;
+  return tmp_rand;
 }
 
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
 mca_data_t *get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
                                 bool *random_state_valid,
-                                unsigned long long int *random_state,
+                                struct drand48_data *random_state,
                                 pthread_mutex_t *global_tid_lock,
                                 unsigned long long int *global_tid) {
   mca_data_t *new_data = (mca_data_t *)malloc(sizeof(mca_data_t));

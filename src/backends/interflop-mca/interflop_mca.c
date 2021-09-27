@@ -183,7 +183,8 @@ static void _set_mca_precision_binary64(const int precision) {
  ***************************************************************/
 
 /* random number generator internal state */
-static __thread unsigned long long int random_state;
+// static __thread unsigned long long int random_state;
+static __thread struct drand48_data random_state;
 /* random number generator initialization flag */
 static __thread bool random_state_valid = false;
 
@@ -247,7 +248,12 @@ static __thread mca_data_t *mca_data;
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
   const double d_rand = (_mca_rand(mca_data) - 0.5);
-  return _fast_pow2_binary64(exp) * d_rand;
+
+  binary64 b64 = {.f64 = d_rand};
+  b64.ieee.exponent = b64.ieee.exponent + exp;
+  return b64.f64;
+
+  // return _fast_pow2_binary64(exp) * d_rand;
 }
 
 /* noise = rand * 2^(exp) */
@@ -259,7 +265,12 @@ static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
 static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
   /* random number in (-0.5, 0.5) */
   const __float128 noise = (__float128)_mca_rand(mca_data) - 0.5Q;
-  return _fast_pow2_binary128(exp) * noise;
+
+  binary128 b128 = {.f128 = noise};
+  b128.ieee128.exponent = b128.ieee128.exponent + exp;
+  return b128.f128;
+
+  // return _fast_pow2_binary128(exp) * noise;
 }
 
 /* Macro function for checking if the value X must be noised */

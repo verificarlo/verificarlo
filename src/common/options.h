@@ -27,6 +27,8 @@
 #ifndef __OPTIONS_H__
 #define __OPTIONS_H__
 
+#include <stdlib.h>
+
 #include "float_const.h"
 #include "logger.h"
 #include "tinymt64.h"
@@ -37,7 +39,7 @@ typedef struct mca_data {
   bool *choose_seed;
   unsigned long long int *seed;
   bool *random_state_valid;
-  unsigned long long int *random_state;
+  struct drand48_data *random_state;
   pthread_mutex_t *global_tid_lock;
   unsigned long long int *global_tid;
 } mca_data_t;
@@ -75,17 +77,17 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
                        const uint64_t seed);
 
 /* Simple set_seed function for the basic generators */
-void _set_seed(unsigned long long int *random_state, const bool choose_seed,
+void _set_seed(struct drand48_data *random_state, const bool choose_seed,
                const unsigned long long int seed);
 
 /* Output a floating point number r (0.0 < r < 1.0) */
-double generate_random_double(unsigned long long int *random_state_simple);
+double generate_random_double(struct drand48_data *random_state);
 
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
 mca_data_t *get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
                                 bool *random_state_valid,
-                                unsigned long long int *random_state,
+                                struct drand48_data *random_state,
                                 pthread_mutex_t *global_tid_lock,
                                 unsigned long long int *global_tid);
 
