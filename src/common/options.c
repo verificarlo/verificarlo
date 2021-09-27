@@ -72,7 +72,7 @@ void _set_seed(struct drand48_data *random_state, const bool choose_seed,
                const unsigned long long int seed) {
   if (choose_seed) {
     // *random_state = seed;
-    srand48_r((unsigned long int) seed, random_state);
+    srand48_r((unsigned long int)seed, random_state);
   } else {
     struct timeval t1;
     unsigned long long int tmp_seed;
@@ -84,8 +84,10 @@ void _set_seed(struct drand48_data *random_state, const bool choose_seed,
     // *random_state = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
     tmp_seed = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
     tmp_seed_vect[0] = (unsigned short int)(tmp_seed & 0x000000000000FFFF);
-    tmp_seed_vect[1] = (unsigned short int)((tmp_seed & 0x00000000FFFF0000) >> 16);
-    tmp_seed_vect[2] = (unsigned short int)((tmp_seed & 0x0000FFFF00000000) >> 32);
+    tmp_seed_vect[1] =
+        (unsigned short int)((tmp_seed & 0x00000000FFFF0000) >> 16);
+    tmp_seed_vect[2] =
+        (unsigned short int)((tmp_seed & 0x0000FFFF00000000) >> 32);
     seed48_r(tmp_seed_vect, random_state);
     /* Modern solution for working with threads, since C11 */
     // *random_state = t1.tv_sec ^ t1.tv_usec ^ thrd_current();
