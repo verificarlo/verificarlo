@@ -17,5 +17,5 @@ if __name__ == '__main__':
     percent_ieee = c[8]*100.0/len(x)
     print(percent_ieee)
 
-    assert(np.isclose(percent_ieee, 100*(1-args.sparsity), atol=1e-1))
+    assert(np.isclose(percent_ieee, 100*(1-args.sparsity), atol=2e-1))
 
