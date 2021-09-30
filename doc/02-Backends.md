@@ -168,7 +168,6 @@ Usage: libinterflop_mca.so [OPTION...]
   -d, --daz                  denormals-are-zero: sets denormals inputs to zero
   -f, --ftz                  flush-to-zero: sets denormal output to zero
   -s, --seed=SEED            fix the random generator seed
-  -r, --rng-mode=RNG_MODE    select RNG among {mt, rand}
   -?, --help                 Give this help list
       --usage                Give a short usage message
 ```
