@@ -91,6 +91,13 @@ mca_data_t *get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
                                 pthread_mutex_t *global_tid_lock,
                                 unsigned long long int *global_tid);
 
+/* Get a new identifier for the calling thread */
+/* Generic threads can have inconsistent identifiers, assigned by the system, */
+/* we therefore need to set an order between threads, for the case
+/* when the seed is fixed, to insure some repeatability between executions */
+unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
+                                    unsigned long long int *global_tid);
+
 /* Returns a random double in the (0,1) open interval */
 double _mca_rand(mca_data_t *mca_data);
 
@@ -98,12 +105,5 @@ double _mca_rand(mca_data_t *mca_data);
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
 bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data);
-
-/* Get a new identifier for the calling thread */
-/* Generic threads can have inconsistent identifiers, assigned by the system, */
-/* we therefore need to set an order between threads, for the case
-/* when the seed is fixed, to insure some repeatability between executions */
-unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
-                                    unsigned long long int *global_tid);
 
 #endif /* __OPTIONS_H__ */
