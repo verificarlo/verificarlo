@@ -224,8 +224,6 @@ static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
   binary128 b128 = {.f128 = noise};
   b128.ieee128.exponent = b128.ieee128.exponent + exp;
   return b128.f128;
-
-  // return _fast_pow2_binary128(exp) * noise;
 }
 
 /* Macro function for checking if the value X must be noised */
