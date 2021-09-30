@@ -33,15 +33,15 @@
 #include "logger.h"
 #include "tinymt64.h"
 
-/* Data type used to hold information required by the RNG used for MCA */
-typedef struct mca_data {
+/* Data type used to hold information required by the RNG */
+typedef struct rng_state {
   bool *choose_seed;
   unsigned long long int *seed;
   bool *random_state_valid;
   struct drand48_data *random_state;
   pthread_mutex_t *global_tid_lock;
   unsigned long long int *global_tid;
-} mca_data_t;
+} rng_state_t;
 
 /* Generic set_precision macro function which is common with most of the backend
  */
@@ -84,7 +84,7 @@ double generate_random_double(struct drand48_data *random_state);
 
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
-mca_data_t *get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
+rng_state_t *get_rng_state_struct(bool *choose_seed, unsigned long long int *seed,
                                 bool *random_state_valid,
                                 struct drand48_data *random_state,
                                 pthread_mutex_t *global_tid_lock,
@@ -98,11 +98,11 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
                                     unsigned long long int *global_tid);
 
 /* Returns a random double in the (0,1) open interval */
-double _mca_rand(mca_data_t *mca_data);
+double _get_rand(rng_state_t *rng_state);
 
 /* Returns a bool for determining whether an operation should skip */
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
-bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data);
+bool _mca_skip_eval(const float sparsity, rng_state_t *mca_data);
 
 #endif /* __OPTIONS_H__ */

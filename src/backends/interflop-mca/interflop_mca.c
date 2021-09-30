@@ -195,7 +195,7 @@ static unsigned long long int global_tid = 0;
 
 /* helper data structure to centralize the data used for random number
  * generation */
-static __thread mca_data_t *mca_data;
+static __thread rng_state_t *rng_state;
 
 /* noise = rand * 2^(exp) */
 /* We can skip special cases since we never met them */
@@ -203,8 +203,8 @@ static __thread mca_data_t *mca_data;
 /* is comprised between: */
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
-static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
-  const double d_rand = (_mca_rand(mca_data) - 0.5);
+static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
+  const double d_rand = (_get_rand(rng_state) - 0.5);
 
   binary64 b64 = {.f64 = d_rand};
   b64.ieee.exponent = b64.ieee.exponent + exp;
@@ -217,9 +217,9 @@ static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
 /* is comprised between: */
 /* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
-static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
+static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
   /* random number in (-0.5, 0.5) */
-  const __float128 noise = (__float128)_mca_rand(mca_data) - 0.5Q;
+  const __float128 noise = (__float128)_get_rand(rng_state) - 0.5Q;
 
   binary128 b128 = {.f128 = noise};
   b128.ieee128.exponent = b128.ieee128.exponent + exp;
@@ -237,42 +237,42 @@ static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
   (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
-#define _NOISE(X, EXP, MCA_DATA)                                               \
+#define _NOISE(X, EXP, RNG_STATE)                                              \
   _Generic(X, double                                                           \
            : _noise_binary64, __float128                                       \
-           : _noise_binary128)(EXP, MCA_DATA)
+           : _noise_binary128)(EXP, RNG_STATE)
 
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
-#define _INEXACT(X, VIRTUAL_PRECISION, CTX, MCA_DATA)                          \
+#define _INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                         \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
-    } else if (_mca_skip_eval(TMP_CTX->sparsity, MCA_DATA)) {                  \
+    } else if (_mca_skip_eval(TMP_CTX->sparsity, RNG_STATE)) {                 \
       return;                                                                  \
     } else {                                                                   \
       if (TMP_CTX->relErr) {                                                   \
         const int32_t e_a = GET_EXP_FLT(*X);                                   \
         const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, MCA_DATA);            \
+        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, RNG_STATE);           \
         *X = *X + noise_rel;                                                   \
       }                                                                        \
       if (TMP_CTX->absErr) {                                                   \
         const int32_t e_n_abs = TMP_CTX->absErr_exp;                           \
-        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, MCA_DATA);            \
+        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, RNG_STATE);           \
         *X = *X + noise_abs;                                                   \
       }                                                                        \
     }                                                                          \
   }
 
 /* Macro function that initializes the structure used for managing the RNG */
-#define _INIT_MCA_DATA(CTX, MCA_DATA, RND_STATE, RND_STATE_VALID,              \
+#define _INIT_RNG_STATE(CTX, RNG_STATE, RND_STATE, RND_STATE_VALID,            \
                        GLB_TID_LOCK, GLB_TID)                                  \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
-    if (MCA_DATA == NULL) {                                                    \
-      MCA_DATA = get_mca_data_struct(                                          \
+    if (RNG_STATE == NULL) {                                                   \
+      RNG_STATE = get_rng_state_struct(                                        \
           &(TMP_CTX->choose_seed), (unsigned long long *)(&(TMP_CTX->seed)),   \
           &RND_STATE_VALID, &RND_STATE, &GLB_TID_LOCK, &GLB_TID);              \
     }                                                                          \
@@ -280,16 +280,16 @@ static __float128 _noise_binary128(const int exp, mca_data_t *mca_data) {
 
 /* Adds the mca noise to da */
 static void _mca_inexact_binary64(double *da, void *context) {
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
                  global_tid_lock, global_tid);
-  _INEXACT(da, MCALIB_BINARY32_T, context, mca_data);
+  _INEXACT(da, MCALIB_BINARY32_T, context, rng_state);
 }
 
 /* Adds the mca noise to qa */
 static void _mca_inexact_binary128(__float128 *qa, void *context) {
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
                  global_tid_lock, global_tid);
-  _INEXACT(qa, MCALIB_BINARY64_T, context, mca_data);
+  _INEXACT(qa, MCALIB_BINARY64_T, context, rng_state);
 }
 
 /* Generic functions that adds noise to A */
@@ -580,8 +580,8 @@ void print_information_header(void *context) {
 }
 
 void _interflop_finalize(__attribute__((unused)) void *context) {
-  if (mca_data)
-    free(mca_data);
+  if (rng_state)
+    free(rng_state);
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
@@ -621,7 +621,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  mca_data = get_mca_data_struct(
+  rng_state = get_rng_state_struct(
       &(ctx->choose_seed), (unsigned long long int *)(&(ctx->seed)),
       &random_state_valid, &random_state, &global_tid_lock, &global_tid);
 

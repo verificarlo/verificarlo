@@ -193,7 +193,7 @@ static unsigned long long int global_tid = 0;
 
 /* helper data structure to centralize the data used for random number
  * generation */
-static __thread mca_data_t *mca_data;
+static __thread rng_state_t *rng_state;
 
 static void _set_mca_seed(const bool choose_seed,
                           const unsigned long long int seed) {
@@ -201,7 +201,7 @@ static void _set_mca_seed(const bool choose_seed,
 }
 
 /* Macro function that adds mca noise to X */
-#define _MCA_INEXACT(X, rnd_mode, MCA_DATA)                                    \
+#define _MCA_INEXACT(X, rnd_mode, RNG_STATE)                                   \
   do {                                                                         \
     /* if we are in IEEE mode, we return a noise equal to 0 */                 \
     /* if a is NaN, Inf or 0, we don't disturb it */                           \
@@ -225,7 +225,7 @@ static void _set_mca_seed(const bool choose_seed,
     /*MPFR_DECL_INIT(mpfr_rand, p_a);*/                                        \
     MPFR_DECL_INIT(mpfr_rand, GET_MPFR_PREC(X));                               \
     e_a = e_a - (GET_MCALIB_T(X) - 1);                                         \
-    double d_rand = (_mca_rand(MCA_DATA) - 0.5);                               \
+    double d_rand = (_get_rand(RNG_STATE) - 0.5);                              \
     mpfr_set_d(mpfr_rand, d_rand, rnd_mode);                                   \
     /* rand = rand * 2 ^ (e_a) */                                              \
     mpfr_mul_2si(mpfr_rand, mpfr_rand, e_a, rnd_mode);                         \
@@ -240,7 +240,7 @@ static void _set_mca_seed(const bool choose_seed,
  *******************************************************************/
 
 /* Generic macro function that returns mca(X OP Y) */
-#define _MCA_BINARY_OP(X, Y, OP, CTX, MCA_DATA)                                \
+#define _MCA_BINARY_OP(X, Y, OP, CTX, RNG_STATE)                               \
   {                                                                            \
     mpfr_prec_t prec = GET_MPFR_PREC(X);                                       \
     mpfr_rnd_t rnd = MPFR_RNDN;                                                \
@@ -253,12 +253,12 @@ static void _set_mca_seed(const bool choose_seed,
     MPFR_SET_FLT(X, rnd);                                                      \
     MPFR_SET_FLT(Y, rnd);                                                      \
     if (MCALIB_MODE_TYPE != mcamode_rr) {                                      \
-      _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
-      _MCA_INEXACT(Y, rnd, MCA_DATA);                                          \
+      _MCA_INEXACT(X, rnd, RNG_STATE);                                         \
+      _MCA_INEXACT(Y, rnd, RNG_STATE);                                         \
     }                                                                          \
     OP(mpfr_##X, mpfr_##X, mpfr_##Y, rnd);                                     \
     if (MCALIB_MODE_TYPE != mcamode_pb) {                                      \
-      _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
+      _MCA_INEXACT(X, rnd, RNG_STATE);                                         \
     }                                                                          \
     typeof(X) ret = MPFR_GET_FLT(X, rnd);                                      \
     if (((t_context *)CTX)->ftz) {                                             \
@@ -268,7 +268,7 @@ static void _set_mca_seed(const bool choose_seed,
   }
 
 /* Generic macro function that returns mca(OP X) */
-#define _MCA_UNARY_OP(X, OP, CTX, MCA_DATA)                                    \
+#define _MCA_UNARY_OP(X, OP, CTX, RNG_STATE)                                   \
   {                                                                            \
     mpfr_prec_t prec = GET_MPFR_PREC(X);                                       \
     mpfr_rnd_t rnd = MPFR_RNDN;                                                \
@@ -278,11 +278,11 @@ static void _set_mca_seed(const bool choose_seed,
     MPFR_DECL_INIT(mpfr_##X, prec);                                            \
     MPFR_SET_FLT(X, rnd);                                                      \
     if (MCALIB_MODE_TYPE != mcamode_rr) {                                      \
-      _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
+      _MCA_INEXACT(X, rnd, RNG_STATE);                                         \
     }                                                                          \
     OP(mpfr_a, mpfr_a, rnd);                                                   \
     if (MCALIB_MODE_TYPE != mcamode_pb) {                                      \
-      _MCA_INEXACT(X, rnd, MCA_DATA);                                          \
+      _MCA_INEXACT(X, rnd, RNG_STATE);                                         \
     }                                                                          \
     typeof(X) ret = MPFR_GET_FLT(X, rnd);                                      \
     if (((t_context *)CTX)->ftz) {                                             \
@@ -292,12 +292,12 @@ static void _set_mca_seed(const bool choose_seed,
   }
 
 /* Macro function that initializes the structure used for managing the RNG */
-#define _INIT_MCA_DATA(CTX, MCA_DATA, RND_STATE, RND_STATE_VALID,              \
+#define _INIT_RNG_STATE(CTX, RNG_STATE, RND_STATE, RND_STATE_VALID,            \
                        GLB_TID_LOCK, GLB_TID)                                  \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
-    if (MCA_DATA == NULL) {                                                    \
-      MCA_DATA = get_mca_data_struct(                                          \
+    if (RNG_STATE == NULL) {                                                   \
+      RNG_STATE = get_rng_state_struct(                                        \
           &(TMP_CTX->choose_seed), (unsigned long long *)(&(TMP_CTX->seed)),   \
           &RND_STATE_VALID, &RND_STATE, &GLB_TID_LOCK, &GLB_TID);              \
     }                                                                          \
@@ -307,36 +307,36 @@ static void _set_mca_seed(const bool choose_seed,
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,
                                      void *context) {
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
                  global_tid_lock, global_tid);
-  _MCA_BINARY_OP(a, b, mpfr_op, context, mca_data);
+  _MCA_BINARY_OP(a, b, mpfr_op, context, rng_state);
 }
 
 /* Performs mca(mpfr_op a) where a is a binary32 value */
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float __attribute__((unused))
 _mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
                  global_tid_lock, global_tid);
-  _MCA_UNARY_OP(a, mpfr_op, context, mca_data);
+  _MCA_UNARY_OP(a, mpfr_op, context, rng_state);
 }
 
 /* Performs mca(a mpfr_op b) where a and b are binary32 values */
 /* Intermediate computations are performed with precision QUAD_PREC */
 static double _mca_binary64_binary_op(double a, double b, mpfr_bin mpfr_op,
                                       void *context) {
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
                  global_tid_lock, global_tid);
-  _MCA_BINARY_OP(a, b, mpfr_op, context, mca_data);
+  _MCA_BINARY_OP(a, b, mpfr_op, context, rng_state);
 }
 
 /* Performs mca(mpfr_op a) where a is a binary32 value */
 /* Intermediate computations are performed with precision QUAD_PREC */
 static double __attribute__((unused))
 _mca_binary64_unary_op(double a, mpfr_unr mpfr_op, void *context) {
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
+  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
                  global_tid_lock, global_tid);
-  _MCA_UNARY_OP(a, mpfr_op, context, mca_data);
+  _MCA_UNARY_OP(a, mpfr_op, context, rng_state);
 }
 
 /************************* FPHOOKS FUNCTIONS *************************
@@ -487,8 +487,8 @@ static void print_information_header(void *context) {
 }
 
 void _interflop_finalize(__attribute__((unused)) void *context) {
-  if (mca_data)
-    free(mca_data);
+  if (rng_state)
+    free(rng_state);
 }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
@@ -528,7 +528,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  mca_data = get_mca_data_struct(
+  rng_state = get_rng_state_struct(
       &(ctx->choose_seed), (unsigned long long int *)(&(ctx->seed)),
       &random_state_valid, &random_state, &global_tid_lock, &global_tid);
 

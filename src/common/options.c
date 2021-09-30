@@ -97,12 +97,12 @@ double generate_random_double(struct drand48_data *random_state) {
 
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
-mca_data_t *get_mca_data_struct(bool *choose_seed, unsigned long long int *seed,
+rng_state_t *get_rng_state_struct(bool *choose_seed, unsigned long long int *seed,
                                 bool *random_state_valid,
                                 struct drand48_data *random_state,
                                 pthread_mutex_t *global_tid_lock,
                                 unsigned long long int *global_tid) {
-  mca_data_t *new_data = (mca_data_t *)malloc(sizeof(mca_data_t));
+  rng_state_t *new_data = (rng_state_t *)malloc(sizeof(rng_state_t));
 
   new_data->choose_seed = choose_seed;
   new_data->seed = seed;
@@ -131,30 +131,30 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
 }
 
 /* Returns a random double in the (0,1) open interval */
-double _mca_rand(mca_data_t *mca_data) {
+double _get_rand(rng_state_t *rng_state) {
 
-  if (*(mca_data->random_state_valid) == false) {
-    if (*(mca_data->choose_seed) == true) {
-      _set_seed(mca_data->random_state, *(mca_data->choose_seed),
-                *(mca_data->seed) ^ _get_new_tid(mca_data->global_tid_lock,
-                                                 mca_data->global_tid));
+  if (*(rng_state->random_state_valid) == false) {
+    if (*(rng_state->choose_seed) == true) {
+      _set_seed(rng_state->random_state, *(rng_state->choose_seed),
+                *(rng_state->seed) ^ _get_new_tid(rng_state->global_tid_lock,
+                                                 rng_state->global_tid));
     } else {
-      _set_seed(mca_data->random_state, false, 0);
+      _set_seed(rng_state->random_state, false, 0);
     }
-    *(mca_data->random_state_valid) = true;
+    *(rng_state->random_state_valid) = true;
   }
 
-  return generate_random_double(mca_data->random_state);
+  return generate_random_double(rng_state->random_state);
 }
 
 /* Returns a bool for determining whether an operation should skip */
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
-bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data) {
+bool _mca_skip_eval(const float sparsity, rng_state_t *rng_state) {
 
   if (sparsity >= 1.0f) {
     return false;
   }
 
-  return (_mca_rand(mca_data) > sparsity);
+  return (_get_rand(rng_state) > sparsity);
 }
