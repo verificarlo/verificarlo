@@ -84,11 +84,12 @@ double generate_random_double(struct drand48_data *random_state);
 
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
-rng_state_t *get_rng_state_struct(bool *choose_seed, unsigned long long int *seed,
-                                bool *random_state_valid,
-                                struct drand48_data *random_state,
-                                pthread_mutex_t *global_tid_lock,
-                                unsigned long long int *global_tid);
+rng_state_t *get_rng_state_struct(bool *choose_seed,
+                                  unsigned long long int *seed,
+                                  bool *random_state_valid,
+                                  struct drand48_data *random_state,
+                                  pthread_mutex_t *global_tid_lock,
+                                  unsigned long long int *global_tid);
 
 /* Get a new identifier for the calling thread */
 /* Generic threads can have inconsistent identifiers, assigned by the system, */

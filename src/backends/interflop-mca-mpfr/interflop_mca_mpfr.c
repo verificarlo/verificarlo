@@ -293,7 +293,7 @@ static void _set_mca_seed(const bool choose_seed,
 
 /* Macro function that initializes the structure used for managing the RNG */
 #define _INIT_RNG_STATE(CTX, RNG_STATE, RND_STATE, RND_STATE_VALID,            \
-                       GLB_TID_LOCK, GLB_TID)                                  \
+                        GLB_TID_LOCK, GLB_TID)                                 \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (RNG_STATE == NULL) {                                                   \
@@ -308,7 +308,7 @@ static void _set_mca_seed(const bool choose_seed,
 static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,
                                      void *context) {
   _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
-                 global_tid_lock, global_tid);
+                  global_tid_lock, global_tid);
   _MCA_BINARY_OP(a, b, mpfr_op, context, rng_state);
 }
 
@@ -317,7 +317,7 @@ static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,
 static float __attribute__((unused))
 _mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
   _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
-                 global_tid_lock, global_tid);
+                  global_tid_lock, global_tid);
   _MCA_UNARY_OP(a, mpfr_op, context, rng_state);
 }
 
@@ -326,7 +326,7 @@ _mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
 static double _mca_binary64_binary_op(double a, double b, mpfr_bin mpfr_op,
                                       void *context) {
   _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
-                 global_tid_lock, global_tid);
+                  global_tid_lock, global_tid);
   _MCA_BINARY_OP(a, b, mpfr_op, context, rng_state);
 }
 
@@ -335,7 +335,7 @@ static double _mca_binary64_binary_op(double a, double b, mpfr_bin mpfr_op,
 static double __attribute__((unused))
 _mca_binary64_unary_op(double a, mpfr_unr mpfr_op, void *context) {
   _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
-                 global_tid_lock, global_tid);
+                  global_tid_lock, global_tid);
   _MCA_UNARY_OP(a, mpfr_op, context, rng_state);
 }
 
