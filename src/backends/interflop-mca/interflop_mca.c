@@ -197,49 +197,6 @@ static unsigned long long int global_tid = 0;
  * generation */
 static __thread mca_data_t *mca_data;
 
-// static double _mca_rand(void *context) {
-//   /* Returns a random double in the (0,1) open interval */
-//   if (random_state_valid == false) {
-//     t_context *ctx = (t_context *)context;
-//     if (ctx->choose_seed) {
-//       int new_tid = _get_new_tid();
-//       _set_mca_seed(ctx->choose_seed, (int)ctx->seed ^ new_tid);
-//     } else {
-//       _set_mca_seed(ctx->choose_seed, (int)ctx->seed ^ syscall(__NR_gettid));
-//     }
-//     random_state_valid = true;
-//   }
-//   return generate_random_double(&random_state);
-// }
-
-/* Returns a random double in the (0,1) open interval */
-// static double _mca_rand(mca_data_t *mca_data) {
-//   if (*(mca_data->random_state_valid) == false) {
-//     if (*(mca_data->choose_seed) == true) {
-//       _set_mca_seed(*(mca_data->choose_seed),
-//                     *(mca_data->seed) ^ _get_new_tid());
-//     } else {
-//       _set_mca_seed(false, 0);
-//     }
-//     *(mca_data->random_state_valid) = true;
-//   }
-
-//   return generate_random_double(mca_data->random_state);
-// }
-
-/* Returns a bool for determining whether an operation should skip */
-/* perturbation. false -> perturb; true -> skip. */
-/* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
-// static inline bool _mca_skip_eval(const float sparsity, mca_data_t *mca_data)
-// {
-
-//   if (sparsity >= 1.0f) {
-//     return false;
-//   }
-
-//   return (_mca_rand(mca_data) > sparsity);
-// }
-
 /* noise = rand * 2^(exp) */
 /* We can skip special cases since we never met them */
 /* Since we have exponent of float values, the result */
@@ -252,8 +209,6 @@ static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
   binary64 b64 = {.f64 = d_rand};
   b64.ieee.exponent = b64.ieee.exponent + exp;
   return b64.f64;
-
-  // return _fast_pow2_binary64(exp) * d_rand;
 }
 
 /* noise = rand * 2^(exp) */
@@ -351,34 +306,6 @@ static void _set_mca_seed(const bool choose_seed,
                           const unsigned long long int seed) {
   _set_seed(&random_state, choose_seed, seed);
 }
-
-/* Get a new identifier for the calling thread */
-/* Generic threads can have inconsistent identifiers, assigned by the system, */
-/* we therefore need to set an order between threads, for the case
-/* when the seed is fixed, to insure some repeatability between executions */
-// static unsigned long long int _get_new_tid(void) {
-//   unsigned long long int tmp_tid = -1;
-
-//   pthread_mutex_lock(&global_tid_lock);
-//   tmp_tid = global_tid;
-//   global_tid++;
-//   pthread_mutex_unlock(&global_tid_lock);
-
-//   return tmp_tid;
-// }
-
-// static unsigned long long int _get_new_tid(pthread_mutex_t * global_tid_lock,
-//                                            unsigned long long int
-//                                            *global_tid) {
-//   unsigned long long int tmp_tid = -1;
-
-//   pthread_mutex_lock(global_tid_lock);
-//   tmp_tid = *global_tid;
-//   *global_tid++;
-//   pthread_mutex_unlock(global_tid_lock);
-
-//   return tmp_tid;
-// }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the MCA operation. Operands
