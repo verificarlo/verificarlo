@@ -110,7 +110,7 @@ static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
 /* cancell: detects the cancellation size; and checks if its larger than the
  * chosen tolerance. It reports a warning to the user and adds a MCA noise of
  * the magnitude of the cancelled bits. */
-#define cancell(X, Y, Z, MCA_DATA)                                             \
+#define cancell(X, Y, Z, CTX, MCA_DATA)                                        \
   ({                                                                           \
     const int32_t e_z = GET_EXP_FLT(*Z);                                       \
     /* computes the difference between the max of both operands and the        \
@@ -124,41 +124,31 @@ static inline double _noise_binary64(const int exp, mca_data_t *mca_data) {
        * This particular version in the case of cancellations does not use     \
        * extended quad types */                                                \
       const int32_t e_n = e_z - (cancellation - 1);                            \
+      _INIT_MCA_DATA(CTX, MCA_DATA, random_state, random_state_valid,          \
+                 global_tid_lock, global_tid);                                 \
       *Z = *Z + _noise_binary64(e_n, MCA_DATA);                                \
     }                                                                          \
   })
 
 /* Cancellations can only happen during additions and substractions */
-static void _interflop_add_float(float a, float b, float *c,
-                                 __attribute__((unused)) void *context) {
+static void _interflop_add_float(float a, float b, float *c, void *context) {
   *c = a + b;
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
-                 global_tid_lock, global_tid);
-  cancell(a, b, c, mca_data);
+  cancell(a, b, c, context, mca_data);
 }
 
-static void _interflop_sub_float(float a, float b, float *c,
-                                 __attribute__((unused)) void *context) {
+static void _interflop_sub_float(float a, float b, float *c, void *context) {
   *c = a - b;
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
-                 global_tid_lock, global_tid);
-  cancell(a, b, c, mca_data);
+  cancell(a, b, c, context, mca_data);
 }
 
-static void _interflop_add_double(double a, double b, double *c,
-                                  __attribute__((unused)) void *context) {
+static void _interflop_add_double(double a, double b, double *c, void *context) {
   *c = a + b;
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
-                 global_tid_lock, global_tid);
-  cancell(a, b, c, mca_data);
+  cancell(a, b, c, context, mca_data);
 }
 
-static void _interflop_sub_double(double a, double b, double *c,
-                                  __attribute__((unused)) void *context) {
+static void _interflop_sub_double(double a, double b, double *c, void *context) {
   *c = a - b;
-  _INIT_MCA_DATA(context, mca_data, random_state, random_state_valid,
-                 global_tid_lock, global_tid);
-  cancell(a, b, c, mca_data);
+  cancell(a, b, c, context, mca_data);
 }
 
 static void _interflop_mul_float(float a, float b, float *c,
