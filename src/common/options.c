@@ -97,11 +97,12 @@ double generate_random_double(struct drand48_data *random_state) {
 
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
-rng_state_t *get_rng_state_struct(bool *choose_seed, unsigned long long int *seed,
-                                bool *random_state_valid,
-                                struct drand48_data *random_state,
-                                pthread_mutex_t *global_tid_lock,
-                                unsigned long long int *global_tid) {
+rng_state_t *get_rng_state_struct(bool *choose_seed,
+                                  unsigned long long int *seed,
+                                  bool *random_state_valid,
+                                  struct drand48_data *random_state,
+                                  pthread_mutex_t *global_tid_lock,
+                                  unsigned long long int *global_tid) {
   rng_state_t *new_data = (rng_state_t *)malloc(sizeof(rng_state_t));
 
   new_data->choose_seed = choose_seed;
@@ -137,7 +138,7 @@ double _get_rand(rng_state_t *rng_state) {
     if (*(rng_state->choose_seed) == true) {
       _set_seed(rng_state->random_state, *(rng_state->choose_seed),
                 *(rng_state->seed) ^ _get_new_tid(rng_state->global_tid_lock,
-                                                 rng_state->global_tid));
+                                                  rng_state->global_tid));
     } else {
       _set_seed(rng_state->random_state, false, 0);
     }

@@ -97,7 +97,7 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
 
 /* Macro function that initializes the structure used for managing the RNG */
 #define _INIT_RNG_STATE(CTX, RNG_STATE, RND_STATE, RND_STATE_VALID,            \
-                       GLB_TID_LOCK, GLB_TID)                                  \
+                        GLB_TID_LOCK, GLB_TID)                                 \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (RNG_STATE == NULL) {                                                   \
@@ -110,7 +110,7 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
 /* cancell: detects the cancellation size; and checks if its larger than the
  * chosen tolerance. It reports a warning to the user and adds a MCA noise of
  * the magnitude of the cancelled bits. */
-#define cancell(X, Y, Z, CTX, RNG_STATE)                                        \
+#define cancell(X, Y, Z, CTX, RNG_STATE)                                       \
   ({                                                                           \
     const int32_t e_z = GET_EXP_FLT(*Z);                                       \
     /* computes the difference between the max of both operands and the        \
@@ -125,7 +125,7 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
        * extended quad types */                                                \
       const int32_t e_n = e_z - (cancellation - 1);                            \
       _INIT_RNG_STATE(CTX, RNG_STATE, random_state, random_state_valid,        \
-                 global_tid_lock, global_tid);                                 \
+                      global_tid_lock, global_tid);                            \
       *Z = *Z + _noise_binary64(e_n, RNG_STATE);                               \
     }                                                                          \
   })
@@ -141,12 +141,14 @@ static void _interflop_sub_float(float a, float b, float *c, void *context) {
   cancell(a, b, c, context, rng_state);
 }
 
-static void _interflop_add_double(double a, double b, double *c, void *context) {
+static void _interflop_add_double(double a, double b, double *c,
+                                  void *context) {
   *c = a + b;
   cancell(a, b, c, context, rng_state);
 }
 
-static void _interflop_sub_double(double a, double b, double *c, void *context) {
+static void _interflop_sub_double(double a, double b, double *c,
+                                  void *context) {
   *c = a - b;
   cancell(a, b, c, context, rng_state);
 }
