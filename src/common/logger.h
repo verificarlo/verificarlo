@@ -27,6 +27,8 @@
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
 
+#include <stdarg.h>
+
 /* Display the info message */
 void logger_info(const char *fmt, ...);
 /* Display the warning message */

@@ -27,12 +27,11 @@
 #ifndef __OPTIONS_H__
 #define __OPTIONS_H__
 
-#include <stdlib.h>
+#include <pthread.h>
 
 #include "float_const.h"
 #include "logger.h"
 #include "tinymt64.h"
-#include <pthread.h>
 
 /* Data type used to hold information required by the RNG used for MCA */
 typedef struct mca_data {

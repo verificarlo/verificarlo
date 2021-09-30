@@ -24,9 +24,9 @@
  *                                                                           *
  *****************************************************************************/
 
-#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <sys/syscall.h> // for getting the thread id
 #include <sys/time.h>
 #include <sys/types.h>
@@ -35,19 +35,19 @@
 // #include <threads.h>
 #include <unistd.h>
 
-#include <stdlib.h>
-
 #include "tinymt64.h"
 
+#include "options.h"
+
 /* Data type used to hold information required by the RNG used for MCA */
-typedef struct mca_data {
-  bool *choose_seed;
-  unsigned long long int *seed;
-  bool *random_state_valid;
-  struct drand48_data *random_state;
-  pthread_mutex_t *global_tid_lock;
-  unsigned long long int *global_tid;
-} mca_data_t;
+// typedef struct mca_data {
+//   bool *choose_seed;
+//   unsigned long long int *seed;
+//   bool *random_state_valid;
+//   struct drand48_data *random_state;
+//   pthread_mutex_t *global_tid_lock;
+//   unsigned long long int *global_tid;
+// } mca_data_t;
 
 /* Generic set_seed function which is common for most of the backends */
 void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
