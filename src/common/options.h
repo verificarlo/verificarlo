@@ -35,10 +35,10 @@
 
 /* Data type used to hold information required by the RNG */
 typedef struct rng_state {
-  bool *choose_seed;
-  unsigned long long int *seed;
-  bool *random_state_valid;
-  struct drand48_data *random_state;
+  bool choose_seed;
+  unsigned long long int seed;
+  bool random_state_valid;
+  struct drand48_data random_state;
   pthread_mutex_t *global_tid_lock;
   unsigned long long int *global_tid;
 } rng_state_t;
@@ -82,14 +82,14 @@ void _set_seed(struct drand48_data *random_state, const bool choose_seed,
 /* Output a floating point number r (0.0 < r < 1.0) */
 double generate_random_double(struct drand48_data *random_state);
 
-/* Initialize a data structure used to hold the information required */
+/* Initialize the data structure used to hold the information required */
 /* by the RNG */
-rng_state_t *get_rng_state_struct(bool *choose_seed,
-                                  unsigned long long int *seed,
-                                  bool *random_state_valid,
-                                  struct drand48_data *random_state,
-                                  pthread_mutex_t *global_tid_lock,
-                                  unsigned long long int *global_tid);
+void get_rng_state_struct(rng_state_t *rng_state,
+                          bool choose_seed,
+                          unsigned long long int seed,
+                          bool random_state_valid,
+                          pthread_mutex_t *global_tid_lock,
+                          unsigned long long int *global_tid);
 
 /* Get a new identifier for the calling thread */
 /* Generic threads can have inconsistent identifiers, assigned by the system, */
@@ -104,6 +104,6 @@ double _get_rand(rng_state_t *rng_state);
 /* Returns a bool for determining whether an operation should skip */
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
-bool _mca_skip_eval(const float sparsity, rng_state_t *mca_data);
+bool _mca_skip_eval(const float sparsity, rng_state_t *rng_state);
 
 #endif /* __OPTIONS_H__ */

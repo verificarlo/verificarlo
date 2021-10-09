@@ -182,9 +182,9 @@ static void _set_mca_precision_binary64(int precision) {
  ***************************************************************/
 
 /* random number generator internal state */
-static __thread struct drand48_data random_state;
-/* random number generator initialization flag */
-static __thread bool random_state_valid = false;
+// static __thread struct drand48_data random_state;
+// /* random number generator initialization flag */
+// static __thread bool random_state_valid = false;
 
 /* global thread id access lock */
 static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -193,11 +193,11 @@ static unsigned long long int global_tid = 0;
 
 /* helper data structure to centralize the data used for random number
  * generation */
-static __thread rng_state_t *rng_state;
+static __thread rng_state_t rng_state;
 
 static void _set_mca_seed(const bool choose_seed,
                           const unsigned long long int seed) {
-  _set_seed(&random_state, choose_seed, seed);
+  _set_seed(&(rng_state.random_state), rng_state.choose_seed, rng_state.seed);
 }
 
 /* Macro function that adds mca noise to X */
@@ -292,14 +292,21 @@ static void _set_mca_seed(const bool choose_seed,
   }
 
 /* Macro function that initializes the structure used for managing the RNG */
-#define _INIT_RNG_STATE(CTX, RNG_STATE, RND_STATE, RND_STATE_VALID,            \
-                        GLB_TID_LOCK, GLB_TID)                                 \
+/* Macro function that initializes the structure used for managing the RNG */
+#define _INIT_RNG_STATE(CTX, RNG_STATE, GLB_TID_LOCK, GLB_TID)                 \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
-    if (RNG_STATE == NULL) {                                                   \
-      RNG_STATE = get_rng_state_struct(                                        \
-          &(TMP_CTX->choose_seed), (unsigned long long *)(&(TMP_CTX->seed)),   \
-          &RND_STATE_VALID, &RND_STATE, &GLB_TID_LOCK, &GLB_TID);              \
+    /*if (RNG_STATE == NULL) {*/                                               \
+    if (RNG_STATE == 0) {                                                      \
+      get_rng_state_struct(                                                    \
+        RNG_STATE,                                                             \
+        TMP_CTX->choose_seed,                                                  \
+        (unsigned long long)(TMP_CTX->seed),                                   \
+        false,                                                                 \
+        /*(struct drand48_data)0),*/                                           \
+        GLB_TID_LOCK,                                                          \
+        GLB_TID                                                                \
+      );                                                                       \
     }                                                                          \
   }
 
@@ -307,36 +314,32 @@ static void _set_mca_seed(const bool choose_seed,
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,
                                      void *context) {
-  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
-                  global_tid_lock, global_tid);
-  _MCA_BINARY_OP(a, b, mpfr_op, context, rng_state);
+  _INIT_RNG_STATE(context, &rng_state, &global_tid_lock, &global_tid);
+  _MCA_BINARY_OP(a, b, mpfr_op, context, &rng_state);
 }
 
 /* Performs mca(mpfr_op a) where a is a binary32 value */
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float __attribute__((unused))
 _mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
-  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
-                  global_tid_lock, global_tid);
-  _MCA_UNARY_OP(a, mpfr_op, context, rng_state);
+  _INIT_RNG_STATE(context, &rng_state, &global_tid_lock, &global_tid);
+  _MCA_UNARY_OP(a, mpfr_op, context, &rng_state);
 }
 
 /* Performs mca(a mpfr_op b) where a and b are binary32 values */
 /* Intermediate computations are performed with precision QUAD_PREC */
 static double _mca_binary64_binary_op(double a, double b, mpfr_bin mpfr_op,
                                       void *context) {
-  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
-                  global_tid_lock, global_tid);
-  _MCA_BINARY_OP(a, b, mpfr_op, context, rng_state);
+  _INIT_RNG_STATE(context, &rng_state, &global_tid_lock, &global_tid);
+  _MCA_BINARY_OP(a, b, mpfr_op, context, &rng_state);
 }
 
 /* Performs mca(mpfr_op a) where a is a binary32 value */
 /* Intermediate computations are performed with precision QUAD_PREC */
 static double __attribute__((unused))
 _mca_binary64_unary_op(double a, mpfr_unr mpfr_op, void *context) {
-  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
-                  global_tid_lock, global_tid);
-  _MCA_UNARY_OP(a, mpfr_op, context, rng_state);
+  _INIT_RNG_STATE(context, &rng_state, &global_tid_lock, &global_tid);
+  _MCA_UNARY_OP(a, mpfr_op, context, &rng_state);
 }
 
 /************************* FPHOOKS FUNCTIONS *************************
@@ -486,10 +489,10 @@ static void print_information_header(void *context) {
               ctx->ftz ? "true" : "false");
 }
 
-void _interflop_finalize(__attribute__((unused)) void *context) {
-  if (rng_state)
-    free(rng_state);
-}
+// void _interflop_finalize(__attribute__((unused)) void *context) {
+//   if (rng_state)
+//     free(rng_state);
+// }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
@@ -528,9 +531,13 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  rng_state = get_rng_state_struct(
-      &(ctx->choose_seed), (unsigned long long int *)(&(ctx->seed)),
-      &random_state_valid, &random_state, &global_tid_lock, &global_tid);
+  get_rng_state_struct( &rng_state,
+    ctx->choose_seed,
+    (unsigned long long int)(ctx->seed),
+    false,
+    /*{{0, 0, 0},{0, 0, 0},0,0,0},*/
+    &global_tid_lock,
+    &global_tid);
 
   return interflop_backend_mca;
 }

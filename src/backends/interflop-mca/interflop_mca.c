@@ -183,10 +183,9 @@ static void _set_mca_precision_binary64(const int precision) {
  ***************************************************************/
 
 /* random number generator internal state */
-// static __thread unsigned long long int random_state;
-static __thread struct drand48_data random_state;
-/* random number generator initialization flag */
-static __thread bool random_state_valid = false;
+// static __thread struct drand48_data random_state;
+// /* random number generator initialization flag */
+// static __thread bool random_state_valid = false;
 
 /* global thread id access lock */
 static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -195,7 +194,7 @@ static unsigned long long int global_tid = 0;
 
 /* helper data structure to centralize the data used for random number
  * generation */
-static __thread rng_state_t *rng_state;
+static __thread rng_state_t rng_state;
 
 /* noise = rand * 2^(exp) */
 /* We can skip special cases since we never met them */
@@ -249,47 +248,51 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
-    } else if (_mca_skip_eval(TMP_CTX->sparsity, RNG_STATE)) {                 \
+    } else if (_mca_skip_eval(TMP_CTX->sparsity, RNG_STATE)) {                \
       return;                                                                  \
     } else {                                                                   \
       if (TMP_CTX->relErr) {                                                   \
         const int32_t e_a = GET_EXP_FLT(*X);                                   \
         const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, RNG_STATE);           \
+        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, RNG_STATE);          \
         *X = *X + noise_rel;                                                   \
       }                                                                        \
       if (TMP_CTX->absErr) {                                                   \
         const int32_t e_n_abs = TMP_CTX->absErr_exp;                           \
-        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, RNG_STATE);           \
+        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, RNG_STATE);          \
         *X = *X + noise_abs;                                                   \
       }                                                                        \
     }                                                                          \
   }
 
 /* Macro function that initializes the structure used for managing the RNG */
-#define _INIT_RNG_STATE(CTX, RNG_STATE, RND_STATE, RND_STATE_VALID,            \
-                        GLB_TID_LOCK, GLB_TID)                                 \
+#define _INIT_RNG_STATE(CTX, RNG_STATE, GLB_TID_LOCK, GLB_TID)                 \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
-    if (RNG_STATE == NULL) {                                                   \
-      RNG_STATE = get_rng_state_struct(                                        \
-          &(TMP_CTX->choose_seed), (unsigned long long *)(&(TMP_CTX->seed)),   \
-          &RND_STATE_VALID, &RND_STATE, &GLB_TID_LOCK, &GLB_TID);              \
+    /*if (RNG_STATE == 0) {*/                                                      \
+    if ((RNG_STATE)->global_tid == NULL) {                                                      \
+      printf("Initializing the rng state\n"); \
+      get_rng_state_struct(                                                    \
+        RNG_STATE,                                                             \
+        TMP_CTX->choose_seed,                                                  \
+        (unsigned long long)(TMP_CTX->seed),                                   \
+        false,                                                                 \
+        GLB_TID_LOCK,                                                          \
+        GLB_TID                                                                \
+      );                                                                       \
     }                                                                          \
   }
 
 /* Adds the mca noise to da */
 static void _mca_inexact_binary64(double *da, void *context) {
-  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
-                  global_tid_lock, global_tid);
-  _INEXACT(da, MCALIB_BINARY32_T, context, rng_state);
+  _INIT_RNG_STATE(context, &rng_state, &global_tid_lock, &global_tid);
+  _INEXACT(da, MCALIB_BINARY32_T, context, &rng_state);
 }
 
 /* Adds the mca noise to qa */
 static void _mca_inexact_binary128(__float128 *qa, void *context) {
-  _INIT_RNG_STATE(context, rng_state, random_state, random_state_valid,
-                  global_tid_lock, global_tid);
-  _INEXACT(qa, MCALIB_BINARY64_T, context, rng_state);
+  _INIT_RNG_STATE(context, &rng_state, &global_tid_lock, &global_tid);
+  _INEXACT(qa, MCALIB_BINARY64_T, context, &rng_state);
 }
 
 /* Generic functions that adds noise to A */
@@ -302,7 +305,7 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
 /* Set the mca seed */
 static void _set_mca_seed(const bool choose_seed,
                           const unsigned long long int seed) {
-  _set_seed(&random_state, choose_seed, seed);
+  _set_seed(&(rng_state.random_state), rng_state.choose_seed, rng_state.seed);
 }
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
@@ -579,10 +582,10 @@ void print_information_header(void *context) {
               ctx->ftz ? "true" : "false", key_sparsity_str, ctx->sparsity);
 }
 
-void _interflop_finalize(__attribute__((unused)) void *context) {
-  if (rng_state)
-    free(rng_state);
-}
+// void _interflop_finalize(__attribute__((unused)) void *context) {
+//   if (rng_state)
+//     free(rng_state);
+// }
 
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
@@ -621,9 +624,13 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  rng_state = get_rng_state_struct(
-      &(ctx->choose_seed), (unsigned long long int *)(&(ctx->seed)),
-      &random_state_valid, &random_state, &global_tid_lock, &global_tid);
+  get_rng_state_struct( &rng_state,
+    ctx->choose_seed,
+    (unsigned long long int)(ctx->seed),
+    false,
+    /*{{0, 0, 0},{0, 0, 0},0,0,0},*/
+    &global_tid_lock,
+    &global_tid);
 
   return interflop_backend_mca;
 }

@@ -39,6 +39,8 @@
 
 #include "options.h"
 
+#include <stdio.h>
+
 /* Generic set_seed function which is common for most of the backends */
 void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
                        const uint64_t seed) {
@@ -61,7 +63,6 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
 void _set_seed(struct drand48_data *random_state, const bool choose_seed,
                const unsigned long long int seed) {
   if (choose_seed) {
-    // *random_state = seed;
     srand48_r((unsigned long int)seed, random_state);
   } else {
     struct timeval t1;
@@ -97,22 +98,19 @@ double generate_random_double(struct drand48_data *random_state) {
 
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
-rng_state_t *get_rng_state_struct(bool *choose_seed,
-                                  unsigned long long int *seed,
-                                  bool *random_state_valid,
-                                  struct drand48_data *random_state,
-                                  pthread_mutex_t *global_tid_lock,
-                                  unsigned long long int *global_tid) {
-  rng_state_t *new_data = (rng_state_t *)malloc(sizeof(rng_state_t));
-
-  new_data->choose_seed = choose_seed;
-  new_data->seed = seed;
-  new_data->random_state_valid = random_state_valid;
-  new_data->random_state = random_state;
-  new_data->global_tid_lock = global_tid_lock;
-  new_data->global_tid = global_tid;
-
-  return new_data;
+void get_rng_state_struct(rng_state_t *rng_state,
+                          bool choose_seed,
+                          unsigned long long int seed,
+                          bool random_state_valid,
+                          /*struct drand48_data random_state,*/
+                          pthread_mutex_t *global_tid_lock,
+                          unsigned long long int *global_tid) {
+  rng_state->choose_seed = choose_seed;
+  rng_state->seed = seed;
+  rng_state->random_state_valid = random_state_valid;
+  /*rng_state->random_state = random_state;*/
+  rng_state->global_tid_lock = global_tid_lock;
+  rng_state->global_tid = global_tid;
 }
 
 /* Get a new identifier for the calling thread */
@@ -125,7 +123,7 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
 
   pthread_mutex_lock(global_tid_lock);
   tmp_tid = *global_tid;
-  *global_tid++;
+  (*global_tid)++;
   pthread_mutex_unlock(global_tid_lock);
 
   return tmp_tid;
@@ -134,18 +132,22 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
 /* Returns a random double in the (0,1) open interval */
 double _get_rand(rng_state_t *rng_state) {
 
-  if (*(rng_state->random_state_valid) == false) {
-    if (*(rng_state->choose_seed) == true) {
-      _set_seed(rng_state->random_state, *(rng_state->choose_seed),
-                *(rng_state->seed) ^ _get_new_tid(rng_state->global_tid_lock,
+  if (rng_state->random_state_valid == false) {
+    if (rng_state->choose_seed == true) {
+      _set_seed(&(rng_state->random_state), rng_state->choose_seed,
+                rng_state->seed ^ _get_new_tid(rng_state->global_tid_lock,
                                                   rng_state->global_tid));
     } else {
-      _set_seed(rng_state->random_state, false, 0);
+      _set_seed(&(rng_state->random_state), false, 0);
     }
-    *(rng_state->random_state_valid) = true;
+    rng_state->random_state_valid = true;
   }
 
-  return generate_random_double(rng_state->random_state);
+  // return generate_random_double(&(rng_state->random_state));
+  
+  double tmp_dbl =  generate_random_double(&(rng_state->random_state));
+  printf("Thread %llu generated %f\n", *(rng_state->global_tid), tmp_dbl);
+  return tmp_dbl;
 }
 
 /* Returns a bool for determining whether an operation should skip */
