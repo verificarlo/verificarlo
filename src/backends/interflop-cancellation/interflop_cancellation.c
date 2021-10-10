@@ -92,20 +92,14 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
   return _fast_pow2_binary64(exp) * d_rand;
 }
 
+/* Macro function that initializes the structure used for managing the RNG */
 #define _INIT_RNG_STATE(CTX, RNG_STATE, GLB_TID_LOCK, GLB_TID)                 \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
-    /*if (RNG_STATE == NULL) {*/                                               \
-    if (RNG_STATE == 0) {                                                      \
-      get_rng_state_struct(                                                    \
-        RNG_STATE,                                                             \
-        TMP_CTX->choose_seed,                                                  \
-        (unsigned long long)(TMP_CTX->seed),                                   \
-        false,                                                                 \
-        /*(struct drand48_data)0),*/                                           \
-        GLB_TID_LOCK,                                                          \
-        GLB_TID                                                                \
-      );                                                                       \
+    if (RNG_STATE.global_tid == NULL) {                                        \
+      get_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
+                           (unsigned long long)(TMP_CTX->seed), false,         \
+                           &GLB_TID_LOCK, &GLB_TID);                           \
     }                                                                          \
   }
 
@@ -126,7 +120,7 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
        * This particular version in the case of cancellations does not use     \
        * extended quad types */                                                \
       const int32_t e_n = e_z - (cancellation - 1);                            \
-      _INIT_RNG_STATE(CTX, &RNG_STATE, &global_tid_lock, &global_tid);         \
+      _INIT_RNG_STATE(CTX, RNG_STATE, global_tid_lock, global_tid);            \
       *Z = *Z + _noise_binary64(e_n, &RNG_STATE);                              \
     }                                                                          \
   })
@@ -259,13 +253,10 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  get_rng_state_struct( &rng_state,
-    ctx->choose_seed,
-    (unsigned long long int)(ctx->seed),
-    false,
-    /*{{0, 0, 0},{0, 0, 0},0,0,0},*/
-    &global_tid_lock,
-    &global_tid);
+  get_rng_state_struct(&rng_state, ctx->choose_seed,
+                       (unsigned long long int)(ctx->seed), false,
+                       /*{{0, 0, 0},{0, 0, 0},0,0,0},*/
+                       &global_tid_lock, &global_tid);
 
   return interflop_backend_cancellation;
 }
