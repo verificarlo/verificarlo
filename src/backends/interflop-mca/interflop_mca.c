@@ -290,12 +290,6 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
            : _mca_inexact_binary64, __float128                                 \
            : _mca_inexact_binary128)(A, CTX)
 
-/* Set the mca seed */
-static void _set_mca_seed(const bool choose_seed,
-                          const unsigned long long int seed) {
-  _set_seed(&(rng_state.random_state), rng_state.choose_seed, rng_state.seed);
-}
-
 /******************** MCA ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the MCA operation. Operands
  * are first converted to quad  format (GCC), inbound and outbound

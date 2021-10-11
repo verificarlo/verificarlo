@@ -195,11 +195,6 @@ static unsigned long long int global_tid = 0;
  * generation */
 static __thread rng_state_t rng_state;
 
-static void _set_mca_seed(const bool choose_seed,
-                          const unsigned long long int seed) {
-  _set_seed(&(rng_state.random_state), rng_state.choose_seed, rng_state.seed);
-}
-
 /* Macro function that adds mca noise to X */
 #define _MCA_INEXACT(X, rnd_mode, RNG_STATE)                                   \
   do {                                                                         \

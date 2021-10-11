@@ -80,12 +80,6 @@ static unsigned long long int global_tid = 0;
  * generation */
 static __thread rng_state_t rng_state;
 
-/* Set the mca seed */
-static void _set_mca_seed(const bool choose_seed,
-                          const unsigned long long int seed) {
-  _set_seed(&(rng_state.random_state), rng_state.choose_seed, rng_state.seed);
-}
-
 /* noise = rand * 2^(exp) */
 static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
   const double d_rand = (_get_rand(rng_state) - 0.5);
