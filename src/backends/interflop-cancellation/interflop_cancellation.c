@@ -86,17 +86,6 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
   return _fast_pow2_binary64(exp) * d_rand;
 }
 
-/* Macro function that initializes the structure used for managing the RNG */
-#define _INIT_RNG_STATE(CTX, RNG_STATE, GLB_TID_LOCK, GLB_TID)                 \
-  {                                                                            \
-    t_context *TMP_CTX = (t_context *)CTX;                                     \
-    if (RNG_STATE.global_tid == NULL) {                                        \
-      get_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
-                           (unsigned long long)(TMP_CTX->seed), false,         \
-                           &GLB_TID_LOCK, &GLB_TID);                           \
-    }                                                                          \
-  }
-
 /* cancell: detects the cancellation size; and checks if its larger than the
  * chosen tolerance. It reports a warning to the user and adds a MCA noise of
  * the magnitude of the cancelled bits. */

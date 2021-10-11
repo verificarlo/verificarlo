@@ -70,6 +70,22 @@ typedef struct rng_state {
     *T = PRECISION;                                                            \
   }
 
+/* Macro function that initializes the structure used for managing the RNG */
+/* assumes the backend's context has a seed and choose_seed field */
+/* CTX          is a pointer to the backend's context */
+/* RNG_STATE    is the data structure that holds all the RNG-related data */
+/* GLB_TID_LOCK is a pointer to the mutex for access to the unique TID */
+/* GLB_TID      is a pointer to the unique TID */
+#define _INIT_RNG_STATE(CTX, RNG_STATE, GLB_TID_LOCK, GLB_TID)                 \
+  {                                                                            \
+    t_context *TMP_CTX = (t_context *)CTX;                                     \
+    if (RNG_STATE.global_tid == NULL) {                                        \
+      get_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
+                           (unsigned long long)(TMP_CTX->seed), false,         \
+                           &GLB_TID_LOCK, &GLB_TID);                           \
+    }                                                                          \
+  }
+
 /* DEPRECATED */
 /* Generic set_seed function which is common for most of the backends */
 /* @param random state pointer to the internal state of the RNG */

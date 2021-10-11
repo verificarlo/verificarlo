@@ -286,17 +286,6 @@ static __thread rng_state_t rng_state;
     return ret;                                                                \
   }
 
-/* Macro function that initializes the structure used for managing the RNG */
-#define _INIT_RNG_STATE(CTX, RNG_STATE, GLB_TID_LOCK, GLB_TID)                 \
-  {                                                                            \
-    t_context *TMP_CTX = (t_context *)CTX;                                     \
-    if (RNG_STATE.global_tid == NULL) {                                        \
-      get_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
-                           (unsigned long long)(TMP_CTX->seed), false,         \
-                           &GLB_TID_LOCK, &GLB_TID);                           \
-    }                                                                          \
-  }
-
 /* Performs mca(a mpfr_op b) where a and b are binary32 values */
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,

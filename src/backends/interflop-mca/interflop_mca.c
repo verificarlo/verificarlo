@@ -260,17 +260,6 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
     }                                                                          \
   }
 
-/* Macro function that initializes the structure used for managing the RNG */
-#define _INIT_RNG_STATE(CTX, RNG_STATE, GLB_TID_LOCK, GLB_TID)                 \
-  {                                                                            \
-    t_context *TMP_CTX = (t_context *)CTX;                                     \
-    if (RNG_STATE.global_tid == NULL) {                                        \
-      get_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
-                           (unsigned long long)(TMP_CTX->seed), false,         \
-                           &GLB_TID_LOCK, &GLB_TID);                           \
-    }                                                                          \
-  }
-
 /* Adds the mca noise to da */
 static void _mca_inexact_binary64(double *da, void *context) {
   _INIT_RNG_STATE(context, rng_state, global_tid_lock, global_tid);
