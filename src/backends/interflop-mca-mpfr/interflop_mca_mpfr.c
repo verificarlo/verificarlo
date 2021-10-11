@@ -324,41 +324,21 @@ _mca_binary64_unary_op(double a, mpfr_unr mpfr_op, void *context) {
  * point operators
  **********************************************************************/
 
-static void _interflop_add_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, (mpfr_bin)MP_ADD, context);
-}
+_INTERFLOP_OP_CALL(float, add, (mpfr_bin)MP_ADD, _mca_binary32_binary_op)
 
-static void _interflop_sub_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, (mpfr_bin)MP_SUB, context);
-}
+_INTERFLOP_OP_CALL(float, sub, (mpfr_bin)MP_SUB, _mca_binary32_binary_op)
 
-static void _interflop_mul_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, (mpfr_bin)MP_MUL, context);
-}
+_INTERFLOP_OP_CALL(float, mul, (mpfr_bin)MP_MUL, _mca_binary32_binary_op)
 
-static void _interflop_div_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, (mpfr_bin)MP_DIV, context);
-}
+_INTERFLOP_OP_CALL(float, div, (mpfr_bin)MP_DIV, _mca_binary32_binary_op)
 
-static void _interflop_add_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, (mpfr_bin)MP_ADD, context);
-}
+_INTERFLOP_OP_CALL(double, add, (mpfr_bin)MP_ADD, _mca_binary64_binary_op)
 
-static void _interflop_sub_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, (mpfr_bin)MP_SUB, context);
-}
+_INTERFLOP_OP_CALL(double, sub, (mpfr_bin)MP_SUB, _mca_binary64_binary_op)
 
-static void _interflop_mul_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, (mpfr_bin)MP_MUL, context);
-}
+_INTERFLOP_OP_CALL(double, mul, (mpfr_bin)MP_MUL, _mca_binary64_binary_op)
 
-static void _interflop_div_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, (mpfr_bin)MP_DIV, context);
-}
+_INTERFLOP_OP_CALL(double, div, (mpfr_bin)MP_DIV, _mca_binary64_binary_op)
 
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,

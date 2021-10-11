@@ -109,47 +109,21 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
   })
 
 /* Cancellations can only happen during additions and substractions */
-static void _interflop_add_float(float a, float b, float *c, void *context) {
-  *c = a + b;
-  cancell(a, b, c, context, rng_state);
-}
+_INTERFLOP_OP_CALL_CANCELL(float, add, +, true)
 
-static void _interflop_sub_float(float a, float b, float *c, void *context) {
-  *c = a - b;
-  cancell(a, b, c, context, rng_state);
-}
+_INTERFLOP_OP_CALL_CANCELL(float, sub, -, true)
 
-static void _interflop_add_double(double a, double b, double *c,
-                                  void *context) {
-  *c = a + b;
-  cancell(a, b, c, context, rng_state);
-}
+_INTERFLOP_OP_CALL_CANCELL(double, add, +, true)
 
-static void _interflop_sub_double(double a, double b, double *c,
-                                  void *context) {
-  *c = a - b;
-  cancell(a, b, c, context, rng_state);
-}
+_INTERFLOP_OP_CALL_CANCELL(double, sub, -, true)
 
-static void _interflop_mul_float(float a, float b, float *c,
-                                 __attribute__((unused)) void *context) {
-  *c = a * b;
-}
+_INTERFLOP_OP_CALL_CANCELL(float, mul, *, false)
 
-static void _interflop_div_float(float a, float b, float *c,
-                                 __attribute__((unused)) void *context) {
-  *c = a / b;
-}
+_INTERFLOP_OP_CALL_CANCELL(float, div, /, false)
 
-static void _interflop_mul_double(double a, double b, double *c,
-                                  __attribute__((unused)) void *context) {
-  *c = a * b;
-}
+_INTERFLOP_OP_CALL_CANCELL(double, mul, *, false)
 
-static void _interflop_div_double(double a, double b, double *c,
-                                  __attribute__((unused)) void *context) {
-  *c = a / b;
-}
+_INTERFLOP_OP_CALL_CANCELL(double, div, /, false)
 
 static struct argp_option options[] = {
     {"tolerance", 't', "TOLERANCE", 0, "Select tolerance (TOLERANCE >= 0)", 0},

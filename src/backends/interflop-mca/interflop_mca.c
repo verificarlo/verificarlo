@@ -351,41 +351,21 @@ inline double _mca_binary64_binary_op(const double a, const double b,
  * point operators
  **********************************************************************/
 
-static void _interflop_add_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, mca_add, context);
-}
+_INTERFLOP_OP_CALL(float, add, mca_add, _mca_binary32_binary_op)
 
-static void _interflop_sub_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, mca_sub, context);
-}
+_INTERFLOP_OP_CALL(float, sub, mca_sub, _mca_binary32_binary_op)
 
-static void _interflop_mul_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, mca_mul, context);
-}
+_INTERFLOP_OP_CALL(float, mul, mca_mul, _mca_binary32_binary_op)
 
-static void _interflop_div_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, mca_div, context);
-}
+_INTERFLOP_OP_CALL(float, div, mca_div, _mca_binary32_binary_op)
 
-static void _interflop_add_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, mca_add, context);
-}
+_INTERFLOP_OP_CALL(double, add, mca_add, _mca_binary64_binary_op)
 
-static void _interflop_sub_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, mca_sub, context);
-}
+_INTERFLOP_OP_CALL(double, sub, mca_sub, _mca_binary64_binary_op)
 
-static void _interflop_mul_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, mca_mul, context);
-}
+_INTERFLOP_OP_CALL(double, mul, mca_mul, _mca_binary64_binary_op)
 
-static void _interflop_div_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, mca_div, context);
-}
+_INTERFLOP_OP_CALL(double, div, mca_div, _mca_binary64_binary_op)
 
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
