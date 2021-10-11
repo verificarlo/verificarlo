@@ -43,8 +43,7 @@ typedef struct rng_state {
   unsigned long long int *global_tid;
 } rng_state_t;
 
-/* Generic set_precision macro function which is common with most of the backend
- */
+/* Generic set_precision macro function which is common within most backends */
 /* BACKEND   is the name of the backend */
 /* PRECISION is the virtual precision to use */
 /* T         is a pointer to the virtual precision variable */
@@ -71,19 +70,36 @@ typedef struct rng_state {
     *T = PRECISION;                                                            \
   }
 
+/* DEPRECATED */
 /* Generic set_seed function which is common for most of the backends */
+/* @param random state pointer to the internal state of the RNG */
+/* @param choose_seed whether to set the seed to a user-provided value */
+/* @param seed the user-provided seed for the RNG */
 void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
                        const uint64_t seed);
 
-/* Simple set_seed function for the basic generators */
+/* Generic set_seed function which is common for most of the backends */
+/* @param random state pointer to the internal state of the RNG */
+/* @param choose_seed whether to set the seed to a user-provided value */
+/* @param seed the user-provided seed for the RNG */
 void _set_seed(struct drand48_data *random_state, const bool choose_seed,
                const unsigned long long int seed);
 
 /* Output a floating point number r (0.0 < r < 1.0) */
+/* @param random state pointer to the internal state of the RNG */
+/* @return a floating point number r (0.0 < r < 1.0) */
 double generate_random_double(struct drand48_data *random_state);
 
 /* Initialize the data structure used to hold the information required */
 /* by the RNG */
+/* @param rng_state pointer to the structure holding all the RNG-related data */
+/* @param choose_seed whether to set the seed to a user-provided value */
+/* @param seed the user-provided seed for the RNG */
+/* @param random_state_valid whether the RNG internal state has been initialized
+ */
+/* @param global_tid_lock pointer to the mutex controling the access to the
+ * Unique TID */
+/* @param global_tid pointer to the unique TID */
 void get_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
                           unsigned long long int seed, bool random_state_valid,
                           pthread_mutex_t *global_tid_lock,
@@ -93,15 +109,25 @@ void get_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
 /* Generic threads can have inconsistent identifiers, assigned by the system, */
 /* we therefore need to set an order between threads, for the case
 /* when the seed is fixed, to insure some repeatability between executions */
+/* @param global_tid_lock pointer to the mutex controling the access to the
+ * Unique TID */
+/* @param global_tid pointer to the unique TID */
+/* @return a new unique identifier for each calling thread*/
 unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
                                     unsigned long long int *global_tid);
 
 /* Returns a random double in the (0,1) open interval */
+/* Manages the internal state of the RNG, if necessary */
+/* @param rng_state pointer to the structure holding all the RNG-related data */
+/* @return a floating point number r (0.0 < r < 1.0) */
 double _get_rand(rng_state_t *rng_state);
 
 /* Returns a bool for determining whether an operation should skip */
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
+/* @param sparsity sparsity */
+/* @param rng_state pointer to the structure holding all the RNG-related data */
+/* @return false -> perturb; true -> skip */
 bool _mca_skip_eval(const float sparsity, rng_state_t *rng_state);
 
 #endif /* __OPTIONS_H__ */

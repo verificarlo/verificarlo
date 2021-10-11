@@ -41,6 +41,7 @@
 
 #include <stdio.h>
 
+/* DEPRECATED */
 /* Generic set_seed function which is common for most of the backends */
 void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
                        const uint64_t seed) {
@@ -59,7 +60,7 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
   }
 }
 
-/* Simple set_seed function for the basic generators */
+/* Generic set_seed function which is common for most of the backends */
 void _set_seed(struct drand48_data *random_state, const bool choose_seed,
                const unsigned long long int seed) {
   if (choose_seed) {
@@ -72,7 +73,6 @@ void _set_seed(struct drand48_data *random_state, const bool choose_seed,
     gettimeofday(&t1, NULL);
 
     /* Hopefully the following seed is good enough for Montercarlo */
-    // *random_state = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
     tmp_seed = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
     tmp_seed_vect[0] = (unsigned short int)(tmp_seed & 0x000000000000FFFF);
     tmp_seed_vect[1] =
@@ -106,7 +106,6 @@ void get_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
   rng_state->choose_seed = choose_seed;
   rng_state->seed = seed;
   rng_state->random_state_valid = random_state_valid;
-  /*rng_state->random_state = random_state;*/
   rng_state->global_tid_lock = global_tid_lock;
   rng_state->global_tid = global_tid;
 }
@@ -129,7 +128,6 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
 
 /* Returns a random double in the (0,1) open interval */
 double _get_rand(rng_state_t *rng_state) {
-
   if (rng_state->random_state_valid == false) {
     if (rng_state->choose_seed == true) {
       _set_seed(&(rng_state->random_state), rng_state->choose_seed,
@@ -148,7 +146,6 @@ double _get_rand(rng_state_t *rng_state) {
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
 bool _mca_skip_eval(const float sparsity, rng_state_t *rng_state) {
-
   if (sparsity >= 1.0f) {
     return false;
   }
