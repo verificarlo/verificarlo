@@ -81,19 +81,6 @@ typedef struct rng_state {
     *T = PRECISION;                                                            \
   }
 
-/* Macro function that initializes the structure used for managing the RNG */
-/* assumes the backend's context has a seed and choose_seed field */
-/* CTX          is a pointer to the backend's context */
-/* RNG_STATE    is the data structure that holds all the RNG-related data */
-#define _INIT_RNG_STATE(CTX, RNG_STATE)                                        \
-  {                                                                            \
-    t_context *TMP_CTX = (t_context *)CTX;                                     \
-    if (RNG_STATE.random_state_valid == false) {                               \
-      _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                 \
-                           (unsigned long long)(TMP_CTX->seed), false);        \
-    }                                                                          \
-  }
-
 /* DEPRECATED */
 /* Generic set_seed function which is common for most of the backends */
 /* @param random state pointer to the internal state of the RNG */

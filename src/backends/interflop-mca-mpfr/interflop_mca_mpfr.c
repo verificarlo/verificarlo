@@ -238,9 +238,12 @@ static __thread rng_state_t rng_state;
 /* Generic macro function that returns mca(X OP Y) */
 #define _MCA_BINARY_OP(X, Y, OP, CTX, RNG_STATE)                               \
   {                                                                            \
+    t_context *TMP_CTX = (t_context *)CTX;                                     \
+    _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
+                           (unsigned long long)(TMP_CTX->seed), false);        \
     mpfr_prec_t prec = GET_MPFR_PREC(X);                                       \
     mpfr_rnd_t rnd = MPFR_RNDN;                                                \
-    if (((t_context *)CTX)->daz) {                                             \
+    if (TMP_CTX->daz) {                                                        \
       X = DAZ(X);                                                              \
       Y = DAZ(Y);                                                              \
     }                                                                          \
@@ -257,7 +260,7 @@ static __thread rng_state_t rng_state;
       _MCA_INEXACT(X, rnd, RNG_STATE);                                         \
     }                                                                          \
     typeof(X) ret = MPFR_GET_FLT(X, rnd);                                      \
-    if (((t_context *)CTX)->ftz) {                                             \
+    if (TMP_CTX->ftz) {                                                        \
       ret = FTZ(ret);                                                          \
     }                                                                          \
     return ret;                                                                \
@@ -291,7 +294,6 @@ static __thread rng_state_t rng_state;
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,
                                      void *context) {
-  _INIT_RNG_STATE(context, rng_state);
   _MCA_BINARY_OP(a, b, mpfr_op, context, rng_state);
 }
 
@@ -299,7 +301,6 @@ static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float __attribute__((unused))
 _mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
-  _INIT_RNG_STATE(context, rng_state);
   _MCA_UNARY_OP(a, mpfr_op, context, rng_state);
 }
 
@@ -307,7 +308,6 @@ _mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
 /* Intermediate computations are performed with precision QUAD_PREC */
 static double _mca_binary64_binary_op(double a, double b, mpfr_bin mpfr_op,
                                       void *context) {
-  _INIT_RNG_STATE(context, rng_state);
   _MCA_BINARY_OP(a, b, mpfr_op, context, rng_state);
 }
 
@@ -315,7 +315,6 @@ static double _mca_binary64_binary_op(double a, double b, mpfr_bin mpfr_op,
 /* Intermediate computations are performed with precision QUAD_PREC */
 static double __attribute__((unused))
 _mca_binary64_unary_op(double a, mpfr_unr mpfr_op, void *context) {
-  _INIT_RNG_STATE(context, rng_state);
   _MCA_UNARY_OP(a, mpfr_op, context, rng_state);
 }
 

@@ -241,6 +241,8 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
 #define _INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                         \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
+    _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
+                           (unsigned long long)(TMP_CTX->seed), false);        \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
     } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE),                 \
@@ -263,13 +265,11 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
 
 /* Adds the mca noise to da */
 static void _mca_inexact_binary64(double *da, void *context) {
-  _INIT_RNG_STATE(context, rng_state);
   _INEXACT(da, MCALIB_BINARY32_T, context, rng_state);
 }
 
 /* Adds the mca noise to qa */
 static void _mca_inexact_binary128(__float128 *qa, void *context) {
-  _INIT_RNG_STATE(context, rng_state);
   _INEXACT(qa, MCALIB_BINARY64_T, context, rng_state);
 }
 

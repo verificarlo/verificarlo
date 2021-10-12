@@ -113,9 +113,11 @@ static double _generate_random_double(struct drand48_data *random_state) {
 /* by the RNG */
 void _init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
                           unsigned long long int seed, bool random_state_valid) {
-  rng_state->choose_seed = choose_seed;
-  rng_state->seed = seed;
-  rng_state->random_state_valid = random_state_valid;
+  if (rng_state->random_state_valid == false) {
+    rng_state->choose_seed = choose_seed;
+    rng_state->seed = seed;
+    rng_state->random_state_valid = random_state_valid;
+  }
 }
 
 /* Get a new identifier for the calling thread */

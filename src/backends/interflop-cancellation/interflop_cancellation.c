@@ -101,7 +101,9 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
        * This particular version in the case of cancellations does not use     \
        * extended quad types */                                                \
       const int32_t e_n = e_z - (cancellation - 1);                            \
-      _INIT_RNG_STATE(CTX, RNG_STATE);                                         \
+      _init_rng_state_struct(&RNG_STATE, ((t_context *)CTX)->choose_seed,      \
+                             (unsigned long long)(((t_context *)CTX)->seed),   \
+                             false);                                           \
       *Z = *Z + _noise_binary64(e_n, &RNG_STATE);                              \
     }                                                                          \
   })
