@@ -57,30 +57,6 @@ typedef struct rng_state {
     *c = FUNC_NAME(a, b, OP_TYPE, context);                                    \
   }
 
-/* A macro to enable/disble the generation of the cancell clause */
-#define _GEN_CANCELL_CLAUSE_0
-#define _GEN_CANCELL_CLAUSE_1 cancell(a, b, c, context, rng_state);
-#define _GEN_CANCELL_CLAUSE(x) _GEN_CANCELL_CLAUSE_##x
-/* A macro to enable/disble the generation of the attribute in the function
- * declaration */
-#define _GEN_CANCELL_ATTR_0 __attribute__((unused))
-#define _GEN_CANCELL_ATTR_1
-#define _GEN_CANCELL_ATTR(x) _GEN_CANCELL_ATTR_##x
-/* A macro to simplify the generation of calls to the interflop hook functions
- * for the cancellation backend */
-/* TYPE       is the data type of the arguments */
-/* OP_NAME    is the name of the operation that is being intercepted (i.e. add,
- * sub, mul, div) */
-/* OP_TYPE    is the operation to be applied */
-/* GEN_CLAUSE enable/disable the generation of the call to the cancell function
- */
-#define _INTERFLOP_OP_CALL_CANCELL(TYPE, OP_NAME, OP_TYPE, GEN_CLAUSE)         \
-  static void _interflop_##OP_NAME##_##TYPE(                                   \
-      TYPE a, TYPE b, _GEN_CANCELL_ATTR(GEN_CLAUSE) TYPE *c, void *context) {  \
-    *c = a OP_TYPE b;                                                          \
-    _GEN_CANCELL_CLAUSE(GEN_CLAUSE)                                            \
-  }
-
 /* Generic set_precision macro function which is common within most backends */
 /* BACKEND   is the name of the backend */
 /* PRECISION is the virtual precision to use */
