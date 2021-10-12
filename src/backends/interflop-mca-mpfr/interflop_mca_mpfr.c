@@ -487,7 +487,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  get_rng_state_struct(&rng_state, ctx->choose_seed,
+  init_rng_state_struct(&rng_state, ctx->choose_seed,
                        (unsigned long long int)(ctx->seed), false,
                        /*{{0, 0, 0},{0, 0, 0},0,0,0},*/
                        &global_tid_lock, &global_tid);

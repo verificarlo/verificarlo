@@ -94,7 +94,7 @@ typedef struct rng_state {
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (RNG_STATE.global_tid == NULL) {                                        \
-      get_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
+      init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
                            (unsigned long long)(TMP_CTX->seed), false,         \
                            &GLB_TID_LOCK, &GLB_TID);                           \
     }                                                                          \
@@ -118,7 +118,7 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
 /* @param global_tid_lock pointer to the mutex controling the access to the
  * Unique TID */
 /* @param global_tid pointer to the unique TID */
-void get_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
+void init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
                           unsigned long long int seed, bool random_state_valid,
                           pthread_mutex_t *global_tid_lock,
                           unsigned long long int *global_tid);

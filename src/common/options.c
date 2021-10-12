@@ -111,7 +111,7 @@ static double _generate_random_double(struct drand48_data *random_state) {
 
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
-void get_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
+void init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
                           unsigned long long int seed, bool random_state_valid,
                           pthread_mutex_t *global_tid_lock,
                           unsigned long long int *global_tid) {
