@@ -81,7 +81,7 @@ void _set_seed(struct drand48_data *random_state, const bool choose_seed,
         (unsigned short int)((tmp_seed & 0x0000FFFF00000000) >> 32);
     seed48_r(tmp_seed_vect, random_state);
     /* Modern solution for working with threads, since C11 */
-    // *random_state = t1.tv_sec ^ t1.tv_usec ^ thrd_current();
+    // tmp_seed = t1.tv_sec ^ t1.tv_usec ^ thrd_current();
   }
 }
 
@@ -100,7 +100,6 @@ double generate_random_double(struct drand48_data *random_state) {
 /* by the RNG */
 void get_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
                           unsigned long long int seed, bool random_state_valid,
-                          /*struct drand48_data random_state,*/
                           pthread_mutex_t *global_tid_lock,
                           unsigned long long int *global_tid) {
   rng_state->choose_seed = choose_seed;
@@ -119,8 +118,7 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
   unsigned long long int tmp_tid = -1;
 
   pthread_mutex_lock(global_tid_lock);
-  tmp_tid = *global_tid;
-  (*global_tid)++;
+  tmp_tid = (*global_tid)++;
   pthread_mutex_unlock(global_tid_lock);
 
   return tmp_tid;
