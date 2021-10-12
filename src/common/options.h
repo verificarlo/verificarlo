@@ -39,12 +39,9 @@ typedef struct rng_state {
   unsigned long long int seed;
   bool random_state_valid;
   struct drand48_data random_state;
-  pthread_mutex_t *global_tid_lock;
-  unsigned long long int *global_tid;
 } rng_state_t;
 
-/* A macro to simplify the generation of calls to the interflop hook functions
- */
+/* A macro to simplify the generation of calls for interflop hook functions */
 /* TYPE      is the data type of the arguments */
 /* OP_NAME   is the name of the operation that is being intercepted (i.e. add,
  * sub, mul, div) */
@@ -88,15 +85,12 @@ typedef struct rng_state {
 /* assumes the backend's context has a seed and choose_seed field */
 /* CTX          is a pointer to the backend's context */
 /* RNG_STATE    is the data structure that holds all the RNG-related data */
-/* GLB_TID_LOCK is a pointer to the mutex for access to the unique TID */
-/* GLB_TID      is a pointer to the unique TID */
-#define _INIT_RNG_STATE(CTX, RNG_STATE, GLB_TID_LOCK, GLB_TID)                 \
+#define _INIT_RNG_STATE(CTX, RNG_STATE)                                        \
   {                                                                            \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
-    if (RNG_STATE.global_tid == NULL) {                                        \
-      init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
-                           (unsigned long long)(TMP_CTX->seed), false,         \
-                           &GLB_TID_LOCK, &GLB_TID);                           \
+    if (RNG_STATE.random_state_valid == false) {                               \
+      _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                 \
+                           (unsigned long long)(TMP_CTX->seed), false);        \
     }                                                                          \
   }
 
@@ -113,15 +107,9 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
 /* @param rng_state pointer to the structure holding all the RNG-related data */
 /* @param choose_seed whether to set the seed to a user-provided value */
 /* @param seed the user-provided seed for the RNG */
-/* @param random_state_valid whether the RNG internal state has been initialized
- */
-/* @param global_tid_lock pointer to the mutex controling the access to the
- * Unique TID */
-/* @param global_tid pointer to the unique TID */
-void init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
-                          unsigned long long int seed, bool random_state_valid,
-                          pthread_mutex_t *global_tid_lock,
-                          unsigned long long int *global_tid);
+/* @param random_state_valid whether RNG internal state has been initialized */
+void _init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
+                          unsigned long long int seed, bool random_state_valid);
 
 /* Get a new identifier for the calling thread */
 /* Generic threads can have inconsistent identifiers, assigned by the system, */
@@ -137,8 +125,13 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
 /* Returns a random double in the (0,1) open interval */
 /* Manages the internal state of the RNG, if necessary */
 /* @param rng_state pointer to the structure holding all the RNG-related data */
+/* @param global_tid_lock pointer to the mutex controling the access to the
+ * Unique TID */
+/* @param global_tid pointer to the unique TID */
+/* @return a new unique identifier for each calling thread*/
 /* @return a floating point number r (0.0 < r < 1.0) */
-double _get_rand(rng_state_t *rng_state);
+double _get_rand(rng_state_t *rng_state, pthread_mutex_t *global_tid_lock,
+                 unsigned long long int *global_tid);
 
 /* Returns a bool for determining whether an operation should skip */
 /* perturbation. false -> perturb; true -> skip. */
@@ -146,6 +139,8 @@ double _get_rand(rng_state_t *rng_state);
 /* @param sparsity sparsity */
 /* @param rng_state pointer to the structure holding all the RNG-related data */
 /* @return false -> perturb; true -> skip */
-bool _mca_skip_eval(const float sparsity, rng_state_t *rng_state);
+bool _mca_skip_eval(const float sparsity, rng_state_t *rng_state,
+                    pthread_mutex_t *global_tid_lock,
+                    unsigned long long int *global_tid);
 
 #endif /* __OPTIONS_H__ */

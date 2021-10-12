@@ -198,7 +198,7 @@ static __thread rng_state_t rng_state;
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
-  const double d_rand = (_get_rand(rng_state) - 0.5);
+  const double d_rand = _get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5;
 
   binary64 b64 = {.f64 = d_rand};
   b64.ieee.exponent = b64.ieee.exponent + exp;
@@ -213,7 +213,7 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
 static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
   /* random number in (-0.5, 0.5) */
-  const __float128 noise = (__float128)_get_rand(rng_state) - 0.5Q;
+  const __float128 noise = (__float128)_get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5Q;
 
   binary128 b128 = {.f128 = noise};
   b128.ieee128.exponent = b128.ieee128.exponent + exp;
@@ -243,7 +243,8 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
-    } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE))) {              \
+    } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE),                 \
+                &global_tid_lock, &global_tid)) {                              \
       return;                                                                  \
     } else {                                                                   \
       if (TMP_CTX->relErr) {                                                   \
@@ -262,13 +263,13 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
 
 /* Adds the mca noise to da */
 static void _mca_inexact_binary64(double *da, void *context) {
-  _INIT_RNG_STATE(context, rng_state, global_tid_lock, global_tid);
+  _INIT_RNG_STATE(context, rng_state);
   _INEXACT(da, MCALIB_BINARY32_T, context, rng_state);
 }
 
 /* Adds the mca noise to qa */
 static void _mca_inexact_binary128(__float128 *qa, void *context) {
-  _INIT_RNG_STATE(context, rng_state, global_tid_lock, global_tid);
+  _INIT_RNG_STATE(context, rng_state);
   _INEXACT(qa, MCALIB_BINARY64_T, context, rng_state);
 }
 
@@ -570,9 +571,8 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  init_rng_state_struct(&rng_state, ctx->choose_seed,
-                       (unsigned long long int)(ctx->seed), false,
-                       &global_tid_lock, &global_tid);
+  _init_rng_state_struct(&rng_state, ctx->choose_seed,
+                         (unsigned long long int)(ctx->seed), false);
 
   return interflop_backend_mca;
 }

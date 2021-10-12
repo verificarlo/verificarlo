@@ -111,15 +111,11 @@ static double _generate_random_double(struct drand48_data *random_state) {
 
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
-void init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
-                          unsigned long long int seed, bool random_state_valid,
-                          pthread_mutex_t *global_tid_lock,
-                          unsigned long long int *global_tid) {
+void _init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
+                          unsigned long long int seed, bool random_state_valid) {
   rng_state->choose_seed = choose_seed;
   rng_state->seed = seed;
   rng_state->random_state_valid = random_state_valid;
-  rng_state->global_tid_lock = global_tid_lock;
-  rng_state->global_tid = global_tid;
 }
 
 /* Get a new identifier for the calling thread */
@@ -138,12 +134,12 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
 }
 
 /* Returns a random double in the (0,1) open interval */
-double _get_rand(rng_state_t *rng_state) {
+double _get_rand(rng_state_t *rng_state, pthread_mutex_t *global_tid_lock,
+                 unsigned long long int *global_tid) {
   if (rng_state->random_state_valid == false) {
     if (rng_state->choose_seed == true) {
       _set_seed(&(rng_state->random_state), rng_state->choose_seed,
-                rng_state->seed ^ _get_new_tid(rng_state->global_tid_lock,
-                                               rng_state->global_tid));
+                rng_state->seed ^ _get_new_tid(global_tid_lock, global_tid));
     } else {
       _set_seed(&(rng_state->random_state), false, 0);
     }
@@ -156,10 +152,12 @@ double _get_rand(rng_state_t *rng_state) {
 /* Returns a bool for determining whether an operation should skip */
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
-bool _mca_skip_eval(const float sparsity, rng_state_t *rng_state) {
+bool _mca_skip_eval(const float sparsity, rng_state_t *rng_state,
+                    pthread_mutex_t *global_tid_lock,
+                    unsigned long long int *global_tid) {
   if (sparsity >= 1.0f) {
     return false;
   }
 
-  return (_get_rand(rng_state) > sparsity);
+  return (_get_rand(rng_state, global_tid_lock, global_tid) > sparsity);
 }

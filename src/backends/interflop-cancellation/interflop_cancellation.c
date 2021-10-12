@@ -66,11 +66,6 @@ static void _set_tolerance(int tolerance) { TOLERANCE = tolerance; }
 
 static void _set_warning(bool warning) { WARN = warning; }
 
-// /* random number generator internal state */
-// static __thread struct drand48_data random_state;
-// /* random number generator initialization flag */
-// static __thread bool random_state_valid = false;
-
 /* global thread id access lock */
 static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
 /* global thread identifier */
@@ -82,8 +77,11 @@ static __thread rng_state_t rng_state;
 
 /* noise = rand * 2^(exp) */
 static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
-  const double d_rand = (_get_rand(rng_state) - 0.5);
-  return _fast_pow2_binary64(exp) * d_rand;
+  const double d_rand = _get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5;
+
+  binary64 b64 = {.f64 = d_rand};
+  b64.ieee.exponent = b64.ieee.exponent + exp;
+  return b64.f64;
 }
 
 /* cancell: detects the cancellation size; and checks if its larger than the
@@ -103,7 +101,7 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
        * This particular version in the case of cancellations does not use     \
        * extended quad types */                                                \
       const int32_t e_n = e_z - (cancellation - 1);                            \
-      _INIT_RNG_STATE(CTX, RNG_STATE, global_tid_lock, global_tid);            \
+      _INIT_RNG_STATE(CTX, RNG_STATE);                                         \
       *Z = *Z + _noise_binary64(e_n, &RNG_STATE);                              \
     }                                                                          \
   })
@@ -195,11 +193,6 @@ static void init_context(t_context *ctx) {
   ctx->seed = 0ULL;
 }
 
-// void _interflop_finalize(__attribute__((unused)) void *context) {
-//   if (rng_state)
-//     free(rng_state);
-// }
-
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
@@ -235,10 +228,8 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  init_rng_state_struct(&rng_state, ctx->choose_seed,
-                       (unsigned long long int)(ctx->seed), false,
-                       /*{{0, 0, 0},{0, 0, 0},0,0,0},*/
-                       &global_tid_lock, &global_tid);
+  _init_rng_state_struct(&rng_state, ctx->choose_seed,
+                       (unsigned long long int)(ctx->seed), false);
 
   return interflop_backend_cancellation;
 }

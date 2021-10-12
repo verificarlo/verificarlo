@@ -220,7 +220,8 @@ static __thread rng_state_t rng_state;
     /*MPFR_DECL_INIT(mpfr_rand, p_a);*/                                        \
     MPFR_DECL_INIT(mpfr_rand, GET_MPFR_PREC(X));                               \
     e_a = e_a - (GET_MCALIB_T(X) - 1);                                         \
-    double d_rand = (_get_rand(&RNG_STATE) - 0.5);                             \
+    double d_rand = (_get_rand(&RNG_STATE, &global_tid_lock, &global_tid)      \
+                      - 0.5);                                                  \
     mpfr_set_d(mpfr_rand, d_rand, rnd_mode);                                   \
     /* rand = rand * 2 ^ (e_a) */                                              \
     mpfr_mul_2si(mpfr_rand, mpfr_rand, e_a, rnd_mode);                         \
@@ -290,7 +291,7 @@ static __thread rng_state_t rng_state;
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,
                                      void *context) {
-  _INIT_RNG_STATE(context, rng_state, global_tid_lock, global_tid);
+  _INIT_RNG_STATE(context, rng_state);
   _MCA_BINARY_OP(a, b, mpfr_op, context, rng_state);
 }
 
@@ -298,7 +299,7 @@ static float _mca_binary32_binary_op(float a, float b, mpfr_bin mpfr_op,
 /* Intermediate computations are performed with precision DOUBLE_PREC */
 static float __attribute__((unused))
 _mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
-  _INIT_RNG_STATE(context, rng_state, global_tid_lock, global_tid);
+  _INIT_RNG_STATE(context, rng_state);
   _MCA_UNARY_OP(a, mpfr_op, context, rng_state);
 }
 
@@ -306,7 +307,7 @@ _mca_binary32_unary_op(float a, mpfr_unr mpfr_op, void *context) {
 /* Intermediate computations are performed with precision QUAD_PREC */
 static double _mca_binary64_binary_op(double a, double b, mpfr_bin mpfr_op,
                                       void *context) {
-  _INIT_RNG_STATE(context, rng_state, global_tid_lock, global_tid);
+  _INIT_RNG_STATE(context, rng_state);
   _MCA_BINARY_OP(a, b, mpfr_op, context, rng_state);
 }
 
@@ -314,7 +315,7 @@ static double _mca_binary64_binary_op(double a, double b, mpfr_bin mpfr_op,
 /* Intermediate computations are performed with precision QUAD_PREC */
 static double __attribute__((unused))
 _mca_binary64_unary_op(double a, mpfr_unr mpfr_op, void *context) {
-  _INIT_RNG_STATE(context, rng_state, global_tid_lock, global_tid);
+  _INIT_RNG_STATE(context, rng_state);
   _MCA_UNARY_OP(a, mpfr_op, context, rng_state);
 }
 
@@ -445,11 +446,6 @@ static void print_information_header(void *context) {
               ctx->ftz ? "true" : "false");
 }
 
-// void _interflop_finalize(__attribute__((unused)) void *context) {
-//   if (rng_state)
-//     free(rng_state);
-// }
-
 struct interflop_backend_interface_t interflop_init(int argc, char **argv,
                                                     void **context) {
 
@@ -487,10 +483,8 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  init_rng_state_struct(&rng_state, ctx->choose_seed,
-                       (unsigned long long int)(ctx->seed), false,
-                       /*{{0, 0, 0},{0, 0, 0},0,0,0},*/
-                       &global_tid_lock, &global_tid);
+  _init_rng_state_struct(&rng_state, ctx->choose_seed,
+                       (unsigned long long int)(ctx->seed), false);
 
   return interflop_backend_mca;
 }
