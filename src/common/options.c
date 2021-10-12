@@ -41,6 +41,19 @@
 
 #include <stdio.h>
 
+
+/* Generic set_seed function which is common for most of the backends */
+/* @param random state pointer to the internal state of the RNG */
+/* @param choose_seed whether to set the seed to a user-provided value */
+/* @param seed the user-provided seed for the RNG */
+static void _set_seed(struct drand48_data *random_state, const bool choose_seed,
+               const unsigned long long int seed);
+
+/* Output a floating point number r (0.0 < r < 1.0) */
+/* @param random state pointer to the internal state of the RNG */
+/* @return a floating point number r (0.0 < r < 1.0) */
+static double generate_random_double(struct drand48_data *random_state);
+
 /* DEPRECATED */
 /* Generic set_seed function which is common for most of the backends */
 void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
@@ -61,7 +74,7 @@ void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
 }
 
 /* Generic set_seed function which is common for most of the backends */
-void _set_seed(struct drand48_data *random_state, const bool choose_seed,
+static void _set_seed(struct drand48_data *random_state, const bool choose_seed,
                const unsigned long long int seed) {
   if (choose_seed) {
     srand48_r((unsigned long int)seed, random_state);
@@ -86,7 +99,7 @@ void _set_seed(struct drand48_data *random_state, const bool choose_seed,
 }
 
 /* Output a floating point number r (0.0 < r < 1.0) */
-double generate_random_double(struct drand48_data *random_state) {
+static double generate_random_double(struct drand48_data *random_state) {
   double tmp_rand;
 
   drand48_r(random_state, &tmp_rand);

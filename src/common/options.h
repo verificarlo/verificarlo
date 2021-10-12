@@ -108,18 +108,6 @@ typedef struct rng_state {
 void _set_seed_default(tinymt64_t *random_state, const bool choose_seed,
                        const uint64_t seed);
 
-/* Generic set_seed function which is common for most of the backends */
-/* @param random state pointer to the internal state of the RNG */
-/* @param choose_seed whether to set the seed to a user-provided value */
-/* @param seed the user-provided seed for the RNG */
-void _set_seed(struct drand48_data *random_state, const bool choose_seed,
-               const unsigned long long int seed);
-
-/* Output a floating point number r (0.0 < r < 1.0) */
-/* @param random state pointer to the internal state of the RNG */
-/* @return a floating point number r (0.0 < r < 1.0) */
-double generate_random_double(struct drand48_data *random_state);
-
 /* Initialize the data structure used to hold the information required */
 /* by the RNG */
 /* @param rng_state pointer to the structure holding all the RNG-related data */
