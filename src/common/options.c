@@ -52,7 +52,7 @@ static void _set_seed(struct drand48_data *random_state, const bool choose_seed,
 /* Output a floating point number r (0.0 < r < 1.0) */
 /* @param random state pointer to the internal state of the RNG */
 /* @return a floating point number r (0.0 < r < 1.0) */
-static double generate_random_double(struct drand48_data *random_state);
+static double _generate_random_double(struct drand48_data *random_state);
 
 /* DEPRECATED */
 /* Generic set_seed function which is common for most of the backends */
@@ -99,7 +99,7 @@ static void _set_seed(struct drand48_data *random_state, const bool choose_seed,
 }
 
 /* Output a floating point number r (0.0 < r < 1.0) */
-static double generate_random_double(struct drand48_data *random_state) {
+static double _generate_random_double(struct drand48_data *random_state) {
   double tmp_rand;
 
   drand48_r(random_state, &tmp_rand);
@@ -150,7 +150,7 @@ double _get_rand(rng_state_t *rng_state) {
     rng_state->random_state_valid = true;
   }
 
-  return generate_random_double(&(rng_state->random_state));
+  return _generate_random_double(&(rng_state->random_state));
 }
 
 /* Returns a bool for determining whether an operation should skip */
