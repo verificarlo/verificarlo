@@ -36,7 +36,6 @@
 // #include <threads.h>
 #include <unistd.h>
 
-#include "tinymt64.h"
 #include "options.h"
 
 

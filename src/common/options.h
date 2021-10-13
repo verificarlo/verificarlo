@@ -31,7 +31,6 @@
 
 #include "float_const.h"
 #include "logger.h"
-#include "tinymt64.h"
 
 /* Data type used to hold information required by the RNG */
 typedef struct rng_state {
