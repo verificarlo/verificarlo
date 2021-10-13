@@ -185,11 +185,17 @@ static void _set_bitmask_precision_binary64(const int precision) {
  * The following functions are used to calculate the random bitmask
  ***************************************************************/
 
-/* random generator internal state */
-tinymt64_t random_state;
+/* global thread id access lock */
+static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
+/* global thread identifier */
+static unsigned long long int global_tid = 0;
+
+/* helper data structure to centralize the data used for random number
+ * generation */
+static __thread rng_state_t rng_state;
 
 static uint64_t get_random_mask(void) {
-  return tinymt64_generate_uint64(&random_state);
+  return _get_rand_uint64(&rng_state, &global_tid_lock, &global_tid);
 }
 
 /* Returns a 32-bits random mask */
@@ -210,11 +216,6 @@ static uint64_t get_random_binary64_mask(void) {
   _Generic(X, float                                                            \
            : get_random_binary32_mask, double                                  \
            : get_random_binary64_mask)()
-
-/* Fix the seed of the Random Number Generator */
-static void _set_bitmask_seed(const bool choose_seed, const uint64_t seed) {
-  _set_seed_default(&random_state, choose_seed, seed);
-}
 
 /******************** BITMASK ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the BITMASK operation. Operands
@@ -250,7 +251,7 @@ static void _set_bitmask_seed(const bool choose_seed, const uint64_t seed) {
   /* do not add any noise if */						\
   (BITMASKLIB_MODE == bitmask_mode_ob && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
-#define _INEXACT(B)                                                            \
+#define _INEXACT(CTX, B)                                                       \
   do {                                                                         \
     const typeof(B.u) sign_size = GET_SIGN_SIZE(B.type);                       \
     const typeof(B.u) exp_size = GET_EXP_SIZE(B.type);                         \
@@ -258,6 +259,9 @@ static void _set_bitmask_seed(const bool choose_seed, const uint64_t seed) {
     const typeof(B.u) mask_one = GET_MASK_ONE(B.type);                         \
     const int binary_t = GET_BINARYN_T(B.type);                                \
     typeof(B.u) bitmask = GET_BITMASK(B.type);                                 \
+    _init_rng_state_struct(&rng_state, ((t_context *)CTX)->choose_seed,        \
+                           (unsigned long long)(((t_context *)CTX)->seed),     \
+                           false);                                             \
     if (FPCLASSIFY(*x) == FP_SUBNORMAL) {                                      \
       /* We must use the CLZ2 variant since bitfield type                      \
            are incompatible with _Generic feature */                           \
@@ -282,26 +286,26 @@ static void _set_bitmask_seed(const bool choose_seed, const uint64_t seed) {
     *x = B.type;                                                               \
   } while (0);
 
-static void _inexact_binary32(float *x) {
+static void _inexact_binary32(void *context, float *x) {
   if (_MUST_NOT_BE_NOISED(*x, BITMASKLIB_BINARY32_T)) {
     return;
   } else {
     binary32 b32 = {.f32 = *x};
-    _INEXACT(b32)
+    _INEXACT(context, b32)
   }
 }
 
-static void _inexact_binary64(double *x) {
+static void _inexact_binary64(void *context, double *x) {
   if (_MUST_NOT_BE_NOISED(*x, BITMASKLIB_BINARY64_T)) {
     return;
   } else {
     binary64 b64 = {.f64 = *x};
-    _INEXACT(b64);
+    _INEXACT(context, b64);
   }
 }
 
-#define _INEXACT_BINARYN(X)                                                    \
-  _Generic(X, float * : _inexact_binary32, double * : _inexact_binary64)(X)
+#define _INEXACT_BINARYN(CTX, X)                                               \
+  _Generic(X, float * : _inexact_binary32, double * : _inexact_binary64)(CTX, X)
 
 #define _BITMASK_BINARY_OP(A, B, OP, CTX)                                      \
   {                                                                            \
@@ -312,13 +316,13 @@ static void _inexact_binary64(double *x) {
     }                                                                          \
     if (BITMASKLIB_MODE == bitmask_mode_ib ||                                  \
         BITMASKLIB_MODE == bitmask_mode_full) {                                \
-      _INEXACT_BINARYN(&A);                                                    \
-      _INEXACT_BINARYN(&B);                                                    \
+      _INEXACT_BINARYN(CTX, &A);                                               \
+      _INEXACT_BINARYN(CTX, &B);                                               \
     }                                                                          \
     PERFORM_BIN_OP(OP, RES, A, B);                                             \
     if (BITMASKLIB_MODE == bitmask_mode_ob ||                                  \
         BITMASKLIB_MODE == bitmask_mode_full) {                                \
-      _INEXACT_BINARYN(&RES);                                                  \
+      _INEXACT_BINARYN(CTX, &RES);                                             \
     }                                                                          \
     if (((t_context *)CTX)->ftz) {                                             \
       RES = FTZ(RES);                                                          \
@@ -348,41 +352,21 @@ static double _bitmask_binary64_binary_op(double a, double b,
  * point operators
  **********************************************************************/
 
-static void _interflop_add_float(float a, float b, float *c, void *context) {
-  *c = _bitmask_binary32_binary_op(a, b, bitmask_add, context);
-}
+_INTERFLOP_OP_CALL(float, add, bitmask_add, _bitmask_binary32_binary_op)
 
-static void _interflop_sub_float(float a, float b, float *c, void *context) {
-  *c = _bitmask_binary32_binary_op(a, b, bitmask_sub, context);
-}
+_INTERFLOP_OP_CALL(float, sub, bitmask_sub, _bitmask_binary32_binary_op)
 
-static void _interflop_mul_float(float a, float b, float *c, void *context) {
-  *c = _bitmask_binary32_binary_op(a, b, bitmask_mul, context);
-}
+_INTERFLOP_OP_CALL(float, mul, bitmask_mul, _bitmask_binary32_binary_op)
 
-static void _interflop_div_float(float a, float b, float *c, void *context) {
-  *c = _bitmask_binary32_binary_op(a, b, bitmask_div, context);
-}
+_INTERFLOP_OP_CALL(float, div, bitmask_div, _bitmask_binary32_binary_op)
 
-static void _interflop_add_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _bitmask_binary64_binary_op(a, b, bitmask_add, context);
-}
+_INTERFLOP_OP_CALL(double, add, bitmask_add, _bitmask_binary64_binary_op)
 
-static void _interflop_sub_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _bitmask_binary64_binary_op(a, b, bitmask_sub, context);
-}
+_INTERFLOP_OP_CALL(double, sub, bitmask_sub, _bitmask_binary64_binary_op)
 
-static void _interflop_mul_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _bitmask_binary64_binary_op(a, b, bitmask_mul, context);
-}
+_INTERFLOP_OP_CALL(double, mul, bitmask_mul, _bitmask_binary64_binary_op)
 
-static void _interflop_div_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _bitmask_binary64_binary_op(a, b, bitmask_div, context);
-}
+_INTERFLOP_OP_CALL(double, div, bitmask_div, _bitmask_binary64_binary_op)
 
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
@@ -550,8 +534,11 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL};
 
-  /* Initialize the seed */
-  _set_bitmask_seed(ctx->choose_seed, ctx->seed);
+  /* The seed for the RNG is initialized upon the first request for a random
+     number */
+
+  _init_rng_state_struct(&rng_state, ctx->choose_seed,
+                         (unsigned long long int)(ctx->seed), false);
 
   return interflop_backend_bitmask;
 }
