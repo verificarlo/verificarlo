@@ -333,13 +333,13 @@ static void _inexact_binary64(void *context, double *x) {
 static float _bitmask_binary32_binary_op(float a, float b,
                                          const bitmask_operations op,
                                          void *context) {
-  _BITMASK_BINARY_OP(a, b, op, context)
+  _BITMASK_BINARY_OP(a, b, op, context);
 }
 
 static double _bitmask_binary64_binary_op(double a, double b,
                                           const bitmask_operations op,
                                           void *context) {
-  _BITMASK_BINARY_OP(a, b, op, context)
+  _BITMASK_BINARY_OP(a, b, op, context);
 }
 
 /******************** BITMASK COMPARE FUNCTIONS ********************
@@ -352,21 +352,21 @@ static double _bitmask_binary64_binary_op(double a, double b,
  * point operators
  **********************************************************************/
 
-_INTERFLOP_OP_CALL(float, add, bitmask_add, _bitmask_binary32_binary_op)
+_INTERFLOP_OP_CALL(float, add, bitmask_add, _bitmask_binary32_binary_op);
 
-_INTERFLOP_OP_CALL(float, sub, bitmask_sub, _bitmask_binary32_binary_op)
+_INTERFLOP_OP_CALL(float, sub, bitmask_sub, _bitmask_binary32_binary_op);
 
-_INTERFLOP_OP_CALL(float, mul, bitmask_mul, _bitmask_binary32_binary_op)
+_INTERFLOP_OP_CALL(float, mul, bitmask_mul, _bitmask_binary32_binary_op);
 
-_INTERFLOP_OP_CALL(float, div, bitmask_div, _bitmask_binary32_binary_op)
+_INTERFLOP_OP_CALL(float, div, bitmask_div, _bitmask_binary32_binary_op);
 
-_INTERFLOP_OP_CALL(double, add, bitmask_add, _bitmask_binary64_binary_op)
+_INTERFLOP_OP_CALL(double, add, bitmask_add, _bitmask_binary64_binary_op);
 
-_INTERFLOP_OP_CALL(double, sub, bitmask_sub, _bitmask_binary64_binary_op)
+_INTERFLOP_OP_CALL(double, sub, bitmask_sub, _bitmask_binary64_binary_op);
 
-_INTERFLOP_OP_CALL(double, mul, bitmask_mul, _bitmask_binary64_binary_op)
+_INTERFLOP_OP_CALL(double, mul, bitmask_mul, _bitmask_binary64_binary_op);
 
-_INTERFLOP_OP_CALL(double, div, bitmask_div, _bitmask_binary64_binary_op)
+_INTERFLOP_OP_CALL(double, div, bitmask_div, _bitmask_binary64_binary_op);
 
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
