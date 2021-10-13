@@ -87,7 +87,8 @@ typedef struct rng_state {
 /* @param seed the user-provided seed for the RNG */
 /* @param random_state_valid whether RNG internal state has been initialized */
 void _init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
-                          unsigned long long int seed, bool random_state_valid);
+                            unsigned long long int seed,
+                            bool random_state_valid);
 
 /* Get a new identifier for the calling thread */
 /* Generic threads can have inconsistent identifiers, assigned by the system, */
@@ -107,8 +108,9 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
  * Unique TID */
 /* @param global_tid pointer to the unique TID */
 /* @return a 64-bit unsigned integer r (0 <= r < 2^64) */
-uint64_t _get_rand_uint64(rng_state_t *rng_state, pthread_mutex_t *global_tid_lock,
-                 unsigned long long int *global_tid);
+uint64_t _get_rand_uint64(rng_state_t *rng_state,
+                          pthread_mutex_t *global_tid_lock,
+                          unsigned long long int *global_tid);
 
 /* Returns a random double in the (0,1) open interval */
 /* Manages the internal state of the RNG, if necessary */

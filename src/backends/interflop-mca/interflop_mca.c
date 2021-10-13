@@ -198,7 +198,8 @@ static __thread rng_state_t rng_state;
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
-  const double d_rand = _get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5;
+  const double d_rand =
+      _get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5;
 
   binary64 b64 = {.f64 = d_rand};
   b64.ieee.exponent = b64.ieee.exponent + exp;
@@ -213,7 +214,8 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
 static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
   /* random number in (-0.5, 0.5) */
-  const __float128 noise = (__float128)_get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5Q;
+  const __float128 noise =
+      (__float128)_get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5Q;
 
   binary128 b128 = {.f128 = noise};
   b128.ieee128.exponent = b128.ieee128.exponent + exp;
@@ -246,7 +248,7 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
     } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE),                 \
-                &global_tid_lock, &global_tid)) {                              \
+                              &global_tid_lock, &global_tid)) {                \
       return;                                                                  \
     } else {                                                                   \
       if (TMP_CTX->relErr) {                                                   \

@@ -77,7 +77,8 @@ static __thread rng_state_t rng_state;
 
 /* noise = rand * 2^(exp) */
 static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
-  const double d_rand = _get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5;
+  const double d_rand =
+      _get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5;
 
   binary64 b64 = {.f64 = d_rand};
   b64.ieee.exponent = b64.ieee.exponent + exp;
@@ -107,7 +108,6 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
       *Z = *Z + _noise_binary64(e_n, &RNG_STATE);                              \
     }                                                                          \
   })
-
 
 /* A macro to enable/disble the generation of the cancell clause */
 #define _GEN_CANCELL_CLAUSE_0
@@ -231,7 +231,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
      number */
 
   _init_rng_state_struct(&rng_state, ctx->choose_seed,
-                       (unsigned long long int)(ctx->seed), false);
+                         (unsigned long long int)(ctx->seed), false);
 
   return interflop_backend_cancellation;
 }

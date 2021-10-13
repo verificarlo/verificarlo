@@ -38,14 +38,15 @@
 
 #include "options.h"
 
-
-/* A macro to initialize the initialization of the seed and random state for the random number generator */
+/* A macro to initialize the initialization of the seed and random state for the
+ * random number generator */
 /* RNG_STATE      is a pointer to the structure that all RNG-related data */
-/* GLB_TID_LOCK   is a pointer to the mutex for the acces to the global unique TID */
+/* GLB_TID_LOCK   is a pointer to the mutex for the acces to the global unique
+ * TID */
 /* GLB_TID        is a pointer to the global TID */
 #define _INIT_RANDOM_STATE(RNG_STATE, GLB_TID_LOCK, GLB_TID)                   \
   {                                                                            \
-  if (RNG_STATE->random_state_valid == false) {                                \
+    if (RNG_STATE->random_state_valid == false) {                              \
       if (RNG_STATE->choose_seed == true) {                                    \
         _set_seed(&(RNG_STATE->random_state), RNG_STATE->choose_seed,          \
                   RNG_STATE->seed ^ _get_new_tid(GLB_TID_LOCK, GLB_TID));      \
@@ -56,13 +57,12 @@
     }                                                                          \
   }
 
-
 /* Generic set_seed function which is common for most of the backends */
 /* @param random state pointer to the internal state of the RNG */
 /* @param choose_seed whether to set the seed to a user-provided value */
 /* @param seed the user-provided seed for the RNG */
 static void _set_seed(struct drand48_data *random_state, const bool choose_seed,
-               const unsigned long long int seed);
+                      const unsigned long long int seed);
 
 /* Outputs 64-bit unsigned integer r (0 <= r < 2^64) */
 /* @param random state pointer to the internal state of the RNG */
@@ -76,7 +76,7 @@ static double _generate_random_double(struct drand48_data *random_state);
 
 /* Generic set_seed function which is common for most of the backends */
 static void _set_seed(struct drand48_data *random_state, const bool choose_seed,
-               const unsigned long long int seed) {
+                      const unsigned long long int seed) {
   if (choose_seed) {
     srand48_r((unsigned long int)seed, random_state);
   } else {
@@ -124,7 +124,8 @@ static double _generate_random_double(struct drand48_data *random_state) {
 /* Initialize a data structure used to hold the information required */
 /* by the RNG */
 void _init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
-                          unsigned long long int seed, bool random_state_valid) {
+                            unsigned long long int seed,
+                            bool random_state_valid) {
   if (rng_state->random_state_valid == false) {
     rng_state->choose_seed = choose_seed;
     rng_state->seed = seed;
@@ -148,8 +149,9 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
 }
 
 /* Returns a 64-bit unsigned integer r (0 <= r < 2^64) */
-uint64_t _get_rand_uint64(rng_state_t *rng_state, pthread_mutex_t *global_tid_lock,
-                       unsigned long long int *global_tid) {
+uint64_t _get_rand_uint64(rng_state_t *rng_state,
+                          pthread_mutex_t *global_tid_lock,
+                          unsigned long long int *global_tid) {
   _INIT_RANDOM_STATE(rng_state, global_tid_lock, global_tid);
   return _generate_random_uint64(&(rng_state->random_state));
 }
