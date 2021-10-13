@@ -25,6 +25,14 @@
  *                                                                           *
  *****************************************************************************/
 
+// Changelog:
+// 
+// 2021-10-13 Switched random number generator from TinyMT64 to the one
+// provided by the libc. The backend is now re-entrant. Pthread and OpenMP
+// threads are now supported.
+// Generation of hook functions is now done through macros, shared accross
+// backends.
+
 #include <argp.h>
 #include <err.h>
 #include <errno.h>

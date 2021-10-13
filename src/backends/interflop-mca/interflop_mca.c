@@ -31,8 +31,8 @@
 // the one provided in libc.
 //
 // 2015-10-11 New version based on quad floating point type to replace MPFR
-// until
-// required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits
+// until required MCA precision is lower than quad mantissa divided by 2, 
+// i.e. 56 bits
 //
 // 2015-11-16 New version using double precision for single precision operation
 //
@@ -51,6 +51,12 @@
 // 2020-02-26 Factorize _inexact function into the _INEXACT macro function.
 // Use variables for options name instead of hardcoded one.
 // Add DAZ/FTZ support.
+// 
+// 2021-10-13 Switched random number generator from TinyMT64 to the one
+// provided by the libc. The backend is now re-entrant. Pthread and OpenMP
+// threads are now supported.
+// Generation of hook functions is now done through macros, shared accross
+// backends.
 
 #include <argp.h>
 #include <err.h>
