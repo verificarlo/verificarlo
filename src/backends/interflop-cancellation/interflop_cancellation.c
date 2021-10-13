@@ -43,10 +43,6 @@
 #include "../../common/interflop.h"
 #include "../../common/logger.h"
 #include "../../common/options.h"
-#include "../../common/tinymt64.h"
-
-#include "../../common/float_const.h"
-#include "../../common/tinymt64.h"
 
 typedef struct {
   bool choose_seed;

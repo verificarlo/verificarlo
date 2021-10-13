@@ -5,5 +5,5 @@ if WALL_CFLAGS
 libinterflop_bitmask_la_CFLAGS += -Wall -Wextra
 endif
 libinterflop_bitmask_la_LDFLAGS = -lm
-libinterflop_bitmask_la_LIBADD = ../../common/libtinymt64.la
+libinterflop_bitmask_la_LIBADD = 
 library_includedir =$(includedir)/
