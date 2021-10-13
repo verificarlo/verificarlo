@@ -30,7 +30,7 @@
 //
 // 2015-11-14 remove effectless comparison functions, llvm will not
 // instrument it.
-// 
+//
 // 2021-10-13 Switched random number generator from TinyMT64 to the one
 // provided by the libc. The backend is now re-entrant. Pthread and OpenMP
 // threads are now supported.
