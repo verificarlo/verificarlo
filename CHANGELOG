@@ -1,6 +1,6 @@
 Verificarlo CHANGELOG
 
-# [v0.6.0] 2021/10/13
+# [v0.6.0] 2021/10/14
 
 ## Added
   * Add test for MCA backend when using OpenMP and pthread threads
@@ -10,6 +10,8 @@ Verificarlo CHANGELOG
 
 ## Fixed
   * Minor bugfixes in Verificarlo CI
+  * Minor bugfixes with testplan.test
+  * Clean-up of build scripts
 
 ## Changed
   * MCA, MCA-MPFR, Bitmask and Cancellation backends no longer use the TinyMT64 RNG
