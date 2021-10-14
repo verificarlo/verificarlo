@@ -35,10 +35,10 @@ Check() {
 
 	    diff out_mpfr out_quad > log
 	    if [ $? -ne 0 ] ; then
-		echo "error"
-		exit 1
+			echo "error"
+			exit 1
 	    else
-		echo "ok for precision $PREC"
+			echo "ok for precision $PREC"
 	    fi
 	done
     done

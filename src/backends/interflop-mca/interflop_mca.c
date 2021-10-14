@@ -31,8 +31,8 @@
 // the one provided in libc.
 //
 // 2015-10-11 New version based on quad floating point type to replace MPFR
-// until
-// required MCA precision is lower than quad mantissa divided by 2, i.e. 56 bits
+// until required MCA precision is lower than quad mantissa divided by 2,
+// i.e. 56 bits
 //
 // 2015-11-16 New version using double precision for single precision operation
 //
@@ -43,7 +43,7 @@
 // 2019-08-07 Fix memory leak and convert to interflop
 //
 // 2020-02-07 create separated virtual precisions for binary32
-// and binary64. Uses the binary128 structur for easily manipulating bits
+// and binary64. Uses the binary128 structure for easily manipulating bits
 // through bitfields. Removes useless specials cases in qnoise and pow2d.
 // Change return type from int to void for some functions and uses instead
 // errx and warnx for handling errors.
@@ -51,16 +51,24 @@
 // 2020-02-26 Factorize _inexact function into the _INEXACT macro function.
 // Use variables for options name instead of hardcoded one.
 // Add DAZ/FTZ support.
+//
+// 2021-10-13 Switched random number generator from TinyMT64 to the one
+// provided by the libc. The backend is now re-entrant. Pthread and OpenMP
+// threads are now supported.
+// Generation of hook functions is now done through macros, shared accross
+// backends.
 
 #include <argp.h>
 #include <err.h>
 #include <errno.h>
 #include <math.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <sys/syscall.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -70,7 +78,6 @@
 #include "../../common/interflop.h"
 #include "../../common/logger.h"
 #include "../../common/options.h"
-#include "../../common/tinymt64.h"
 
 typedef enum {
   KEY_PREC_B32,
@@ -181,23 +188,14 @@ static void _set_mca_precision_binary64(const int precision) {
  * perturbations used for MCA
  ***************************************************************/
 
-/* random generator internal state */
-static tinymt64_t random_state;
+/* global thread id access lock */
+static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
+/* global thread identifier */
+static unsigned long long int global_tid = 0;
 
-static double _mca_rand(void) {
-  /* Returns a random double in the (0,1) open interval */
-  return tinymt64_generate_doubleOO(&random_state);
-}
-
-static inline bool _mca_skip_eval(const float sparsity) {
-  /* Returns a bool for determining whether an operation should skip */
-  /* perturbation. false -> perturb; true -> skip. */
-  if (sparsity >= 1.0f) {
-    return false;
-  }
-  /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
-  return (_mca_rand() > sparsity);
-}
+/* helper data structure to centralize the data used for random number
+ * generation */
+static __thread rng_state_t rng_state;
 
 /* noise = rand * 2^(exp) */
 /* We can skip special cases since we never met them */
@@ -205,9 +203,13 @@ static inline bool _mca_skip_eval(const float sparsity) {
 /* is comprised between: */
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
-static inline double _noise_binary64(const int exp) {
-  const double d_rand = (_mca_rand() - 0.5);
-  return _fast_pow2_binary64(exp) * d_rand;
+static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
+  const double d_rand =
+      _get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5;
+
+  binary64 b64 = {.f64 = d_rand};
+  b64.ieee.exponent = b64.ieee.exponent + exp;
+  return b64.f64;
 }
 
 /* noise = rand * 2^(exp) */
@@ -216,10 +218,14 @@ static inline double _noise_binary64(const int exp) {
 /* is comprised between: */
 /* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
-static __float128 _noise_binary128(const int exp) {
+static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
   /* random number in (-0.5, 0.5) */
-  const __float128 noise = (__float128)_mca_rand() - 0.5Q;
-  return _fast_pow2_binary128(exp) * noise;
+  const __float128 noise =
+      (__float128)_get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5Q;
+
+  binary128 b128 = {.f128 = noise};
+  b128.ieee128.exponent = b128.ieee128.exponent + exp;
+  return b128.f128;
 }
 
 /* Macro function for checking if the value X must be noised */
@@ -233,27 +239,33 @@ static __float128 _noise_binary128(const int exp) {
   (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
-#define _NOISE(X, EXP)                                                         \
-  _Generic(X, double : _noise_binary64, __float128 : _noise_binary128)(EXP)
+#define _NOISE(X, EXP, RNG_STATE)                                              \
+  _Generic(X, double                                                           \
+           : _noise_binary64, __float128                                       \
+           : _noise_binary128)(EXP, RNG_STATE)
 
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
-#define _INEXACT(X, VIRTUAL_PRECISION, CTX)                                    \
+#define _INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                         \
   {                                                                            \
+    t_context *TMP_CTX = (t_context *)CTX;                                     \
+    _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
+                           (unsigned long long)(TMP_CTX->seed), false);        \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
-    } else if (_mca_skip_eval(((t_context *)CTX)->sparsity)) {                 \
+    } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE),                 \
+                              &global_tid_lock, &global_tid)) {                \
       return;                                                                  \
     } else {                                                                   \
-      if (((t_context *)CTX)->relErr) {                                        \
+      if (TMP_CTX->relErr) {                                                   \
         const int32_t e_a = GET_EXP_FLT(*X);                                   \
         const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel);                      \
+        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, &RNG_STATE);          \
         *X = *X + noise_rel;                                                   \
       }                                                                        \
-      if (((t_context *)CTX)->absErr) {                                        \
-        const int32_t e_n_abs = ((t_context *)CTX)->absErr_exp;                \
-        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs);                      \
+      if (TMP_CTX->absErr) {                                                   \
+        const int32_t e_n_abs = TMP_CTX->absErr_exp;                           \
+        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, &RNG_STATE);          \
         *X = *X + noise_abs;                                                   \
       }                                                                        \
     }                                                                          \
@@ -261,12 +273,12 @@ static __float128 _noise_binary128(const int exp) {
 
 /* Adds the mca noise to da */
 static void _mca_inexact_binary64(double *da, void *context) {
-  _INEXACT(da, MCALIB_BINARY32_T, context);
+  _INEXACT(da, MCALIB_BINARY32_T, context, rng_state);
 }
 
 /* Adds the mca noise to qa */
 static void _mca_inexact_binary128(__float128 *qa, void *context) {
-  _INEXACT(qa, MCALIB_BINARY64_T, context);
+  _INEXACT(qa, MCALIB_BINARY64_T, context, rng_state);
 }
 
 /* Generic functions that adds noise to A */
@@ -275,11 +287,6 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
   _Generic(X, double                                                           \
            : _mca_inexact_binary64, __float128                                 \
            : _mca_inexact_binary128)(A, CTX)
-
-/* Set the mca seed */
-static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
-  _set_seed_default(&random_state, choose_seed, seed);
-}
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the MCA operation. Operands
@@ -353,41 +360,21 @@ inline double _mca_binary64_binary_op(const double a, const double b,
  * point operators
  **********************************************************************/
 
-static void _interflop_add_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, mca_add, context);
-}
+_INTERFLOP_OP_CALL(float, add, mca_add, _mca_binary32_binary_op)
 
-static void _interflop_sub_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, mca_sub, context);
-}
+_INTERFLOP_OP_CALL(float, sub, mca_sub, _mca_binary32_binary_op)
 
-static void _interflop_mul_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, mca_mul, context);
-}
+_INTERFLOP_OP_CALL(float, mul, mca_mul, _mca_binary32_binary_op)
 
-static void _interflop_div_float(float a, float b, float *c, void *context) {
-  *c = _mca_binary32_binary_op(a, b, mca_div, context);
-}
+_INTERFLOP_OP_CALL(float, div, mca_div, _mca_binary32_binary_op)
 
-static void _interflop_add_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, mca_add, context);
-}
+_INTERFLOP_OP_CALL(double, add, mca_add, _mca_binary64_binary_op)
 
-static void _interflop_sub_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, mca_sub, context);
-}
+_INTERFLOP_OP_CALL(double, sub, mca_sub, _mca_binary64_binary_op)
 
-static void _interflop_mul_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, mca_mul, context);
-}
+_INTERFLOP_OP_CALL(double, mul, mca_mul, _mca_binary64_binary_op)
 
-static void _interflop_div_double(double a, double b, double *c,
-                                  void *context) {
-  *c = _mca_binary64_binary_op(a, b, mca_div, context);
-}
+_INTERFLOP_OP_CALL(double, div, mca_div, _mca_binary64_binary_op)
 
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
@@ -569,7 +556,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   *context = ctx;
   init_context(ctx);
 
-  /* parse backend arguments */
+  /* Parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
 
   print_information_header(ctx);
@@ -589,8 +576,11 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL};
 
-  /* Initialize the seed and sparsity */
-  _set_mca_seed(ctx->choose_seed, ctx->seed);
+  /* The seed for the RNG is initialized upon the first request for a random
+     number */
+
+  _init_rng_state_struct(&rng_state, ctx->choose_seed,
+                         (unsigned long long int)(ctx->seed), false);
 
   return interflop_backend_mca;
 }

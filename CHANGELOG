@@ -1,5 +1,24 @@
 Verificarlo CHANGELOG
 
+# [v0.6.0] 2021/10/13
+
+## Added
+  * Add test for MCA backend when using OpenMP and pthread threads
+  * A new RNG, based on drand48_r and lrand48_r
+  * Support for deterministic backends (such as V-PREC) in Verificarlo CI
+  * Add an option to place accuracy targets ("checks") on Verificarlo CI probes
+
+## Fixed
+  * Minor bugfixes in Verificarlo CI
+
+## Changed
+  * MCA, MCA-MPFR, Bitmask and Cancellation backends no longer use the TinyMT64 RNG
+  * MCA, MCA-MPFR, Bitmask and Cancellation backends use drand48_r and lrand48_r RNGs
+  * RNG is now re-entrant
+  * MCA, MCA-MPFR, Bitmask and Cancellation backends are re-entrant
+  * Noise generation in the MCA backend uses one floating-point operation less
+  * removed the TinyMT64 RNG, and changed all dependences to it towards the new RNG
+
 # [v0.5.0] 2021/06/17
 
 ## Added
