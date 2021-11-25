@@ -5,5 +5,5 @@ if WALL_CFLAGS
 libinterflop_mca_la_CFLAGS += -Wall -Wextra
 endif
 libinterflop_mca_la_LDFLAGS = -lm
-libinterflop_mca_la_LIBADD = ../../common/libtinymt64.la
+libinterflop_mca_la_LIBADD = 
 library_includedir =$(includedir)/

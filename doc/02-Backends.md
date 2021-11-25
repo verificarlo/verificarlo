@@ -81,6 +81,7 @@ environment variable `VFC_BACKENDS_COLORED_LOGGER`.
    $ export VFC_BACKENDS_COLORED_LOGGER="False"
 ```
 
+The IEEE, MCA, MCA-MPFR, Bitmask and Cancellation backends are all re-entrant.
 
 ### IEEE Backend (libinterflop_ieee.so)
 

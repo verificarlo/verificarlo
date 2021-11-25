@@ -25,6 +25,14 @@
  *                                                                           *
  *****************************************************************************/
 
+// Changelog:
+//
+// 2021-10-13 Switched random number generator from TinyMT64 to the one
+// provided by the libc. The backend is now re-entrant. Pthread and OpenMP
+// threads are now supported.
+// Generation of hook functions is now done through macros, shared accross
+// backends.
+
 #include <argp.h>
 #include <err.h>
 #include <errno.h>
@@ -43,10 +51,6 @@
 #include "../../common/interflop.h"
 #include "../../common/logger.h"
 #include "../../common/options.h"
-#include "../../common/tinymt64.h"
-
-#include "../../common/float_const.h"
-#include "../../common/tinymt64.h"
 
 typedef struct {
   bool choose_seed;
@@ -66,29 +70,29 @@ static void _set_tolerance(int tolerance) { TOLERANCE = tolerance; }
 
 static void _set_warning(bool warning) { WARN = warning; }
 
-/* random generator internal state */
-static tinymt64_t random_state;
+/* global thread id access lock */
+static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
+/* global thread identifier */
+static unsigned long long int global_tid = 0;
 
-/* Set the mca seed */
-static void _set_mca_seed(const bool choose_seed, const uint64_t seed) {
-  _set_seed_default(&random_state, choose_seed, seed);
-}
-
-static double _mca_rand(void) {
-  /* Returns a random double in the (0,1) open interval */
-  return tinymt64_generate_doubleOO(&random_state);
-}
+/* helper data structure to centralize the data used for random number
+ * generation */
+static __thread rng_state_t rng_state;
 
 /* noise = rand * 2^(exp) */
-static inline double _noise_binary64(const int exp) {
-  const double d_rand = (_mca_rand() - 0.5);
-  return _fast_pow2_binary64(exp) * d_rand;
+static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
+  const double d_rand =
+      _get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5;
+
+  binary64 b64 = {.f64 = d_rand};
+  b64.ieee.exponent = b64.ieee.exponent + exp;
+  return b64.f64;
 }
 
 /* cancell: detects the cancellation size; and checks if its larger than the
  * chosen tolerance. It reports a warning to the user and adds a MCA noise of
  * the magnitude of the cancelled bits. */
-#define cancell(X, Y, Z)                                                       \
+#define cancell(X, Y, Z, CTX, RNG_STATE)                                       \
   ({                                                                           \
     const int32_t e_z = GET_EXP_FLT(*Z);                                       \
     /* computes the difference between the max of both operands and the        \
@@ -102,54 +106,53 @@ static inline double _noise_binary64(const int exp) {
        * This particular version in the case of cancellations does not use     \
        * extended quad types */                                                \
       const int32_t e_n = e_z - (cancellation - 1);                            \
-      *Z = *Z + _noise_binary64(e_n);                                          \
+      _init_rng_state_struct(&RNG_STATE, ((t_context *)CTX)->choose_seed,      \
+                             (unsigned long long)(((t_context *)CTX)->seed),   \
+                             false);                                           \
+      *Z = *Z + _noise_binary64(e_n, &RNG_STATE);                              \
     }                                                                          \
   })
 
+/* A macro to enable/disble the generation of the cancell clause */
+#define _GEN_CANCELL_CLAUSE_0
+#define _GEN_CANCELL_CLAUSE_1 cancell(a, b, c, context, rng_state);
+#define _GEN_CANCELL_CLAUSE(x) _GEN_CANCELL_CLAUSE_##x
+/* A macro to enable/disble the generation of the attribute in the function
+ * declaration */
+#define _GEN_CANCELL_ATTR_0 __attribute__((unused))
+#define _GEN_CANCELL_ATTR_1
+#define _GEN_CANCELL_ATTR(x) _GEN_CANCELL_ATTR_##x
+/* A macro to simplify the generation of calls to the interflop hook functions
+ * for the cancellation backend */
+/* TYPE       is the data type of the arguments */
+/* OP_NAME    is the name of the operation that is being intercepted (i.e. add,
+ * sub, mul, div) */
+/* OP_TYPE    is the operation to be applied */
+/* GEN_CLAUSE enable/disable the generation of the call to the cancell function
+ */
+#define _INTERFLOP_OP_CALL_CANCELL(TYPE, OP_NAME, OP_TYPE, GEN_CLAUSE)         \
+  static void _interflop_##OP_NAME##_##TYPE(                                   \
+      TYPE a, TYPE b, _GEN_CANCELL_ATTR(GEN_CLAUSE) TYPE *c, void *context) {  \
+    *c = a OP_TYPE b;                                                          \
+    _GEN_CANCELL_CLAUSE(GEN_CLAUSE)                                            \
+  }
+
 /* Cancellations can only happen during additions and substractions */
-static void _interflop_add_float(float a, float b, float *c,
-                                 __attribute__((unused)) void *context) {
-  *c = a + b;
-  cancell(a, b, c);
-}
+_INTERFLOP_OP_CALL_CANCELL(float, add, +, true)
 
-static void _interflop_sub_float(float a, float b, float *c,
-                                 __attribute__((unused)) void *context) {
-  *c = a - b;
-  cancell(a, b, c);
-}
+_INTERFLOP_OP_CALL_CANCELL(float, sub, -, true)
 
-static void _interflop_add_double(double a, double b, double *c,
-                                  __attribute__((unused)) void *context) {
-  *c = a + b;
-  cancell(a, b, c);
-}
+_INTERFLOP_OP_CALL_CANCELL(double, add, +, true)
 
-static void _interflop_sub_double(double a, double b, double *c,
-                                  __attribute__((unused)) void *context) {
-  *c = a - b;
-  cancell(a, b, c);
-}
+_INTERFLOP_OP_CALL_CANCELL(double, sub, -, true)
 
-static void _interflop_mul_float(float a, float b, float *c,
-                                 __attribute__((unused)) void *context) {
-  *c = a * b;
-}
+_INTERFLOP_OP_CALL_CANCELL(float, mul, *, false)
 
-static void _interflop_div_float(float a, float b, float *c,
-                                 __attribute__((unused)) void *context) {
-  *c = a / b;
-}
+_INTERFLOP_OP_CALL_CANCELL(float, div, /, false)
 
-static void _interflop_mul_double(double a, double b, double *c,
-                                  __attribute__((unused)) void *context) {
-  *c = a * b;
-}
+_INTERFLOP_OP_CALL_CANCELL(double, mul, *, false)
 
-static void _interflop_div_double(double a, double b, double *c,
-                                  __attribute__((unused)) void *context) {
-  *c = a / b;
-}
+_INTERFLOP_OP_CALL_CANCELL(double, div, /, false)
 
 static struct argp_option options[] = {
     {"tolerance", 't', "TOLERANCE", 0, "Select tolerance (TOLERANCE >= 0)", 0},
@@ -228,8 +231,11 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL};
 
-  /* Initialize the seed */
-  _set_mca_seed(ctx->choose_seed, ctx->seed);
+  /* The seed for the RNG is initialized upon the first request for a random
+     number */
+
+  _init_rng_state_struct(&rng_state, ctx->choose_seed,
+                         (unsigned long long int)(ctx->seed), false);
 
   return interflop_backend_cancellation;
 }
