@@ -250,13 +250,15 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
   noise_high &= noise_mask_high;
 
   if (noise_low % 2) {
-    carry = (noise_low > ((uint64_t)DOUBLE_MASK_ONE - x_b128.mant_low)) ? 1 : 0;
-    x_b128.mant_low = x_b128.mant_low + noise_low;
-    x_b128.mant_high = x_b128.mant_high + noise_high + carry;
+    carry = (noise_low > ((uint64_t)DOUBLE_MASK_ONE - x_b128.ieee.mant_low))
+                ? 1
+                : 0;
+    x_b128.ieee.mant_low = x_b128.ieee.mant_low + noise_low;
+    x_b128.ieee.mant_high = x_b128.ieee.mant_high + noise_high + carry;
   } else {
-    carry = (noise_low > x_b128.mant_low) ? 1 : 0;
-    x_b128.mant_low = x_b128.mant_low - noise_low;
-    x_b128.mant_high = x_b128.mant_high - noise_high - carry;
+    carry = (noise_low > x_b128.ieee.mant_low) ? 1 : 0;
+    x_b128.ieee.mant_low = x_b128.ieee.mant_low - noise_low;
+    x_b128.ieee.mant_high = x_b128.ieee.mant_high - noise_high - carry;
   }
 
   *x = x_b128.f128;
@@ -274,7 +276,7 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
-  _Generic(X, double                                                           \
+  _Generic(*X, double                                                          \
            : _noise_binary64, __float128                                       \
            : _noise_binary128)(X, EXP, RNG_STATE)
 
@@ -292,10 +294,10 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
       return;                                                                  \
     } else {                                                                   \
       if (TMP_CTX->relErr) {                                                   \
-        _NOISE(*X, VIRTUAL_PRECISION, &RNG_STATE);                             \
+        _NOISE(X, VIRTUAL_PRECISION, &RNG_STATE);                              \
       }                                                                        \
       if (TMP_CTX->absErr) {                                                   \
-        _NOISE(*X, TMP_CTX->absErr_exp, &RNG_STATE);                           \
+        _NOISE(X, TMP_CTX->absErr_exp, &RNG_STATE);                            \
       }                                                                        \
     }                                                                          \
   }
