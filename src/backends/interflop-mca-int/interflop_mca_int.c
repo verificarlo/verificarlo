@@ -203,18 +203,19 @@ static __thread rng_state_t rng_state;
 /* is comprised between: */
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
-static inline void _noise_binary64(double *x, const int exp, rng_state_t *rng_state) {
+static inline void _noise_binary64(double *x, const int exp,
+                                   rng_state_t *rng_state) {
   uint64_t noise_mask, noise;
   uint32_t mask_shift_amount;
   binary64 x_b64 = {.f64 = *x};
-  
-  mask_shift_amount = 1+DOUBLE_EXP_SIZE+exp-1;
+
+  mask_shift_amount = 1 + DOUBLE_EXP_SIZE + exp - 1;
   noise_mask = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount;
-  
+
   noise = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
   noise &= noise_mask;
-  
-  if(noise % 2)
+
+  if (noise % 2)
     x_b64.u64 = x_b64.u64 + noise;
   else
     x_b64.u64 = x_b64.u64 - noise;
@@ -228,29 +229,32 @@ static inline void _noise_binary64(double *x, const int exp, rng_state_t *rng_st
 /* is comprised between: */
 /* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
-static __float128 _noise_binary128(__float128 *x, const int exp, rng_state_t *rng_state) {
+static __float128 _noise_binary128(__float128 *x, const int exp,
+                                   rng_state_t *rng_state) {
   uint64_t noise_mask_high, noise_mask_low, noise_high, noise_low, carry;
   uint32_t mask_shift_amount_high, mask_shift_amount_low;
   binary128 x_b128 = {.f128 = *x};
-  
-  mask_shift_amount_high = 1+QUAD_EXP_SIZE+exp-1;
+
+  mask_shift_amount_high = 1 + QUAD_EXP_SIZE + exp - 1;
   noise_mask_high = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_high;
-  
-  mask_shift_amount_low = exp-1-(1+DOUBLE_EXP_SIZE+DOUBLE_PMAN_SIZE-(1+QUAD_EXP_SIZE)+1);
+
+  mask_shift_amount_low =
+      exp - 1 -
+      (1 + DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE - (1 + QUAD_EXP_SIZE) + 1);
   noise_mask_low = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_low;
-  
+
   noise_low = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
   noise_high = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
-  
+
   noise_low &= noise_mask_low;
   noise_high &= noise_mask_high;
-  
-  if(noise_low % 2) {
-    carry = (noise_low > ((uint64_t)DOUBLE_MASK_ONE - x_b128.mant_low))  ? 1 : 0;
+
+  if (noise_low % 2) {
+    carry = (noise_low > ((uint64_t)DOUBLE_MASK_ONE - x_b128.mant_low)) ? 1 : 0;
     x_b128.mant_low = x_b128.mant_low + noise_low;
     x_b128.mant_high = x_b128.mant_high + noise_high + carry;
   } else {
-    carry = (noise_low > x_b128.mant_low)  ? 1 : 0;
+    carry = (noise_low > x_b128.mant_low) ? 1 : 0;
     x_b128.mant_low = x_b128.mant_low - noise_low;
     x_b128.mant_high = x_b128.mant_high - noise_high - carry;
   }
