@@ -205,17 +205,19 @@ static __thread rng_state_t rng_state;
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline void _noise_binary64(double *x, const int exp,
                                    rng_state_t *rng_state) {
-  uint64_t noise_mask, noise;
+  uint64_t noise_mask, noise_msb_mask, noise, noise_sign;
   uint32_t mask_shift_amount;
   binary64 x_b64 = {.f64 = *x};
 
   mask_shift_amount = 1 + DOUBLE_EXP_SIZE + exp - 1;
   noise_mask = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount;
+  noise_msb_mask = ((uint64_t)1) << (DOUBLE_PMAN_SIZE - exp);
 
   noise = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+  noise_sign = noise & noise_msb_mask;
   noise &= noise_mask;
 
-  if (noise % 2)
+  if (noise_sign)
     x_b64.u64 = x_b64.u64 + noise;
   else
     x_b64.u64 = x_b64.u64 - noise;
@@ -231,7 +233,8 @@ static inline void _noise_binary64(double *x, const int exp,
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
 static __float128 _noise_binary128(__float128 *x, const int exp,
                                    rng_state_t *rng_state) {
-  uint64_t noise_mask_high, noise_mask_low, noise_high, noise_low, carry;
+  uint64_t noise_mask_high, noise_mask_low, noise_mask_msb;
+  uint64_t noise_high, noise_low, carry, noise_sign;
   uint32_t mask_shift_amount_high, mask_shift_amount_low;
   binary128 x_b128 = {.f128 = *x};
 
@@ -243,13 +246,21 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
       (1 + DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE - (1 + QUAD_EXP_SIZE) + 1);
   noise_mask_low = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_low;
 
-  noise_low = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
-  noise_high = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+  if (noise_mask_high == 0) {
+    noise_mask_msb = ((uint64_t)1) << (QUAD_PMAN_SIZE - exp);
+    noise_sign = noise_low & noise_mask_msb;
+  } else {
+    noise_mask_msb = ((uint64_t)1) << (exp - DOUBLE_PMAN_SIZE);
+    noise_sign = noise_high & noise_mask_msb;
+  }
 
+  noise_low = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
   noise_low &= noise_mask_low;
+  
+  noise_high = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
   noise_high &= noise_mask_high;
 
-  if (noise_low % 2) {
+  if (noise_sign) {
     carry = (noise_low > ((uint64_t)DOUBLE_MASK_ONE - x_b128.ieee.mant_low))
                 ? 1
                 : 0;
