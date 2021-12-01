@@ -256,7 +256,7 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
 
   noise_low = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
   noise_low &= noise_mask_low;
-  
+
   noise_high = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
   noise_high &= noise_mask_high;
 
