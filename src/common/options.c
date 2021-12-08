@@ -111,6 +111,15 @@ static uint64_t _generate_random_uint64(struct drand48_data *random_state) {
   return tmp_rand;
 }
 
+/* Outputs 32-bit unsigned integer r (0 <= r < 2^31) */
+static uint32_t _generate_random_uint32(struct drand48_data *random_state) {
+  uint64_t tmp_rand;
+
+  lrand48_r(random_state, &tmp_rand);
+
+  return (uint32_t)tmp_rand;
+}
+
 /* Output a floating point number r (0.0 < r < 1.0) */
 static double _generate_random_double(struct drand48_data *random_state) {
   double tmp_rand;
