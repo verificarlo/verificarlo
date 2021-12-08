@@ -105,7 +105,8 @@ static uint64_t _generate_random_uint64(struct drand48_data *random_state) {
 
   lrand48_r(random_state, &tmp_rand1);
   lrand48_r(random_state, &tmp_rand2);
-  tmp_rand = (tmp_rand1 << 32) + tmp_rand2;
+  // tmp_rand = (tmp_rand1 << 32) + tmp_rand2;
+  tmp_rand = (tmp_rand2 << 32) + tmp_rand1;
 
   return tmp_rand;
 }

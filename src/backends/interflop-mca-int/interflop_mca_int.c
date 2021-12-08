@@ -209,18 +209,33 @@ static inline void _noise_binary64(double *x, const int exp,
   uint32_t mask_shift_amount;
   binary64 x_b64 = {.f64 = *x};
 
-  mask_shift_amount = 1 + DOUBLE_EXP_SIZE + exp - 1;
+  // //mask_shift_amount = 1 + DOUBLE_EXP_SIZE + exp - 1;
+  mask_shift_amount = 1 + DOUBLE_EXP_SIZE + exp;
   noise_mask = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount;
-  noise_msb_mask = ((uint64_t)1) << (DOUBLE_PMAN_SIZE - exp);
+  // //noise_msb_mask = ((uint64_t)1) << (DOUBLE_PMAN_SIZE - exp);
+  noise_msb_mask = ((uint64_t)1) << (DOUBLE_PMAN_SIZE - exp - 1);
 
   noise = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+
+  // printf("noise: %lu\n", noise);
+  // printf("noise mask: %lu\n", noise_mask);
+
   noise_sign = noise & noise_msb_mask;
+
+  // printf("noise sign: %lu\n", noise_sign);
+  
   noise &= noise_mask;
+
+  // printf("noise masked: %lu\n", noise);
+
+  // printf("input: %.18f\n", x_b64.f64);
 
   if (noise_sign)
     x_b64.u64 = x_b64.u64 + noise;
   else
     x_b64.u64 = x_b64.u64 - noise;
+
+  // printf("input noised: %.18f\n", x_b64.f64);
 
   *x = x_b64.f64;
 }
