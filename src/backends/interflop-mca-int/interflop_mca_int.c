@@ -209,10 +209,8 @@ static inline void _noise_binary64(double *x, const int exp,
   uint32_t mask_shift_amount;
   binary64 x_b64 = {.f64 = *x};
 
-  // //mask_shift_amount = 1 + DOUBLE_EXP_SIZE + exp - 1;
   mask_shift_amount = 1 + DOUBLE_EXP_SIZE + exp;
   noise_mask = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount;
-  // //noise_msb_mask = ((uint64_t)1) << (DOUBLE_PMAN_SIZE - exp);
   noise_msb_mask = ((uint64_t)1) << (DOUBLE_PMAN_SIZE - exp - 1);
 
   noise = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
