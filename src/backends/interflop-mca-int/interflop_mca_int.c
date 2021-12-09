@@ -224,7 +224,7 @@ static inline void _noise_binary64(double *x, const int exp,
   //  next, shift the MSB all the way to the LSB position
   noise_msb = noise_msb >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
   //noise sign mask is used to create the one's complement of the masked noise
-  noise_sign_mask = (uint64_t)DOUBLE_MASK_ONE + noise_msb;
+  noise_sign_mask = (uint64_t)DOUBLE_MASK_ONE + (noise_msb^1);
 
   printf("noise: %lu\n", noise);
   printf("noise mask: %lu\n", noise_mask);
