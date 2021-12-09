@@ -226,10 +226,10 @@ static inline void _noise_binary64(double *x, const int exp,
   //noise sign mask is used to create the one's complement of the masked noise
   noise_sign_mask = (uint64_t)DOUBLE_MASK_ONE + (noise_msb^1);
 
-  printf("noise: %lu\n", noise);
-  printf("noise mask: %lu\n", noise_mask);
-  printf("noise msb: %lu\n", noise_msb);
-  printf("noise sign mask: %lu\n", noise_sign_mask);
+  // printf("noise: %lu\n", noise);
+  // printf("noise mask: %lu\n", noise_mask);
+  // printf("noise msb: %lu\n", noise_msb);
+  // printf("noise sign mask: %lu\n", noise_sign_mask);
 
   // //noise_sign = noise & noise_msb_mask;
 
@@ -243,9 +243,9 @@ static inline void _noise_binary64(double *x, const int exp,
   //  add the carry, if necessary
   noise += noise_msb;
 
-  printf("noise masked: %lu\n", noise);
+  // printf("noise masked: %lu\n", noise);
 
-  printf("input: %.18f\n", x_b64.f64);
+  // printf("input: %.18f\n", x_b64.f64);
 
   // //if (noise_sign)
   // //   x_b64.u64 = x_b64.u64 + noise;
@@ -254,7 +254,7 @@ static inline void _noise_binary64(double *x, const int exp,
   //add the noise to the input
   x_b64.u64 = x_b64.u64 + noise;
 
-  printf("input noised: %.18f\n", x_b64.f64);
+  // printf("input noised: %.18f\n", x_b64.f64);
 
   *x = x_b64.f64;
 }
