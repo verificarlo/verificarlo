@@ -205,26 +205,27 @@ static __thread rng_state_t rng_state;
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline void _noise_binary64(double *x, const int exp,
                                    rng_state_t *rng_state) {
-  uint64_t noise_mask, noise_msb_mask, noise, noise_sign, noise_msb, noise_sign_mask;
+  uint64_t noise_mask, noise_msb_mask, noise, noise_sign, noise_msb,
+      noise_sign_mask;
   uint32_t mask_shift_amount;
   binary64 x_b64 = {.f64 = *x};
 
-  //amount by which to shift, when creating the mask for the noise
+  // amount by which to shift, when creating the mask for the noise
   mask_shift_amount = 1 + DOUBLE_EXP_SIZE + exp;
-  //create the noise for the noise
+  // create the noise for the noise
   noise_mask = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount;
   // //noise_msb_mask = ((uint64_t)1) << (DOUBLE_PMAN_SIZE - exp - 1);
 
-  //generate a new random 64-bit integer
+  // generate a new random 64-bit integer
   noise = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
 
-  //extract the MSB of the noise
+  // extract the MSB of the noise
   //  first extract the MSB
   noise_msb = noise & (((uint64_t)1) << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
   //  next, shift the MSB all the way to the LSB position
   noise_msb = noise_msb >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
-  //noise sign mask is used to create the one's complement of the masked noise
-  noise_sign_mask = (uint64_t)DOUBLE_MASK_ONE + (noise_msb^1);
+  // noise sign mask is used to create the one's complement of the masked noise
+  noise_sign_mask = (uint64_t)DOUBLE_MASK_ONE + (noise_msb ^ 1);
 
   // printf("noise: %lu\n", noise);
   // printf("noise mask: %lu\n", noise_mask);
@@ -234,10 +235,11 @@ static inline void _noise_binary64(double *x, const int exp,
   // //noise_sign = noise & noise_msb_mask;
 
   // //printf("noise sign: %lu\n", noise_sign);
-  
-  //apply the mask to the noise, to only keep the noise at the correct magnitude
+
+  // apply the mask to the noise, to only keep the noise at the correct
+  // magnitude
   noise &= noise_mask;
-  //create the two's complement of the noise, if necessary
+  // create the two's complement of the noise, if necessary
   //  flip all bits of the noise, if necessary
   noise ^= noise_sign_mask;
   //  add the carry, if necessary
@@ -251,7 +253,7 @@ static inline void _noise_binary64(double *x, const int exp,
   // //   x_b64.u64 = x_b64.u64 + noise;
   // // else
   // //   x_b64.u64 = x_b64.u64 - noise;
-  //add the noise to the input
+  // add the noise to the input
   x_b64.u64 = x_b64.u64 + noise;
 
   // printf("input noised: %.18f\n", x_b64.f64);
