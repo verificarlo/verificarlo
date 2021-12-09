@@ -242,7 +242,7 @@ static inline void _noise_binary64(double *x, const int exp,
   // printf("noise masked: %lu\n", noise);
 
   // printf("input: %.18f\n", x_b64.f64);
-  
+
   // add the noise to the input
   x_b64.u64 = x_b64.u64 + noise;
 
