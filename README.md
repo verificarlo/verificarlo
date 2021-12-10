@@ -1,12 +1,13 @@
-![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
-
 ## Verificarlo v0.6.0
+
+A tool for debugging and assessing floating point precision and reproducibility.
+
+![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
 ![Build Status](https://github.com/verificarlo/verificarlo/workflows/test-docker/badge.svg?branch=master)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
 [![Coverity](https://scan.coverity.com/projects/19956/badge.svg)](https://scan.coverity.com/projects/verificarlo-verificarlo)
 
-A tool for debugging and assessing floating point precision and reproducibility.
 
    * [Installation](#installation)
    * [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
