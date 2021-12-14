@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 from bigfloat import *
 import sys
@@ -6,27 +6,29 @@ import os
 import math
 import functools
 
-verbose_mode=False
-VERBOSE_MODE="VERBOSE_MODE"
+verbose_mode = False
+VERBOSE_MODE = "VERBOSE_MODE"
 
-op_list = ["+","-","x","/"]
-op2bfOp = { "+" : add,
-            "-" : sub,
-            "x" : mul,
-            "/" : div  }
+op_list = ["+", "-", "x", "/"]
+op2bfOp = {"+": add,
+           "-": sub,
+           "x": mul,
+           "/": div}
 
-VPREC_RANGE="VERIFICARLO_VPREC_RANGE"
-PRECISION  ="VERIFICARLO_PRECISION"
-VPREC_MODE="VERIFICARLO_VPREC_MODE"
+VPREC_RANGE = "VERIFICARLO_VPREC_RANGE"
+PRECISION = "VERIFICARLO_PRECISION"
+VPREC_MODE = "VERIFICARLO_VPREC_MODE"
 
 mode_ieee = "IEEE"
-mode_pb   = "IB"
-mode_ob   = "OB"
+mode_pb = "IB"
+mode_ob = "OB"
 mode_full = "FULL"
+
 
 def parse_file(filename):
     fi = open(filename, "r")
     return [BigFloat(fp.strip()) for fp in fi]
+
 
 def check_op(op):
     if op in op_list:
@@ -34,6 +36,7 @@ def check_op(op):
     else:
         print("Bad op {op}".format(op=op))
         exit(1)
+
 
 def get_var_env_int(env):
 
@@ -44,6 +47,7 @@ def get_var_env_int(env):
         print("Bad {env} {varenv}".format(env=env, varenv=varenv))
         exit(1)
 
+
 def get_var_env(env):
 
     varenv = os.getenv(env)
@@ -52,6 +56,7 @@ def get_var_env(env):
     else:
         print("Bad {env} {varenv}".format(env=env, varenv=varenv))
         exit(1)
+
 
 def set_custom_context(vrange, prec):
     emax = 2**(vrange-1)
@@ -66,6 +71,7 @@ def set_custom_context(vrange, prec):
     setcontext(context)
     return context
 
+
 def get_context_type(float_type):
     if float_type == "float":
         return single_precision
@@ -76,26 +82,29 @@ def get_context_type(float_type):
         exit(1)
 
 # 0x0.xp+e
+
+
 def hex_normalize(flt):
-    if math.isinf(flt) or math.isnan(flt) or flt==0.0:
+    if math.isinf(flt) or math.isnan(flt) or flt == 0.0:
         return str(flt)
 
     hex_str = flt.hex()
-    s = functools.reduce(lambda s,f : s.replace(f,'.'), ['0x', '.', 'p'], hex_str)
+    s = functools.reduce(lambda s, f: s.replace(
+        f, '.'), ['0x', '.', 'p'], hex_str)
     s = s.split('.')
 
     try:
         sign = '+'
-        [first, frac, exp] = filter(lambda x : x != '', s)
+        [first, frac, exp] = filter(lambda x: x != '', s)
     except ValueError:
-        [sign, first, frac, exp] = filter(lambda x : x != '', s)
+        [sign, first, frac, exp] = filter(lambda x: x != '', s)
     except Exception as e:
         print(e)
-        print(flt,s)
+        print(flt, s)
         exit(1)
 
-    mantissa = str(hex(int(frac,16) << 1))
-    mantissa = mantissa.replace('1','1.',1)
+    mantissa = str(hex(int(frac, 16) << 1))
+    mantissa = mantissa.replace('1', '1.', 1)
     exp = int(exp)-1
     signe_exp = '+' if exp >= 0 else ''
     hex_normalize = "{sign}{mant}p{signe_exp}{exp}".format(sign=sign,
@@ -104,17 +113,20 @@ def hex_normalize(flt):
                                                            exp=exp)
     return hex_normalize
 
+
 def print_mpfr_hex(name, mpfr_x, msg=''):
     if verbose_mode:
         res = hex_normalize(mpfr_x)
         fmt = "[MPFR] {msg} {name}={r}\n".format(name=name, r=res, msg=msg)
         sys.stderr.write(fmt)
 
+
 def check_verbose_mode():
     global verbose_mode
     verbose_env = os.getenv(VERBOSE_MODE)
     if verbose_env:
-        verbose_mode=True
+        verbose_mode = True
+
 
 if __name__ == "__main__":
 
