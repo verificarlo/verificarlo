@@ -211,7 +211,7 @@ static inline void _noise_binary64(double *x, const int exp,
 
   // amount by which to shift, when creating the mask for the noise
   mask_shift_amount = 1 + DOUBLE_EXP_SIZE + exp;
-  // create the noise for the noise
+  // create the mask for the noise
   noise_mask = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount;
 
   // generate a new random 64-bit integer
@@ -259,44 +259,64 @@ static inline void _noise_binary64(double *x, const int exp,
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
 static __float128 _noise_binary128(__float128 *x, const int exp,
                                    rng_state_t *rng_state) {
-  uint64_t noise_mask_high, noise_mask_low, noise_mask_msb;
-  uint64_t noise_high, noise_low, carry, noise_sign;
   uint32_t mask_shift_amount_high, mask_shift_amount_low;
+  uint64_t noise_mask_high, noise_mask_low, noise_msb, noise_sign_mask;
+  uint64_t noise_high, noise_low, carry;
+  uint64_t noise_low_msb, noise_low_msb_flip, noise_low_sign_carry;
   binary128 x_b128 = {.f128 = *x};
 
+  // amount by which to shift, when creating the mask for the noise
   mask_shift_amount_high = 1 + QUAD_EXP_SIZE + exp - 1;
+  // create the mask for the noise high part
   noise_mask_high = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_high;
 
-  mask_shift_amount_low =
-      exp - 1 -
-      (1 + DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE - (1 + QUAD_EXP_SIZE) + 1);
+  // amount by which to shift, when creating the mask for the noise
+  mask_shift_amount_low = exp - 1 - (1 + DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE - (1 + QUAD_EXP_SIZE) + 1);
+  // create the mask for the noise low part
   noise_mask_low = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_low;
 
-  if (noise_mask_high == 0) {
-    noise_mask_msb = ((uint64_t)1) << (QUAD_PMAN_SIZE - exp);
-    noise_sign = noise_low & noise_mask_msb;
-  } else {
-    noise_mask_msb = ((uint64_t)1) << (exp - DOUBLE_PMAN_SIZE);
-    noise_sign = noise_high & noise_mask_msb;
-  }
-
+  // generate a new random 64-bit integer
   noise_low = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
-  noise_low &= noise_mask_low;
-
   noise_high = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
-  noise_high &= noise_mask_high;
 
-  if (noise_sign) {
-    carry = (noise_low > ((uint64_t)DOUBLE_MASK_ONE - x_b128.ieee.mant_low))
-                ? 1
-                : 0;
-    x_b128.ieee.mant_low = x_b128.ieee.mant_low + noise_low;
-    x_b128.ieee.mant_high = x_b128.ieee.mant_high + noise_high + carry;
-  } else {
-    carry = (noise_low > x_b128.ieee.mant_low) ? 1 : 0;
-    x_b128.ieee.mant_low = x_b128.ieee.mant_low - noise_low;
-    x_b128.ieee.mant_high = x_b128.ieee.mant_high - noise_high - carry;
-  }
+  // extract the MSB of the noise
+  //  first extract the MSB
+  noise_msb = noise_high & (((uint64_t)1) << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
+  //  next, shift the MSB all the way to the LSB position
+  noise_msb = noise_msb >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
+  // noise sign mask is used to create the one's complement of the masked noise
+  noise_sign_mask = (uint64_t)DOUBLE_MASK_ONE + (noise_msb ^ 1);
+
+  // apply the mask to the noise, to only keep the noise at the correct
+  // magnitude
+  noise_low &= noise_mask_low;
+  // create the two's complement of the noise, if necessary
+  //  flip all bits of the noise, if necessary
+  noise_low ^= noise_sign_mask;
+  // save the MSB of the low noise part, to check if there is a carry propagation
+  noise_low_msb = noise_low >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
+  //  add the carry, if necessary
+  noise_low += noise_msb;
+  // save the MSB of the low noise part once two's complement created, to check if there is a carry propagation
+  noise_low_msb_flip = noise_low >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
+  // create the carry for the high part of the noise
+  //  the carry is set to one if there was a transition from 1 to 0 on the MSB of the low part of the noise
+  noise_low_sign_carry = (noise_low_msb ^ noise_low_msb_flip) & noise_low_msb;
+
+  // apply the mask to the noise, to only keep the noise at the correct
+  // magnitude
+  noise_high &= noise_mask_high;
+  // create the two's complement of the noise, if necessary
+  //  flip all bits of the noise, if necessary
+  noise_high ^= noise_sign_mask;
+  //  add the carry from the low part, if necessary
+  noise_high += noise_low_sign_carry;
+
+  // create a carry, if there is the need to propagate it from the low to the high part of the noise
+  carry = (noise_low > ((uint64_t)DOUBLE_MASK_ONE - x_b128.ieee.mant_low)) ? 1 : 0;
+
+  x_b128.ieee.mant_low = x_b128.ieee.mant_low + noise_low;
+  x_b128.ieee.mant_high = x_b128.ieee.mant_high + noise_high + carry;
 
   *x = x_b128.f128;
 }
