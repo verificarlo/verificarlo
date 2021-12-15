@@ -4,6 +4,8 @@
 ##uncomment to show all command executed by the script
 #set -x
 
+export VFC_BACKENDS_LOGGER=False
+
 if [[ $# != 6 ]]; then
 	echo "expected 5 arguments, $# given"
 	echo "usecase range_min range_step precision_min precision_step n_samples"

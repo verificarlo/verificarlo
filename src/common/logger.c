@@ -124,14 +124,14 @@ void logger_info(const char *fmt, ...) {
   va_start(ap, fmt);
   if (logger_enabled) {
     if (logger_colored) {
-      fprintf(stderr, "%sInfo%s [%s%s%s]: ", ansi_colors[info_color],
+      fprintf(stdout, "%sInfo%s [%s%s%s]: ", ansi_colors[info_color],
               ansi_colors[reset_color], ansi_colors[backend_color],
               BACKEND_HEADER_STR, ansi_colors[reset_color]);
     } else {
-      fprintf(stderr, "Info [%s]: ", BACKEND_HEADER_STR);
+      fprintf(stdout, "Info [%s]: ", BACKEND_HEADER_STR);
     }
+    vfprintf(stdout, fmt, ap);
   }
-  vfprintf(stderr, fmt, ap);
 }
 
 /* Display the warning message */
@@ -170,14 +170,14 @@ void logger_error(const char *fmt, ...) {
 void vlogger_info(const char *fmt, va_list argp) {
   if (logger_enabled) {
     if (logger_colored) {
-      fprintf(stderr, "%sInfo%s [%s%s%s]: ", ansi_colors[info_color],
+      fprintf(stdout, "%sInfo%s [%s%s%s]: ", ansi_colors[info_color],
               ansi_colors[reset_color], ansi_colors[backend_color],
               BACKEND_HEADER_STR, ansi_colors[reset_color]);
     } else {
-      fprintf(stderr, "Info [%s]: ", BACKEND_HEADER_STR);
+      fprintf(stdout, "Info [%s]: ", BACKEND_HEADER_STR);
     }
+    vfprintf(stdout, fmt, argp);
   }
-  vfprintf(stderr, fmt, argp);
 }
 
 /* Display the warning message */

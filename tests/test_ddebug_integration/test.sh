@@ -1,6 +1,8 @@
 #!/bin/bash
 # set -e
 
+export VFC_BACKENDS_LOGGER=False
+
 make clean
 make dd
 
@@ -12,7 +14,7 @@ echo "Problematic instructions are:"
 cat dd.line/rddmin-cmp/dd.line.exclude
 echo "=============================================================="
 
-if grep "integrate.hxx:23" dd.line/rddmin-cmp/dd.line.exclude > /dev/null ; then
+if grep "integrate.hxx:23" dd.line/rddmin-cmp/dd.line.exclude >/dev/null; then
   echo "found integrate.hxx:23 in exclude rddmin"
 else
   echo "MISSING integrate.hxx:23 in exclude rddmin"

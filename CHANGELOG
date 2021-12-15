@@ -1,5 +1,10 @@
 Verificarlo CHANGELOG
 
+# [Unreleased]
+
+## Changed
+  * VFC_BACKENDS_LOGGER=False behaviour. Now truly disable logger_info output.
+  * Redirect logger_info to stdout instead of stderr
 
 # [v0.7.0] 2022/01/22
 
