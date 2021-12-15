@@ -2,33 +2,33 @@
 set -e
 
 export VFC_BACKENDS_SILENT_LOAD="true"
-export VFC_BACKENDS_LOGGER="false"
+export VFC_BACKENDS_LOGGER="true"
 
 run() {
     export VFC_BACKENDS="libinterflop_ieee.so ${DEBUG_MODE} ${OPTIONS}"
     echo -e "\n### ${VFC_BACKENDS}"
-    ./test_options 2> log
+    ./test_options >log
 }
 
 eval_condition() {
-    
+
     if [[ $? != 0 ]]; then
-	echo 0
+        echo 0
     else
-	echo 1
+        echo 1
     fi
 }
 
 check() {
-  
+
     RESULT=$1
     ERROR_MSG=$2
-    
-    if [[ "$RESULT" != 0 ]] ; then
-       echo $ERROR_MSG
-       exit 1
+
+    if [[ "$RESULT" != 0 ]]; then
+        echo $ERROR_MSG
+        exit 1
     else
-	echo "[ok]"
+        echo "[ok]"
     fi
 }
 
@@ -39,36 +39,57 @@ for TYPE in float double; do
     DEBUG_MODE="--debug"
     OPTIONS=""
     run
-    check "$(grep -q "Decimal" log; echo $?)" "Error debug mode (Decimal) not printed"
+    check "$(
+        grep -q "Decimal" log
+        echo $?
+    )" "Error debug mode (Decimal) not printed"
 
     DEBUG_MODE="--debug-binary"
     OPTIONS=""
-    run   
-    check "$(grep -q "Binary" log; echo $?)" "Error debug mode (Decimal_bin) not printed"
+    run
+    check "$(
+        grep -q "Binary" log
+        echo $?
+    )" "Error debug mode (Decimal_bin) not printed"
 
     DEBUG_MODE="--debug"
     OPTIONS="--no-backend-name"
     run
-    check "$(grep -vq "Decimal" log; echo $?)" "Error debug mode (Decimal) printed"
+    check "$(
+        grep -vq "Decimal" log
+        echo $?
+    )" "Error debug mode (Decimal) printed"
 
     DEBUG_MODE="--debug-binary"
     OPTIONS="--no-backend-name"
     run
-    check "$(grep -vq "Binary" log; echo $?)" "Error debug mode (Binary) printed"
+    check "$(
+        grep -vq "Binary" log
+        echo $?
+    )" "Error debug mode (Binary) printed"
 
     DEBUG_MODE="--debug"
     OPTIONS="--print-new-line"
     run
-    check "$(grep -vq "Decimal" log; echo $?)" "Error no new lines printed"
+    check "$(
+        grep -vq "Decimal" log
+        echo $?
+    )" "Error no new lines printed"
 
     DEBUG_MODE="--debug-binary"
     OPTIONS="--print-new-line"
     run
-    check "$(test '$(wc -l log)'; echo $?)" "Error no new lines printed"
+    check "$(
+        test '$(wc -l log)'
+        echo $?
+    )" "Error no new lines printed"
 
     DEBUG_MODE="--count-op"
     OPTIONS=""
     run
-    check "$(grep -vq "add=" log; echo $?)" "Error no counts printed"
+    check "$(
+        grep -vq "add=" log
+        echo $?
+    )" "Error no counts printed"
 
 done
