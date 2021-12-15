@@ -21,7 +21,7 @@ Check() {
     PREC=$1
     MODE="MCA"
 
-    for BACKEND in "mca" "mca_mpfr"; do
+    for BACKEND in "mca"; do
 	echo -e "\nChecking backend ${BACKEND} at PRECISION $PREC MODE $MODE"
 
 	BACKENDSO="libinterflop_${BACKEND}.so"

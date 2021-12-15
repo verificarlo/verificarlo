@@ -1,30 +1,17 @@
-/*****************************************************************************
- *                                                                           *
- *  This file is part of Verificarlo.                                        *
- *                                                                           *
- *  Copyright (c) 2015                                                       *
- *     Universite de Versailles St-Quentin-en-Yvelines                       *
- *     CMLA, Ecole Normale Superieure de Cachan                              *
- *  Copyright (c) 2018                                                       *
- *     Universite de Versailles St-Quentin-en-Yvelines                       *
- *  Copyright (c) 2018-2020                                                  *
- *     Verificarlo contributors                                              *
- *                                                                           *
- *  Verificarlo is free software: you can redistribute it and/or modify      *
- *  it under the terms of the GNU General Public License as published by     *
- *  the Free Software Foundation, either version 3 of the License, or        *
- *  (at your option) any later version.                                      *
- *                                                                           *
- *  Verificarlo is distributed in the hope that it will be useful,           *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU General Public License for more details.                             *
- *                                                                           *
- *  You should have received a copy of the GNU General Public License        *
- *  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.     *
- *                                                                           *
+/*****************************************************************************\
+ *                                                                           *\
+ *  This file is part of the Verificarlo project,                            *\
+ *  under the Apache License v2.0 with LLVM Exceptions.                      *\
+ *  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                  *\
+ *  See https://llvm.org/LICENSE.txt for license information.                *\
+ *                                                                           *\
+ *  Copyright (c) 2015-2018                                                  *\
+ *     Universite de Versailles St-Quentin-en-Yvelines                       *\
+ *     CMLA, Ecole Normale Superieure de Cachan                              *\
+ *  Copyright (c) 2019-2021                                                  *\
+ *     Verificarlo Contributors                                              *\
+ *                                                                           *\
  *****************************************************************************/
-
 // Changelog:
 //
 // 2021-10-13 Switched random number generator from TinyMT64 to the one
