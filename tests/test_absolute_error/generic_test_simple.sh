@@ -75,14 +75,13 @@ for TYPE in "${type_list[@]}"; do
 			echo "OP: ${OP}"
 			for ABS_ERR in $(seq ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${abs_error_max[${TYPE}]}); do
 				echo "Absolute Error Threshold: ${ABS_ERR}"
-				echo -n "\"./compute_error.sh ${BIN} ${MODE} ${OP} ${TYPE} ${NB_TESTS} ${ABS_ERR}\" " >>run_parallel
+				echo "./compute_error.sh ${BIN} ${MODE} ${OP} ${TYPE} ${NB_TESTS} ${ABS_ERR}" >>run_parallel
 			done
 		done
 	done
 done
 
-RUNS="$(xargs -a run_parallel -0)"
-eval "parallel -j $(nproc) -- ${RUNS}"
+parallel -j $(nproc) <run_parallel
 
 cat >check_status.py <<HERE
 import sys

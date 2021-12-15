@@ -37,12 +37,11 @@ rm -f run_parallel
 for REALTYPE in "float" "double"; do
     compile $REALTYPE
     for BACKEND in "libinterflop_mca.so" "libinterflop_mca_mpfr.so" "libinterflop_bitmask.so"; do
-        echo -n " \"./compute_error.sh ${TYPE} ${PWD}/test_${TYPE,,} ${BACKEND} \"" >>run_parallel
+        echo "./compute_error.sh ${TYPE} ${PWD}/test_${TYPE,,} ${BACKEND}" >>run_parallel
     done
 done
 
-RUNS="$(xargs -a run_parallel -0)"
-eval "parallel -j $(nproc) -- ${RUNS}"
+parallel -j $(nproc) <run_parallel
 
 cat >check_status.py <<HERE
 import sys

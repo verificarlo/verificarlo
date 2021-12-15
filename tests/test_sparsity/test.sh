@@ -10,12 +10,11 @@ for dtype in "float" "double"; do
   echo $dtype | awk '{ print toupper($0) }'
   verificarlo-c -D REAL=${dtype} -O0 test.c -o test_${dtype}
   for sparsity in 1 0.9 0.5 0.25 0.1 0.01; do
-    echo -n " \"./compute_error.sh ${PWD}/test_${dtype} ${sparsity}\" " >>run_parallel
+    echo "./compute_error.sh ${PWD}/test_${dtype} ${sparsity}" >>run_parallel
   done
 done
 
-RUNS="$(xargs -a run_parallel -0)"
-eval "parallel -j $(nproc) -- ${RUNS}"
+parallel -j $(nproc) <run_parallel
 
 cat >check_status.py <<HERE
 import sys

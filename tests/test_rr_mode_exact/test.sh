@@ -10,12 +10,11 @@ for BACKEND in libinterflop_mca.so libinterflop_mca_mpfr.so; do
   for PREC in "--precision-binary32=24" "--precision-binary64=53"; do
     echo Testing $EXP with $BACKEND
     BIN=$PWD/rr_mode_${EXP,,}
-    echo -n " \" ./compute_error.sh ${BACKEND} ${EXP} ${PREC} ${BIN} \" " >>run_parallel
+    echo "./compute_error.sh ${BACKEND} ${EXP} ${PREC} ${BIN}" >>run_parallel
   done
 done
 
-RUNS="$(xargs -a run_parallel -0)"
-eval "parallel -j $(nproc) -- ${RUNS}"
+parallel -j $(nproc) <run_parallel
 
 cat >check_status.py <<HERE
 import sys

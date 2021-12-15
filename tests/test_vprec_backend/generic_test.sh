@@ -63,12 +63,11 @@ rm -f run_parallel.sh
 
 for TYPE in "${float_type_list[@]}"; do
 	for RANGE in $(seq ${RANGE_MIN} ${RANGE_STEP} ${range_max[$TYPE]}); do
-		echo -n "\"./compute_error.sh $TYPE $RANGE $USECASE $RANGE_MIN $RANGE_STEP $PRECISION_MIN $PRECISION_STEP $N_SAMPLES\" " >>run_parallel
+		echo "./compute_error.sh $TYPE $RANGE $USECASE $RANGE_MIN $RANGE_STEP $PRECISION_MIN $PRECISION_STEP $N_SAMPLES" >>run_parallel
 	done
 done
 
-RUNS="$(xargs -a run_parallel -0)"
-eval "parallel -j -- ${RUNS}"
+parallel -j <run_parallel
 
 cat tmp.*/log.error >log.error
 

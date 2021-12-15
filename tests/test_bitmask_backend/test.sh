@@ -36,7 +36,7 @@ check() {
 
     for MODE in "IB" "OB" "FULL"; do
         for PREC in $(seq $START_PREC 5 $MAX_PREC); do
-            echo -n " \"./compute_error.sh ${TYPE} ${OPERATOR} ${MODE} ${PREC} ${SEED} ${SAMPLES} ${OP}\" " >>run_parallel
+            echo "./compute_error.sh ${TYPE} ${OPERATOR} ${MODE} ${PREC} ${SEED} ${SAMPLES} ${OP}" >>run_parallel
         done
     done
 }
@@ -57,8 +57,7 @@ for op in "+" "-" "x" "/"; do
     check 52 3 DOUBLE RAND ${SEED} ${op}
 done
 
-RUNS="$(xargs -a run_parallel -0)"
-eval "parallel -j $(nproc) -- ${RUNS}"
+parallel -j $(nproc) <run_parallel
 
 cat >check_status.py <<HERE
 import sys
