@@ -2,16 +2,21 @@
  *                                                                           *\
  *  This file is part of the Verificarlo project,                            *\
  *  under the Apache License v2.0 with LLVM Exceptions.                      *\
- *  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                  *\
+ *  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 *\
  *  See https://llvm.org/LICENSE.txt for license information.                *\
  *                                                                           *\
- *  Copyright (c) 2015-2018                                                  *\
+ *                                                                           *\
+ *  Copyright (c) 2015                                                       *\
  *     Universite de Versailles St-Quentin-en-Yvelines                       *\
  *     CMLA, Ecole Normale Superieure de Cachan                              *\
+ *                                                                           *\
+ *  Copyright (c) 2018                                                       *\
+ *     Universite de Versailles St-Quentin-en-Yvelines                       *\
+ *                                                                           *\
  *  Copyright (c) 2019-2021                                                  *\
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
- *****************************************************************************/
+ ****************************************************************************/
 /*
  * This file defines "vfc_probes", a hashtable-based structure which can be used
  * to place "probes" in a code and store the different values of test variables.
