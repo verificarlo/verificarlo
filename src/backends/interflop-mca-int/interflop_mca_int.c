@@ -271,7 +271,9 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
   noise_mask_high = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_high;
 
   // amount by which to shift, when creating the mask for the noise
-  mask_shift_amount_low = exp - 1 - (1 + DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE - (1 + QUAD_EXP_SIZE) + 1);
+  mask_shift_amount_low =
+      exp - 1 -
+      (1 + DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE - (1 + QUAD_EXP_SIZE) + 1);
   // create the mask for the noise low part
   noise_mask_low = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_low;
 
@@ -281,7 +283,8 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
 
   // extract the MSB of the noise
   //  first extract the MSB
-  noise_msb = noise_high & (((uint64_t)1) << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
+  noise_msb =
+      noise_high & (((uint64_t)1) << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
   //  next, shift the MSB all the way to the LSB position
   noise_msb = noise_msb >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
   // noise sign mask is used to create the one's complement of the masked noise
@@ -293,14 +296,17 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
   // create the two's complement of the noise, if necessary
   //  flip all bits of the noise, if necessary
   noise_low ^= noise_sign_mask;
-  // save the MSB of the low noise part, to check if there is a carry propagation
+  // save the MSB of the low noise part, to check if there is a carry
+  // propagation
   noise_low_msb = noise_low >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
   //  add the carry, if necessary
   noise_low += noise_msb;
-  // save the MSB of the low noise part once two's complement created, to check if there is a carry propagation
+  // save the MSB of the low noise part once two's complement created, to check
+  // if there is a carry propagation
   noise_low_msb_flip = noise_low >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
   // create the carry for the high part of the noise
-  //  the carry is set to one if there was a transition from 1 to 0 on the MSB of the low part of the noise
+  //  the carry is set to one if there was a transition from 1 to 0 on the MSB
+  //  of the low part of the noise
   noise_low_sign_carry = (noise_low_msb ^ noise_low_msb_flip) & noise_low_msb;
 
   // apply the mask to the noise, to only keep the noise at the correct
@@ -312,8 +318,10 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
   //  add the carry from the low part, if necessary
   noise_high += noise_low_sign_carry;
 
-  // create a carry, if there is the need to propagate it from the low to the high part of the noise
-  carry = (noise_low > ((uint64_t)DOUBLE_MASK_ONE - x_b128.ieee.mant_low)) ? 1 : 0;
+  // create a carry, if there is the need to propagate it from the low to the
+  // high part of the noise
+  carry =
+      (noise_low > ((uint64_t)DOUBLE_MASK_ONE - x_b128.ieee.mant_low)) ? 1 : 0;
 
   x_b128.ieee.mant_low = x_b128.ieee.mant_low + noise_low;
   x_b128.ieee.mant_high = x_b128.ieee.mant_high + noise_high + carry;
