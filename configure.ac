@@ -198,7 +198,6 @@ AC_CONFIG_FILES([Makefile
                  src/backends/Makefile
                  src/backends/interflop-ieee/Makefile
                  src/backends/interflop-mca/Makefile
-                 src/backends/interflop-mca-mpfr/Makefile
                  src/backends/interflop-cancellation/Makefile
                  src/backends/interflop-bitmask/Makefile
                  src/backends/interflop-vprec/Makefile
