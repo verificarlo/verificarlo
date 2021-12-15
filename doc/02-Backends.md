@@ -2,7 +2,6 @@
 
   * [IEEE Backend (libinterflop_ieee.so)](#ieee-backend-libinterflop_ieeeso)
   * [MCA Backend (libinterflop_mca.so)](#mca-backend-libinterflop_mcaso)
-  * [MCA-MPFR Backend (libinterflop_mca_mpfr.so)](#mca-mpfr-backend-libinterflop_mca_mpfrso)
   * [Bitmask Backend (libinterflop_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
   * [Cancellation Backend (libinterflop_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
   * [VPREC Backend (libinterflop_vprec.so)](#vprec-backend-libinterflop_vprecso)
@@ -227,13 +226,6 @@ The `--ftz` (**Flush-To-Zero**) flushes subnormal output to 0.
 The option `--seed` fixes the random generator seed. It should not generally be used
 except if one to reproduce a particular MCA trace.
 
-### MCA-MPFR Backend (libinterflop_mca_mpfr.so)
-
-The MCA-MPFR backends is an alternative and slower implementation of Montecarlo
-Arithmetic. It uses the GNU multiple precision library to compute MCA
-operations. It is heavily based on mcalib MPFR backend.
-
-MCA-MPFR backend accepts the same options than the MCA backend.
 
 ### Bitmask Backend (libinterflop_bitmask.so)
 

@@ -33,7 +33,7 @@ compare() {
 
 export VFC_BACKENDS_SILENT_LOAD="TRUE"
 
-for BACKEND in "libinterflop_mca.so" "libinterflop_mca_mpfr.so" "libinterflop_bitmask.so"; do
+for BACKEND in "libinterflop_mca.so" "libinterflop_bitmask.so"; do
     for REALTYPE in "float" "double"; do
 	rm -f log_${REALTYPE^^}
 	compile $REALTYPE
