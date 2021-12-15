@@ -266,14 +266,13 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
   binary128 x_b128 = {.f128 = *x};
 
   // amount by which to shift, when creating the mask for the noise
-  mask_shift_amount_high = 1 + QUAD_EXP_SIZE + exp - 1;
+  mask_shift_amount_high = 1 + QUAD_EXP_SIZE + exp;
   // create the mask for the noise high part
   noise_mask_high = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_high;
 
   // amount by which to shift, when creating the mask for the noise
   mask_shift_amount_low =
-      exp - 1 -
-      (1 + DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE - (1 + QUAD_EXP_SIZE) + 1);
+      exp - (1 + DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE - (1 + QUAD_EXP_SIZE));
   // create the mask for the noise low part
   noise_mask_low = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_low;
 
@@ -299,7 +298,7 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
   // save the MSB of the low noise part, to check if there is a carry
   // propagation
   noise_low_msb = noise_low >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
-  //  add the carry, if necessary
+  //  add the carry, if necessary for creating the two's complement
   noise_low += noise_msb;
   // save the MSB of the low noise part once two's complement created, to check
   // if there is a carry propagation
