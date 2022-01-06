@@ -1,6 +1,6 @@
 #!/bin/bash
 ##uncomment to stop on error
-#set -e
+set -e
 
 PREC_B32=20
 PREC_B64=50
@@ -24,6 +24,7 @@ export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary32=$PREC_B3
 
 #check if the two runs produce identical results
 ./test_output.py out_run_1 out_run_2
+
 
 if [ $? -eq 1 ]
 then 
@@ -71,6 +72,8 @@ then
   exit 1
 fi
 
+echo "toto"
+
 #compile the test program for testing on doubles
 verificarlo-c -D REAL=double -O0 test_pthread.c -o test_pthread_B64 -lpthread
 
@@ -84,6 +87,6 @@ export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary64=$PREC_B6
 
 #check if the two runs produce identical results
 ./test_output.py out_run_7 out_run_8
-
+echo $?
 
 exit $?
