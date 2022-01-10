@@ -6,7 +6,7 @@ for EXP in FLOAT FLOAT_POW2 DOUBLE DOUBLE_POW2; do
 done
 
 rm -f run_parallel
-for BACKEND in libinterflop_mca.so libinterflop_mca_mpfr.so; do
+for BACKEND in libinterflop_mca.so; do
   for PREC in "--precision-binary32=24" "--precision-binary64=53"; do
     echo Testing $EXP with $BACKEND
     BIN=$PWD/rr_mode_${EXP,,}
