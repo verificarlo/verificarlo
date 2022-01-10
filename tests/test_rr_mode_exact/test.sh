@@ -1,30 +1,37 @@
 #!/bin/bash
 set -e
 
-# Test 24 RR for float
-for EXP in FLOAT FLOAT_POW2; do
-  verificarlo-c -D${EXP} -O0 rr_mode.c -o rr_mode
-  for BACKEND in libinterflop_mca.so; do
-    export VFC_BACKENDS="$BACKEND --precision-binary32 24 --mode rr"
-    rm -f output_${BACKEND}_${EXP}
-    for i in `seq 100`; do
-      ./rr_mode >> output_${BACKEND}_${EXP}
-    done
+for EXP in FLOAT FLOAT_POW2 DOUBLE DOUBLE_POW2; do
+  verificarlo-c -D${EXP} -O0 rr_mode.c -o rr_mode_${EXP,,}
+done
+
+rm -f run_parallel
+for BACKEND in libinterflop_mca.so; do
+  for PREC in "--precision-binary32=24" "--precision-binary64=53"; do
     echo Testing $EXP with $BACKEND
-    diff output_${BACKEND}_${EXP} ref_${EXP}
+    BIN=$PWD/rr_mode_${EXP,,}
+    echo "./compute_error.sh ${BACKEND} ${EXP} ${PREC} ${BIN}" >>run_parallel
   done
 done
 
-# Test 53 RR for double
-for EXP in DOUBLE DOUBLE_POW2; do
-  verificarlo-c -D${EXP} -O0 rr_mode.c -o rr_mode
-  for BACKEND in libinterflop_mca.so; do
-    export VFC_BACKENDS="$BACKEND --precision-binary64 53 --mode rr"
-    rm -f output_${BACKEND}_${EXP}
-    for i in `seq 100`; do
-      ./rr_mode >> output_${BACKEND}_${EXP}
-    done
-    echo Testing $EXP with $BACKEND
-    diff output_${BACKEND}_${EXP} ref_${EXP}
-  done
-done
+parallel -j $(nproc) <run_parallel
+
+cat >check_status.py <<HERE
+import sys
+import glob
+paths=glob.glob('tmp.*/output.txt')
+ret=sum([int(open(f).readline().strip()) for f in paths]) if paths != [] else 1
+print(ret)
+HERE
+
+status=$(python3 check_status.py)
+
+if [ $status -eq 0 ]; then
+  echo "Success!"
+else
+  echo "Failed!"
+fi
+
+rm -rf tmp.*
+
+exit $status

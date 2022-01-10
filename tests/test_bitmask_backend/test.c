@@ -14,38 +14,59 @@ typedef union {
   int32_t s32;
 } binary32;
 
+#define OPERATOR(a, b)                                                         \
+  switch (op) {                                                                \
+  case '+':                                                                    \
+    return a + b;                                                              \
+  case '-':                                                                    \
+    return a - b;                                                              \
+  case 'x':                                                                    \
+    return a * b;                                                              \
+  case '/':                                                                    \
+    return a / b;                                                              \
+  default:                                                                     \
+    fprintf(stderr, "Error: unknown operation\n");                             \
+    abort();                                                                   \
+  }
+
+REAL operator(char op, REAL a, REAL b) { OPERATOR(a, b) }
+
 double get_rand_double() {
-  binary64 b64 = {.s64 = mrand48() % DOUBLE_PLUS_INF };
+  binary64 b64 = {.s64 = mrand48() % DOUBLE_PLUS_INF};
   return b64.f64;
 }
 
 float get_rand_float() {
-  binary32 b32 = {.s32 = rand() % FLOAT_PLUS_INF };
+  binary32 b32 = {.s32 = rand() % FLOAT_PLUS_INF};
   return b32.f32;
 }
 
 #define GET_RAND(X)                                                            \
   _Generic((X), double : get_rand_double, float : get_rand_float)
 
-REAL operate(REAL a, REAL b) { return a OPERATION b; }
-
 REAL get_rand() {
   typeof(REAL) x;
   return GET_RAND(x)();
 }
 
-static void do_test(REAL a, REAL b) {
+static void do_test(const char op, REAL a, REAL b) {
   for (int i = 0; i < SAMPLES; i++) {
-    printf("%.13a\n", operate(a,b));
+    printf("%.13a\n", operator(op, a, b));
   }
 }
 
-int main(void) {
+int main(int argc, const char *argv[]) {
   /* initialize random seed */
   srand(0);
   srand48(0);
 
-  do_test(get_rand(), get_rand());
+  if (argc != 2) {
+    fprintf(stderr, "usage: ./test <op>\n");
+    exit(1);
+  }
+  const char op = argv[1][0];
+
+  do_test(op, get_rand(), get_rand());
 
   return EXIT_SUCCESS;
 }

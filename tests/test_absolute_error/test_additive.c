@@ -23,7 +23,7 @@ double applyOp_double(char op, double a, double b) {
   case '-':
     res = a - b;
     break;
-  case '*':
+  case 'x':
     res = a * b;
     break;
   case '/':
@@ -48,7 +48,7 @@ float applyOp_float(char op, float a, float b) {
   case '-':
     res = a - b;
     break;
-  case '*':
+  case 'x':
     res = a * b;
     break;
   case '/':
@@ -180,9 +180,12 @@ int main(int argc, char const *argv[]) {
       // add 2^{absErr_exp-1} to the result
       //  this should give a result that is within 2^{absErr_exp} of the result
       //  depending on the rounding mode used by vprec
-      //FIXME: this is only testing the addition; need a test for multiplication
-      // res_b32_check.f32 = applyOp_float(op, res_b32_check.f32, absErr_max_half);
-      res_b32_check.f32 = applyOp_float('+', res_b32_check.f32, absErr_max_half);
+      // FIXME: this is only testing the addition; need a test for
+      // multiplication
+      // res_b32_check.f32 = applyOp_float(op, res_b32_check.f32,
+      // absErr_max_half);
+      res_b32_check.f32 =
+          applyOp_float('+', res_b32_check.f32, absErr_max_half);
       if (fabsf(res_b32_check.f32 - res_b32.f32) > absErr_max) {
 #if DEBUG_MODE > 0
         printf("Fail!\n");
@@ -198,7 +201,8 @@ int main(int argc, char const *argv[]) {
 
       // add 2^{absErr_exp-2} to the result
       //  this should give a result identical to the original result
-      //FIXME: this is only testing the addition; need a test for multiplication
+      // FIXME: this is only testing the addition; need a test for
+      // multiplication
       // res_b32_check_v2.f32 =
       //     applyOp_float(op, res_b32_check_v2.f32, absErr_max_quarter);
       res_b32_check_v2.f32 =
@@ -233,7 +237,7 @@ int main(int argc, char const *argv[]) {
 #endif
           // ret = 0;
         }
-      }      
+      }
 
 #if DEBUG_MODE > 0
       printf("\ta=%56.53f\n", a_b32.f32);
@@ -257,7 +261,8 @@ int main(int argc, char const *argv[]) {
       // add 2^{absErr_exp-1} to the result
       //  this should give a result that is within 2^{absErr_exp} of the result
       //  depending on the rounding mode used by vprec
-      //FIXME: this is only testing the addition; need a test for multiplication
+      // FIXME: this is only testing the addition; need a test for
+      // multiplication
       // res_b64_check.f64 =
       //     applyOp_double(op, res_b64_check.f64, absErr_max_half);
       res_b64_check.f64 =
@@ -277,7 +282,8 @@ int main(int argc, char const *argv[]) {
 
       // add 2^{absErr_exp-2} to the result
       //  this should give a result identical to the original result
-      //FIXME: this is only testing the addition; need a test for multiplication
+      // FIXME: this is only testing the addition; need a test for
+      // multiplication
       // res_b64_check_v2.f64 =
       //     applyOp_double(op, res_b64_check_v2.f64, absErr_max_quarter);
       res_b64_check_v2.f64 =
