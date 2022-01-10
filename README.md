@@ -1,4 +1,4 @@
-## Verificarlo v0.6.0
+## Verificarlo v0.7.0
 
 A tool for debugging and assessing floating point precision and reproducibility.
 
@@ -166,7 +166,7 @@ under the Apache License v2.0 with LLVM Exceptions.
 SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.             
 See https://llvm.org/LICENSE.txt for license information.            
 
-Copyright (c) 2019-2021
+Copyright (c) 2019-2022
    Verificarlo Contributors
 
 Copyright (c) 2018
