@@ -13,7 +13,7 @@ SEED=1
 
 #compile the test program for testing on floats
 verificarlo-c -fopenmp=libiomp5 -D REAL=float -O0 test_openmp.c -o test_openmp_B32
-
+export OMP_NUM_THREADS=4
 #set the seed and run the test program
 export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary32=$PREC_B32 --seed=$SEED"
 ./test_openmp_B32 1> out_run_1 2> log_run_1
@@ -72,8 +72,6 @@ then
   exit 1
 fi
 
-echo "toto"
-
 #compile the test program for testing on doubles
 verificarlo-c -D REAL=double -O0 test_pthread.c -o test_pthread_B64 -lpthread
 
@@ -87,6 +85,5 @@ export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary64=$PREC_B6
 
 #check if the two runs produce identical results
 ./test_output.py out_run_7 out_run_8
-echo $?
 
 exit $?
