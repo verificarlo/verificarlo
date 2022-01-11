@@ -6,12 +6,11 @@ for EXP in FLOAT FLOAT_POW2 DOUBLE DOUBLE_POW2; do
 done
 
 rm -f run_parallel
-for BACKEND in libinterflop_mca.so; do
-  for PREC in "--precision-binary32=24" "--precision-binary64=53"; do
-    echo Testing $EXP with $BACKEND
-    BIN=$PWD/rr_mode_${EXP,,}
-    echo "./compute_error.sh ${BACKEND} ${EXP} ${PREC} ${BIN}" >>run_parallel
-  done
+export BACKEND=libinterflop_mca.so
+for PREC in "--precision-binary32=24" "--precision-binary64=53"; do
+  echo Testing $EXP with $BACKEND
+  BIN=$PWD/rr_mode_${EXP,,}
+  echo "./compute_error.sh ${BACKEND} ${EXP} ${PREC} ${BIN}" >>run_parallel
 done
 
 parallel -j $(nproc) <run_parallel
