@@ -2,6 +2,8 @@ Verificarlo CHANGELOG
 
 # [Unreleased]
 
+## Added
+  * Add VFC_BACKENDS_LOGFILE environment variable to redirect logger_info to a file
 ## Changed
   * VFC_BACKENDS_LOGGER=False behaviour. Now truly disable logger_info output.
   * Redirect logger_info to stdout instead of stderr
