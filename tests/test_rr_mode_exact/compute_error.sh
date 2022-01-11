@@ -10,6 +10,7 @@ cd $TMPDIR
 
 export VFC_BACKENDS="$BACKEND ${PREC} --mode rr"
 for i in $(seq 100); do
+    export VFC_BACKENDS_LOGFILE="tmp"
     ${BIN} >>output_${BACKEND}_${EXP}
 done
 echo Testing $EXP with $BACKEND
