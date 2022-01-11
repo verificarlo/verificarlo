@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -f *.o *.ll* *.log test-*
+rm -f *.o *.ll* *.log test-* diff

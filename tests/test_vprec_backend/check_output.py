@@ -6,10 +6,11 @@ import sys
 
 exit_at_error = True
 
-PRECISION="VERIFICARLO_PRECISION"
-mpfr_file="mpfr.txt"
-vprec_file="vprec.txt"
-input_file="input.txt"
+PRECISION = "VERIFICARLO_PRECISION"
+mpfr_file = "mpfr.txt"
+vprec_file = "vprec.txt"
+input_file = "input.txt"
+
 
 def get_var_env_int(env):
 
@@ -20,17 +21,20 @@ def get_var_env_int(env):
         print("Bad {env} {varenv}".format(env=env, varenv=varenv))
         exit(1)
 
+
 def parse_file(filename):
     fi = open(filename, "r")
     fp_list = []
     return [float.fromhex(line) for line in fi]
 
+
 def parse_file2(filename):
     fi = open(filename, "r")
-    input_list= []
-    input_list =[list(line.split(' ')) for line in fi]
+    input_list = []
+    input_list = [list(line.split(' ')) for line in fi]
     input_list
     return input_list
+
 
 def get_relative_error(mpfr, vprec):
     if math.isnan(mpfr) != math.isnan(vprec):
@@ -48,7 +52,7 @@ def get_relative_error(mpfr, vprec):
     elif vprec == 0.0:
         return abs(mpfr)
     else:
-        err=abs((mpfr-vprec)/mpfr)
+        err = abs((mpfr-vprec)/mpfr)
 
     if math.isnan(err):
         print("Computed relative error is NaN")
@@ -59,13 +63,15 @@ def get_relative_error(mpfr, vprec):
     else:
         return err
 
+
 def get_significant_digits(relative_error):
     # Special case when mpfr == vprec
     # return high significance
     if relative_error == -1:
         return 100
     else:
-        return abs(math.log(relative_error,2))
+        return abs(math.log(relative_error, 2))
+
 
 def are_equal(mpfr, vprec):
     if math.isnan(mpfr) and math.isnan(vprec):
@@ -73,13 +79,15 @@ def are_equal(mpfr, vprec):
     else:
         return mpfr == vprec
 
+
 def compute_err(precision, mpfr_list, vprec_list, input_list):
-    for mpfr,vprec,input_ab in zip(mpfr_list,vprec_list,input_list):
-        print("Compare MPFR,VPREC:{mpfr} {vprec}".format(mpfr=mpfr,vprec=vprec))
+    for mpfr, vprec, input_ab in zip(mpfr_list, vprec_list, input_list):
+        print("Compare MPFR,VPREC:{mpfr} {vprec}".format(
+            mpfr=mpfr, vprec=vprec))
         relative_error = get_relative_error(mpfr, vprec)
         s = get_significant_digits(relative_error)
 
-        vprec_range=int(os.getenv('VERIFICARLO_VPREC_RANGE'))
+        vprec_range = int(os.getenv('VERIFICARLO_VPREC_RANGE'))
 
         emin = - (1 << (vprec_range - 1))
         # Check for denormal case
@@ -90,16 +98,17 @@ def compute_err(precision, mpfr_list, vprec_list, input_list):
         # (In OB mode this should never happen)
         if mpfr != 0 and abs(mpfr) <= 2**(emin):
             # In denormal case we acount for the precision lost
-            required_prec = precision - (emin - math.ceil(math.log(abs(mpfr),2)-1))
+            required_prec = precision - \
+                (emin - math.ceil(math.log(abs(mpfr), 2)-1))
         else:
             required_prec = precision
 
         # we add one bit to account for faithful rounding
         if math.ceil(s) < required_prec - 1:
-            float_type=os.getenv('VERIFICARLO_VPREC_TYPE')
-            vprec_precision=os.getenv('VERIFICARLO_PRECISION')
-            vprec_mode=os.getenv('VERIFICARLO_VPREC_MODE')
-            op=os.getenv('VERIFICARLO_OP')
+            float_type = os.getenv('VERIFICARLO_VPREC_TYPE')
+            vprec_precision = os.getenv('VERIFICARLO_PRECISION')
+            vprec_mode = os.getenv('VERIFICARLO_VPREC_MODE')
+            op = os.getenv('VERIFICARLO_OP')
             sys.stderr.write("{t}: MODE={m} RANGE={r} PRECISION={p} OP={op}\n".format(
                 t=float_type,
                 m=vprec_mode,
@@ -118,6 +127,7 @@ def compute_err(precision, mpfr_list, vprec_list, input_list):
             sys.stderr.flush()
             if exit_at_error:
                 exit(1)
+
 
 if "__main__" == __name__:
 

@@ -20,7 +20,7 @@ double applyOp_double(char op, double a, double b) {
   case '-':
     res = a - b;
     break;
-  case '*':
+  case 'x':
     res = a * b;
     break;
   case '/':
@@ -45,7 +45,7 @@ float applyOp_float(char op, float a, float b) {
   case '-':
     res = a - b;
     break;
-  case '*':
+  case 'x':
     res = a * b;
     break;
   case '/':
@@ -134,7 +134,7 @@ int main(int argc, char const *argv[]) {
       int mask_adjust = floor(log2f(res_b32.f32));
       int shiftAmount;
 
-      if(abs(absErr_exp)+mask_adjust > FLOAT_PMAN_SIZE)
+      if (abs(absErr_exp) + mask_adjust > FLOAT_PMAN_SIZE)
         shiftAmount = 0;
       else
         shiftAmount = FLOAT_PMAN_SIZE - abs(absErr_exp) - mask_adjust;
@@ -146,7 +146,7 @@ int main(int argc, char const *argv[]) {
       if (mask_adjust >= absErr_exp) {
         // should apply the mask to test for the correct result
         res_b32_check.u32 = res_b32_check.u32 & absErr_mask_float;
-        if(shiftAmount > 0) {
+        if (shiftAmount > 0) {
           res_b32_ref.u32 = res_b32_ref.u32 & ~absErr_mask_float;
         }
       } else {
@@ -186,7 +186,7 @@ int main(int argc, char const *argv[]) {
       int mask_adjust = floor(log2(res_b64.f64));
       int shiftAmount;
 
-      if(abs(absErr_exp)+mask_adjust > DOUBLE_PMAN_SIZE)
+      if (abs(absErr_exp) + mask_adjust > DOUBLE_PMAN_SIZE)
         shiftAmount = 0;
       else
         shiftAmount = DOUBLE_PMAN_SIZE - abs(absErr_exp) - mask_adjust;
@@ -198,7 +198,7 @@ int main(int argc, char const *argv[]) {
       if (mask_adjust >= absErr_exp) {
         // should apply the mask to test for the correct result
         res_b64_check.u64 = res_b64_check.u64 & absErr_mask_double;
-        if(shiftAmount > 0) {
+        if (shiftAmount > 0) {
           res_b64_ref.u64 = res_b64_ref.u64 & ~absErr_mask_double;
         }
       } else {

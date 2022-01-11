@@ -40,7 +40,7 @@ $ VFC_BACKENDS="libinterflop_mca.so -p 53 -m mca" vfc_ddebug ddRun ddCmp
 
 The `VFC_BACKENDS` variable selects the noise model among the available
 backends. Delta-debug can be used with any backend that simulates numerical
-noise (`mca`, `mca_mpfr`, `cancellation`, `bitmask`, ...) .  Here as an
+noise (`mca`, `cancellation`, `bitmask`, ...) .  Here as an
 example, we use the MCA backend with a precision of 53 in full mca mode.
 `vfc_ddebug` is the delta-debug orchestration script.
 

@@ -1,5 +1,20 @@
 Verificarlo CHANGELOG
 
+
+# [v0.7.0] 2022/01/22
+
+## Removed
+  * Remove the MPFR backend, and related tests
+
+## Fixed
+  * Minor bugfixes in test_mca_rng
+  * Minor improvements to README
+
+## Changed
+  * Change license to Apache License v2.0 with LLVM Exceptions
+
+
+
 # [v0.6.0] 2021/10/14
 
 ## Added

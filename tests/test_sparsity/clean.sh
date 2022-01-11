@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -Rf *~ test test.log out_*
+rm -Rf *~ test_{float,double} test.log out_* run_parallel check_status.py
