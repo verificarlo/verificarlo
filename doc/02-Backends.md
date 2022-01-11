@@ -80,6 +80,17 @@ environment variable `VFC_BACKENDS_COLORED_LOGGER`.
    $ export VFC_BACKENDS_COLORED_LOGGER="False"
 ```
 
+To redirect the logger info, export the
+environment variable `VFC_BACKENDS_LOGFILE`.
+Verificarlo will suffix the name with the current TID. 
+
+```bash
+   $ export VFC_BACKENDS_LOGFILE='verificarlo.log'
+   $ ./test
+   $ ls
+   $ verificarlo.log.3636865
+```
+
 The IEEE, MCA, MCA-MPFR, Bitmask and Cancellation backends are all re-entrant.
 
 ### IEEE Backend (libinterflop_ieee.so)
