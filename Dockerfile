@@ -17,7 +17,7 @@ ENV PYTHONPATH /usr/local/lib/python$PYTHON_VERSION/site-packages/:$PYTHONPATH
 # Retrieve dependencies
 RUN apt-get -y update && apt-get -y --no-install-recommends install tzdata
 RUN apt-get -y install --no-install-recommends \
-    bash ca-certificates make git libmpfr-dev \
+    bash ca-certificates make git \
     autogen dh-autoreconf autoconf automake autotools-dev libedit-dev libtool libz-dev binutils \
     clang-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev \
     gcc-${GCC_VERSION} g++-${GCC_VERSION} \
