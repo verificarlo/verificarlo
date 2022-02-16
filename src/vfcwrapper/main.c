@@ -452,6 +452,17 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   } while (0)
 #endif
 
+void interflop_call(interflop_call_id id, ...) {
+  va_list ap;
+  for (unsigned char i = 0; i < loaded_backends; i++) {
+    if (backends[i].interflop_user_call) {
+      va_start(ap, id);
+      backends[i].interflop_user_call(contexts[i], id, ap);
+      va_end(ap);
+    }
+  }
+}
+
 #define define_arithmetic_wrapper(precision, operation, operator)              \
   precision _##precision##operation(precision a, precision b) {                \
     precision c = NAN;                                                         \

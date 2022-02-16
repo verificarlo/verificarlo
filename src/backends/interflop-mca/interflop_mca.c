@@ -13,7 +13,7 @@
  *  Copyright (c) 2018                                                       *\
  *     Universite de Versailles St-Quentin-en-Yvelines                       *\
  *                                                                           *\
- *  Copyright (c) 2019-2021                                                  *\
+ *  Copyright (c) 2019-2022                                                  *\
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/
@@ -50,6 +50,11 @@
 // threads are now supported.
 // Generation of hook functions is now done through macros, shared accross
 // backends.
+//
+// 2022-02-16 Add interflop_user_call implementation for INTERFLOP_CALL_INEXACT
+// id Add FAST_INEXACT macro that is a fast version of the INEXACT macro that
+// does not perform any checks and always introduces a perturbation (for
+// relativeError only)
 
 #include <argp.h>
 #include <err.h>
@@ -237,6 +242,20 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
            : _noise_binary64, __float128                                       \
            : _noise_binary128)(EXP, RNG_STATE)
 
+/* Fast version of _INEXACT macro that adds noise in relative error.
+  Always adds noise even if X is exact or sparsity is enabled.
+ */
+#define _FAST_INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                    \
+  {                                                                            \
+    t_context *TMP_CTX = (t_context *)CTX;                                     \
+    _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
+                           (unsigned long long)(TMP_CTX->seed), false);        \
+    const int32_t e_a = GET_EXP_FLT(*X);                                       \
+    const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                     \
+    const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, &RNG_STATE);              \
+    *X = *X + noise_rel;                                                       \
+  }
+
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
 #define _INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                         \
@@ -368,6 +387,46 @@ _INTERFLOP_OP_CALL(double, sub, mca_sub, _mca_binary64_binary_op)
 _INTERFLOP_OP_CALL(double, mul, mca_mul, _mca_binary64_binary_op)
 
 _INTERFLOP_OP_CALL(double, div, mca_div, _mca_binary64_binary_op)
+
+void _interflop_usercall_inexact(void *context, va_list ap) {
+  /* Do not introduce noise if */
+  if (MCALIB_MODE == mcamode_ieee) {
+    return;
+  }
+  double xd = 0;
+  __float128 xq = 0;
+  enum FTYPES ftype;
+  void *value = NULL;
+  ftype = va_arg(ap, enum FTYPES);
+  value = va_arg(ap, void *);
+  switch (ftype) {
+  case FFLOAT:
+    xd = *((float *)value);
+    _FAST_INEXACT(&xd, MCALIB_BINARY32_T - 1, context, rng_state);
+    *((float *)value) = xd;
+    break;
+  case FDOUBLE:
+    xq = *((double *)value);
+    _FAST_INEXACT(&xq, MCALIB_BINARY64_T - 1, context, rng_state);
+    *((double *)value) = xq;
+    break;
+  default:
+    logger_warning(
+        "Uknown type passed to _interflop_usercall_inexact function");
+    break;
+  }
+}
+
+void _interflop_user_call(void *context, interflop_call_id id, va_list ap) {
+  switch (id) {
+  case INTERFLOP_INEXACT_ID:
+    _interflop_usercall_inexact(context, ap);
+    break;
+  default:
+    logger_warning("Unknown interflop_call id (=%d)", id);
+    break;
+  }
+}
 
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
@@ -567,6 +626,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL,
       NULL,
+      _interflop_user_call,
       NULL};
 
   /* The seed for the RNG is initialized upon the first request for a random

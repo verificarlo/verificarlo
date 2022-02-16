@@ -13,7 +13,7 @@
  *  Copyright (c) 2018                                                       *\
  *     Universite de Versailles St-Quentin-en-Yvelines                       *\
  *                                                                           *\
- *  Copyright (c) 2019-2021                                                  *\
+ *  Copyright (c) 2019-2022                                                  *\
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/
@@ -418,6 +418,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       _interflop_mul_double,
       _interflop_div_double,
       _interflop_cmp_double,
+      NULL,
       NULL,
       NULL,
       _interflop_finalize};

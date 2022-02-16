@@ -85,10 +85,10 @@ void _init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
 
 /* Get a new identifier for the calling thread */
 /* Generic threads can have inconsistent identifiers, assigned by the system, */
-/* we therefore need to set an order between threads, for the case
+/* we therefore need to set an order between threads, for the case */
 /* when the seed is fixed, to insure some repeatability between executions */
-/* @param global_tid_lock pointer to the mutex controling the access to the
- * Unique TID */
+/* @param global_tid_lock pointer to the mutex controling the access to the */
+/* Unique TID */
 /* @param global_tid pointer to the unique TID */
 /* @return a new unique identifier for each calling thread*/
 unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
@@ -97,8 +97,8 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
 /* Returns a 64-bit unsigned integer r (0 <= r < 2^64) */
 /* Manages the internal state of the RNG, if necessary */
 /* @param rng_state pointer to the structure holding all the RNG-related data */
-/* @param global_tid_lock pointer to the mutex controling the access to the
- * Unique TID */
+/* @param global_tid_lock pointer to the mutex controling the access to the */
+/* Unique TID */
 /* @param global_tid pointer to the unique TID */
 /* @return a 64-bit unsigned integer r (0 <= r < 2^64) */
 uint64_t _get_rand_uint64(rng_state_t *rng_state,
@@ -108,8 +108,8 @@ uint64_t _get_rand_uint64(rng_state_t *rng_state,
 /* Returns a random double in the (0,1) open interval */
 /* Manages the internal state of the RNG, if necessary */
 /* @param rng_state pointer to the structure holding all the RNG-related data */
-/* @param global_tid_lock pointer to the mutex controling the access to the
- * Unique TID */
+/* @param global_tid_lock pointer to the mutex controling the access to the */
+/* Unique TID */
 /* @param global_tid pointer to the unique TID */
 /* @return a floating point number r (0.0 < r < 1.0) */
 double _get_rand(rng_state_t *rng_state, pthread_mutex_t *global_tid_lock,
