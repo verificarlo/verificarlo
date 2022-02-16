@@ -24,6 +24,17 @@ enum FCMP_PREDICATE {
 /* Enumeration of types managed by function instrumentation */
 enum FTYPES { FFLOAT, FDOUBLE, FFLOAT_PTR, FDOUBLE_PTR, FTYPES_END };
 
+typedef enum {
+  /* Allows perturbing one floating-point value */
+  /* signature: void inexact(enun FTYPES type, void *value) */
+  INTERFLOP_INEXACT_ID = 1,
+  INTERFLOP_CUSTOM_ID = -1
+} interflop_call_id;
+
+/* User function to directly call low-level backend functions */
+/* Takes an id to identify the actual function to call and variadic argument */
+void interflop_call(interflop_call_id id, ...);
+
 typedef struct interflop_function_info {
   // Indicate the identifier of the function
   char *id;
@@ -64,6 +75,7 @@ struct interflop_backend_interface_t {
   void (*interflop_exit_function)(interflop_function_stack_t *stack,
                                   void *context, int nb_args, va_list ap);
 
+  void (*interflop_user_call)(void *context, interflop_call_id id, va_list ap);
   /* interflop_finalize: called at the end of the instrumented program
    * execution */
   void (*interflop_finalize)(void *context);
