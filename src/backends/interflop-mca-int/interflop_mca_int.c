@@ -177,7 +177,8 @@ static inline void _noise_binary64(double *x, const int exp,
 
   // noise is a signed integer so the noise is centered around 0
   // only 32 bits of noise are used, they are left aligned in a signed 64 bit
-  noise = ((uint64_t) _get_rand_uint32(rng_state, &global_tid_lock, &global_tid) << 32);
+  noise = ((uint64_t)_get_rand_uint32(rng_state, &global_tid_lock, &global_tid)
+           << 32);
 
   // right shift the noise to the correct magnitude, this is a arithmetic shift
   // and sign bit will be extended

@@ -100,7 +100,7 @@ static uint64_t _generate_random_uint64(struct drand48_data *random_state) {
   mrand48_r(random_state, &tmp_rand2);
 
   tmp_rand = tmp_rand1;
-  tmp_rand <<=32;
+  tmp_rand <<= 32;
   tmp_rand ^= tmp_rand2;
 
   return tmp_rand;
@@ -160,7 +160,6 @@ uint32_t _get_rand_uint32(rng_state_t *rng_state,
   _INIT_RANDOM_STATE(rng_state, global_tid_lock, global_tid);
   return _generate_random_uint32(&(rng_state->random_state));
 }
-
 
 /* Returns a 64-bit unsigned integer r (0 <= r < 2^64) */
 uint64_t _get_rand_uint64(rng_state_t *rng_state,
