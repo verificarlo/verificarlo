@@ -6,8 +6,10 @@ mkdir logs/
 export VFC_BACKENDS_LOGFILE="logs/verificarlo.log"
 export BACKEND="libinterflop_mca.so"
 
-verificarlo-c -O0 sr-binary32.c -o sr-binary32 -lm
-verificarlo-c -O0 sr-binary64.c -o sr-binary64 -lm
+ITERATIONS=100
+
+verificarlo-c -DITERATIONS=$ITERATIONS -O0 sr-binary32.c -o sr-binary32 -lm
+verificarlo-c -DITERATIONS=$ITERATIONS -O0 sr-binary64.c -o sr-binary64 -lm
 
 for p in 23 24 25 26; do
   for PREC in "--mode=rr --precision-binary32=24"; do
@@ -21,7 +23,7 @@ for p in 52 53 54 55; do
   done
 done
 
-./check.py
+./check.py $ITERATIONS
 status=$?
 
 if [ $status -eq 0 ]; then
