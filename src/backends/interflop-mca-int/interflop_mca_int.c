@@ -167,7 +167,9 @@ static inline void _noise_binary64(double *x, const int exp,
                                    rng_state_t *rng_state) {
   int64_t noise;
   uint32_t shift;
-  binary64 x_b64 = {.f64 = *x};
+
+  // Convert preserving-bytes double to int64_t
+  int64_t x_s64 = *(int64_t*)(x);
 
   // amount by which to shift the noise term sign (1) + exp (11) + noise exponent
   shift = 1 + DOUBLE_EXP_SIZE - exp;
@@ -176,95 +178,49 @@ static inline void _noise_binary64(double *x, const int exp,
   // noise is a signed integer so the noise is centered around 0
   noise = (int64_t) _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
 
-  //printf("noise shift = %d\n", shift);
-  //printf("noise = %ld\n", noise);
-  //printf("noise = %lx\n", noise);
-
   // right shift the noise to the correct magnitude, this is a arithmetic shift
   // and sign bit will be extended
   noise = noise >> shift;
 
   // Add the noise to the x value
-  x_b64.s64 += noise;
+  x_s64 += noise;
 
-  *x = x_b64.f64;
+  // Convert back to double
+  *x = *(double*)(&x_s64);
 }
 
 /* noise = rand * 2^(exp) */
-/* We can skip special cases since we never met them */
+/* We can skip special cases since we never meet them */
 /* Since we have exponent of double values, the result */
 /* is comprised between: */
 /* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
-static __float128 _noise_binary128(__float128 *x, const int exp,
+static void _noise_binary128(__float128 *x, const int exp,
                                    rng_state_t *rng_state) {
-  uint32_t mask_shift_amount_high, mask_shift_amount_low;
-  uint64_t noise_mask_high, noise_mask_low, noise_msb, noise_sign_mask;
-  uint64_t noise_high, noise_low, carry;
-  uint64_t noise_low_msb, noise_low_msb_flip, noise_low_sign_carry;
-  binary128 x_b128 = {.f128 = *x};
 
-  // amount by which to shift, when creating the mask for the noise
-  mask_shift_amount_high = 1 + QUAD_EXP_SIZE + exp;
-  // create the mask for the noise high part
-  noise_mask_high = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_high;
+  // Convert preserving-bytes __float128 to __int128
+  __int128 x_s128 = *(__int128*)(x);
 
-  // amount by which to shift, when creating the mask for the noise
-  mask_shift_amount_low =
-      exp - (1 + DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE - (1 + QUAD_EXP_SIZE));
-  // create the mask for the noise low part
-  noise_mask_low = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount_low;
+  // amount by which to shift the noise term sign (1) + exp (15) + noise
+  // exponent
+  uint32_t shift = 1 + QUAD_EXP_SIZE - exp;
 
-  // generate a new random 64-bit integer
-  noise_low = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
-  noise_high = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+  // Generate 128 signed noise
+  uint64_t noise_low = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+  int64_t noise_high = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+  __int128 noise = noise_high;
+  noise <<= 64;
+  noise ^= noise_low;
 
-  // extract the MSB of the noise
-  //  first extract the MSB
-  noise_msb =
-      noise_high & (((uint64_t)1) << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
-  //  next, shift the MSB all the way to the LSB position
-  noise_msb = noise_msb >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
-  // noise sign mask is used to create the one's complement of the masked noise
-  noise_sign_mask = (uint64_t)DOUBLE_MASK_ONE + (noise_msb ^ 1);
+  // right shift the noise to the correct magnitude, this is a arithmetic shift
+  // and sign bit will be extended
+  noise = noise >> shift;
 
-  // apply the mask to the noise, to only keep the noise at the correct
-  // magnitude
-  noise_low &= noise_mask_low;
-  // create the two's complement of the noise, if necessary
-  //  flip all bits of the noise, if necessary
-  noise_low ^= noise_sign_mask;
-  // save the MSB of the low noise part, to check if there is a carry
-  // propagation
-  noise_low_msb = noise_low >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
-  //  add the carry, if necessary for creating the two's complement
-  noise_low += noise_msb;
-  // save the MSB of the low noise part once two's complement created, to check
-  // if there is a carry propagation
-  noise_low_msb_flip = noise_low >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
-  // create the carry for the high part of the noise
-  //  the carry is set to one if there was a transition from 1 to 0 on the MSB
-  //  of the low part of the noise
-  noise_low_sign_carry = (noise_low_msb ^ noise_low_msb_flip) & noise_low_msb;
+  // Add the noise
+  x_s128 += noise;
 
-  // apply the mask to the noise, to only keep the noise at the correct
-  // magnitude
-  noise_high &= noise_mask_high;
-  // create the two's complement of the noise, if necessary
-  //  flip all bits of the noise, if necessary
-  noise_high ^= noise_sign_mask;
-  //  add the carry from the low part, if necessary
-  noise_high += noise_low_sign_carry;
-
-  // create a carry, if there is the need to propagate it from the low to the
-  // high part of the noise
-  carry =
-      (noise_low > ((uint64_t)DOUBLE_MASK_ONE - x_b128.ieee.mant_low)) ? 1 : 0;
-
-  x_b128.ieee.mant_low = x_b128.ieee.mant_low + noise_low;
-  x_b128.ieee.mant_high = x_b128.ieee.mant_high + noise_high + carry;
-
-  *x = x_b128.f128;
+  // Convert back to __float128
+  *x = *(__float128*)(&x_s128);
 }
 
 /* Macro function for checking if the value X must be noised */
