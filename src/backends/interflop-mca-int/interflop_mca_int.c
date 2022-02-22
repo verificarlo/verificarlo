@@ -169,14 +169,15 @@ static inline void _noise_binary64(double *x, const int exp,
   uint32_t shift;
 
   // Convert preserving-bytes double to int64_t
-  int64_t x_s64 = *(int64_t*)(x);
+  int64_t x_s64 = *(int64_t *)(x);
 
-  // amount by which to shift the noise term sign (1) + exp (11) + noise exponent
+  // amount by which to shift the noise term sign (1) + exp (11) + noise
+  // exponent
   shift = 1 + DOUBLE_EXP_SIZE - exp;
 
   // generate a new random 64-bit integer
   // noise is a signed integer so the noise is centered around 0
-  noise = (int64_t) _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+  noise = (int64_t)_get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
 
   // right shift the noise to the correct magnitude, this is a arithmetic shift
   // and sign bit will be extended
@@ -186,7 +187,7 @@ static inline void _noise_binary64(double *x, const int exp,
   x_s64 += noise;
 
   // Convert back to double
-  *x = *(double*)(&x_s64);
+  *x = *(double *)(&x_s64);
 }
 
 /* noise = rand * 2^(exp) */
@@ -196,18 +197,20 @@ static inline void _noise_binary64(double *x, const int exp,
 /* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
 static void _noise_binary128(__float128 *x, const int exp,
-                                   rng_state_t *rng_state) {
+                             rng_state_t *rng_state) {
 
   // Convert preserving-bytes __float128 to __int128
-  __int128 x_s128 = *(__int128*)(x);
+  __int128 x_s128 = *(__int128 *)(x);
 
   // amount by which to shift the noise term sign (1) + exp (15) + noise
   // exponent
   uint32_t shift = 1 + QUAD_EXP_SIZE - exp;
 
   // Generate 128 signed noise
-  uint64_t noise_low = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
-  int64_t noise_high = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+  uint64_t noise_low =
+      _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+  int64_t noise_high =
+      _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
   __int128 noise = noise_high;
   noise <<= 64;
   noise ^= noise_low;
@@ -220,7 +223,7 @@ static void _noise_binary128(__float128 *x, const int exp,
   x_s128 += noise;
 
   // Convert back to __float128
-  *x = *(__float128*)(&x_s128);
+  *x = *(__float128 *)(&x_s128);
 }
 
 /* Macro function for checking if the value X must be noised */
@@ -255,11 +258,11 @@ static void _noise_binary128(__float128 *x, const int exp,
       if (TMP_CTX->relErr) {                                                   \
         const int32_t e_a = GET_EXP_FLT(*X);                                   \
         const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        _NOISE(X, e_n_rel, &RNG_STATE);                                       \
+        _NOISE(X, e_n_rel, &RNG_STATE);                                        \
       }                                                                        \
       if (TMP_CTX->absErr) {                                                   \
         const int32_t e_n_abs = TMP_CTX->absErr_exp;                           \
-        _NOISE(X, e_n_abs, &RNG_STATE);                                       \
+        _NOISE(X, e_n_abs, &RNG_STATE);                                        \
       }                                                                        \
     }                                                                          \
   }
