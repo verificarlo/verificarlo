@@ -85,17 +85,22 @@ else
    AC_SUBST(FC, $FLANG)
 fi
 
+# Check for parallel (required for the test infrastructure)
+AC_PATH_PROG(PARALLEL, [parallel], [])
+if test -z "$PARALLEL"; then
+  AC_MSG_ERROR([Could not find parallel])
+fi
+
 AC_CHECK_LIB([c], [exit], , AC_MSG_ERROR([Could not find c library]))
-AC_CHECK_LIB([m], [sin], , AC_MSG_ERROR([Could not find mpfr library]))
-AC_CHECK_LIB([mpfr], [mpfr_clear], , AC_MSG_ERROR([Could not find mpfr library]))
+AC_CHECK_LIB([m], [sin], , AC_MSG_ERROR([Could not find math library]))
 
 # Reset libs after ac_check_lib We do not want each and every backend or the
-# libvfcinstrument frontend to be linked against libmpfr or libgfortran for
+# libvfcinstrument frontend to be linked against libgfortran for
 # example. -l flags should be added individually in each Makefile.am
 LIBS=""
 
 # Check for header files.
-AC_CHECK_HEADERS([fcntl.h float.h inttypes.h limits.h malloc.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h mpfr.h], , AC_MSG_ERROR([Missing required headers]))
+AC_CHECK_HEADERS([fcntl.h float.h inttypes.h limits.h malloc.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h], , AC_MSG_ERROR([Missing required headers]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL

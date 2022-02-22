@@ -2,10 +2,9 @@
 
 Please ensure that Verificarlo's dependencies are installed on your system:
 
-  * GNU mpfr library http://www.mpfr.org/
   * LLVM, clang and opt from 4.0 up to 11.0.1, http://clang.llvm.org/
   * gcc from 4.9
-  * flang for Fortran support
+  * flang for Fortran support (optional)
   * python3 with the following packages :
     * numpy
     * scipy (version 1.5.0 or above)
@@ -16,6 +15,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
     * jinja2
     * bokeh
   * autotools (automake, autoconf)
+  * parallel (only required for running the test suite)
 
 Then run the following command inside verificarlo directory:
 

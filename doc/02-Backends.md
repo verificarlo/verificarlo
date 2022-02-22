@@ -80,7 +80,18 @@ environment variable `VFC_BACKENDS_COLORED_LOGGER`.
    $ export VFC_BACKENDS_COLORED_LOGGER="False"
 ```
 
-The IEEE, MCA, MCA-MPFR, Bitmask and Cancellation backends are all re-entrant.
+To redirect the logger info, export the
+environment variable `VFC_BACKENDS_LOGFILE`.
+Verificarlo will suffix the name with the current TID. 
+
+```bash
+   $ export VFC_BACKENDS_LOGFILE='verificarlo.log'
+   $ ./test
+   $ ls
+   $ verificarlo.log.3636865
+```
+
+The IEEE, MCA, Bitmask and Cancellation backends are all re-entrant.
 
 ### IEEE Backend (libinterflop_ieee.so)
 
@@ -148,7 +159,7 @@ operations count:
 
 The MCA backends implements Montecarlo Arithmetic.  It uses quad type to
 compute MCA operations on doubles and double type to compute MCA operations
-on floats. It is much faster than the legacy MCA-MPFR backend.
+on floats.
 
 ```bash
 VFC_BACKENDS="libinterflop_mca.so --help" ./test

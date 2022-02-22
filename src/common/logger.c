@@ -18,11 +18,15 @@
  *                                                                           *\
  ****************************************************************************/
 #include <err.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define str(X) #X
 #define xstr(X) str(X)
@@ -32,6 +36,8 @@
 #endif
 
 #define BACKEND_HEADER_STR xstr(BACKEND_HEADER)
+
+static const char backend_header[] = BACKEND_HEADER_STR;
 
 /* ANSI colors */
 typedef enum {
@@ -88,11 +94,15 @@ typedef enum {
 /* Environment variable for enabling/disabling the logger */
 static const char vfc_backends_logger[] = "VFC_BACKENDS_LOGGER";
 
+/* Environment variable for specifying the verificarlo logger output file */
+static const char vfc_backends_logfile[] = "VFC_BACKENDS_LOGFILE";
+
 /* Environment variable for enabling/disabling the color */
 static const char vfc_backends_colored_logger[] = "VFC_BACKENDS_COLORED_LOGGER";
 
 static bool logger_enabled = true;
 static bool logger_colored = false;
+static FILE *logger_logfile = NULL;
 
 /* Returns true if the logger is enabled */
 bool is_logger_enabled(void) {
@@ -118,78 +128,95 @@ bool is_logger_colored(void) {
   }
 }
 
-/* Display the info message */
-void logger_info(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  if (logger_enabled) {
-    if (logger_colored) {
-      fprintf(stderr, "%sInfo%s [%s%s%s]: ", ansi_colors[info_color],
-              ansi_colors[reset_color], ansi_colors[backend_color],
-              BACKEND_HEADER_STR, ansi_colors[reset_color]);
-    } else {
-      fprintf(stderr, "Info [%s]: ", BACKEND_HEADER_STR);
+pid_t get_tid() {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
+  return gettid();
+#pragma GCC diagnostic pop
+}
+
+void _error() {
+  int errsv = errno;
+  const int BUFF_SIZE = 512;
+  char buff[BUFF_SIZE];
+  strerror_r(errsv, buff, BUFF_SIZE);
+  err(EXIT_FAILURE, "Error [%s]: %s", BACKEND_HEADER_STR, buff);
+}
+
+void set_logger_logfile(void) {
+  if (logger_logfile != NULL) {
+    return;
+  }
+  const char *logger_logfile_env = getenv(vfc_backends_logfile);
+  if (logger_logfile_env == NULL) {
+    logger_logfile = stdout;
+  } else {
+    /* Create log file specific to TID to avoid non-deterministic output */
+    char tmp[1024];
+    sprintf(tmp, "%s.%d", logger_logfile_env, get_tid());
+    logger_logfile = fopen(tmp, "a");
+    if (logger_logfile == NULL) {
+      _error();
     }
   }
-  vfprintf(stderr, fmt, ap);
+}
+
+void logger_header(FILE *stream, const char *lvl_name,
+                   const level_color lvl_color, const bool colored) {
+  if (colored) {
+    fprintf(stream, "%s%s%s [%s%s%s]: ", ansi_colors[lvl_color], lvl_name,
+            ansi_colors[reset_color], ansi_colors[backend_color],
+            BACKEND_HEADER_STR, ansi_colors[reset_color]);
+  } else {
+    fprintf(stream, "%s [%s]: ", lvl_name, backend_header);
+  }
+}
+
+/* Display the info message */
+void logger_info(const char *fmt, ...) {
+  if (logger_enabled) {
+    logger_header(logger_logfile, "Info", info_color, logger_colored);
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(logger_logfile, fmt, ap);
+    va_end(ap);
+  }
 }
 
 /* Display the warning message */
 void logger_warning(const char *fmt, ...) {
+  if (logger_enabled) {
+    logger_header(stderr, "Warning", warning_color, logger_colored);
+  }
   va_list ap;
   va_start(ap, fmt);
-  if (logger_enabled) {
-    if (logger_colored) {
-      fprintf(stderr, "%sWarning%s [%s%s%s]: ", ansi_colors[warning_color],
-              ansi_colors[reset_color], ansi_colors[backend_color],
-              BACKEND_HEADER_STR, ansi_colors[reset_color]);
-    } else {
-      fprintf(stderr, "Warning [%s]: ", BACKEND_HEADER_STR);
-    }
-  }
   vwarnx(fmt, ap);
+  va_end(ap);
 }
 
 /* Display the error message */
 void logger_error(const char *fmt, ...) {
+  if (logger_enabled) {
+    logger_header(stderr, "Error", error_color, logger_colored);
+  }
   va_list ap;
   va_start(ap, fmt);
-  if (logger_enabled) {
-    if (logger_colored) {
-      fprintf(stderr, "%sError%s [%s%s%s]: ", ansi_colors[error_color],
-              ansi_colors[reset_color], ansi_colors[backend_color],
-              BACKEND_HEADER_STR, ansi_colors[reset_color]);
-    } else {
-      fprintf(stderr, "Error [%s]: ", BACKEND_HEADER_STR);
-    }
-  }
   verrx(EXIT_FAILURE, fmt, ap);
+  va_end(ap);
 }
 
 /* Display the info message */
 void vlogger_info(const char *fmt, va_list argp) {
   if (logger_enabled) {
-    if (logger_colored) {
-      fprintf(stderr, "%sInfo%s [%s%s%s]: ", ansi_colors[info_color],
-              ansi_colors[reset_color], ansi_colors[backend_color],
-              BACKEND_HEADER_STR, ansi_colors[reset_color]);
-    } else {
-      fprintf(stderr, "Info [%s]: ", BACKEND_HEADER_STR);
-    }
+    logger_header(logger_logfile, "Info", info_color, logger_colored);
+    vfprintf(logger_logfile, fmt, argp);
   }
-  vfprintf(stderr, fmt, argp);
 }
 
 /* Display the warning message */
 void vlogger_warning(const char *fmt, va_list argp) {
   if (logger_enabled) {
-    if (logger_colored) {
-      fprintf(stderr, "%sWarning%s [%s%s%s]: ", ansi_colors[warning_color],
-              ansi_colors[reset_color], ansi_colors[backend_color],
-              BACKEND_HEADER_STR, ansi_colors[reset_color]);
-    } else {
-      fprintf(stderr, "Warning [%s]: ", BACKEND_HEADER_STR);
-    }
+    logger_header(stderr, "Warning", warning_color, logger_colored);
   }
   vwarnx(fmt, argp);
 }
@@ -197,19 +224,13 @@ void vlogger_warning(const char *fmt, va_list argp) {
 /* Display the error message */
 void vlogger_error(const char *fmt, va_list argp) {
   if (logger_enabled) {
-    if (logger_colored) {
-      fprintf(stderr, "%sError%s [%s%s%s]: ", ansi_colors[error_color],
-              ansi_colors[reset_color], ansi_colors[backend_color],
-              BACKEND_HEADER_STR, ansi_colors[reset_color]);
-    } else {
-      fprintf(stderr, "Error [%s]: ", BACKEND_HEADER_STR);
-    }
+    logger_header(stderr, "Error", error_color, logger_colored);
   }
   verrx(EXIT_FAILURE, fmt, argp);
 }
 
 void logger_init(void) {
-
   logger_enabled = is_logger_enabled();
   logger_colored = is_logger_colored();
+  set_logger_logfile();
 }

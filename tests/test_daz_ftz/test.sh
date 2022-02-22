@@ -31,6 +31,7 @@ compare() {
     check_success
 }
 
+export VFC_BACKENDS_LOGGER=False
 export VFC_BACKENDS_SILENT_LOAD="TRUE"
 
 rm -f run_parallel

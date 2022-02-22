@@ -1,10 +1,12 @@
 #!/bin/bash
 
+export VFC_BACKENDS_LOGGER=False
+
 make clean
 make dd
 
-if grep "archimedes.c:16" dd.line/rddmin-cmp/dd.line.exclude ; then
-  if grep "archimedes.c:17" dd.line/rddmin-cmp/dd.line.exclude ; then
+if grep "archimedes.c:16" dd.line/rddmin-cmp/dd.line.exclude; then
+  if grep "archimedes.c:17" dd.line/rddmin-cmp/dd.line.exclude; then
     echo "success !"
     exit 0
   else
