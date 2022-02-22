@@ -4,7 +4,7 @@ set -e
 rm -rf logs/ binary32-* binary64-* sr
 mkdir logs/
 export VFC_BACKENDS_LOGFILE="logs/verificarlo.log"
-export BACKEND="libinterflop_mca.so"
+export BACKEND="libinterflop_mca_int.so"
 
 ITERATIONS=100
 

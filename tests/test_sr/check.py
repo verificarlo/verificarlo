@@ -33,6 +33,7 @@ if __name__ == "__main__":
     # SR (MCA RR 24) should preserve the value
 
     f = read("binary32-24")
+    print(f)
     assert(len(f) == 2)
     target = its*50.0/100.
     assert(target - TOLERANCE < f['0x1.4000000000000p+0'] < target + TOLERANCE)

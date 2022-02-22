@@ -1,62 +1,22 @@
-/*****************************************************************************
- *                                                                           *
- *  This file is part of Verificarlo.                                        *
- *                                                                           *
- *  Copyright (c) 2015                                                       *
- *     Universite de Versailles St-Quentin-en-Yvelines                       *
- *     CMLA, Ecole Normale Superieure de Cachan                              *
- *  Copyright (c) 2018-2020                                                  *
- *     Verificarlo contributors                                              *
- *     Universite de Versailles St-Quentin-en-Yvelines                       *
- *                                                                           *
- *  Verificarlo is free software: you can redistribute it and/or modify      *
- *  it under the terms of the GNU General Public License as published by     *
- *  the Free Software Foundation, either version 3 of the License, or        *
- *  (at your option) any later version.                                      *
- *                                                                           *
- *  Verificarlo is distributed in the hope that it will be useful,           *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- *  GNU General Public License for more details.                             *
- *                                                                           *
- *  You should have received a copy of the GNU General Public License        *
- *  along with Verificarlo.  If not, see <http://www.gnu.org/licenses/>.     *
- *                                                                           *
- *****************************************************************************/
-
-// Changelog:
-//
-// 2015-05-20 replace random number generator with TinyMT64. This
-// provides a reentrant, independent generator of better quality than
-// the one provided in libc.
-//
-// 2015-10-11 New version based on quad floating point type to replace MPFR
-// until required MCA precision is lower than quad mantissa divided by 2,
-// i.e. 56 bits
-//
-// 2015-11-16 New version using double precision for single precision operation
-//
-// 2016-07-14 Support denormalized numbers
-//
-// 2017-04-25 Rewrite debug and validate the noise addition operation
-//
-// 2019-08-07 Fix memory leak and convert to interflop
-//
-// 2020-02-07 create separated virtual precisions for binary32
-// and binary64. Uses the binary128 structure for easily manipulating bits
-// through bitfields. Removes useless specials cases in qnoise and pow2d.
-// Change return type from int to void for some functions and uses instead
-// errx and warnx for handling errors.
-//
-// 2020-02-26 Factorize _inexact function into the _INEXACT macro function.
-// Use variables for options name instead of hardcoded one.
-// Add DAZ/FTZ support.
-//
-// 2021-10-13 Switched random number generator from TinyMT64 to the one
-// provided by the libc. The backend is now re-entrant. Pthread and OpenMP
-// threads are now supported.
-// Generation of hook functions is now done through macros, shared accross
-// backends.
+/*****************************************************************************\
+ *                                                                           *\
+ *  This file is part of the Verificarlo project,                            *\
+ *  under the Apache License v2.0 with LLVM Exceptions.                      *\
+ *  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 *\
+ *  See https://llvm.org/LICENSE.txt for license information.                *\
+ *                                                                           *\
+ *                                                                           *\
+ *  Copyright (c) 2015                                                       *\
+ *     Universite de Versailles St-Quentin-en-Yvelines                       *\
+ *     CMLA, Ecole Normale Superieure de Cachan                              *\
+ *                                                                           *\
+ *  Copyright (c) 2018                                                       *\
+ *     Universite de Versailles St-Quentin-en-Yvelines                       *\
+ *                                                                           *\
+ *  Copyright (c) 2019-2022                                                  *\
+ *     Verificarlo Contributors                                              *\
+ *                                                                           *\
+ ****************************************************************************/
 
 #include <argp.h>
 #include <err.h>
@@ -198,55 +158,34 @@ static unsigned long long int global_tid = 0;
 static __thread rng_state_t rng_state;
 
 /* noise = rand * 2^(exp) */
-/* We can skip special cases since we never met them */
+/* We can skip special cases since we never meet them */
 /* Since we have exponent of float values, the result */
 /* is comprised between: */
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline void _noise_binary64(double *x, const int exp,
                                    rng_state_t *rng_state) {
-  uint64_t noise_mask, noise, noise_msb, noise_sign_mask;
-  uint32_t mask_shift_amount;
+  int64_t noise;
+  uint32_t shift;
   binary64 x_b64 = {.f64 = *x};
 
-  // amount by which to shift, when creating the mask for the noise
-  mask_shift_amount = 1 + DOUBLE_EXP_SIZE + exp;
-  // create the mask for the noise
-  noise_mask = ((uint64_t)DOUBLE_MASK_ONE) >> mask_shift_amount;
+  // amount by which to shift the noise term sign (1) + exp (11) + noise exponent
+  shift = 1 + DOUBLE_EXP_SIZE - exp;
 
   // generate a new random 64-bit integer
-  noise = _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+  // noise is a signed integer so the noise is centered around 0
+  noise = (int64_t) _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
 
-  // extract the MSB of the noise
-  //  first extract the MSB
-  noise_msb = noise & (((uint64_t)1) << (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE));
-  //  next, shift the MSB all the way to the LSB position
-  noise_msb = noise_msb >> (DOUBLE_EXP_SIZE + DOUBLE_PMAN_SIZE);
-  // noise sign mask is used to create the one's complement of the masked noise
-  noise_sign_mask = (uint64_t)DOUBLE_MASK_ONE + (noise_msb ^ 1);
+  //printf("noise shift = %d\n", shift);
+  //printf("noise = %ld\n", noise);
+  //printf("noise = %lx\n", noise);
 
-  // printf("noise: %lu\n", noise);
-  // printf("noise mask: %lu\n", noise_mask);
-  // printf("noise msb: %lu\n", noise_msb);
-  // printf("noise sign mask: %lu\n", noise_sign_mask);
+  // right shift the noise to the correct magnitude, this is a arithmetic shift
+  // and sign bit will be extended
+  noise = noise >> shift;
 
-  // apply the mask to the noise, to only keep the noise at the correct
-  // magnitude
-  noise &= noise_mask;
-  // create the two's complement of the noise, if necessary
-  //  flip all bits of the noise, if necessary
-  noise ^= noise_sign_mask;
-  //  add the carry, if necessary
-  noise += noise_msb;
-
-  // printf("noise masked: %lu\n", noise);
-
-  // printf("input: %.18f\n", x_b64.f64);
-
-  // add the noise to the input
-  x_b64.u64 = x_b64.u64 + noise;
-
-  // printf("input noised: %.18f\n", x_b64.f64);
+  // Add the noise to the x value
+  x_b64.s64 += noise;
 
   *x = x_b64.f64;
 }
@@ -358,10 +297,13 @@ static __float128 _noise_binary128(__float128 *x, const int exp,
       return;                                                                  \
     } else {                                                                   \
       if (TMP_CTX->relErr) {                                                   \
-        _NOISE(X, VIRTUAL_PRECISION, &RNG_STATE);                              \
+        const int32_t e_a = GET_EXP_FLT(*X);                                   \
+        const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
+        _NOISE(X, e_n_rel, &RNG_STATE);                                       \
       }                                                                        \
       if (TMP_CTX->absErr) {                                                   \
-        _NOISE(X, TMP_CTX->absErr_exp, &RNG_STATE);                            \
+        const int32_t e_n_abs = TMP_CTX->absErr_exp;                           \
+        _NOISE(X, e_n_abs, &RNG_STATE);                                       \
       }                                                                        \
     }                                                                          \
   }

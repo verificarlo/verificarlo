@@ -191,7 +191,7 @@ static unsigned long long int global_tid = 0;
 static __thread rng_state_t rng_state;
 
 /* noise = rand * 2^(exp) */
-/* We can skip special cases since we never met them */
+/* We can skip special cases since we never meet them */
 /* Since we have exponent of float values, the result */
 /* is comprised between: */
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */

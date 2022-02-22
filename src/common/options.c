@@ -96,9 +96,12 @@ static void _set_seed(struct drand48_data *random_state, const bool choose_seed,
 static uint64_t _generate_random_uint64(struct drand48_data *random_state) {
   uint64_t tmp_rand1, tmp_rand2, tmp_rand;
 
-  lrand48_r(random_state, &tmp_rand1);
-  lrand48_r(random_state, &tmp_rand2);
-  tmp_rand = (tmp_rand2 << 32) + tmp_rand1;
+  mrand48_r(random_state, &tmp_rand1);
+  mrand48_r(random_state, &tmp_rand2);
+
+  tmp_rand = tmp_rand1;
+  tmp_rand <<=32;
+  tmp_rand ^= tmp_rand2;
 
   return tmp_rand;
 }
@@ -150,7 +153,7 @@ unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
   return tmp_tid;
 }
 
-/* Returns a 64-bit unsigned integer r (0 <= r < 2^64) */
+/* Returns a 64-bit signed integer r (0 <= r < 2^64) */
 uint64_t _get_rand_uint64(rng_state_t *rng_state,
                           pthread_mutex_t *global_tid_lock,
                           unsigned long long int *global_tid) {
