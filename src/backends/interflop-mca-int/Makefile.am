@@ -5,5 +5,5 @@ if WALL_CFLAGS
 libinterflop_mca_int_la_CFLAGS += -Wall -Wextra
 endif
 libinterflop_mca_int_la_LDFLAGS = -lm
-libinterflop_mca_int_la_LIBADD = 
+libinterflop_mca_int_la_LIBADD =
 library_includedir =$(includedir)/
