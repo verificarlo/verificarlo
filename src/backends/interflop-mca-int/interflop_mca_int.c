@@ -254,15 +254,8 @@ static void _noise_binary128(__float128 *x, const int exp,
                               &global_tid_lock, &global_tid)) {                \
       return;                                                                  \
     } else {                                                                   \
-      if (TMP_CTX->relErr) {                                                   \
-        const int32_t e_a = GET_EXP_FLT(*X);                                   \
-        const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        _NOISE(X, e_n_rel, &RNG_STATE);                                        \
-      }                                                                        \
-      if (TMP_CTX->absErr) {                                                   \
-        const int32_t e_n_abs = TMP_CTX->absErr_exp;                           \
-        _NOISE(X, e_n_abs, &RNG_STATE);                                        \
-      }                                                                        \
+      const int32_t e_n_rel = -(VIRTUAL_PRECISION - 1);                        \
+      _NOISE(X, e_n_rel, &RNG_STATE);                                          \
     }                                                                          \
   }
 
@@ -436,18 +429,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case KEY_ERR_MODE:
     /* mca error mode */
-    if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_rel], arg) == 0) {
+    if (!strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_rel], arg) == 0) {
       ctx->relErr = true;
       ctx->absErr = false;
-    } else if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_abs], arg) == 0) {
-      ctx->relErr = false;
-      ctx->absErr = true;
-    } else if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_all], arg) == 0) {
-      ctx->relErr = true;
-      ctx->absErr = true;
     } else {
       logger_error("--%s invalid value provided, must be one of: "
-                   "{rel, abs, all}.",
+                   "{rel}.\n"
+                   "interflop_mca_int only supports relative error mode.",
                    key_err_mode_str);
     }
     break;
