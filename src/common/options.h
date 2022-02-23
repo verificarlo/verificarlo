@@ -105,6 +105,17 @@ uint64_t _get_rand_uint64(rng_state_t *rng_state,
                           pthread_mutex_t *global_tid_lock,
                           unsigned long long int *global_tid);
 
+/* Returns a 32-bit unsigned integer r (0 <= r < 2^32) */
+/* Manages the internal state of the RNG, if necessary */
+/* @param rng_state pointer to the structure holding all the RNG-related data */
+/* @param global_tid_lock pointer to the mutex controling the access to the
+ * Unique TID */
+/* @param global_tid pointer to the unique TID */
+/* @return a 32-bit unsigned integer r (0 <= r < 2^32) */
+uint32_t _get_rand_uint32(rng_state_t *rng_state,
+                          pthread_mutex_t *global_tid_lock,
+                          unsigned long long int *global_tid);
+
 /* Returns a random double in the (0,1) open interval */
 /* Manages the internal state of the RNG, if necessary */
 /* @param rng_state pointer to the structure holding all the RNG-related data */

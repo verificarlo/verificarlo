@@ -3,6 +3,8 @@ Verificarlo CHANGELOG
 # [Unreleased]
 
 ## Added
+  * New interflop_mca_int.so backend. This new MCA backend uses integer computations
+    to add stochastic noise. This should offer a performance gain on most architectures.
   * Add VFC_BACKENDS_LOGFILE environment variable to redirect logger_info to a file
   * Add `interflop_call` function into interflop_backend_interface_t interface.
   Allows user to directly call low-level backend functions

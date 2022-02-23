@@ -116,7 +116,7 @@ A [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) is avail
 Verificarlo includes different numerical backends. Please refer to the [backends documentation](doc/02-Backends.md).
 
   * [IEEE Backend (libinterflop_ieee.so)](doc/02-Backends.md#ieee-backend-libinterflop_ieeeso)
-  * [MCA Backend (libinterflop_mca.so)](doc/02-Backends.md#mca-backend-libinterflop_mcaso)
+  * [MCA Backends (libinterflop_mca.so and lib_interflop_mca_int.so)](doc/02-Backends.md#mca-backends)
   * [Bitmask Backend (libinterflop_bitmask.so)](doc/02-Backends.md#bitmask-backend-libinterflop_bitmaskso)
   * [Cancellation Backend (libinterflop_cancellation.so)](doc/02-Backends.md#cancellation-backend-libinterflop_cancellationso)
   * [VPREC Backend (libinterflop_vprec.so)](doc/02-Backends.md#vprec-backend-libinterflop_vprecso)
