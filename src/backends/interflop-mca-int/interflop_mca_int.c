@@ -557,6 +557,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL,
       NULL,
+      NULL,
       NULL};
 
   /* The seed for the RNG is initialized upon the first request for a random

@@ -14,14 +14,14 @@
 void binary32_test() {
   float x = 0.1f;
   fprintf(stderr, "Before %.6a\n", x);
-  interflop_call(INTERFLOP_INEXACT_ID, FFLOAT, &x);
+  interflop_call(INTERFLOP_INEXACT_ID, FFLOAT, &x, P);
   fprintf(stderr, "After  %.6a\n", x);
 }
 
 void binary64_test() {
   double x = 0.1;
   fprintf(stderr, "Before %.13a\n", x);
-  interflop_call(INTERFLOP_INEXACT_ID, FDOUBLE, &x);
+  interflop_call(INTERFLOP_INEXACT_ID, FDOUBLE, &x, P);
   fprintf(stderr, "After  %.13a\n", x);
 }
 

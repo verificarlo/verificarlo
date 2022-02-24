@@ -255,7 +255,7 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
  */
 #define _FAST_INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                    \
   {                                                                            \
-    if (_IS_IEEE_MODE() || _IS_NOT_NORMAL_OR_SUBNORMAL(X)) {                   \
+    if (_IS_IEEE_MODE() || _IS_NOT_NORMAL_OR_SUBNORMAL(*X)) {                  \
       return;                                                                  \
     }                                                                          \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
@@ -411,13 +411,13 @@ void _interflop_usercall_inexact(void *context, va_list ap) {
   switch (ftype) {
   case FFLOAT:
     xd = *((float *)value);
-    t = (precision <= 0) ? (MCALIB_BINARY32_T - precision) : precision;
+    t = (precision <= 0) ? (MCALIB_BINARY32_T + precision) : precision;
     _FAST_INEXACT(&xd, t, context, rng_state);
     *((float *)value) = xd;
     break;
   case FDOUBLE:
     xq = *((double *)value);
-    t = (precision <= 0) ? (MCALIB_BINARY64_T - precision) : precision;
+    t = (precision <= 0) ? (MCALIB_BINARY64_T + precision) : precision;
     _FAST_INEXACT(&xq, t, context, rng_state);
     *((double *)value) = xq;
     break;
