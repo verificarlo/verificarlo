@@ -15,7 +15,8 @@ A tool for debugging and assessing floating point precision and reproducibility.
    * [Branch instrumentation](#branch-instrumentation)
    * [Examples and Tutorial](#examples-and-tutorial)
    * [Backends](#backends)
-   * [Delta Debug and inclusion / exclusion options](#delta-debug-and-inclusion--exclusion-options)
+   * [Inclusion / exclusion options](#inclusion--exclusion-options)
+   * [Pinpointing numerical errors with Delta-Debug](#pinpointing-numerical-errors-with-delta-debug)
    * [VPREC Function instrumentation](#vprec-function-instrumentation)
    * [Postprocessing](#postprocessing)
    * [How to cite Verificarlo](#how-to-cite-verificarlo)
@@ -30,7 +31,7 @@ To install Verificarlo please refer to the [installation documentation](doc/01-I
 ## Using Verificarlo through its Docker image
 
 A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/.
-This image uses the latest git master version of Verificarlo and includes
+This image uses the latest release version of Verificarlo and includes
 support for Fortran. It uses llvm-7 and gcc-7.
 
 Example of usage with Monte Carlo arithmetic:
