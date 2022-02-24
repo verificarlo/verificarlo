@@ -53,8 +53,8 @@
 //
 // 2022-02-16 Add interflop_user_call implementation for INTERFLOP_CALL_INEXACT
 // id Add FAST_INEXACT macro that is a fast version of the INEXACT macro that
-// does not perform any checks and always introduces a perturbation (for
-// relativeError only)
+// does not check if the number is representable or not and thus always
+// introduces a perturbation (for relativeError only)
 
 #include <argp.h>
 #include <err.h>
@@ -226,6 +226,14 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
   return b128.f128;
 }
 
+#define _IS_IEEE_MODE()                                                        \
+  /* if mode ieee, do not introduce noise */                                   \
+  (MCALIB_MODE == mcamode_ieee)
+
+#define _IS_NOT_NORMAL_OR_SUBNORMAL(X)                                         \
+  /* Check that we are not in a special case */                                \
+  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL)
+
 /* Macro function for checking if the value X must be noised */
 #define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
   /* if mode ieee, do not introduce noise */                                   \
@@ -247,6 +255,9 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
  */
 #define _FAST_INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                    \
   {                                                                            \
+    if (_IS_IEEE_MODE() || _IS_NOT_NORMAL_OR_SUBNORMAL(X)) {                   \
+      return;                                                                  \
+    }                                                                          \
     t_context *TMP_CTX = (t_context *)CTX;                                     \
     _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
                            (unsigned long long)(TMP_CTX->seed), false);        \
@@ -389,25 +400,25 @@ _INTERFLOP_OP_CALL(double, mul, mca_mul, _mca_binary64_binary_op)
 _INTERFLOP_OP_CALL(double, div, mca_div, _mca_binary64_binary_op)
 
 void _interflop_usercall_inexact(void *context, va_list ap) {
-  /* Do not introduce noise if */
-  if (MCALIB_MODE == mcamode_ieee) {
-    return;
-  }
   double xd = 0;
   __float128 xq = 0;
   enum FTYPES ftype;
   void *value = NULL;
+  int precision = 0, t = 0;
   ftype = va_arg(ap, enum FTYPES);
   value = va_arg(ap, void *);
+  precision = va_arg(ap, int);
   switch (ftype) {
   case FFLOAT:
     xd = *((float *)value);
-    _FAST_INEXACT(&xd, MCALIB_BINARY32_T - 1, context, rng_state);
+    t = (precision <= 0) ? (MCALIB_BINARY32_T - precision) : precision;
+    _FAST_INEXACT(&xd, t, context, rng_state);
     *((float *)value) = xd;
     break;
   case FDOUBLE:
     xq = *((double *)value);
-    _FAST_INEXACT(&xq, MCALIB_BINARY64_T - 1, context, rng_state);
+    t = (precision <= 0) ? (MCALIB_BINARY64_T - precision) : precision;
+    _FAST_INEXACT(&xq, t, context, rng_state);
     *((double *)value) = xq;
     break;
   default:
