@@ -27,7 +27,15 @@ enum FCMP_PREDICATE {
 };
 
 /* Enumeration of types managed by function instrumentation */
-enum FTYPES { FFLOAT, FDOUBLE, FFLOAT_PTR, FDOUBLE_PTR, FTYPES_END };
+enum FTYPES {
+  FFLOAT,
+  FDOUBLE,
+  FQUAD,
+  FFLOAT_PTR,
+  FDOUBLE_PTR,
+  FQUAD_PTR,
+  FTYPES_END
+};
 
 typedef enum {
   /* Allows perturbing one floating-point value */
