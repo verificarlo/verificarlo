@@ -421,6 +421,11 @@ void _interflop_usercall_inexact(void *context, va_list ap) {
     _FAST_INEXACT(&xq, t, context, rng_state);
     *((double *)value) = xq;
     break;
+  case FQUAD:
+    xq = *((__float128 *)value);
+    _FAST_INEXACT(&xq, precision, context, rng_state);
+    *((__float128 *)value) = xq;
+    break;
   default:
     logger_warning(
         "Uknown type passed to _interflop_usercall_inexact function");
