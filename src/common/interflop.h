@@ -39,7 +39,7 @@ enum FTYPES {
 
 typedef enum {
   /* Allows perturbing one floating-point value */
-  /* signature: void inexact(enun FTYPES type, void *value) */
+  /* signature: void inexact(enum FTYPES type, void *value, int precision) */
   INTERFLOP_INEXACT_ID = 1,
   INTERFLOP_CUSTOM_ID = -1
 } interflop_call_id;

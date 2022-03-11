@@ -18,6 +18,7 @@ A tool for debugging and assessing floating point precision and reproducibility.
    * [Inclusion / exclusion options](#inclusion--exclusion-options)
    * [Pinpointing numerical errors with Delta-Debug](#pinpointing-numerical-errors-with-delta-debug)
    * [VPREC Function instrumentation](#vprec-function-instrumentation)
+   * [User call instrumentation](#interflop-usercall-instrumentation)
    * [Postprocessing](#postprocessing)
    * [How to cite Verificarlo](#how-to-cite-verificarlo)
    * [Discussion Group](#discussion-group)
@@ -145,6 +146,11 @@ Verificarlo includes a set of [postprocessing tools](doc/06-Postprocessing.md) t
   * [Unstable branch detection](doc/06-Postprocessing.md#unstable-branch-detection)
   * [VFC-VTK](doc/06-Postprocessing.md#vfc-vtk)
   * [Verificarlo CI](doc/06-Postprocessing.md#verificarlo-ci)
+
+## Interflop user call instrumentation
+
+Verificarlo provides the ability to call low-level backend functions directly through 
+the `interflop_call` function. Please refer to the [Interflop user call instrumentation documentation](doc/07-Interflop-usercall-instrumentation.md).
 
 ## How to cite Verificarlo
 
