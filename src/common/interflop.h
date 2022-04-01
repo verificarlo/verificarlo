@@ -68,32 +68,32 @@ typedef struct interflop_function_stack {
 } interflop_function_stack_t;
 
 struct interflop_backend_interface_t {
-  const char* (*backend_name)(void);
-  const char* (*backend_version)(void);
+  const char *(*backend_name)(void);
+  const char *(*backend_version)(void);
 
   void (*add_float)(float a, float b, float *c, void *context);
   void (*sub_float)(float a, float b, float *c, void *context);
   void (*mul_float)(float a, float b, float *c, void *context);
   void (*div_float)(float a, float b, float *c, void *context);
   void (*cmp_float)(enum FCMP_PREDICATE p, float a, float b, int *c,
-                              void *context);
+                    void *context);
 
   void (*add_double)(double a, double b, double *c, void *context);
   void (*sub_double)(double a, double b, double *c, void *context);
   void (*mul_double)(double a, double b, double *c, void *context);
   void (*div_double)(double a, double b, double *c, void *context);
-  void (*cmp_double)(enum FCMP_PREDICATE p, double a, double b,
-                               int *c, void *context);
+  void (*cmp_double)(enum FCMP_PREDICATE p, double a, double b, int *c,
+                     void *context);
 
   void (*cast_double_to_float)(double a, float *b, void *context);
   void (*madd_double)(double a, double b, double c, double *res, void *context);
   void (*madd_float)(float a, float b, float c, float *res, void *context);
 
-  void (*enter_function)(interflop_function_stack_t *stack,
-                                   void *context, int nb_args, va_list ap);
+  void (*enter_function)(interflop_function_stack_t *stack, void *context,
+                         int nb_args, va_list ap);
 
-  void (*exit_function)(interflop_function_stack_t *stack,
-                                  void *context, int nb_args, va_list ap);
+  void (*exit_function)(interflop_function_stack_t *stack, void *context,
+                        int nb_args, va_list ap);
 
   void (*user_call)(void *context, interflop_call_id id, va_list ap);
   /* interflop_finalize: called at the end of the instrumented program
@@ -101,16 +101,11 @@ struct interflop_backend_interface_t {
   void (*finalize)(void *context);
 };
 
-#define interflop_backend_empty_interface {	\
-      NULL, NULL,				\
-      NULL, NULL, NULL, NULL, NULL,		\
-      NULL, NULL, NULL, NULL, NULL,		\
-      NULL, NULL, NULL,			\
-      NULL,					\
-      NULL,					\
-      NULL,					\
-      NULL,					\
-      }
+#define interflop_backend_empty_interface                                      \
+  {                                                                            \
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,    \
+        NULL, NULL, NULL, NULL, NULL, NULL, NULL,                              \
+  }
 
 /* interflop_init: called at initialization before using a backend.
  * It returns an interflop_backend_interface_t structure with callbacks

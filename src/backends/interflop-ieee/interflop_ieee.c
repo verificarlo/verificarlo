@@ -407,21 +407,22 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* register %b format */
   register_printf_bit();
 
-  struct interflop_backend_interface_t config=interflop_backend_empty_interface;
+  struct interflop_backend_interface_t config =
+      interflop_backend_empty_interface;
 
-  config.add_float=_interflop_add_float;
-  config.sub_float=_interflop_sub_float;
-  config.mul_float=_interflop_mul_float;
-  config.div_float=_interflop_div_float;
+  config.add_float = _interflop_add_float;
+  config.sub_float = _interflop_sub_float;
+  config.mul_float = _interflop_mul_float;
+  config.div_float = _interflop_div_float;
 
-  config.add_double=_interflop_add_double;
-  config.sub_double=_interflop_sub_double;
-  config.mul_double=_interflop_mul_double;
-  config.div_double=_interflop_div_double;
+  config.add_double = _interflop_add_double;
+  config.sub_double = _interflop_sub_double;
+  config.mul_double = _interflop_mul_double;
+  config.div_double = _interflop_div_double;
 
-  config.cmp_float =_interflop_cmp_float;
-  config.cmp_double=_interflop_cmp_double;
-  config.finalize  =_interflop_finalize;
+  config.cmp_float = _interflop_cmp_float;
+  config.cmp_double = _interflop_cmp_double;
+  config.finalize = _interflop_finalize;
 
   return config;
 }

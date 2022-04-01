@@ -208,7 +208,7 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
   do {                                                                         \
     int res = 0;                                                               \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
-      if (backends[i].operation##_##precision) {                   \
+      if (backends[i].operation##_##precision) {                               \
         res = 1;                                                               \
         break;                                                                 \
       }                                                                        \
@@ -468,9 +468,8 @@ void interflop_call(interflop_call_id id, ...) {
     precision c = NAN;                                                         \
     ddebug(operator);                                                          \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
-      if (backends[i].operation##_##precision) {                   \
-        backends[i].operation##_##precision(a, b, &c,              \
-                                                        contexts[i]);          \
+      if (backends[i].operation##_##precision) {                               \
+        backends[i].operation##_##precision(a, b, &c, contexts[i]);            \
       }                                                                        \
     }                                                                          \
     return c;                                                                  \

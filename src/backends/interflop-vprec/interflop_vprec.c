@@ -1623,22 +1623,22 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
     }
   }
 
+  struct interflop_backend_interface_t interflop_backend_vprec =
+      interflop_backend_empty_interface;
 
-  struct interflop_backend_interface_t interflop_backend_vprec=interflop_backend_empty_interface;
+  interflop_backend_vprec.add_float = _interflop_add_float;
+  interflop_backend_vprec.sub_float = _interflop_sub_float;
+  interflop_backend_vprec.mul_float = _interflop_mul_float;
+  interflop_backend_vprec.div_float = _interflop_div_float;
 
-  interflop_backend_vprec.add_float=_interflop_add_float;
-  interflop_backend_vprec.sub_float=_interflop_sub_float;
-  interflop_backend_vprec.mul_float=_interflop_mul_float;
-  interflop_backend_vprec.div_float=_interflop_div_float;
+  interflop_backend_vprec.add_double = _interflop_add_double;
+  interflop_backend_vprec.sub_double = _interflop_sub_double;
+  interflop_backend_vprec.mul_double = _interflop_mul_double;
+  interflop_backend_vprec.div_double = _interflop_div_double;
 
-  interflop_backend_vprec.add_double=_interflop_add_double;
-  interflop_backend_vprec.sub_double=_interflop_sub_double;
-  interflop_backend_vprec.mul_double=_interflop_mul_double;
-  interflop_backend_vprec.div_double=_interflop_div_double;
-
-  interflop_backend_vprec.enter_function=_interflop_enter_function;
-  interflop_backend_vprec.exit_function =_interflop_exit_function;
-  interflop_backend_vprec.finalize=_interflop_finalize;
+  interflop_backend_vprec.enter_function = _interflop_enter_function;
+  interflop_backend_vprec.exit_function = _interflop_exit_function;
+  interflop_backend_vprec.finalize = _interflop_finalize;
 
   return interflop_backend_vprec;
 }
