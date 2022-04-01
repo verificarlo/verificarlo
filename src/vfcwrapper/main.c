@@ -184,8 +184,8 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
 
   /* Send finalize message to backends */
   for (int i = 0; i < loaded_backends; i++)
-    if (backends[i].interflop_finalize)
-      backends[i].interflop_finalize(contexts[i]);
+    if (backends[i].finalize)
+      backends[i].finalize(contexts[i]);
 
 #ifdef DDEBUG
   if (dd_generate_path) {
@@ -208,7 +208,7 @@ __attribute__((destructor(0))) static void vfc_atexit(void) {
   do {                                                                         \
     int res = 0;                                                               \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
-      if (backends[i].interflop_##operation##_##precision) {                   \
+      if (backends[i].operation##_##precision) {                   \
         res = 1;                                                               \
         break;                                                                 \
       }                                                                        \
@@ -455,9 +455,9 @@ __attribute__((constructor(0))) static void vfc_init(void) {
 void interflop_call(interflop_call_id id, ...) {
   va_list ap;
   for (unsigned char i = 0; i < loaded_backends; i++) {
-    if (backends[i].interflop_user_call) {
+    if (backends[i].user_call) {
       va_start(ap, id);
-      backends[i].interflop_user_call(contexts[i], id, ap);
+      backends[i].user_call(contexts[i], id, ap);
       va_end(ap);
     }
   }
@@ -468,8 +468,8 @@ void interflop_call(interflop_call_id id, ...) {
     precision c = NAN;                                                         \
     ddebug(operator);                                                          \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
-      if (backends[i].interflop_##operation##_##precision) {                   \
-        backends[i].interflop_##operation##_##precision(a, b, &c,              \
+      if (backends[i].operation##_##precision) {                   \
+        backends[i].operation##_##precision(a, b, &c,              \
                                                         contexts[i]);          \
       }                                                                        \
     }                                                                          \
@@ -488,8 +488,8 @@ define_arithmetic_wrapper(double, div, /);
 int _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
   int c;
   for (unsigned int i = 0; i < loaded_backends; i++) {
-    if (backends[i].interflop_cmp_float) {
-      backends[i].interflop_cmp_float(p, a, b, &c, contexts[i]);
+    if (backends[i].cmp_float) {
+      backends[i].cmp_float(p, a, b, &c, contexts[i]);
     }
   }
   return c;
@@ -498,8 +498,8 @@ int _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
 int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
   int c;
   for (unsigned int i = 0; i < loaded_backends; i++) {
-    if (backends[i].interflop_cmp_double) {
-      backends[i].interflop_cmp_double(p, a, b, &c, contexts[i]);
+    if (backends[i].cmp_double) {
+      backends[i].cmp_double(p, a, b, &c, contexts[i]);
     }
   }
   return c;

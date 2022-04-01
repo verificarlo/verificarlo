@@ -95,7 +95,7 @@ struct interflop_backend_interface_t {
   void (*exit_function)(interflop_function_stack_t *stack,
                                   void *context, int nb_args, va_list ap);
 
-  void (*interflop_user_call)(void *context, interflop_call_id id, va_list ap);
+  void (*user_call)(void *context, interflop_call_id id, va_list ap);
   /* interflop_finalize: called at the end of the instrumented program
    * execution */
   void (*finalize)(void *context);

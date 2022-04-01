@@ -140,8 +140,8 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
     va_start(ap, n * 4);
 
     for (int i = 0; i < loaded_backends; i++)
-      if (backends[i].interflop_enter_function)
-        backends[i].interflop_enter_function(&_vfc_call_stack, contexts[i], n,
+      if (backends[i].enter_function)
+        backends[i].enter_function(&_vfc_call_stack, contexts[i], n,
                                              ap);
 
     va_end(ap);
@@ -160,8 +160,8 @@ void vfc_exit_function(__attribute__((unused)) char *func_name,
     va_start(ap, n * 4);
 
     for (int i = 0; i < loaded_backends; i++)
-      if (backends[i].interflop_exit_function)
-        backends[i].interflop_exit_function(&_vfc_call_stack, contexts[i], n,
+      if (backends[i].exit_function)
+        backends[i].exit_function(&_vfc_call_stack, contexts[i], n,
                                             ap);
 
     va_end(ap);
