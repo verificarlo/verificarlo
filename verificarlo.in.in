@@ -226,12 +226,12 @@ def compiler_mode(sources, options, output, args):
         if args.inst_func:
             # Apply function's instrumentation pass
             shell(
-                f'{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}')
+                f'{opt} -S -enable-new-pm=0  -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}')
             ir = ins
             ins = get_tmp_filename(basename, '.3.ll', args)
 
         # Apply MCA instrumentation pass
-        shell((f'{opt} -S  -load {libvfcinstrument} '
+        shell((f'{opt} -S -enable-new-pm=0  -load {libvfcinstrument} '
                f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} '
                f' -vfclibinst {extra_args} {selectfunction} '
                f' {ir.name} -o {ins.name}'))
