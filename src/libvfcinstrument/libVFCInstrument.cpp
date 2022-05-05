@@ -299,9 +299,11 @@ struct VfclibInst : public ModulePass {
     Type *baseType = opType->getScalarType();
     if (VectorType *vecType = dyn_cast<VectorType>(opType)) {
 #if LLVM_VERSION_MAJOR >= 13
-      if(isa<ScalableVectorType>(vecType))
+      if (isa<ScalableVectorType>(vecType))
         report_fatal_error("Scalable vector type are not supported");
-      size = std::to_string(((::llvm::FixedVectorType*)vecType)->getNumElements()) + "x";
+      size = std::to_string(
+                 ((::llvm::FixedVectorType *)vecType)->getNumElements()) +
+             "x";
 #else
       size = std::to_string(vecType->getNumElements()) + "x";
 #endif
@@ -327,9 +329,9 @@ struct VfclibInst : public ModulePass {
     VectorType *vecType = static_cast<VectorType *>(opType);
     auto baseType = vecType->getScalarType();
 #if LLVM_VERSION_MAJOR >= 13
-    if(isa<ScalableVectorType>(vecType))
-        report_fatal_error("Scalable vector type are not supported");
-    auto size = ((::llvm::FixedVectorType*)vecType)->getNumElements();
+    if (isa<ScalableVectorType>(vecType))
+      report_fatal_error("Scalable vector type are not supported");
+    auto size = ((::llvm::FixedVectorType *)vecType)->getNumElements();
 #else
     auto size = vecType->getNumElements();
 #endif
@@ -453,9 +455,9 @@ struct VfclibInst : public ModulePass {
     Type *res = Builder.getInt32Ty();
     if (VectorType *vTy = dyn_cast<VectorType>(opType)) {
 #if LLVM_VERSION_MAJOR >= 13
-      if(isa<ScalableVectorType>(vTy))
+      if (isa<ScalableVectorType>(vTy))
         report_fatal_error("Scalable vector type are not supported");
-      auto size = ((::llvm::FixedVectorType*)vTy)->getNumElements();
+      auto size = ((::llvm::FixedVectorType *)vTy)->getNumElements();
 #else
       auto size = vTy->getNumElements();
 #endif
@@ -581,4 +583,3 @@ struct VfclibInst : public ModulePass {
 char VfclibInst::ID = 0;
 static RegisterPass<VfclibInst> X("vfclibinst", "verificarlo instrument pass",
                                   false, false);
-
