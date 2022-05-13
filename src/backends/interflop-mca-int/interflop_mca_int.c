@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <math.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -30,6 +31,7 @@
 #include <strings.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
+#include <threads.h>
 #include <unistd.h>
 
 #include "../../common/float_const.h"
@@ -38,6 +40,7 @@
 #include "../../common/interflop.h"
 #include "../../common/logger.h"
 #include "../../common/options.h"
+#include "../../common/rng/vfc_rng.h"
 
 typedef enum {
   KEY_PREC_B32,
@@ -148,10 +151,8 @@ static void _set_mca_precision_binary64(const int precision) {
  * perturbations used for MCA
  ***************************************************************/
 
-/* global thread id access lock */
-static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
 /* global thread identifier */
-static unsigned long long int global_tid = 0;
+static pid_t global_tid = 0;
 
 /* helper data structure to centralize the data used for random number
  * generation */
@@ -165,30 +166,23 @@ static __thread rng_state_t rng_state;
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline void _noise_binary64(double *x, const int exp,
                                    rng_state_t *rng_state) {
-  int64_t noise;
-  uint32_t shift;
-
   // Convert preserving-bytes double to int64_t
-  int64_t x_s64 = *(int64_t *)(x);
+  binary64 *b64 = (binary64 *)x;
 
   // amount by which to shift the noise term sign (1) + exp (11) + noise
   // exponent
-  shift = 1 + DOUBLE_EXP_SIZE - exp;
+  const uint32_t shift = 1 + DOUBLE_EXP_SIZE - exp;
 
   // noise is a signed integer so the noise is centered around 0
   // only 32 bits of noise are used, they are left aligned in a signed 64 bit
-  noise = ((uint64_t)_get_rand_uint32(rng_state, &global_tid_lock, &global_tid)
-           << 32);
+  int64_t noise = get_rand_uint64(rng_state, &global_tid) & 0xFFFFFFFF00000000;
 
   // right shift the noise to the correct magnitude, this is a arithmetic shift
   // and sign bit will be extended
-  noise = noise >> shift;
+  noise >>= shift;
 
   // Add the noise to the x value
-  x_s64 += noise;
-
-  // Convert back to double
-  *x = *(double *)(&x_s64);
+  b64->s64 += noise;
 }
 
 /* noise = rand * 2^(exp) */
@@ -201,28 +195,22 @@ static void _noise_binary128(__float128 *x, const int exp,
                              rng_state_t *rng_state) {
 
   // Convert preserving-bytes __float128 to __int128
-  __int128 x_s128 = *(__int128 *)(x);
+  binary128 *b128 = (binary128 *)x;
 
   // amount by which to shift the noise term sign (1) + exp (15) + noise
   // exponent
-  uint32_t shift = 1 + QUAD_EXP_SIZE - exp;
+  const uint32_t shift = 1 + QUAD_EXP_SIZE - exp;
 
   // Generate 128 signed noise
   // only 64 bits of noise are used, they are left aligned in a signed 64 bit
-  int64_t noise_high =
-      _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
-  __int128 noise = noise_high;
-  noise <<= 64;
+  binary128 noise = {.words64.high = get_rand_uint64(rng_state, &global_tid)};
 
   // right shift the noise to the correct magnitude, this is a arithmetic shift
   // and sign bit will be extended
-  noise = noise >> shift;
+  noise.i128 >>= shift;
 
   // Add the noise
-  x_s128 += noise;
-
-  // Convert back to __float128
-  *x = *(__float128 *)(&x_s128);
+  b128->i128 += noise.i128;
 }
 
 /* Macro function for checking if the value X must be noised */
@@ -249,8 +237,7 @@ static void _noise_binary128(__float128 *x, const int exp,
                            (unsigned long long)(TMP_CTX->seed), false);        \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
-    } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE),                 \
-                              &global_tid_lock, &global_tid)) {                \
+    } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE), &global_tid)) { \
       return;                                                                  \
     } else {                                                                   \
       const int32_t e_n_rel = -(VIRTUAL_PRECISION - 1);                        \
@@ -536,9 +523,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
 
   /* The seed for the RNG is initialized upon the first request for a random
      number */
-
-  _init_rng_state_struct(&rng_state, ctx->choose_seed,
-                         (unsigned long long int)(ctx->seed), false);
+  _init_rng_state_struct(&rng_state, ctx->choose_seed, ctx->seed, false);
 
   return interflop_backend_mca;
 }

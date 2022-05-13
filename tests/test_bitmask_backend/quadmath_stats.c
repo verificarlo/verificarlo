@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <mpfr.h>
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -70,7 +69,7 @@ int main(int argc, char *argv[]) {
 
   if (argc != 3) {
     fprintf(stderr, "Usage: <N> <filename>\n");
-    exit(EXIT_FAILURE);   
+    exit(EXIT_FAILURE);
   }
 
   __float128 data[SAMPLES];
@@ -81,18 +80,17 @@ int main(int argc, char *argv[]) {
   size_t len = 0;
   ssize_t nread;
 
-  
   int i = 0;
-  
+
   if (fi != NULL) {
-    while ((nread = getline(&line, &len, fi)  != -1) && i < N) {
-      data[i] = strtoflt128(line ,NULL);
+    while ((nread = getline(&line, &len, fi) != -1) && i < N) {
+      data[i] = strtoflt128(line, NULL);
       i++;
     }
   }
 
-  assert(i==N);
-  
+  assert(i == N);
+
   double s = compute_sig(N, data);
 
   printf("%g\n", s);
