@@ -19,12 +19,14 @@
  ****************************************************************************/
 #include <err.h>
 #include <errno.h>
+#include <locale.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -128,19 +130,13 @@ bool is_logger_colored(void) {
   }
 }
 
-pid_t get_tid() {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
-  return gettid();
-#pragma GCC diagnostic pop
-}
+pid_t get_tid() { return syscall(__NR_gettid); }
 
 void _error() {
   int errsv = errno;
-  const int BUFF_SIZE = 512;
-  char buff[BUFF_SIZE];
-  strerror_r(errsv, buff, BUFF_SIZE);
-  err(EXIT_FAILURE, "Error [%s]: %s", BACKEND_HEADER_STR, buff);
+  locale_t locale = NULL;
+  char *msg = strerror_l(errsv, locale);
+  err(EXIT_FAILURE, "Error [%s]: %s", BACKEND_HEADER_STR, msg);
 }
 
 void set_logger_logfile(void) {

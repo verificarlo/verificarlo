@@ -191,6 +191,7 @@ fi
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/common/Makefile
+                 src/common/rng/Makefile
                  src/libvfcinstrument/Makefile
                  src/libvfcfuncinstrument/Makefile
                  src/vfcwrapper/Makefile

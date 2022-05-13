@@ -5,5 +5,5 @@ if WALL_CFLAGS
 libinterflop_cancellation_la_CFLAGS += -Wall -Wextra
 endif
 libinterflop_cancellation_la_LDFLAGS = -lm
-libinterflop_cancellation_la_LIBADD = 
+libinterflop_cancellation_la_LIBADD = ../../common/rng/libvfc_rng.la
 library_includedir =$(includedir)/
