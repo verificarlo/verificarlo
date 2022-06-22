@@ -17,8 +17,10 @@ A tool for debugging and assessing floating point precision and reproducibility.
    * [Branch instrumentation](#branch-instrumentation)
    * [Examples and Tutorial](#examples-and-tutorial)
    * [Backends](#backends)
-   * [Delta Debug and inclusion / exclusion options](#delta-debug-and-inclusion--exclusion-options)
+   * [Inclusion / exclusion options](#inclusion--exclusion-options)
+   * [Pinpointing numerical errors with Delta-Debug](#pinpointing-numerical-errors-with-delta-debug)
    * [VPREC Function instrumentation](#vprec-function-instrumentation)
+   * [User call instrumentation](#interflop-usercall-instrumentation)
    * [Postprocessing](#postprocessing)
    * [How to cite Verificarlo](#how-to-cite-verificarlo)
    * [Discussion Group](#discussion-group)
@@ -32,7 +34,7 @@ To install Verificarlo please refer to the [installation documentation](doc/01-I
 ## Using Verificarlo through its Docker image
 
 A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/.
-This image uses the latest git master version of Verificarlo and includes
+This image uses the latest release version of Verificarlo and includes
 support for Fortran. It uses llvm-7 and gcc-7.
 
 Example of usage with Monte Carlo arithmetic:
@@ -118,8 +120,7 @@ A [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) is avail
 Verificarlo includes different numerical backends. Please refer to the [backends documentation](doc/02-Backends.md).
 
   * [IEEE Backend (libinterflop_ieee.so)](doc/02-Backends.md#ieee-backend-libinterflop_ieeeso)
-  * [MCA Backend (libinterflop_mca.so)](doc/02-Backends.md#mca-backend-libinterflop_mcaso)
-  * [MCA-MPFR Backend (libinterflop_mca_mpfr.so)](doc/02-Backends.md#mca-mpfr-backend-libinterflop_mca_mpfrso)
+  * [MCA Backends (libinterflop_mca.so and lib_interflop_mca_int.so)](doc/02-Backends.md#mca-backends)
   * [Bitmask Backend (libinterflop_bitmask.so)](doc/02-Backends.md#bitmask-backend-libinterflop_bitmaskso)
   * [Cancellation Backend (libinterflop_cancellation.so)](doc/02-Backends.md#cancellation-backend-libinterflop_cancellationso)
   * [VPREC Backend (libinterflop_vprec.so)](doc/02-Backends.md#vprec-backend-libinterflop_vprecso)
@@ -147,6 +148,11 @@ Verificarlo includes a set of [postprocessing tools](doc/06-Postprocessing.md) t
   * [Unstable branch detection](doc/06-Postprocessing.md#unstable-branch-detection)
   * [VFC-VTK](doc/06-Postprocessing.md#vfc-vtk)
   * [Verificarlo CI](doc/06-Postprocessing.md#verificarlo-ci)
+
+## Interflop user call instrumentation
+
+Verificarlo provides the ability to call low-level backend functions directly through 
+the `interflop_call` function. Please refer to the [Interflop user call instrumentation documentation](doc/07-Interflop-usercall-instrumentation.md).
 
 ## How to cite Verificarlo
 

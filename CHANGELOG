@@ -3,7 +3,13 @@ Verificarlo CHANGELOG
 # [Unreleased]
 
 ## Added
+  * New interflop_mca_int.so backend. This new MCA backend uses integer computations
+    to add stochastic noise. This should offer a performance gain on most architectures.
   * Add VFC_BACKENDS_LOGFILE environment variable to redirect logger_info to a file
+  * Add `interflop_call` function into interflop_backend_interface_t interface.
+  Allows user to directly call low-level backend functions
+  * Add INTERFLOP_CALL_INEXACT allowing to directly perturb one fp value through `interflop_call` mechanism
+  * Add test_usercall_inexact to test the INTERFLOP_CALL_INEXACT user call
 ## Changed
   * VFC_BACKENDS_LOGGER=False behaviour. Now truly disable logger_info output.
   * Redirect logger_info to stdout instead of stderr

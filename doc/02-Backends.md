@@ -1,7 +1,7 @@
 ## Backends
 
   * [IEEE Backend (libinterflop_ieee.so)](#ieee-backend-libinterflop_ieeeso)
-  * [MCA Backend (libinterflop_mca.so)](#mca-backend-libinterflop_mcaso)
+  * [MCA Backends (libinterflop_mca.so and lib_interflop_mca_int.so)](#mca-backends)
   * [Bitmask Backend (libinterflop_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
   * [Cancellation Backend (libinterflop_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
   * [VPREC Backend (libinterflop_vprec.so)](#vprec-backend-libinterflop_vprecso)
@@ -91,7 +91,7 @@ Verificarlo will suffix the name with the current TID.
    $ verificarlo.log.3636865
 ```
 
-The IEEE, MCA, MCA-MPFR, Bitmask and Cancellation backends are all re-entrant.
+The IEEE, MCA, Bitmask and Cancellation backends are all re-entrant.
 
 ### IEEE Backend (libinterflop_ieee.so)
 
@@ -155,11 +155,17 @@ operations count:
 
 ```
 
-### MCA Backend (libinterflop_mca.so)
+### MCA Backends
 
-The MCA backends implements Montecarlo Arithmetic.  It uses quad type to
-compute MCA operations on doubles and double type to compute MCA operations
-on floats. It is much faster than the legacy MCA-MPFR backend.
+The MCA backends implement Montecarlo Arithmetic.
+
+There are two available backends with indentical user options:
+
+- `libinterflop_mca.so`: uses floating point types to represent stochastic
+  noise.  It uses quad type to compute MCA operations on doubles and double
+  type to compute MCA operations on floats.
+- `libinterflop_mca_int.so`: uses integer types to represent stochastic noise.
+  In most architectures, this backend should be faster.
 
 ```bash
 VFC_BACKENDS="libinterflop_mca.so --help" ./test

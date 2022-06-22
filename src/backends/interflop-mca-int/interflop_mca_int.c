@@ -17,44 +17,6 @@
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/
-// Changelog:
-//
-// 2015-05-20 replace random number generator with TinyMT64. This
-// provides a reentrant, independent generator of better quality than
-// the one provided in libc.
-//
-// 2015-10-11 New version based on quad floating point type to replace MPFR
-// until required MCA precision is lower than quad mantissa divided by 2,
-// i.e. 56 bits
-//
-// 2015-11-16 New version using double precision for single precision operation
-//
-// 2016-07-14 Support denormalized numbers
-//
-// 2017-04-25 Rewrite debug and validate the noise addition operation
-//
-// 2019-08-07 Fix memory leak and convert to interflop
-//
-// 2020-02-07 create separated virtual precisions for binary32
-// and binary64. Uses the binary128 structure for easily manipulating bits
-// through bitfields. Removes useless specials cases in qnoise and pow2d.
-// Change return type from int to void for some functions and uses instead
-// errx and warnx for handling errors.
-//
-// 2020-02-26 Factorize _inexact function into the _INEXACT macro function.
-// Use variables for options name instead of hardcoded one.
-// Add DAZ/FTZ support.
-//
-// 2021-10-13 Switched random number generator from TinyMT64 to the one
-// provided by the libc. The backend is now re-entrant. Pthread and OpenMP
-// threads are now supported.
-// Generation of hook functions is now done through macros, shared accross
-// backends.
-//
-// 2022-02-16 Add interflop_user_call implementation for INTERFLOP_CALL_INEXACT
-// id Add FAST_INEXACT macro that is a fast version of the INEXACT macro that
-// does not check if the number is representable or not and thus always
-// introduces a perturbation (for relativeError only)
 
 #include <argp.h>
 #include <err.h>
@@ -201,38 +163,67 @@ static __thread rng_state_t rng_state;
 /* is comprised between: */
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
-static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
-  const double d_rand =
-      _get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5;
+static inline void _noise_binary64(double *x, const int exp,
+                                   rng_state_t *rng_state) {
+  int64_t noise;
+  uint32_t shift;
 
-  binary64 b64 = {.f64 = d_rand};
-  b64.ieee.exponent = b64.ieee.exponent + exp;
-  return b64.f64;
+  // Convert preserving-bytes double to int64_t
+  int64_t x_s64 = *(int64_t *)(x);
+
+  // amount by which to shift the noise term sign (1) + exp (11) + noise
+  // exponent
+  shift = 1 + DOUBLE_EXP_SIZE - exp;
+
+  // noise is a signed integer so the noise is centered around 0
+  // only 32 bits of noise are used, they are left aligned in a signed 64 bit
+  noise = ((uint64_t)_get_rand_uint32(rng_state, &global_tid_lock, &global_tid)
+           << 32);
+
+  // right shift the noise to the correct magnitude, this is a arithmetic shift
+  // and sign bit will be extended
+  noise = noise >> shift;
+
+  // Add the noise to the x value
+  x_s64 += noise;
+
+  // Convert back to double
+  *x = *(double *)(&x_s64);
 }
 
 /* noise = rand * 2^(exp) */
-/* We can skip special cases since we never met them */
+/* We can skip special cases since we never meet them */
 /* Since we have exponent of double values, the result */
 /* is comprised between: */
 /* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
-static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
-  /* random number in (-0.5, 0.5) */
-  const __float128 noise =
-      (__float128)_get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5Q;
+static void _noise_binary128(__float128 *x, const int exp,
+                             rng_state_t *rng_state) {
 
-  binary128 b128 = {.f128 = noise};
-  b128.ieee128.exponent = b128.ieee128.exponent + exp;
-  return b128.f128;
+  // Convert preserving-bytes __float128 to __int128
+  __int128 x_s128 = *(__int128 *)(x);
+
+  // amount by which to shift the noise term sign (1) + exp (15) + noise
+  // exponent
+  uint32_t shift = 1 + QUAD_EXP_SIZE - exp;
+
+  // Generate 128 signed noise
+  // only 64 bits of noise are used, they are left aligned in a signed 64 bit
+  int64_t noise_high =
+      _get_rand_uint64(rng_state, &global_tid_lock, &global_tid);
+  __int128 noise = noise_high;
+  noise <<= 64;
+
+  // right shift the noise to the correct magnitude, this is a arithmetic shift
+  // and sign bit will be extended
+  noise = noise >> shift;
+
+  // Add the noise
+  x_s128 += noise;
+
+  // Convert back to __float128
+  *x = *(__float128 *)(&x_s128);
 }
-
-#define _IS_IEEE_MODE()                                                        \
-  /* if mode ieee, do not introduce noise */                                   \
-  (MCALIB_MODE == mcamode_ieee)
-
-#define _IS_NOT_NORMAL_OR_SUBNORMAL(X)                                         \
-  /* Check that we are not in a special case */                                \
-  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL)
 
 /* Macro function for checking if the value X must be noised */
 #define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
@@ -246,26 +237,9 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
-  _Generic(X, double                                                           \
+  _Generic(*X, double                                                          \
            : _noise_binary64, __float128                                       \
-           : _noise_binary128)(EXP, RNG_STATE)
-
-/* Fast version of _INEXACT macro that adds noise in relative error.
-  Always adds noise even if X is exact or sparsity is enabled.
- */
-#define _FAST_INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                    \
-  {                                                                            \
-    if (_IS_IEEE_MODE() || _IS_NOT_NORMAL_OR_SUBNORMAL(*X)) {                  \
-      return;                                                                  \
-    }                                                                          \
-    t_context *TMP_CTX = (t_context *)CTX;                                     \
-    _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
-                           (unsigned long long)(TMP_CTX->seed), false);        \
-    const int32_t e_a = GET_EXP_FLT(*X);                                       \
-    const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                     \
-    const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, &RNG_STATE);              \
-    *X = *X + noise_rel;                                                       \
-  }
+           : _noise_binary128)(X, EXP, RNG_STATE)
 
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
@@ -280,17 +254,8 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
                               &global_tid_lock, &global_tid)) {                \
       return;                                                                  \
     } else {                                                                   \
-      if (TMP_CTX->relErr) {                                                   \
-        const int32_t e_a = GET_EXP_FLT(*X);                                   \
-        const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, &RNG_STATE);          \
-        *X = *X + noise_rel;                                                   \
-      }                                                                        \
-      if (TMP_CTX->absErr) {                                                   \
-        const int32_t e_n_abs = TMP_CTX->absErr_exp;                           \
-        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, &RNG_STATE);          \
-        *X = *X + noise_abs;                                                   \
-      }                                                                        \
+      const int32_t e_n_rel = -(VIRTUAL_PRECISION - 1);                        \
+      _NOISE(X, e_n_rel, &RNG_STATE);                                          \
     }                                                                          \
   }
 
@@ -399,51 +364,6 @@ _INTERFLOP_OP_CALL(double, mul, mca_mul, _mca_binary64_binary_op)
 
 _INTERFLOP_OP_CALL(double, div, mca_div, _mca_binary64_binary_op)
 
-void _interflop_usercall_inexact(void *context, va_list ap) {
-  double xd = 0;
-  __float128 xq = 0;
-  enum FTYPES ftype;
-  void *value = NULL;
-  int precision = 0, t = 0;
-  ftype = va_arg(ap, enum FTYPES);
-  value = va_arg(ap, void *);
-  precision = va_arg(ap, int);
-  switch (ftype) {
-  case FFLOAT:
-    xd = *((float *)value);
-    t = (precision <= 0) ? (MCALIB_BINARY32_T + precision) : precision;
-    _FAST_INEXACT(&xd, t, context, rng_state);
-    *((float *)value) = xd;
-    break;
-  case FDOUBLE:
-    xq = *((double *)value);
-    t = (precision <= 0) ? (MCALIB_BINARY64_T + precision) : precision;
-    _FAST_INEXACT(&xq, t, context, rng_state);
-    *((double *)value) = xq;
-    break;
-  case FQUAD:
-    xq = *((__float128 *)value);
-    _FAST_INEXACT(&xq, precision, context, rng_state);
-    *((__float128 *)value) = xq;
-    break;
-  default:
-    logger_warning(
-        "Uknown type passed to _interflop_usercall_inexact function");
-    break;
-  }
-}
-
-void _interflop_user_call(void *context, interflop_call_id id, va_list ap) {
-  switch (id) {
-  case INTERFLOP_INEXACT_ID:
-    _interflop_usercall_inexact(context, ap);
-    break;
-  default:
-    logger_warning("Unknown interflop_call id (=%d)", id);
-    break;
-  }
-}
-
 static struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
      "select precision for binary32 (PRECISION > 0)", 0},
@@ -509,18 +429,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case KEY_ERR_MODE:
     /* mca error mode */
-    if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_rel], arg) == 0) {
+    if (!strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_rel], arg) == 0) {
       ctx->relErr = true;
       ctx->absErr = false;
-    } else if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_abs], arg) == 0) {
-      ctx->relErr = false;
-      ctx->absErr = true;
-    } else if (strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_all], arg) == 0) {
-      ctx->relErr = true;
-      ctx->absErr = true;
     } else {
       logger_error("--%s invalid value provided, must be one of: "
-                   "{rel, abs, all}.",
+                   "{rel}.\n"
+                   "interflop_mca_int only supports relative error mode.",
                    key_err_mode_str);
     }
     break;
@@ -642,7 +557,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       NULL,
       NULL,
-      _interflop_user_call,
+      NULL,
       NULL};
 
   /* The seed for the RNG is initialized upon the first request for a random
