@@ -4,6 +4,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
 
   * LLVM, clang and opt from 4.0 up to 11.0.1, http://clang.llvm.org/
   * gcc from 4.9
+  * autotools (automake, autoconf)
   * flang for Fortran support (optional)
   * python3 with the following packages :
     * numpy
@@ -14,8 +15,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
     * GitPython
     * jinja2
     * bokeh
-  * autotools (automake, autoconf)
-  * parallel (only required for running the test suite)
+    * parallel (only required for running the test suite)
 
 Then run the following command inside verificarlo directory:
 
