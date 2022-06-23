@@ -226,14 +226,13 @@ static void _noise_binary128(__float128 *x, const int exp,
 }
 
 /* Macro function for checking if the value X must be noised */
-#define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
-  /* if mode ieee, do not introduce noise */                                   \
-  (MCALIB_MODE == mcamode_ieee) ||					                                   \
-  /* Check that we are not in a special case */				                         \
-  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||	           \
-  /* In RR if the number is representable in current virtual precision, */     \
-  /* do not add any noise if */						                                     \
-  (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
+#define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                                                            \
+  /* if mode ieee, do not introduce noise */                                                                 \
+  (MCALIB_MODE ==                                                                                            \
+   mcamode_ieee) || /* Check that we are not in a special case */                                            \
+      (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||                                       \
+      /* In RR if the number is representable in current virtual precision, */ /* do not add any noise if */ \
+      (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
@@ -365,6 +364,10 @@ _INTERFLOP_OP_CALL(double, mul, mca_mul, _mca_binary64_binary_op)
 _INTERFLOP_OP_CALL(double, div, mca_div, _mca_binary64_binary_op)
 
 static struct argp_option options[] = {
+    {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
+     "select precision for binary32 (PRECISION > 0)", 0},
+    {key_prec_b64_str, KEY_PREC_B64, "PRECISION", 0,
+     "select precision for binary64 (PRECISION > 0)", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
      "select MCA mode among {ieee, mca, pb, rr}", 0},
     {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed", 0},
@@ -381,6 +384,26 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   char *endptr;
   int val = -1;
   switch (key) {
+  case KEY_PREC_B32:
+    /* precision for binary32 */
+    errno = 0;
+    val = strtol(arg, &endptr, 10);
+    if (errno != 0 || val != MCA_PRECISION_BINARY32_DEFAULT) {
+      logger_error("--%s invalid value provided, MCA integer does not support "
+                   "custom precisions",
+                   key_prec_b32_str);
+    }
+    break;
+  case KEY_PREC_B64:
+    /* precision for binary64 */
+    errno = 0;
+    val = strtol(arg, &endptr, 10);
+    if (errno != 0 || val != MCA_PRECISION_BINARY64_DEFAULT) {
+      logger_error("--%s invalid value provided, MCA integer does not support "
+                   "custom precisions",
+                   key_prec_b64_str);
+    }
+    break;
   case KEY_MODE:
     /* mca mode */
     if (strcasecmp(MCA_MODE_STR[mcamode_ieee], arg) == 0) {
