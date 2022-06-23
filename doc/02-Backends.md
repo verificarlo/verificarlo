@@ -159,13 +159,15 @@ operations count:
 
 The MCA backends implement Montecarlo Arithmetic.
 
-There are two available backends with indentical user options:
+There are two available backends:
 
 - `libinterflop_mca.so`: uses floating point types to represent stochastic
   noise.  It uses quad type to compute MCA operations on doubles and double
   type to compute MCA operations on floats.
 - `libinterflop_mca_int.so`: uses integer types to represent stochastic noise.
-  In most architectures, this backend should be faster.
+  In most architectures, this backend should be faster. The MCA integer backend 
+  only supports default precision and relative error mode; some user options
+  are therefore unavailable.
 
 ```bash
 VFC_BACKENDS="libinterflop_mca.so --help" ./test

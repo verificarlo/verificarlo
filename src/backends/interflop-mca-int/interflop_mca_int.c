@@ -365,16 +365,8 @@ _INTERFLOP_OP_CALL(double, mul, mca_mul, _mca_binary64_binary_op)
 _INTERFLOP_OP_CALL(double, div, mca_div, _mca_binary64_binary_op)
 
 static struct argp_option options[] = {
-    {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
-     "select precision for binary32 (PRECISION > 0)", 0},
-    {key_prec_b64_str, KEY_PREC_B64, "PRECISION", 0,
-     "select precision for binary64 (PRECISION > 0)", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
      "select MCA mode among {ieee, mca, pb, rr}", 0},
-    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
-     "select error mode among {rel, abs, all}", 0},
-    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
-     "select magnitude of the maximum absolute error", 0},
     {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed", 0},
     {key_daz_str, KEY_DAZ, 0, 0,
      "denormals-are-zero: sets denormals inputs to zero", 0},
@@ -389,28 +381,6 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   char *endptr;
   int val = -1;
   switch (key) {
-  case KEY_PREC_B32:
-    /* precision for binary32 */
-    errno = 0;
-    val = strtol(arg, &endptr, 10);
-    if (errno != 0 || val <= 0) {
-      logger_error("--%s invalid value provided, must be a positive integer",
-                   key_prec_b32_str);
-    } else {
-      _set_mca_precision_binary32(val);
-    }
-    break;
-  case KEY_PREC_B64:
-    /* precision for binary64 */
-    errno = 0;
-    val = strtol(arg, &endptr, 10);
-    if (errno != 0 || val <= 0) {
-      logger_error("--%s invalid value provided, must be a positive integer",
-                   key_prec_b64_str);
-    } else {
-      _set_mca_precision_binary64(val);
-    }
-    break;
   case KEY_MODE:
     /* mca mode */
     if (strcasecmp(MCA_MODE_STR[mcamode_ieee], arg) == 0) {
@@ -425,27 +395,6 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       logger_error("--%s invalid value provided, must be one of: "
                    "{ieee, mca, pb, rr}.",
                    key_mode_str);
-    }
-    break;
-  case KEY_ERR_MODE:
-    /* mca error mode */
-    if (!strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_rel], arg) == 0) {
-      ctx->relErr = true;
-      ctx->absErr = false;
-    } else {
-      logger_error("--%s invalid value provided, must be one of: "
-                   "{rel}.\n"
-                   "interflop_mca_int only supports relative error mode.",
-                   key_err_mode_str);
-    }
-    break;
-  case KEY_ERR_EXP:
-    /* exponent of the maximum absolute error */
-    errno = 0;
-    ctx->absErr_exp = strtol(arg, &endptr, 10);
-    if (errno != 0) {
-      logger_error("--%s invalid value provided, must be an integer",
-                   key_err_exp_str);
     }
     break;
   case KEY_SEED:
@@ -531,6 +480,8 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* Initialize the logger */
   logger_init();
 
+  /* Mca integer backend only supports default precision 
+     and relative error mode */
   _set_mca_precision_binary32(MCA_PRECISION_BINARY32_DEFAULT);
   _set_mca_precision_binary64(MCA_PRECISION_BINARY64_DEFAULT);
   _set_mca_mode(MCA_MODE_DEFAULT);
