@@ -11,7 +11,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    x = np.loadtxt(args.logfile)
+    # The previous version:
+    # x = np.loadtxt(args.logfile)
+    # seems broken in recent version, therefore we do the
+    # float parsing manually.
+    x = [float.fromhex(l.strip()) for l in open(args.logfile)]
+
     c = Counter(x)
 
     percent_ieee = c[8]*100.0/len(x)
