@@ -480,7 +480,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* Initialize the logger */
   logger_init();
 
-  /* Mca integer backend only supports default precision 
+  /* Mca integer backend only supports default precision
      and relative error mode */
   _set_mca_precision_binary32(MCA_PRECISION_BINARY32_DEFAULT);
   _set_mca_precision_binary64(MCA_PRECISION_BINARY64_DEFAULT);
