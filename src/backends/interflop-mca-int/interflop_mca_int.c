@@ -226,14 +226,13 @@ static void _noise_binary128(__float128 *x, const int exp,
 }
 
 /* Macro function for checking if the value X must be noised */
-#define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                              \
-  /* if mode ieee, do not introduce noise */                                   \
-  (MCALIB_MODE == mcamode_ieee) ||					                                   \
-  /* Check that we are not in a special case */				                         \
-  (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||	           \
-  /* In RR if the number is representable in current virtual precision, */     \
-  /* do not add any noise if */						                                     \
-  (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
+#define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION)                                                            \
+  /* if mode ieee, do not introduce noise */                                                                 \
+  (MCALIB_MODE ==                                                                                            \
+   mcamode_ieee) || /* Check that we are not in a special case */                                            \
+      (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||                                       \
+      /* In RR if the number is representable in current virtual precision, */ /* do not add any noise if */ \
+      (MCALIB_MODE == mcamode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
@@ -371,10 +370,6 @@ static struct argp_option options[] = {
      "select precision for binary64 (PRECISION > 0)", 0},
     {key_mode_str, KEY_MODE, "MODE", 0,
      "select MCA mode among {ieee, mca, pb, rr}", 0},
-    {key_err_mode_str, KEY_ERR_MODE, "ERROR_MODE", 0,
-     "select error mode among {rel, abs, all}", 0},
-    {key_err_exp_str, KEY_ERR_EXP, "MAX_ABS_ERROR_EXPONENT", 0,
-     "select magnitude of the maximum absolute error", 0},
     {key_seed_str, KEY_SEED, "SEED", 0, "fix the random generator seed", 0},
     {key_daz_str, KEY_DAZ, 0, 0,
      "denormals-are-zero: sets denormals inputs to zero", 0},
@@ -393,22 +388,20 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     /* precision for binary32 */
     errno = 0;
     val = strtol(arg, &endptr, 10);
-    if (errno != 0 || val <= 0) {
-      logger_error("--%s invalid value provided, must be a positive integer",
+    if (errno != 0 || val != MCA_PRECISION_BINARY32_DEFAULT) {
+      logger_error("--%s invalid value provided, MCA integer does not support "
+                   "custom precisions",
                    key_prec_b32_str);
-    } else {
-      _set_mca_precision_binary32(val);
     }
     break;
   case KEY_PREC_B64:
     /* precision for binary64 */
     errno = 0;
     val = strtol(arg, &endptr, 10);
-    if (errno != 0 || val <= 0) {
-      logger_error("--%s invalid value provided, must be a positive integer",
+    if (errno != 0 || val != MCA_PRECISION_BINARY64_DEFAULT) {
+      logger_error("--%s invalid value provided, MCA integer does not support "
+                   "custom precisions",
                    key_prec_b64_str);
-    } else {
-      _set_mca_precision_binary64(val);
     }
     break;
   case KEY_MODE:
@@ -425,27 +418,6 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       logger_error("--%s invalid value provided, must be one of: "
                    "{ieee, mca, pb, rr}.",
                    key_mode_str);
-    }
-    break;
-  case KEY_ERR_MODE:
-    /* mca error mode */
-    if (!strcasecmp(MCA_ERR_MODE_STR[mca_err_mode_rel], arg) == 0) {
-      ctx->relErr = true;
-      ctx->absErr = false;
-    } else {
-      logger_error("--%s invalid value provided, must be one of: "
-                   "{rel}.\n"
-                   "interflop_mca_int only supports relative error mode.",
-                   key_err_mode_str);
-    }
-    break;
-  case KEY_ERR_EXP:
-    /* exponent of the maximum absolute error */
-    errno = 0;
-    ctx->absErr_exp = strtol(arg, &endptr, 10);
-    if (errno != 0) {
-      logger_error("--%s invalid value provided, must be an integer",
-                   key_err_exp_str);
     }
     break;
   case KEY_SEED:
@@ -531,6 +503,8 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* Initialize the logger */
   logger_init();
 
+  /* Mca integer backend only supports default precision
+     and relative error mode */
   _set_mca_precision_binary32(MCA_PRECISION_BINARY32_DEFAULT);
   _set_mca_precision_binary64(MCA_PRECISION_BINARY64_DEFAULT);
   _set_mca_mode(MCA_MODE_DEFAULT);

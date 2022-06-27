@@ -15,7 +15,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
     * GitPython
     * jinja2
     * bokeh
-    * parallel (only required for running the test suite)
+  * GNU parallel (only required for running the test suite)
 
 Then run the following command inside verificarlo directory:
 
