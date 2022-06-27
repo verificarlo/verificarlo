@@ -5,6 +5,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
   * LLVM, clang and opt from 4.0 up to 11.0.1, http://clang.llvm.org/
   * gcc from 4.9
   * autotools (automake, autoconf)
+  * libtool
   * flang for Fortran support (optional)
   * python3 with the following packages :
     * numpy
