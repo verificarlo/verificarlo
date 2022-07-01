@@ -1,6 +1,6 @@
 Verificarlo CHANGELOG
 
-# [Unreleased]
+# [v0.8.0] 2022/07/01
 
 ## Added
   * New interflop_mca_int.so backend. This new MCA backend uses integer computations
@@ -25,8 +25,6 @@ Verificarlo CHANGELOG
 
 ## Changed
   * Change license to Apache License v2.0 with LLVM Exceptions
-
-
 
 # [v0.6.0] 2021/10/14
 
