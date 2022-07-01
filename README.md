@@ -5,8 +5,10 @@ A tool for debugging and assessing floating point precision and reproducibility.
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
 ![Build Status](https://github.com/verificarlo/verificarlo/workflows/test-docker/badge.svg?branch=master)
+[![Docker Pulls](https://img.shields.io/docker/pulls/verificarlo/verificarlo)](https://hub.docker.com/r/verificarlo/verificarlo)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
 [![Coverity](https://scan.coverity.com/projects/19956/badge.svg)](https://scan.coverity.com/projects/verificarlo-verificarlo)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://releases.llvm.org/13.0.0/LICENSE.TXT)
 
 
    * [Installation](#installation)

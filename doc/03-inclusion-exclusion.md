@@ -33,9 +33,9 @@ util f2
 module3 *
 
 # include.txt
-# this inclusion file will instrument any function starting by g in main.c
+# this inclusion file will instrument any function starting by g in main
 # and all functions f in any module of the directory dir
-main.c g*
+main g*
 dir/* *
 ```
 
