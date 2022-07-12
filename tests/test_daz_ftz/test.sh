@@ -37,7 +37,7 @@ export VFC_BACKENDS_SILENT_LOAD="TRUE"
 rm -f run_parallel
 for REALTYPE in "float" "double"; do
     compile $REALTYPE
-    for BACKEND in "libinterflop_mca.so"; do # "libinterflop_bitmask.so"; do
+    for BACKEND in "libinterflop_mca.so" "libinterflop_bitmask.so"; do
         echo "./compute_error.sh ${TYPE} ${PWD}/test_${TYPE,,} ${BACKEND}" >>run_parallel
     done
 done
