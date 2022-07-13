@@ -1,22 +1,4 @@
 
-/*****************************************************************************\
- *                                                                           *\
- *  This file is part of the Verificarlo project,                            *\
- *  under the Apache License v2.0 with LLVM Exceptions.                      *\
- *  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 *\
- *  See https://llvm.org/LICENSE.txt for license information.                *\
- *                                                                           *\
- *                                                                           *\
- *  Copyright (c) 2022                                                       *\
- *     Verificarlo Contributors                                              *\
- *                                                                           *\
- ****************************************************************************/
-
-#include <stdint.h>
-
-#include "splitmix64.h"
-#include "xoroshiro128.h"
-
 /*********************** XOROSHIRO128++ FUNCTIONS ****************************\
  *                                                                           *\
  *  Written in 2019 by David Blackman and Sebastiano Vigna (vigna@acm.org)   *\
@@ -34,6 +16,11 @@
  *  mild parallelism.                                                        *\
  *                                                                           *\
  *****************************************************************************/
+
+#include <stdint.h>
+
+#include "splitmix64.h"
+#include "xoroshiro128.h"
 
 static inline uint64_t rotl(const uint64_t x, int k) {
   return (x << k) | (x >> (64 - k));
