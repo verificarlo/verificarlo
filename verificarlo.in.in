@@ -36,6 +36,7 @@ mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
 mcalib_includes = PROJECT_ROOT + "/../include/"
 vfcwrapper = mcalib_includes + 'vfcwrapper.c'
 llvm_bindir = "@LLVM_BINDIR@"
+llvm_version = "@LLVM_VERSION_MAJOR@"
 clang = '@CLANG_PATH@'
 clangxx = '@CLANGXX_PATH@'
 flang = '@FLANG_PATH@'
@@ -122,12 +123,6 @@ def shell(cmd):
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError:
         fail('command failed:\n' + cmd)
-
-
-def get_llvm_version():
-    stream = os.popen(llvm_bindir + "/llvm-config --version | cut -d'.' -f1")
-    output = stream.read()
-    return int(output)
 
 
 def compile_vfcwrapper(source, output, args, emit_llvm=False):
@@ -229,11 +224,9 @@ def compiler_mode(sources, options, output, args):
         if args.inst_fcmp:
             extra_args += "-vfclibinst-inst-fcmp "
 
-        llvm_version = get_llvm_version()
-
         if args.inst_func:
             # Apply function's instrumentation pass
-            if llvm_version >= 15:
+            if int(llvm_version) >= 13:
                 shell(
                     f'{opt} -S -enable-new-pm=0  -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}')
             else:
@@ -243,7 +236,7 @@ def compiler_mode(sources, options, output, args):
             ins = get_tmp_filename(basename, '.3.ll', args)
 
         # Apply MCA instrumentation pass
-        if llvm_version >= 15:
+        if int(llvm_version) >= 13:
             shell((f'{opt} -S -enable-new-pm=0  -load {libvfcinstrument} '
                    f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} '
                    f' -vfclibinst {extra_args} {selectfunction} '
