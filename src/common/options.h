@@ -24,14 +24,7 @@
 
 #include "float_const.h"
 #include "logger.h"
-
-/* Data type used to hold information required by the RNG */
-typedef struct rng_state {
-  bool choose_seed;
-  unsigned long long int seed;
-  bool random_state_valid;
-  struct drand48_data random_state;
-} rng_state_t;
+#include "rng/vfc_rng.h"
 
 /* A macro to simplify the generation of calls for interflop hook functions */
 /* TYPE      is the data type of the arguments */
@@ -73,59 +66,6 @@ typedef struct rng_state {
     *T = PRECISION;                                                            \
   }
 
-/* Initialize the data structure used to hold the information required */
-/* by the RNG */
-/* @param rng_state pointer to the structure holding all the RNG-related data */
-/* @param choose_seed whether to set the seed to a user-provided value */
-/* @param seed the user-provided seed for the RNG */
-/* @param random_state_valid whether RNG internal state has been initialized */
-void _init_rng_state_struct(rng_state_t *rng_state, bool choose_seed,
-                            unsigned long long int seed,
-                            bool random_state_valid);
-
-/* Get a new identifier for the calling thread */
-/* Generic threads can have inconsistent identifiers, assigned by the system, */
-/* we therefore need to set an order between threads, for the case */
-/* when the seed is fixed, to insure some repeatability between executions */
-/* @param global_tid_lock pointer to the mutex controling the access to the */
-/* Unique TID */
-/* @param global_tid pointer to the unique TID */
-/* @return a new unique identifier for each calling thread*/
-unsigned long long int _get_new_tid(pthread_mutex_t *global_tid_lock,
-                                    unsigned long long int *global_tid);
-
-/* Returns a 64-bit unsigned integer r (0 <= r < 2^64) */
-/* Manages the internal state of the RNG, if necessary */
-/* @param rng_state pointer to the structure holding all the RNG-related data */
-/* @param global_tid_lock pointer to the mutex controling the access to the */
-/* Unique TID */
-/* @param global_tid pointer to the unique TID */
-/* @return a 64-bit unsigned integer r (0 <= r < 2^64) */
-uint64_t _get_rand_uint64(rng_state_t *rng_state,
-                          pthread_mutex_t *global_tid_lock,
-                          unsigned long long int *global_tid);
-
-/* Returns a 32-bit unsigned integer r (0 <= r < 2^32) */
-/* Manages the internal state of the RNG, if necessary */
-/* @param rng_state pointer to the structure holding all the RNG-related data */
-/* @param global_tid_lock pointer to the mutex controling the access to the
- * Unique TID */
-/* @param global_tid pointer to the unique TID */
-/* @return a 32-bit unsigned integer r (0 <= r < 2^32) */
-uint32_t _get_rand_uint32(rng_state_t *rng_state,
-                          pthread_mutex_t *global_tid_lock,
-                          unsigned long long int *global_tid);
-
-/* Returns a random double in the (0,1) open interval */
-/* Manages the internal state of the RNG, if necessary */
-/* @param rng_state pointer to the structure holding all the RNG-related data */
-/* @param global_tid_lock pointer to the mutex controling the access to the */
-/* Unique TID */
-/* @param global_tid pointer to the unique TID */
-/* @return a floating point number r (0.0 < r < 1.0) */
-double _get_rand(rng_state_t *rng_state, pthread_mutex_t *global_tid_lock,
-                 unsigned long long int *global_tid);
-
 /* Returns a bool for determining whether an operation should skip */
 /* perturbation. false -> perturb; true -> skip. */
 /* e.g. for sparsity=0.1, all random values > 0.1 = true -> no MCA*/
@@ -133,7 +73,6 @@ double _get_rand(rng_state_t *rng_state, pthread_mutex_t *global_tid_lock,
 /* @param rng_state pointer to the structure holding all the RNG-related data */
 /* @return false -> perturb; true -> skip */
 bool _mca_skip_eval(const float sparsity, rng_state_t *rng_state,
-                    pthread_mutex_t *global_tid_lock,
-                    unsigned long long int *global_tid);
+                    pid_t *global_tid);
 
 #endif /* __OPTIONS_H__ */

@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-##############################################################################\
- #                                                                           #\
- #  This file is part of the Verificarlo project,                            #\
- #  under the Apache License v2.0 with LLVM Exceptions.                      #\
- #  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 #\
- #  See https://llvm.org/LICENSE.txt for license information.                #\
- #                                                                           #\
- #                                                                           #\
- #  Copyright (c) 2015                                                       #\
- #     Universite de Versailles St-Quentin-en-Yvelines                       #\
- #     CMLA, Ecole Normale Superieure de Cachan                              #\
- #                                                                           #\
- #  Copyright (c) 2018                                                       #\
- #     Universite de Versailles St-Quentin-en-Yvelines                       #\
- #                                                                           #\
- #  Copyright (c) 2019-2021                                                  #\
- #     Verificarlo Contributors                                              #\
- #                                                                           #\
- #############################################################################
+# \
+#                                                                           #\
+#  This file is part of the Verificarlo project,                            #\
+#  under the Apache License v2.0 with LLVM Exceptions.                      #\
+#  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 #\
+#  See https://llvm.org/LICENSE.txt for license information.                #\
+#                                                                           #\
+#                                                                           #\
+#  Copyright (c) 2015                                                       #\
+#     Universite de Versailles St-Quentin-en-Yvelines                       #\
+#     CMLA, Ecole Normale Superieure de Cachan                              #\
+#                                                                           #\
+#  Copyright (c) 2018                                                       #\
+#     Universite de Versailles St-Quentin-en-Yvelines                       #\
+#                                                                           #\
+#  Copyright (c) 2019-2021                                                  #\
+#     Verificarlo Contributors                                              #\
+#                                                                           #\
+#############################################################################
 
 from __future__ import print_function
 
@@ -36,6 +36,7 @@ mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
 mcalib_includes = PROJECT_ROOT + "/../include/"
 vfcwrapper = mcalib_includes + 'vfcwrapper.c'
 llvm_bindir = "@LLVM_BINDIR@"
+llvm_version = "@LLVM_VERSION_MAJOR@"
 clang = '@CLANG_PATH@'
 clangxx = '@CLANGXX_PATH@'
 flang = '@FLANG_PATH@'
@@ -225,16 +226,27 @@ def compiler_mode(sources, options, output, args):
 
         if args.inst_func:
             # Apply function's instrumentation pass
-            shell(
-                f'{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}')
+            if int(llvm_version) >= 13:
+                shell(
+                    f'{opt} -S -enable-new-pm=0  -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}')
+            else:
+                shell(
+                    f'{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}')
             ir = ins
             ins = get_tmp_filename(basename, '.3.ll', args)
 
         # Apply MCA instrumentation pass
-        shell((f'{opt} -S  -load {libvfcinstrument} '
-               f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} '
-               f' -vfclibinst {extra_args} {selectfunction} '
-               f' {ir.name} -o {ins.name}'))
+        # For LLVM >= 13 we fallback to the legacy pass manager
+        if int(llvm_version) >= 13:
+            shell((f'{opt} -S -enable-new-pm=0  -load {libvfcinstrument} '
+                   f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} '
+                   f' -vfclibinst {extra_args} {selectfunction} '
+                   f' {ir.name} -o {ins.name}'))
+        else:
+            shell((f'{opt} -S -load {libvfcinstrument} '
+                   f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} '
+                   f' -vfclibinst {extra_args} {selectfunction} '
+                   f' {ir.name} -o {ins.name}'))
 
         if not output:
             basename_output = '-o ' + basename + '.o'
@@ -308,3 +320,4 @@ if __name__ == "__main__":
             fail('no input files')
         compiler_mode(sources, llvm_options, "", args)
         linker_mode(sources, llvm_options, libraries, output, args)
+

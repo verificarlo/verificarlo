@@ -45,6 +45,7 @@
 #include "../../common/interflop.h"
 #include "../../common/logger.h"
 #include "../../common/options.h"
+#include "../../common/rng/vfc_rng.h"
 
 typedef enum {
   KEY_PREC_B32,
@@ -186,17 +187,15 @@ static void _set_bitmask_precision_binary64(const int precision) {
  * The following functions are used to calculate the random bitmask
  ***************************************************************/
 
-/* global thread id access lock */
-static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
 /* global thread identifier */
-static unsigned long long int global_tid = 0;
+static pid_t global_tid = 0;
 
 /* helper data structure to centralize the data used for random number
  * generation */
 static __thread rng_state_t rng_state;
 
 static uint64_t get_random_mask(void) {
-  return _get_rand_uint64(&rng_state, &global_tid_lock, &global_tid);
+  return get_rand_uint64(&rng_state, &global_tid);
 }
 
 /* Returns a 32-bits random mask */
@@ -537,8 +536,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  _init_rng_state_struct(&rng_state, ctx->choose_seed,
-                         (unsigned long long int)(ctx->seed), false);
+  _init_rng_state_struct(&rng_state, ctx->choose_seed, ctx->seed, false);
 
   return config;
 }

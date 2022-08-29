@@ -1,17 +1,28 @@
+SUBDIRS=rng
+
 noinst_LTLIBRARIES = libvprec_tools.la libvfc_hashmap.la
 lib_LIBRARIES = libvfc_probes.a
 
 libvprec_tools_la_CFLAGS = -fPIC -static
+if WALL_CFLAGS
+libvprec_tools_la_CFLAGS += -Wall -Wextra
+endif
 libvprec_tools_la_SOURCES = \
 	vprec_tools.h \
 	vprec_tools.c
 
 libvfc_hashmap_la_CFLAGS = -fPIC -static
+if WALL_CFLAGS
+libvfc_hashmap_la_CFLAGS += -Wall -Wextra
+endif
 libvfc_hashmap_la_SOURCES = \
 	vfc_hashmap.h \
 	vfc_hashmap.c
 
 libvfc_probes_a_CFLAGS = -fPIC -static
+if WALL_CFLAGS
+libvfc_probes_a_CFLAGS += -Wall -Wextra
+endif
 libvfc_probes_a_SOURCES = \
 	vfc_probes.h \
 	vfc_probes.c

@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([verificarlo], [0.7.0], [])
+AC_INIT([verificarlo], [0.8.0], [])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
@@ -24,9 +24,10 @@ AC_MSG_RESULT([$GCC_VERSION])
 AX_COMPARE_VERSION([$GCC_VERSION],[ge],['6.0.0'],[],[AC_MSG_ERROR([At least GCC version 6 is required])])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for compiling)])
 AC_SUBST(GCC_PATH, $CC)
-AX_LLVM([4.0],[11.0.1],[all])
+AX_LLVM([4.0],[15.0.1],[all])
 AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
 AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
+AC_SUBST(LLVM_VERSION_MAJOR, $LLVM_VERSION_MAJOR)
 
 AC_PATH_PROG([CLANG], [clang], "", $LLVM_BINDIR/ $PATH)
 if test -z "$CLANG"; then
@@ -191,6 +192,7 @@ fi
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/common/Makefile
+                 src/common/rng/Makefile
                  src/libvfcinstrument/Makefile
                  src/libvfcfuncinstrument/Makefile
                  src/vfcwrapper/Makefile

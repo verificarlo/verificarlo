@@ -90,10 +90,6 @@ enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_IGNORE };
 // Each instruction can be translated to a string representation
 const std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
 
-// Separtors for the module name
-const char path_separator = '/';
-const char relative_path_separator = '#';
-
 /* valid floating-point type to instrument */
 std::map<Type::TypeID, std::string> validTypesMap = {
     std::pair<Type::TypeID, std::string>(Type::FloatTyID, "float"),
@@ -298,7 +294,15 @@ struct VfclibInst : public ModulePass {
 
     Type *baseType = opType->getScalarType();
     if (VectorType *vecType = dyn_cast<VectorType>(opType)) {
+#if LLVM_VERSION_MAJOR >= 13
+      if (isa<ScalableVectorType>(vecType))
+        report_fatal_error("Scalable vector type are not supported");
+      size = std::to_string(
+                 ((::llvm::FixedVectorType *)vecType)->getNumElements()) +
+             "x";
+#else
       size = std::to_string(vecType->getNumElements()) + "x";
+#endif
     }
     auto precision = validTypesMap[baseType->getTypeID()];
     auto operation = Fops2str[opCode];
@@ -320,7 +324,13 @@ struct VfclibInst : public ModulePass {
   bool isValidVectorInstruction(Type *opType) {
     VectorType *vecType = static_cast<VectorType *>(opType);
     auto baseType = vecType->getScalarType();
+#if LLVM_VERSION_MAJOR >= 13
+    if (isa<ScalableVectorType>(vecType))
+      report_fatal_error("Scalable vector type are not supported");
+    auto size = ((::llvm::FixedVectorType *)vecType)->getNumElements();
+#else
     auto size = vecType->getNumElements();
+#endif
     bool isValidSize = validVectorSizes.find(size) != validVectorSizes.end();
     if (not isValidSize) {
       errs() << "Unsuported vector size: " << size << "\n";
@@ -440,7 +450,13 @@ struct VfclibInst : public ModulePass {
     FCmpInst *FCI = static_cast<FCmpInst *>(I);
     Type *res = Builder.getInt32Ty();
     if (VectorType *vTy = dyn_cast<VectorType>(opType)) {
+#if LLVM_VERSION_MAJOR >= 13
+      if (isa<ScalableVectorType>(vTy))
+        report_fatal_error("Scalable vector type are not supported");
+      auto size = ((::llvm::FixedVectorType *)vTy)->getNumElements();
+#else
       auto size = vTy->getNumElements();
+#endif
       res = GET_VECTOR_TYPE(res, size);
     }
     Value *newInst = Builder.CreateCall(

@@ -17,9 +17,11 @@
 typedef union {
   __float128 f128;
   __uint128_t u128;
+  __int128_t i128;
 
   /* Generic fields */
   __float128 type;
+  __int128_t i;
   __uint128_t u;
 
   struct

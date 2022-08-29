@@ -156,6 +156,7 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
 static inline void debug_print_float(void *context, const operation_type typeop,
                                      const char *op, const float a,
                                      const float b, const float c) {
+
   DEBUG_PRINT(context, typeop, op, a, b, c);
 }
 
@@ -398,7 +399,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* Initialize the logger */
   logger_init();
 
-  t_context *ctx = calloc(1, sizeof(t_context));
+  t_context *ctx = (t_context *)calloc(1, sizeof(t_context));
   init_context(ctx);
   /* parse backend arguments */
   argp_parse(&argp, argc, argv, 0, 0, ctx);
