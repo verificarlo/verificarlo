@@ -236,6 +236,7 @@ def compiler_mode(sources, options, output, args):
             ins = get_tmp_filename(basename, '.3.ll', args)
 
         # Apply MCA instrumentation pass
+        # For LLVM >= 13 we fallback to the legacy pass manager
         if int(llvm_version) >= 13:
             shell((f'{opt} -S -enable-new-pm=0  -load {libvfcinstrument} '
                    f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} '
