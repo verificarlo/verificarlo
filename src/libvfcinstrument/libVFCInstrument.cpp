@@ -294,7 +294,15 @@ struct VfclibInst : public ModulePass {
 
     Type *baseType = opType->getScalarType();
     if (VectorType *vecType = dyn_cast<VectorType>(opType)) {
+#if LLVM_VERSION_MAJOR >= 13
+      if (isa<ScalableVectorType>(vecType))
+        report_fatal_error("Scalable vector type are not supported");
+      size = std::to_string(
+                 ((::llvm::FixedVectorType *)vecType)->getNumElements()) +
+             "x";
+#else
       size = std::to_string(vecType->getNumElements()) + "x";
+#endif
     }
     auto precision = validTypesMap[baseType->getTypeID()];
     auto operation = Fops2str[opCode];
@@ -316,7 +324,13 @@ struct VfclibInst : public ModulePass {
   bool isValidVectorInstruction(Type *opType) {
     VectorType *vecType = static_cast<VectorType *>(opType);
     auto baseType = vecType->getScalarType();
+#if LLVM_VERSION_MAJOR >= 13
+    if (isa<ScalableVectorType>(vecType))
+      report_fatal_error("Scalable vector type are not supported");
+    auto size = ((::llvm::FixedVectorType *)vecType)->getNumElements();
+#else
     auto size = vecType->getNumElements();
+#endif
     bool isValidSize = validVectorSizes.find(size) != validVectorSizes.end();
     if (not isValidSize) {
       errs() << "Unsuported vector size: " << size << "\n";
@@ -436,7 +450,13 @@ struct VfclibInst : public ModulePass {
     FCmpInst *FCI = static_cast<FCmpInst *>(I);
     Type *res = Builder.getInt32Ty();
     if (VectorType *vTy = dyn_cast<VectorType>(opType)) {
+#if LLVM_VERSION_MAJOR >= 13
+      if (isa<ScalableVectorType>(vTy))
+        report_fatal_error("Scalable vector type are not supported");
+      auto size = ((::llvm::FixedVectorType *)vTy)->getNumElements();
+#else
       auto size = vTy->getNumElements();
+#endif
       res = GET_VECTOR_TYPE(res, size);
     }
     Value *newInst = Builder.CreateCall(
