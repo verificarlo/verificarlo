@@ -87,7 +87,7 @@ void vfc_hashmap_destroy(vfc_hashmap_t map) {
 
 // allocate and initialize the map
 vfc_hashmap_t vfc_hashmap_create() {
-  vfc_hashmap_t map = calloc(1, sizeof(struct vfc_hashmap_st));
+  vfc_hashmap_t map = (vfc_hashmap_t)calloc(1, sizeof(struct vfc_hashmap_st));
 
   if (map == NULL) {
     return NULL;
@@ -96,7 +96,7 @@ vfc_hashmap_t vfc_hashmap_create() {
   map->capacity = (size_t)(1 << map->nbits);
   map->mask = map->capacity - 1;
   // an item is now a value and a key
-  map->items = calloc(map->capacity, 2 * sizeof(size_t));
+  map->items = (size_t *)calloc(map->capacity, 2 * sizeof(size_t));
   if (map->items == NULL) {
     vfc_hashmap_destroy(map);
     return NULL;
@@ -160,7 +160,7 @@ static void maybe_rehash_map(vfc_hashmap_t map) {
     map->nbits++;
     map->capacity = (size_t)(1 << map->nbits);
     map->mask = map->capacity - 1;
-    map->items = calloc(map->capacity, 2 * sizeof(size_t));
+    map->items = (size_t *)calloc(map->capacity, 2 * sizeof(size_t));
     map->nitems = 0;
     map->n_deleted_items = 0;
     for (ii = 0; ii < old_capacity; ii++) {

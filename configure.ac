@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([verificarlo], [0.7.0], [])
+AC_INIT([verificarlo], [0.8.0], [])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
@@ -192,6 +192,7 @@ fi
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/common/Makefile
+                 src/common/rng/Makefile
                  src/libvfcinstrument/Makefile
                  src/libvfcfuncinstrument/Makefile
                  src/vfcwrapper/Makefile

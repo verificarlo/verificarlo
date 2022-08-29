@@ -47,6 +47,62 @@
   _Generic(X, float : FLOAT_MASK_ONE, double : DOUBLE_MASK_ONE)
 
 /* Unified fpclassify function for binary32, binary64 and binary128 */
+int fpf(float x) {
+  binary32 b32 = {.f32 = x};
+  int f = -1;
+  if (b32.ieee.exponent == FLOAT_EXP_INF && b32.ieee.mantissa == 0) {
+    f = FP_INFINITE;
+  } else if (b32.ieee.exponent == FLOAT_EXP_INF && b32.ieee.mantissa != 0) {
+    f = FP_NAN;
+  } else if (b32.ieee.exponent == 0 && b32.ieee.mantissa == 0) {
+    f = FP_ZERO;
+  } else if (b32.ieee.exponent == 0 && b32.ieee.mantissa != 0) {
+    f = FP_SUBNORMAL;
+  } else {
+    f = FP_NORMAL;
+  }
+  return f;
+}
+
+int fpd(double x) {
+  binary64 b64 = {.f64 = x};
+  int f = -1;
+  if (b64.ieee.exponent == DOUBLE_EXP_INF && b64.ieee.mantissa == 0) {
+    f = FP_INFINITE;
+  } else if (b64.ieee.exponent == DOUBLE_EXP_INF && b64.ieee.mantissa != 0) {
+    f = FP_NAN;
+  } else if (b64.ieee.exponent == 0 && b64.ieee.mantissa == 0) {
+    f = FP_ZERO;
+  } else if (b64.ieee.exponent == 0 && b64.ieee.mantissa != 0) {
+    f = FP_SUBNORMAL;
+  } else {
+    f = FP_NORMAL;
+  }
+  return f;
+}
+
+int fpq(__float128 x) {
+  binary128 b128 = {.f128 = x};
+  int f = -1;
+  if (b128.ieee128.exponent == QUAD_EXP_INF && b128.ieee128.mantissa == 0) {
+    f = QUADFP_INFINITE;
+  } else if (b128.ieee128.exponent == QUAD_EXP_INF &&
+             b128.ieee128.mantissa != 0) {
+    f = QUADFP_NAN;
+  } else if (b128.ieee128.exponent == 0 && b128.ieee128.mantissa == 0) {
+    f = QUADFP_ZERO;
+  } else if (b128.ieee128.exponent == 0 && b128.ieee128.mantissa != 0) {
+    f = QUADFP_SUBNORMAL;
+  } else {
+    f = QUADFP_NORMAL;
+  }
+  return f;
+}
+
+#if __clang__
+#define FPCLASSIFY(X)                                                          \
+  _Generic(X, float : fpf(X), double : fpd(X), __float128 : fpq(X))
+#elif __GNUC__
 #define FPCLASSIFY(X)                                                          \
   _Generic(X, float                                                            \
            : __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL,              \
@@ -57,6 +113,7 @@
              __float128                                                        \
            : __builtin_fpclassify(QUADFP_NAN, QUADFP_INFINITE, QUADFP_NORMAL,  \
                                   QUADFP_SUBNORMAL, QUADFP_ZERO, X))
+#endif
 
 /* Denormals-Are-Zero */
 /* Returns zero if X is a subnormal value */

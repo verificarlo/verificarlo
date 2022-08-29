@@ -35,6 +35,8 @@
 #define QUAD_EXP_MAX 16383
 // Quad precison min exponent
 #define QUAD_EXP_MIN 16382
+// Quad precison infinite exponent
+#define QUAD_EXP_INF 0x7FFF
 // Quad precison mask to remove the sign bit
 #define QUAD_HX_ERASE_SIGN 0x7fffffffffffffffULL
 // Quad precison 64 msb to encode plus infinity
@@ -64,6 +66,8 @@
 #define DOUBLE_EXP_MAX 1024
 // Double precison min exponent
 #define DOUBLE_EXP_MIN 1022
+// Double precison infinite exponent
+#define DOUBLE_EXP_INF 0x7FF
 // Double precision plus infinity encoding
 #define DOUBLE_PLUS_INF 0x7FF0000000000000ULL
 // Double precision pseudo matissa msb set to one
@@ -99,6 +103,8 @@
 #define FLOAT_EXP_MAX 128
 // single precison min exponent
 #define FLOAT_EXP_MIN 126
+// single precison infinite exponent
+#define FLOAT_EXP_INF 0xFF
 // single precision plus infinity encoding
 #define FLOAT_PLUS_INF 0x7F800000
 // Single precision pseudo matissa msb set to one

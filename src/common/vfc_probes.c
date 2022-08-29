@@ -99,7 +99,7 @@ void vfc_free_probes(vfc_probes *probes) {
 
   // Before freeing the map, iterate manually over all items to free the keys
   vfc_probe_node *probe = NULL;
-  for (int i = 0; i < probes->map->capacity; i++) {
+  for (size_t i = 0; i < probes->map->capacity; i++) {
     probe = (vfc_probe_node *)get_value_at(probes->map->items, i);
 
     // Comparing with 1 is also necessary since it will be the value of deleted
@@ -176,7 +176,7 @@ int vfc_probe_kernel(vfc_probes *probes, char *testName, char *varName,
   newProbe->key = key;
   newProbe->value = val;
   newProbe->accuracyThreshold = accuracyThreshold;
-  newProbe->mode = malloc(sizeof(char) * (strlen(mode) + 1));
+  newProbe->mode = (char *)malloc(sizeof(char) * (strlen(mode) + 1));
   strcpy(newProbe->mode, mode);
 
   vfc_hashmap_insert(probes->map, vfc_hashmap_str_function(key), newProbe);
@@ -245,7 +245,7 @@ int vfc_dump_probes(vfc_probes *probes) {
 
   // Iterate over all table elements
   vfc_probe_node *probe = NULL;
-  for (int i = 0; i < probes->map->capacity; i++) {
+  for (size_t i = 0; i < probes->map->capacity; i++) {
     probe = (vfc_probe_node *)get_value_at(probes->map->items, i);
     if (probe != NULL) {
       fprintf(fp, "%s,%a,%a,%s\n", probe->key, probe->value,
@@ -253,6 +253,7 @@ int vfc_dump_probes(vfc_probes *probes) {
     }
   }
 
+  fflush(fp);
   fclose(fp);
 
   vfc_free_probes(probes);

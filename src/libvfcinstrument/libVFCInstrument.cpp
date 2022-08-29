@@ -90,10 +90,6 @@ enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_IGNORE };
 // Each instruction can be translated to a string representation
 const std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
 
-// Separtors for the module name
-const char path_separator = '/';
-const char relative_path_separator = '#';
-
 /* valid floating-point type to instrument */
 std::map<Type::TypeID, std::string> validTypesMap = {
     std::pair<Type::TypeID, std::string>(Type::FloatTyID, "float"),
