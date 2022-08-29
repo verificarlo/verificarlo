@@ -1,5 +1,13 @@
 Verificarlo CHANGELOG
 
+# [UNRELEASED]
+
+## Added
+  * Support of LLVM version 15.0.
+
+## Changed
+  * Performance optimizations in MCA backends and faster random number generator.  
+
 # [v0.8.0] 2022/07/01
 
 ## Added
@@ -10,6 +18,7 @@ Verificarlo CHANGELOG
   Allows user to directly call low-level backend functions
   * Add INTERFLOP_CALL_INEXACT allowing to directly perturb one fp value through `interflop_call` mechanism
   * Add test_usercall_inexact to test the INTERFLOP_CALL_INEXACT user call
+
 ## Changed
   * VFC_BACKENDS_LOGGER=False behaviour. Now truly disable logger_info output.
   * Redirect logger_info to stdout instead of stderr
