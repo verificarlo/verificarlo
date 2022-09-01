@@ -76,6 +76,7 @@
 #include "../../common/interflop.h"
 #include "../../common/logger.h"
 #include "../../common/options.h"
+#include "../../common/rng/vfc_rng.h"
 
 typedef enum {
   KEY_PREC_B32,
@@ -186,10 +187,8 @@ static void _set_mca_precision_binary64(const int precision) {
  * perturbations used for MCA
  ***************************************************************/
 
-/* global thread id access lock */
-static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
 /* global thread identifier */
-static unsigned long long int global_tid = 0;
+static pid_t global_tid = 0;
 
 /* helper data structure to centralize the data used for random number
  * generation */
@@ -202,9 +201,7 @@ static __thread rng_state_t rng_state;
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
 static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
-  const double d_rand =
-      _get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5;
-
+  const double d_rand = get_rand_double01(rng_state, &global_tid) - 0.5;
   binary64 b64 = {.f64 = d_rand};
   b64.ieee.exponent = b64.ieee.exponent + exp;
   return b64.f64;
@@ -219,8 +216,7 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
 static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
   /* random number in (-0.5, 0.5) */
   const __float128 noise =
-      (__float128)_get_rand(rng_state, &global_tid_lock, &global_tid) - 0.5Q;
-
+      (__float128)get_rand_double01(rng_state, &global_tid) - 0.5Q;
   binary128 b128 = {.f128 = noise};
   b128.ieee128.exponent = b128.ieee128.exponent + exp;
   return b128.f128;
@@ -276,20 +272,19 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
                            (unsigned long long)(TMP_CTX->seed), false);        \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION)) {                          \
       return;                                                                  \
-    } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE),                 \
-                              &global_tid_lock, &global_tid)) {                \
+    } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE), &global_tid)) { \
       return;                                                                  \
     } else {                                                                   \
       if (TMP_CTX->relErr) {                                                   \
         const int32_t e_a = GET_EXP_FLT(*X);                                   \
         const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, &RNG_STATE);          \
-        *X = *X + noise_rel;                                                   \
+        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, &(RNG_STATE));        \
+        *X += noise_rel;                                                       \
       }                                                                        \
       if (TMP_CTX->absErr) {                                                   \
         const int32_t e_n_abs = TMP_CTX->absErr_exp;                           \
-        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, &RNG_STATE);          \
-        *X = *X + noise_abs;                                                   \
+        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, &(RNG_STATE));        \
+        *X += noise_abs;                                                       \
       }                                                                        \
     }                                                                          \
   }
@@ -648,8 +643,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
   /* The seed for the RNG is initialized upon the first request for a random
      number */
 
-  _init_rng_state_struct(&rng_state, ctx->choose_seed,
-                         (unsigned long long int)(ctx->seed), false);
+  _init_rng_state_struct(&rng_state, ctx->choose_seed, ctx->seed, false);
 
   return interflop_backend_mca;
 }

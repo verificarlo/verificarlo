@@ -49,8 +49,8 @@ export VFC_BACKENDS_LOGGER=False
 
 # Test operates at different precisions, and different operands.
 # It compares that results are equivalents up to the bit.
-verificarlo-c --function=operate --verbose -D REAL=float -D SAMPLES=$SAMPLES -O0 test.c -o test_float
-verificarlo-c --function=operate --verbose -D REAL=double -D SAMPLES=$SAMPLES -O0 test.c -o test_double
+verificarlo-c --function=operator --verbose -D REAL=float -D SAMPLES=$SAMPLES -O0 test.c -o test_float
+verificarlo-c --function=operator --verbose -D REAL=double -D SAMPLES=$SAMPLES -O0 test.c -o test_double
 
 rm -f run_parallel
 
