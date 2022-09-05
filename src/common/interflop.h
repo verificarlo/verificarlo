@@ -38,6 +38,16 @@ enum FTYPES {
 };
 
 typedef enum {
+  /* Allows changing current virtual precision range */
+  /* signature: void set_range_binary64(int precision) */
+  INTERFLOP_SET_RANGE_BINARY64 = 5,
+  /* signature: void set_range_binary32(int precision) */
+  INTERFLOP_SET_RANGE_BINARY32 = 4,
+  /* Allows changing current virtual precision */
+  /* signature: void set_precision_binary64(int precision) */
+  INTERFLOP_SET_PRECISION_BINARY64 = 3,
+  /* signature: void set_precision_binary32(int precision) */
+  INTERFLOP_SET_PRECISION_BINARY32 = 2,
   /* Allows perturbing one floating-point value */
   /* signature: void inexact(enum FTYPES type, void *value, int precision) */
   INTERFLOP_INEXACT_ID = 1,

@@ -4,6 +4,8 @@ Verificarlo CHANGELOG
 
 ## Added
   * Support of LLVM version 15.0.
+  * user call to change precision during runtime in the MCA and VPREC backends
+  * user call to change range during runtime in the VPREC backend
 
 ## Changed
   * Performance optimizations in MCA backends and faster random number generator.  
