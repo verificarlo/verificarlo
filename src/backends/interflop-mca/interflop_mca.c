@@ -433,6 +433,12 @@ void _interflop_user_call(void *context, interflop_call_id id, va_list ap) {
   case INTERFLOP_INEXACT_ID:
     _interflop_usercall_inexact(context, ap);
     break;
+  case INTERFLOP_SET_PRECISION_BINARY32:
+    _set_mca_precision_binary32(va_arg(ap, int));
+    break;
+  case INTERFLOP_SET_PRECISION_BINARY64:
+    _set_mca_precision_binary64(va_arg(ap, int));
+    break;
   default:
     logger_warning("Unknown interflop_call id (=%d)", id);
     break;

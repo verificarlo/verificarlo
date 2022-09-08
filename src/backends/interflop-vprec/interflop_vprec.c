@@ -1275,6 +1275,26 @@ static void _interflop_div_double(double a, double b, double *c,
   *c = _vprec_binary64_binary_op(a, b, vprec_div, context);
 }
 
+void _interflop_user_call(void *context, interflop_call_id id, va_list ap) {
+  switch (id) {
+  case INTERFLOP_SET_PRECISION_BINARY32:
+    _set_vprec_precision_binary32(va_arg(ap, int));
+    break;
+  case INTERFLOP_SET_PRECISION_BINARY64:
+    _set_vprec_precision_binary64(va_arg(ap, int));
+    break;
+  case INTERFLOP_SET_RANGE_BINARY32:
+    _set_vprec_range_binary32(va_arg(ap, int));
+    break;
+  case INTERFLOP_SET_RANGE_BINARY64:
+    _set_vprec_range_binary64(va_arg(ap, int));
+    break;
+  default:
+    logger_warning("Unknown interflop_call id (=%d)", id);
+    break;
+  }
+}
+
 static struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
@@ -1636,7 +1656,7 @@ struct interflop_backend_interface_t interflop_init(int argc, char **argv,
       NULL,
       _interflop_enter_function,
       _interflop_exit_function,
-      NULL,
+      _interflop_user_call,
       _interflop_finalize};
 
   return interflop_backend_vprec;
