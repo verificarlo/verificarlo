@@ -44,48 +44,48 @@ where:
 ### `INTERFLOP_SET_PRECISION_BINARY64`
 
 Allows changing the virtual precision used for floating-point operations in double precision.
-For the VPREC backend, allows changing the lenght of the pseudo-mantissa for floating-point operations in double precision.
+For the VPREC backend, allows changing the length of the pseudo-mantissa for floating-point operations in double precision.
 Signature: 
 ```C
 void interflop_call_id(interflop_call_id id, int precision);
 ```
 where:
 - `id`: must be set to `INTERFLOP_SET_PRECISION_BINARY64`
-- `precision`: new virtual precision (pseudo-mantissa bit lenght in VPREC), must be positive.
+- `precision`: new virtual precision (pseudo-mantissa bit length in VPREC), must be positive.
 
 ### `INTERFLOP_SET_PRECISION_BINARY32`
 
 Allows changing the virtual precision used for floating-point operations in single precision.
-For the VPREC backend, allows changing the lenght of the pseudo-mantissa for floating-point operations in single precision.
+For the VPREC backend, allows changing the length of the pseudo-mantissa for floating-point operations in single precision.
 Signature: 
 ```C
 void interflop_call_id(interflop_call_id id, int precision);
 ```
 where:
 - `id`: must be set to `INTERFLOP_SET_PRECISION_BINARY32`
-- `precision`: new virtual precision (pseudo-mantissa bit lenght in VPREC), must be positive.
+- `precision`: new virtual precision (pseudo-mantissa bit length in VPREC), must be positive.
 
 ### `INTERFLOP_SET_RANGE_BINARY64`
 
-Allows changing the exponent bit lenght for floating-point operations in double precision.
+Allows changing the exponent bit length for floating-point operations in double precision.
 Signature: 
 ```C
 void interflop_call_id(interflop_call_id id, int range);
 ```
 where:
 - `id`: must be set to `INTERFLOP_SET_RANGE_BINARY64`
-- `range`: new exponent bit lenght (0 < range <= 11).
+- `range`: new exponent bit length (0 < range <= 11).
 
 ### `INTERFLOP_SET_RANGE_BINARY32`
 
-Allows changing the exponent bit lenght for floating-point operations in single precision.
+Allows changing the exponent bit length for floating-point operations in single precision.
 Signature: 
 ```C
 void interflop_call_id(interflop_call_id id, int range);
 ```
 where:
 - `id`: must be set to `INTERFLOP_SET_RANGE_BINARY32`
-- `range`: new exponent bit lenght (0 < range <= 8).
+- `range`: new exponent bit length (0 < range <= 8).
 
 ### `INTERFLOP_CUSTOM_ID`
 
