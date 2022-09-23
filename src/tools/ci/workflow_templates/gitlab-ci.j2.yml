@@ -12,6 +12,7 @@ run_verificarlo_tests:
   stage: run_verificarlo_tests
 
   before_script:
+  - git config --global --add safe.directory "$(pwd)"
   - git remote set-url origin https://{{username}}:${CI_PUSH_TOKEN}@{{remote_url}}.git
   - git config --global user.email "{{email}}"
   - git config --global user.name "{{username}}"
