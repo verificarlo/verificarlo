@@ -22,7 +22,9 @@ jobs:
             fetch-depth: 0
 
       - name: Run tests
-        run: vfc_ci test -g -r
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          vfc_ci test -g -r
 
       - name: Commit test results
         run: |
