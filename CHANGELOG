@@ -1,14 +1,18 @@
 Verificarlo CHANGELOG
 
-# [UNRELEASED]
+# [v0.9.0] 2022/09/27
 
 ## Added
-  * Support of LLVM version 15.0.
+  * Support of LLVM version 15.0
   * user call to change precision during runtime in the MCA and VPREC backends
   * user call to change range during runtime in the VPREC backend
 
+## Fixed
+  * Fix vfc-ci bug triggered when retrieving repositories from github with the
+    new security policy
+
 ## Changed
-  * Performance optimizations in MCA backends and faster random number generator.  
+  * Performance optimizations in MCA backends and faster random number generator.
 
 # [v0.8.0] 2022/07/01
 
