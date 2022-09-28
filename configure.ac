@@ -96,7 +96,7 @@ AC_CHECK_LIB([c], [exit], , AC_MSG_ERROR([Could not find c library]))
 AC_CHECK_LIB([m], [sin], , AC_MSG_ERROR([Could not find math library]))
 
 AC_CHECK_HEADERS([mpfr.h], [],
-                    [AC_MSG_ERROR("mpfr.h not found. Please install the libmpfr-dev deb package.")])
+                    [AC_MSG_ERROR("mpfr.h not found. Please install MPFR development package.")])
 
 
 # Reset libs after ac_check_lib We do not want each and every backend or the
