@@ -70,7 +70,7 @@ else
       AC_MSG_ERROR([`flang` cannot be found in $with_flang_path])
    fi
    dnl Check that flang version matches the llvm one
-   FLANG_VERSION=`$FLANG --version 2>&1 | grep -Po '\d+.\d+.\d+'`
+   FLANG_VERSION=`$FLANG --version 2>&1 | grep -Po '\d+.\d+.\d+' | head -n1`
    AC_DEFINE_UNQUOTED([FLANG_VERSION], [$FLANG_VERSION], [The flang version])
    FLANG_VERSION_MAJOR=`echo $FLANG_VERSION | cut -d'.' -f1`
    AC_DEFINE_UNQUOTED([FLANG_VERSION_MAJOR], [$FLANG_VERSION_MAJOR], [The flang major version])
