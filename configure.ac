@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([verificarlo], [0.8.0], [])
+AC_INIT([verificarlo], [0.9.0], [])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
@@ -70,7 +70,7 @@ else
       AC_MSG_ERROR([`flang` cannot be found in $with_flang_path])
    fi
    dnl Check that flang version matches the llvm one
-   FLANG_VERSION=`$FLANG --version 2>&1 | grep -Po '\d+.\d+.\d+'`
+   FLANG_VERSION=`$FLANG --version 2>&1 | grep -Po '\d+.\d+.\d+' | head -n1`
    AC_DEFINE_UNQUOTED([FLANG_VERSION], [$FLANG_VERSION], [The flang version])
    FLANG_VERSION_MAJOR=`echo $FLANG_VERSION | cut -d'.' -f1`
    AC_DEFINE_UNQUOTED([FLANG_VERSION_MAJOR], [$FLANG_VERSION_MAJOR], [The flang major version])
@@ -94,6 +94,10 @@ fi
 
 AC_CHECK_LIB([c], [exit], , AC_MSG_ERROR([Could not find c library]))
 AC_CHECK_LIB([m], [sin], , AC_MSG_ERROR([Could not find math library]))
+
+AC_CHECK_HEADERS([mpfr.h], [],
+                    [AC_MSG_ERROR("mpfr.h not found. Please install MPFR development package.")])
+
 
 # Reset libs after ac_check_lib We do not want each and every backend or the
 # libvfcinstrument frontend to be linked against libgfortran for
