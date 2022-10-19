@@ -313,7 +313,9 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   parse_vfc_backends_env(&vfc_backends, &vfc_backends_env);
 
   if (vfc_backends == NULL) {
-    logger_error("%s is empty, at least one backend should be provided",
+    logger_error("At least one backend should be provided "
+                 "by defining VFC_BACKENDS or VFC_BACKENDS_FROM_FILE "
+                 "environment variables",
                  vfc_backends_env);
   }
 
