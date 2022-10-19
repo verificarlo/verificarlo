@@ -68,12 +68,11 @@ run() {
 
 compile
 
-echo "* Test 1: Check logger_info is redirected on stdout by default"
+echo "* Test 1: Check logger_info is redirected on stderr by default"
 reset_env
 run
-check_logger_info $OUTPUT_FILE "Error: logger_info not displayed on stdout"
-check_backend_info $OUTPUT_FILE "Error: logger_info not displayed on stdout"
-check_empty $ERROR_FILE "Error: stderr non empty"
+check_logger_info $ERROR_FILE "Error: logger_info not displayed on stderr"
+check_backend_info $ERROR_FILE "Error: logger_info not displayed on stderr"
 
 echo "* Test 2: Check VFC_BACKENDS_LOGGER=False disables the logger_info"
 reset_env

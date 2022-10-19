@@ -7,7 +7,7 @@ export VFC_BACKENDS_LOGGER="true"
 run() {
     export VFC_BACKENDS="libinterflop_ieee.so ${DEBUG_MODE} ${OPTIONS}"
     echo -e "\n### ${VFC_BACKENDS}"
-    ./test_options >log
+    ./test_options 2>log
 }
 
 eval_condition() {
