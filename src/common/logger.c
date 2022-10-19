@@ -145,7 +145,7 @@ void set_logger_logfile(void) {
   }
   const char *logger_logfile_env = getenv(vfc_backends_logfile);
   if (logger_logfile_env == NULL) {
-    logger_logfile = stdout;
+    logger_logfile = stderr;
   } else {
     /* Create log file specific to TID to avoid non-deterministic output */
     char tmp[1024];
