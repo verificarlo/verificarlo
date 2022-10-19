@@ -117,7 +117,6 @@ typedef enum {
 typedef enum {
   preset_binary16,
   preset_binary32,
-  preset_binary64,
   preset_bfloat16,
   preset_tensorfloat,
   preset_fp24,
@@ -127,7 +126,6 @@ typedef enum {
 typedef enum {
   preset_precision_binary16 = 10,
   preset_precision_binary32 = 23,
-  preset_precision_binary64 = 52,
   preset_precision_bfloat16 = 7,
   preset_precision_tensorfloat = 10,
   preset_precision_fp24 = 16,
@@ -137,16 +135,14 @@ typedef enum {
 typedef enum {
   preset_range_binary16 = 5,
   preset_range_binary32 = 8,
-  preset_range_binary64 = 11,
   preset_range_bfloat16 = 8,
   preset_range_tensorfloat = 8,
   preset_range_fp24 = 7,
   preset_range_PXR24 = 8
 } vprec_preset_range;
 
-static const char *VPREC_PRESET_STR[] = {"binary16", "binary32",    "binary64",
-                                         "bfloat16", "tensorfloat", "fp24",
-                                         "PXR24"};
+static const char *VPREC_PRESET_STR[] = {"binary16",    "binary32", "bfloat16",
+                                         "tensorfloat", "fp24",     "PXR24"};
 
 /* define default environment variables and default parameters */
 
@@ -1316,9 +1312,8 @@ static struct argp_option options[] = {
      "bfloat16, tensorfloat, fp24, PXR24}\n"
      "Format (range, precision) : "
      "binary16 (5, 10), binary32 (8, 23), "
-     "binary64 (11, 52), bfloat16 (8, 7), "
-     "tensorfloat (8, 10), fp24 (7, 16), "
-     "PXR24 (8, 15)",
+     "bfloat16 (8, 7), tensorfloat (8, 10), "
+     "fp24 (7, 16), PXR24 (8, 15)",
      0},
     {key_mode_str, KEY_MODE, "MODE", 0,
      "select VPREC mode among {ieee, full, ib, ob}", 0},
@@ -1493,9 +1488,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     } else if (strcmp(VPREC_PRESET_STR[preset_binary32], arg) == 0) {
       precision = preset_precision_binary32;
       range = preset_range_binary32;
-    } else if (strcmp(VPREC_PRESET_STR[preset_binary64], arg) == 0) {
-      precision = preset_precision_binary64;
-      range = preset_range_binary64;
     } else if (strcmp(VPREC_PRESET_STR[preset_bfloat16], arg) == 0) {
       precision = preset_precision_bfloat16;
       range = preset_range_bfloat16;
