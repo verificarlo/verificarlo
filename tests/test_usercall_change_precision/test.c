@@ -25,5 +25,5 @@ int main (int argc, char ** argv)
     for(int i = 0; i < 5; i++)
         r = r * p;
 
-    fprintf(stderr, "%f\n", r);
+    fprintf(stdout, "%f\n", r);
 }
