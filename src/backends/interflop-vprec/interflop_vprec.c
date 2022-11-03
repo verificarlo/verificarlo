@@ -222,9 +222,9 @@ void _set_vprec_precision_binary32(int precision) {
                  "Must be greater than %d",
                  VPREC_PRECISION_BINARY32_MIN);
   } else if (VPREC_PRECISION_BINARY32_MAX < precision) {
-    logger_error("invalid precision provided, "
-                 "must be lower than (%d)",
-                 VPREC_RANGE_BINARY32_MAX);
+    logger_error("invalid precision provided for binary32."
+                 "Must be lower than %d",
+                 VPREC_PRECISION_BINARY32_MAX);
   } else {
     VPRECLIB_BINARY32_PRECISION = precision;
   }
@@ -236,8 +236,8 @@ void _set_vprec_range_binary32(int range) {
                  "Must be greater than %d",
                  VPREC_RANGE_BINARY32_MIN);
   } else if (VPREC_RANGE_BINARY32_MAX < range) {
-    logger_error("invalid range provided, "
-                 "must be lower than (%d)",
+    logger_error("invalid range provided for binary32."
+                 "Must be lower than %d",
                  VPREC_RANGE_BINARY32_MAX);
   } else {
     VPRECLIB_BINARY32_RANGE = range;
@@ -250,9 +250,9 @@ void _set_vprec_precision_binary64(int precision) {
                  "Must be greater than %d",
                  VPREC_PRECISION_BINARY64_MIN);
   } else if (VPREC_PRECISION_BINARY64_MAX < precision) {
-    logger_error("invalid precision provided, "
-                 "must be lower than (%d)",
-                 VPREC_RANGE_BINARY64_MAX);
+    logger_error("invalid precision provided for binary64."
+                 "Must be lower than %d",
+                 VPREC_PRECISION_BINARY64_MAX);
   } else {
     VPRECLIB_BINARY64_PRECISION = precision;
   }
@@ -264,8 +264,8 @@ void _set_vprec_range_binary64(int range) {
                  "Must be greater than %d",
                  VPREC_RANGE_BINARY64_MIN);
   } else if (VPREC_RANGE_BINARY64_MAX < range) {
-    logger_error("invalid range provided, "
-                 "must be lower than (%d)",
+    logger_error("invalid range provided for binary64."
+                 "Must be lower than %d",
                  VPREC_RANGE_BINARY64_MAX);
   } else {
     VPRECLIB_BINARY64_RANGE = range;
