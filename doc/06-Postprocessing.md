@@ -168,7 +168,7 @@ table :
 
 | |Absolute|Relative|
 --- | --- | ---
-|Non-deterministic|\|Standard deviation\| < Target | Standard deviation / \|Empirical average\| < Target
+|Non-deterministic|Standard deviation < Target | Standard deviation / \|Empirical average\| < Target
 |Deterministic|\|IEEE value -  Backend value\| < Target|\|IEEE value -  Backend value\| / \|IEEE value\| < Target
 
 By default, the standard deviation is used to estimate the error, and must be
