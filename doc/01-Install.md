@@ -33,7 +33,7 @@ For example on an x86_64 Ubuntu 20.04 release, you should use the following
 install procedure:
 
 ```bash
-   $ sudo apt-get install libmpfr-dev clang-7 flang-7 llvm-7-dev \
+   $ sudo apt-get install libmpfr-dev clang-7 flang-7 llvm-7-dev parallel\
        gcc-7 autoconf automake libtool build-essential python3 python3-numpy \
        python3-pip
    $ sudo pip3 install bigfloat pandas scipy GitPython tables jinja2 bokeh

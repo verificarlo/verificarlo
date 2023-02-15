@@ -39,12 +39,14 @@ llvm_bindir = "@LLVM_BINDIR@"
 llvm_version = "@LLVM_VERSION_MAJOR@"
 clang = '@CLANG_PATH@'
 clangxx = '@CLANGXX_PATH@'
+llvm_link = '@LLVM_LINK_PATH@'
 flang = '@FLANG_PATH@'
 opt = llvm_bindir + '/opt'
 FORTRAN_EXTENSIONS = [".f", ".f90", ".f77"]
 C_EXTENSIONS = [".c"]
 CXX_EXTENSIONS = ['.cc', '.cp', '.cpp', '.cxx', 'c++']
 ASSEMBLY_EXTENSIONS = ['.s']
+LLVM_BITCODE_EXTENSIONS = ['.bc', '.ll']
 linkers = {'clang': clang, 'flang': flang, 'clang++': clangxx}
 default_linker = 'clang'
 temp_files_set = set()
@@ -86,6 +88,9 @@ def is_assembly(name):
     return os.path.splitext(name)[1].lower() in ASSEMBLY_EXTENSIONS
 
 
+def is_llvm_bitcode(name):
+    return os.path.splitext(name)[1].lower() in LLVM_BITCODE_EXTENSIONS
+
 def shell_escape(argument):
     # prevents argument expansion in shell call
     return "'" + argument + "'"
@@ -107,6 +112,8 @@ def parse_extra_args(args):
         elif is_cpp(a):
             sources.append(a)
         elif is_assembly(a):
+            sources.append(a)
+        elif is_llvm_bitcode(a):
             sources.append(a)
         elif a.startswith('-l'):
             libraries.append(a)
@@ -253,8 +260,12 @@ def compiler_mode(sources, options, output, args):
         else:
             basename_output = output
 
-        # Produce object file
-        shell(f'{compiler} -c {basename_output} {ins.name} {options}')
+        if not args.emit_llvm:
+            # Produce object file
+            shell(f'{compiler} -c {basename_output} {ins.name} {options}')
+        else:
+            # Produce a bc file with the wrapper bc linked in.
+            shell(f'{llvm_link} {ins.name} {vfcwrapper_ir.name} {basename_output}')
 
 
 if __name__ == "__main__":
@@ -290,6 +301,8 @@ if __name__ == "__main__":
     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
     parser.add_argument('--linker', choices=linkers.keys(), default=default_linker,
                         help="linker to use, {dl} by default".format(dl=default_linker))
+    parser.add_argument('--emit-llvm', action='store_true',
+                        help='emit an LLVM bitcode with the instrumentation built-in')
 
     args, other = parser.parse_known_args()
 
@@ -311,7 +324,7 @@ if __name__ == "__main__":
     elif args.S:
         llvm_options += ' -S '
         compile_only(sources, llvm_options, output, args)
-    elif args.c:
+    elif args.c or args.emit_llvm:
         if len(sources) == 0:
             fail('no input files')
         compiler_mode(sources, llvm_options, output, args)

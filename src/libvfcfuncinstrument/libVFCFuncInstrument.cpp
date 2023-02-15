@@ -391,6 +391,7 @@ struct VfclibFunc : public ModulePass {
   virtual bool runOnModule(Module &M) {
     TargetLibraryInfoWrapperPass TLIWP;
 
+    std::cerr << "vfcfuncinst" << std::endl;
     FloatTy = Type::getFloatTy(M.getContext());
     FloatPtrTy = Type::getFloatPtrTy(M.getContext());
     DoubleTy = Type::getDoubleTy(M.getContext());
