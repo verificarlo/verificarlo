@@ -182,7 +182,7 @@ fi
 
 # Check for Python modules
 AX_PYTHON_MODULE(numpy, fatal)
-AX_PYTHON_MODULE(bigfloat, fatal)
+AX_PYTHON_MODULE(bigfloat)
 AX_PYTHON_MODULE(pandas, fatal)
 AX_PYTHON_MODULE(tables, fatal)
 AX_PYTHON_MODULE(scipy, fatal)

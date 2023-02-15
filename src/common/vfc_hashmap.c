@@ -243,6 +243,6 @@ size_t vfc_hashmap_str_function(const char *id) {
 // Free the hashmap
 void vfc_hashmap_free(vfc_hashmap_t map) {
   for (size_t ii = 0; ii < map->capacity; ii++)
-    if (get_value_at(map->items, ii) != 0 && get_value_at(map->items, ii) != 0)
+    if (get_value_at(map->items, ii) != 0)
       free((void *)get_value_at(map->items, ii));
 }
