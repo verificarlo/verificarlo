@@ -11,7 +11,7 @@ SEED=1
 #test the OpenMP version of the test
 
 #compile the test program for testing on floats
-verificarlo-c -fopenmp=libiomp5 -D REAL=float -O0 test_openmp.c -o test_openmp_B32
+verificarlo-c -fopenmp=libomp -D REAL=float -O0 test_openmp.c -o test_openmp_B32
 export OMP_NUM_THREADS=4
 #set the seed and run the test program
 export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary32=$PREC_B32 --seed=$SEED"
@@ -30,7 +30,7 @@ if [ $? -eq 1 ]; then
 fi
 
 #compile the test program for testing on doubles
-verificarlo-c -fopenmp=libiomp5 -D REAL=double -O0 test_openmp.c -o test_openmp_B64
+verificarlo-c -fopenmp=libomp -D REAL=double -O0 test_openmp.c -o test_openmp_B64
 
 #set the seed and run the test program
 export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary64=$PREC_B64 --seed=$SEED"
