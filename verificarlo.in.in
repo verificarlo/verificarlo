@@ -47,6 +47,7 @@ C_EXTENSIONS = [".c"]
 CXX_EXTENSIONS = ['.cc', '.cp', '.cpp', '.cxx', 'c++']
 ASSEMBLY_EXTENSIONS = ['.s']
 LLVM_BITCODE_EXTENSIONS = ['.bc', '.ll']
+COMPILE_EXTRA_FLAGS = '-ffp-contract=off'
 linkers = {'clang': clang, 'flang': flang, 'clang++': clangxx}
 default_linker = 'clang'
 temp_files_set = set()
@@ -210,7 +211,7 @@ def compiler_mode(sources, options, output, args):
 
         # Compile to ir (fortran uses flang, c uses clang)
         shell(
-            f'{compiler} -c -S {debug} {source} {include} -emit-llvm {options} -o {ir.name}')
+            f'{compiler} -c -S {debug} {source} {include} -emit-llvm {COMPILE_EXTRA_FLAGS} {options} -o {ir.name}')
 
         selectfunction = ""
         if args.function:
