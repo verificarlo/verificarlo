@@ -1,5 +1,4 @@
 #!/bin/bash
-#set -e
 set -x
 
 export VFC_BACKENDS_LOGGER=False
