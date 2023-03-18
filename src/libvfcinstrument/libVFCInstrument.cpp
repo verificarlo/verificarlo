@@ -79,16 +79,24 @@ static cl::opt<bool>
                              cl::desc("Instrument floating point comparisons"),
                              cl::value_desc("InstrumentFCMP"), cl::init(false));
 
+static cl::opt<bool>
+    VfclibInstInstrumentFMA("vfclibinst-inst-fma",
+                            cl::desc("Instrument floating point fma"),
+                            cl::value_desc("InstrumentFMA"), cl::init(false));
+
 /* pointer that hold the vfcwrapper Module */
 static Module *vfcwrapperM = nullptr;
 
 namespace {
 // Define an enum type to classify the floating points operations
 // that are instrumented by verificarlo
-enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_IGNORE };
+enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_FMA, FOP_IGNORE };
 
 // Each instruction can be translated to a string representation
-const std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
+const std::string Fops2str[] = {
+    [FOP_ADD] = "add",      [FOP_SUB] = "sub", [FOP_MUL] = "mul",
+    [FOP_DIV] = "div",      [FOP_CMP] = "cmp", [FOP_FMA] = "fma",
+    [FOP_IGNORE] = "ignore"};
 
 /* valid floating-point type to instrument */
 std::map<Type::TypeID, std::string> validTypesMap = {
@@ -435,6 +443,28 @@ struct VfclibInst : public ModulePass {
     return newInst;
   }
 
+  /* Replace fma arithmetic instructions with MCA */
+  Value *replaceArithmeticFMAWithMCACall(IRBuilder<> &Builder, Function *F,
+                                         Instruction *I) {
+
+    Value *op1 = I->getOperand(0);
+    Value *op2 = I->getOperand(1);
+    Value *op3 = I->getOperand(2);
+
+    Type *retType = I->getType();
+
+    op1 = updateOperand(Builder, F, op1, 0);
+    op2 = updateOperand(Builder, F, op2, 1);
+    op3 = updateOperand(Builder, F, op3, 2);
+
+    CallInst *newInst = Builder.CreateCall(F, {op1, op2, op3});
+    newInst->setAttributes(F->getAttributes());
+
+    newInst = dyn_cast<CallInst>(updateReturn(Builder, newInst, retType));
+
+    return newInst;
+  }
+
   /* Replace comparison instructions with MCA */
   Value *replaceComparisonWithMCACall(IRBuilder<> &Builder, Function *F,
                                       Instruction *I) {
@@ -518,10 +548,26 @@ struct VfclibInst : public ModulePass {
     Value *newInst;
     if (opCode == FOP_CMP) {
       newInst = replaceComparisonWithMCACall(Builder, mcaFunction, I);
+    } else if (opCode == FOP_FMA) {
+      newInst = replaceArithmeticFMAWithMCACall(Builder, mcaFunction, I);
     } else {
       newInst = replaceArithmeticWithMCACall(Builder, mcaFunction, I);
     }
     return newInst;
+  }
+
+  bool isFMAOperation(Instruction &I) {
+    CallInst *CI = static_cast<CallInst *>(&I);
+    const std::string &name = CI->getCalledFunction()->getName().str();
+    if (name == "llvm.fmuladd.f32")
+      return true;
+    if (name == "llvm.fmuladd.f64")
+      return true;
+    if (name == "llvm.fma.f32")
+      return true;
+    if (name == "llvm.fma.f64")
+      return true;
+    return false;
   }
 
   Fops mustReplace(Instruction &I) {
@@ -539,6 +585,13 @@ struct VfclibInst : public ModulePass {
       // Only instrument FCMP if the flag --inst-fcmp is passed
       if (VfclibInstInstrumentFCMP) {
         return FOP_CMP;
+      } else {
+        return FOP_IGNORE;
+      }
+    case Instruction::Call:
+      // Only instrument FMA if the flag --inst-fma is passed
+      if (VfclibInstInstrumentFMA and isFMAOperation(I)) {
+        return FOP_FMA;
       } else {
         return FOP_IGNORE;
       }
