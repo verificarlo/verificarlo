@@ -3,8 +3,8 @@ import sys
 import os
 
 if len(sys.argv) < 2:
-	print("./print_range [input file name] functions ...")
-	exit(0)
+    print("./print_range [input file name] functions ...")
+    sys.exit(0)
 
 # name of the input file
 InputFileName = sys.argv[1]
@@ -14,8 +14,8 @@ FunctionsList = sys.argv[2:]
 
 # test if the input file exists
 if not os.path.exists(InputFileName):
-   	print("Input file not found")
-   	exit(0)
+    print("Input file not found")
+    sys.exit(0)
 
 f = open(InputFileName, 'r')
 
@@ -25,18 +25,19 @@ CurrentFunction = ""
 FullFunction = ""
 
 for Line in Lines:
-	Fields = Line.split()
+    Fields = Line.split()
 
-	if len(Fields) == 12:
-		CurrentFunction = Fields[0].split(sep="/")[1] + "/" + Fields[0].split(sep="/")[2]
-		FullFunction = Fields[0]
+    if len(Fields) == 12:
+        CurrentFunction = Fields[0].split(
+            sep="/")[1] + "/" + Fields[0].split(sep="/")[2]
+        FullFunction = Fields[0]
 
-	elif len(Fields) == 7:
-		if CurrentFunction in FunctionsList:
-			print(Fields[0], FullFunction, Fields[5], Fields[6])
+    elif len(Fields) == 7:
+        if CurrentFunction in FunctionsList:
+            print(Fields[0], FullFunction, Fields[5], Fields[6])
 
-	elif len(Fields) != 0:
-		print("Wrong input file structure")
-		exit(0)
+    elif len(Fields) != 0:
+        print("Wrong input file structure")
+        sys.exit(0)
 
 f.close()

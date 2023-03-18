@@ -53,9 +53,10 @@ void _vfc_func_table_print(FILE *f) {
         get_value_at(_vfc_func_map->items, ii) != 0) {
       interflop_function_info_t *function =
           (interflop_function_info_t *)get_value_at(_vfc_func_map->items, ii);
-      fprintf(f, "%s\t%hd\t%hd\t%hu\t%hu\n", function->id,
-              function->isLibraryFunction, function->isIntrinsicFunction,
-              function->useFloat, function->useDouble);
+      interflop_fprintf(f, "%s\t%hd\t%hd\t%hu\t%hu\n", function->id,
+                        function->isLibraryFunction,
+                        function->isIntrinsicFunction, function->useFloat,
+                        function->useDouble);
     }
   }
 }
@@ -76,8 +77,8 @@ static interflop_function_stack_t _vfc_call_stack = {NULL,
 
 // Initialize the call stack
 void vfc_call_stack_init() {
-  _vfc_call_stack.array =
-      malloc(_VFC_CALL_STACK_MAXSIZE * sizeof(interflop_function_info_t *));
+  _vfc_call_stack.array = interflop_malloc(_VFC_CALL_STACK_MAXSIZE *
+                                           sizeof(interflop_function_info_t *));
   _vfc_call_stack.array[--_vfc_call_stack.top] = NULL;
 }
 
@@ -103,14 +104,14 @@ interflop_function_info_t *vfc_call_stack_pop() {
 // Print the call stack
 void vfc_call_stack_print(FILE *f) {
   for (int i = _VFC_CALL_STACK_MAXSIZE - 2; i >= _vfc_call_stack.top; i--)
-    fprintf(f, "%s/", _vfc_call_stack.array[i]->id);
-  fprintf(f, "\n");
+    interflop_fprintf(f, "%s/", _vfc_call_stack.array[i]->id);
+  interflop_fprintf(f, "\n");
 }
 
 // Free the call stack
 void vfc_call_stack_free() {
   if (_vfc_call_stack.array) {
-    free(_vfc_call_stack.array);
+    interflop_free(_vfc_call_stack.array);
   }
 }
 
@@ -126,8 +127,11 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
   interflop_function_info_t *function = vfc_func_table_get(func_name);
 
   if (function == NULL) {
-    interflop_function_info_t f = {func_name, isLibraryFunction,
-                                   isIntrinsicFunction, useFloat, useDouble};
+    interflop_function_info_t f = {.id = func_name,
+                                   .isLibraryFunction = isLibraryFunction,
+                                   .isIntrinsicFunction = isIntrinsicFunction,
+                                   .useFloat = useFloat,
+                                   .useDouble = useDouble};
     function = vfc_func_table_add(f);
   }
 
@@ -153,6 +157,7 @@ void vfc_exit_function(__attribute__((unused)) char *func_name,
                        __attribute__((unused)) char isLibraryFunction,
                        __attribute__((unused)) char isIntrinsicFunction,
                        size_t useFloat, size_t useDouble, int n, ...) {
+
   if ((useFloat != 0) || (useDouble != 0)) {
     va_list ap;
     // n is the number of arguments intercepted, each argument
