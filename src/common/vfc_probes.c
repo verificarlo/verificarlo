@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "vfc_hashmap.h"
+#include "interflop/hashmap/vfc_hashmap.h"
 
 #ifndef VAR_NAME
 #define VAR_NAME(var) #var // Simply returns the name of var into a string

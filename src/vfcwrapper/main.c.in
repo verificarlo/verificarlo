@@ -17,22 +17,28 @@
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/
+#include <argp.h>
 #include <assert.h>
 #include <dlfcn.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <printf.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "interflop.h"
+#include "interflop/interflop.h"
+#include "interflop/interflop_stdlib.h"
 
 /* In delta-debug we retrieve the return address of
  * instrumented operations. Call op size allows us
@@ -44,6 +50,14 @@
 /* On other architectures we assume an instruction is
  * 4 bytes */
 #define CALL_OP_SIZE 4
+#endif
+
+#if @LLVM_VERSION_MAJOR@ <= 7
+#define ADDR2LINE_BIN "addr2line"
+#define ADDR2LINE_PATH "/usr/bin/addr2line"
+#else
+#define ADDR2LINE_BIN "@LLVM_BINDIR@/llvm-addr2line"
+#define ADDR2LINE_PATH "@LLVM_BINDIR@/llvm-addr2line"
 #endif
 
 typedef int int2 __attribute__((ext_vector_type(2)));
@@ -61,8 +75,12 @@ typedef double double4 __attribute__((ext_vector_type(4)));
 typedef double double8 __attribute__((ext_vector_type(8)));
 typedef double double16 __attribute__((ext_vector_type(16)));
 
-typedef struct interflop_backend_interface_t (*interflop_init_t)(
-    int argc, char **argv, void **context);
+typedef struct interflop_backend_interface_t (*interflop_init_t)(void *context);
+
+typedef void (*interflop_pre_init_t)(interflop_panic_t panic, FILE *stream, 
+                                     void **context);
+typedef void (*interflop_cli_t)(int argc, char **argv, void *context);
+typedef void (*interflop_panic_t)(const char *msg);
 
 #define MAX_BACKENDS 16
 #define MAX_ARGS 256
@@ -71,14 +89,13 @@ typedef struct interflop_backend_interface_t (*interflop_init_t)(
 #define STR(X) #X
 
 struct interflop_backend_interface_t backends[MAX_BACKENDS];
-void *contexts[MAX_BACKENDS];
+void *contexts[MAX_BACKENDS] = {NULL};
 unsigned char loaded_backends = 0;
 unsigned char already_initialized = 0;
 
 /* Logger functions */
-#undef BACKEND_HEADER
-#define BACKEND_HEADER verificarlo
-void logger_init(void);
+
+void logger_init(interflop_panic_t panic, File *stream, const char *name);
 void logger_info(const char *fmt, ...);
 void logger_warning(const char *fmt, ...);
 void logger_error(const char *fmt, ...);
@@ -167,9 +184,9 @@ void ddebug_generate_inclusion(char *dd_generate_path, vfc_hashmap_t map) {
                  (void *)(get_value_at(map->items, i) - CALL_OP_SIZE));
         snprintf(executable, 64, "/proc/%d/exe", getppid());
         dup2(output, 1);
-        execlp("addr2line", "/usr/bin/addr2line", "-fpaCs", "-e", executable,
-               addr, NULL);
-        logger_error("error running addr2line");
+        execlp(ADDR2LINE_BIN, ADDR2LINE_PATH,
+               "-fpaCs", "-e", executable, addr, NULL);
+        logger_error("error running " ADDR2LINE_BIN);
       } else {
         int status;
         wait(&status);
@@ -284,6 +301,103 @@ void parse_vfc_backends_env(char **vfc_backends, char **vfc_backends_env) {
   }
 }
 
+long _vfc_strtol(const char *nptr, char **endptr, int *error) {
+  *error = 0;
+  errno = 0;
+  long val = strtoll(nptr, endptr, 10);
+  if (errno != 0) {
+    *error = 1;
+  }
+  return val;
+}
+
+double _vfc_strtod(const char *nptr, char **endptr, int *error) {
+  *error = 0;
+  errno = 0;
+  double val = strtod(nptr, endptr);
+  if (errno != 0) {
+    *error = 1;
+  }
+  return val;
+}
+
+/* Load the function <function> in <handle> .so of name <token> */
+void *load_function(const char *token, void *handle, const char *function) {
+  /* reset dl errors */
+  dlerror();
+  /* get the address of the interflop_pre_init function */
+  void *handler = dlsym(handle, function);
+  const char *dlsym_error = dlerror();
+  if (dlsym_error) {
+    logger_error("No %s function in backend %s: %s", function, token,
+                 strerror(errno));
+  }
+  /* reset dl errors */
+  dlerror();
+  return handler;
+}
+
+pid_t get_tid() { return syscall(__NR_gettid); }
+
+void _vfc_inf_handler(void) {
+
+}
+
+void _vfc_nan_handler(void) {
+
+}
+
+void _vfc_cancellation_handler(int unused) {
+
+}
+
+void _vfc_denormal_handler(void) {
+
+}
+
+void _vfc_floatmax_handler(void) {
+
+}
+
+void vfc_set_handlers(const char *token, void *handle) {
+
+  interflop_set_handler_t set_handler = (interflop_set_handler_t)load_function(
+      token, handle, "interflop_set_handler");
+  set_handler("getenv", getenv);
+  set_handler("sprintf", sprintf);
+  set_handler("strerror", strerror);
+  set_handler("gettid", get_tid);
+  set_handler("fopen", fopen);
+  set_handler("strcasecmp", strcasecmp);
+  set_handler("vwarnx", vwarnx);
+  set_handler("fprintf", fprintf);
+  set_handler("exit", exit);
+  set_handler("vfprintf", vfprintf);
+  set_handler("malloc", malloc);
+  set_handler("strcmp", strcmp);
+  set_handler("strtol", _vfc_strtol);
+  set_handler("strtod", _vfc_strtod);
+  set_handler("strcpy", strcpy);
+  set_handler("fclose", fclose);
+  set_handler("fgets", fgets);
+  set_handler("strtok_r", strtok_r);
+  set_handler("free", free);
+  set_handler("calloc", calloc);
+  set_handler("argp_parse", argp_parse);
+  set_handler("gettimeofday", gettimeofday);
+  set_handler("register_printf_specifier", register_printf_specifier);
+  set_handler("infHandler", _vfc_inf_handler);
+  set_handler("nanHandler", _vfc_nan_handler);
+  set_handler("cancellationHandler", _vfc_cancellation_handler);
+  set_handler("denormalHandler", _vfc_denormal_handler);
+  set_handler("maxHandler", _vfc_floatmax_handler);
+}
+
+void _vfc_panic(const char *msg) {
+  fprintf(stderr, "%s", msg);
+  exit(1);
+}
+
 /* vfc_init is run when loading vfcwrapper and initializes vfc backends */
 __attribute__((constructor(0))) static void vfc_init(void) {
 
@@ -301,13 +415,37 @@ __attribute__((constructor(0))) static void vfc_init(void) {
     return;
   }
 
+  /* function required by vfcwrapper.c */
+  interflop_set_handler("getenv", getenv);
+  interflop_set_handler("sprintf", sprintf);
+  interflop_set_handler("strerror", strerror);
+  interflop_set_handler("gettid", get_tid);
+  interflop_set_handler("fopen", fopen);
+  interflop_set_handler("strcasecmp", strcasecmp);
+  interflop_set_handler("vwarnx", vwarnx);
+  interflop_set_handler("fprintf", fprintf);
+  interflop_set_handler("exit", exit);
+  interflop_set_handler("vfprintf", vfprintf);
+  interflop_set_handler("malloc", malloc);
+  interflop_set_handler("strcmp", strcmp);
+  interflop_set_handler("strtol", _vfc_strtol);
+  interflop_set_handler("strtod", _vfc_strtod);
+  interflop_set_handler("strcpy", strcpy);
+  interflop_set_handler("fclose", fclose);
+  interflop_set_handler("fgets", fgets);
+  interflop_set_handler("strtok_r", strtok_r);
+  interflop_set_handler("free", free);
+  interflop_set_handler("calloc", calloc);
+  interflop_set_handler("gettimeofday", gettimeofday);
+  interflop_set_handler("register_printf_specifier", register_printf_specifier);
+
+  /* Initialize the logger */
+  logger_init(_vfc_panic, stderr, "verificarlo");
+
   /* Initialize instumentation */
 #ifdef INST_FUNC
   vfc_init_func_inst();
 #endif
-
-  /* Initialize the logger */
-  logger_init();
 
   char *vfc_backends = NULL, *vfc_backends_env = NULL;
   parse_vfc_backends_env(&vfc_backends, &vfc_backends_env);
@@ -356,25 +494,25 @@ __attribute__((constructor(0))) static void vfc_init(void) {
     if (!silent_load)
       logger_info("loaded backend %s\n", token);
 
-    /* reset dl errors */
-    dlerror();
-
-    /* get the address of the interflop_init function */
+    /* get the addresses of the interflop_init, interflop_pre_init, and
+     * interflop_cli functions */
+    interflop_pre_init_t handle_pre_init = (interflop_pre_init_t)load_function(
+        token, handle, "interflop_pre_init");
+    interflop_cli_t handle_cli =
+        (interflop_cli_t)load_function(token, handle, "interflop_cli");
     interflop_init_t handle_init =
-        (interflop_init_t)dlsym(handle, "interflop_init");
-    const char *dlsym_error = dlerror();
-    if (dlsym_error) {
-      logger_error("No interflop_init function in backend %s: %s", token,
-                   strerror(errno));
-    }
+        (interflop_init_t)load_function(token, handle, "interflop_init");
+
+    vfc_set_handlers(token, handle);
 
     /* Register backend */
     if (loaded_backends == MAX_BACKENDS) {
       logger_error("No more than %d backends can be used simultaneously",
                    MAX_BACKENDS);
     }
-    backends[loaded_backends] =
-        handle_init(backend_argc, backend_argv, &contexts[loaded_backends]);
+    handle_pre_init(_vfc_panic, stderr, &contexts[loaded_backends]);
+    handle_cli(backend_argc, backend_argv, contexts[loaded_backends]);
+    backends[loaded_backends] = handle_init(contexts[loaded_backends]);
     loaded_backends++;
 
     /* parse next backend token */
@@ -398,6 +536,10 @@ __attribute__((constructor(0))) static void vfc_init(void) {
 #ifdef INST_FCMP
   check_backends_implements(float, cmp);
   check_backends_implements(double, cmp);
+#endif
+#ifdef INST_FMA
+  check_backends_implements(float, fma);
+  check_backends_implements(double, fma);
 #endif
 
 #ifdef DDEBUG
@@ -430,18 +572,18 @@ __attribute__((constructor(0))) static void vfc_init(void) {
 /* When delta-debug run flags are passed, check filter rules,
  *  - exclude rules are applied first and have priority
  * */
-#define ddebug(operator)                                                       \
+#define ddebug(operation)                                                      \
   void *addr = __builtin_return_address(0);                                    \
   if (dd_exclude_path) {                                                       \
     /* Ignore addr in exclude file */                                          \
     if (vfc_hashmap_have(dd_mustnot_instrument, (size_t)addr)) {               \
-      return a operator b;                                                     \
+      return operation;                                                        \
     }                                                                          \
   }                                                                            \
   if (dd_include_path) {                                                       \
     /* Ignore addr not in include file */                                      \
     if (!vfc_hashmap_have(dd_must_instrument, (size_t)addr)) {                 \
-      return a operator b;                                                     \
+      return operation;                                                        \
     }                                                                          \
   } else if (dd_generate_path) {                                               \
     vfc_hashmap_insert(dd_must_instrument, (size_t)addr, addr);                \
@@ -449,7 +591,7 @@ __attribute__((constructor(0))) static void vfc_init(void) {
 
 #else
 /* When delta-debug flags are not passed do nothing */
-#define ddebug(operator)                                                       \
+#define ddebug(operation)                                                      \
   do {                                                                         \
   } while (0)
 #endif
@@ -478,14 +620,14 @@ void interflop_call(interflop_call_id id, ...) {
     return c;                                                                  \
   }
 
-define_arithmetic_wrapper(float, add, +);
-define_arithmetic_wrapper(float, sub, -);
-define_arithmetic_wrapper(float, mul, *);
-define_arithmetic_wrapper(float, div, /);
-define_arithmetic_wrapper(double, add, +);
-define_arithmetic_wrapper(double, sub, -);
-define_arithmetic_wrapper(double, mul, *);
-define_arithmetic_wrapper(double, div, /);
+define_arithmetic_wrapper(float, add, (a + b));
+define_arithmetic_wrapper(float, sub, (a - b));
+define_arithmetic_wrapper(float, mul, (a * b));
+define_arithmetic_wrapper(float, div, (a / b));
+define_arithmetic_wrapper(double, add, (a + b));
+define_arithmetic_wrapper(double, sub, (a - b));
+define_arithmetic_wrapper(double, mul, (a * b));
+define_arithmetic_wrapper(double, div, (a / b));
 
 int _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
   int c;
@@ -581,3 +723,18 @@ define_vectorized_comparison_wrapper(double, 8);
 
 define_vectorized_comparison_wrapper(float, 16);
 define_vectorized_comparison_wrapper(double, 16);
+
+#define define_arithmetic_fma_wrapper(precision)                               \
+  precision _##precision##fma(precision a, precision b, precision c) {         \
+    precision d = NAN;                                                         \
+    ddebug((a * b + c));                                                       \
+    for (unsigned char i = 0; i < loaded_backends; i++) {                      \
+      if (backends[i].interflop_fma_##precision) {                             \
+        backends[i].interflop_fma_##precision(a, b, c, &d, contexts[i]);       \
+      }                                                                        \
+    }                                                                          \
+    return d;                                                                  \
+  }
+
+define_arithmetic_fma_wrapper(float);
+define_arithmetic_fma_wrapper(double);

@@ -27,7 +27,6 @@
 #include "float_const.h"
 #include "float_struct.h"
 #include "generic_builtin.h"
-#include "logger.h"
 
 /* Generic getters for float constants */
 #define GET_EXP_MAX(X)                                                         \
@@ -47,7 +46,7 @@
   _Generic(X, float : FLOAT_MASK_ONE, double : DOUBLE_MASK_ONE)
 
 /* Unified fpclassify function for binary32, binary64 and binary128 */
-int fpf(float x) {
+static inline int fpf(float x) {
   binary32 b32 = {.f32 = x};
   int f = -1;
   if (b32.ieee.exponent == FLOAT_EXP_INF && b32.ieee.mantissa == 0) {
@@ -64,7 +63,7 @@ int fpf(float x) {
   return f;
 }
 
-int fpd(double x) {
+static inline int fpd(double x) {
   binary64 b64 = {.f64 = x};
   int f = -1;
   if (b64.ieee.exponent == DOUBLE_EXP_INF && b64.ieee.mantissa == 0) {
@@ -81,7 +80,7 @@ int fpd(double x) {
   return f;
 }
 
-int fpq(__float128 x) {
+static inline int fpq(__float128 x) {
   binary128 b128 = {.f128 = x};
   int f = -1;
   if (b128.ieee128.exponent == QUAD_EXP_INF && b128.ieee128.mantissa == 0) {
@@ -238,3 +237,20 @@ static inline __float128 _fast_pow2_binary128(const int exp) {
            : _get_exponent_binary128)(X)
 
 #endif /* __FLOAT_UTILS_H__ */
+
+extern bool _is_representable_binary32(const float x,
+                                       const int virtual_precision);
+extern bool _is_representable_binary64(const double x,
+                                       const int virtual_precision);
+extern bool _is_representable_binary128(const __float128 x,
+                                        const int virtual_precision);
+extern int32_t _get_exponent_binary32(const float f);
+extern int32_t _get_exponent_binary64(const double d);
+extern int32_t _get_exponent_binary128(const __float128 q);
+extern float _fast_pow2_binary32(const int exp);
+/* Returns 2^exp for binary64 */
+/* Fast function that implies no overflow neither underflow */
+extern double _fast_pow2_binary64(const int exp);
+/* Returns 2^exp for binary128 */
+/* Fast function that implies no overflow neither underflow */
+extern __float128 _fast_pow2_binary128(const int exp);
