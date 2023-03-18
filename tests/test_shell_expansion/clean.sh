@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -Rf *~ a.out test.log
+rm -Rf *~ a.out test.log *.ll *.o .vfcwrapper*

@@ -63,13 +63,17 @@ precision_option["double"]=--precision-binary64
 rm -f log.error
 rm -f run_parallel.sh
 
+parallel --header : "verificarlo-c compute_vprec_rounding.c -DREAL={type} -o compute_vprec_rounding_{type} --verbose" ::: type float double
+
+export COMPUTE_VPREC_ROUNDING=$(realpath compute_vprec_rounding)
+
 for TYPE in "${float_type_list[@]}"; do
 	for RANGE in $(seq ${RANGE_MIN} ${RANGE_STEP} ${range_max[$TYPE]}); do
 		echo "./compute_error.sh $TYPE $RANGE $USECASE $RANGE_MIN $RANGE_STEP $PRECISION_MIN $PRECISION_STEP $N_SAMPLES" >>run_parallel
 	done
 done
 
-parallel -j <run_parallel
+parallel -j $(nproc) <run_parallel
 
 cat tmp.*/log.error >log.error
 

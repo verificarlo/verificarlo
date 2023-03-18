@@ -1,231 +1,154 @@
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 0
-Info [interflop_cancellation]: cancellation of size 0 detected
+Info [cancellation]: cancellation of size 0 detected
 0x1.41b53ap+1
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 1
-Info [interflop_cancellation]: cancellation of size 1 detected
+Info [cancellation]: cancellation of size 1 detected
 0x1.e0da9ap+0
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 2
-Info [interflop_cancellation]: cancellation of size 2 detected
+Info [cancellation]: cancellation of size 2 detected
 0x1.f06d48p-1
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 3
-Info [interflop_cancellation]: cancellation of size 3 detected
+Info [cancellation]: cancellation of size 3 detected
 0x1.f83698p-2
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 4
-Info [interflop_cancellation]: cancellation of size 4 detected
+Info [cancellation]: cancellation of size 4 detected
 0x1.fc1b34p-3
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 5
-Info [interflop_cancellation]: cancellation of size 5 detected
+Info [cancellation]: cancellation of size 5 detected
 0x1.fe0d6ap-4
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 6
-Info [interflop_cancellation]: cancellation of size 6 detected
+Info [cancellation]: cancellation of size 6 detected
 0x1.ff0654p-5
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 7
-Info [interflop_cancellation]: cancellation of size 7 detected
+Info [cancellation]: cancellation of size 7 detected
 0x1.ff826ap-6
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 8
-Info [interflop_cancellation]: cancellation of size 8 detected
+Info [cancellation]: cancellation of size 8 detected
 0x1.ffbfb6p-7
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 9
-Info [interflop_cancellation]: cancellation of size 9 detected
+Info [cancellation]: cancellation of size 9 detected
 0x1.ffdcdap-8
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 10
-Info [interflop_cancellation]: cancellation of size 10 detected
+Info [cancellation]: cancellation of size 10 detected
 0x1.ffe86ep-9
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 11
-Info [interflop_cancellation]: cancellation of size 11 detected
+Info [cancellation]: cancellation of size 11 detected
 0x1.ffe836p-10
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 12
-Info [interflop_cancellation]: cancellation of size 12 detected
+Info [cancellation]: cancellation of size 12 detected
 0x1.ffdc1cp-11
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 13
-Info [interflop_cancellation]: cancellation of size 13 detected
+Info [cancellation]: cancellation of size 13 detected
 0x1.ffbe0ep-12
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 14
-Info [interflop_cancellation]: cancellation of size 14 detected
+Info [cancellation]: cancellation of size 14 detected
 0x1.ff7f06p-13
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 15
-Info [interflop_cancellation]: cancellation of size 15 detected
+Info [cancellation]: cancellation of size 15 detected
 0x1.feff84p-14
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 16
-Info [interflop_cancellation]: cancellation of size 16 detected
+Info [cancellation]: cancellation of size 16 detected
 0x1.fdffc2p-15
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 17
-Info [interflop_cancellation]: cancellation of size 17 detected
+Info [cancellation]: cancellation of size 17 detected
 0x1.fbffep-16
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 18
-Info [interflop_cancellation]: cancellation of size 18 detected
+Info [cancellation]: cancellation of size 18 detected
 0x1.f7fffp-17
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 19
-Info [interflop_cancellation]: cancellation of size 19 detected
+Info [cancellation]: cancellation of size 19 detected
 0x1.effff8p-18
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 20
-Info [interflop_cancellation]: cancellation of size 20 detected
+Info [cancellation]: cancellation of size 20 detected
 0x1.dffffcp-19
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 21
-Info [interflop_cancellation]: cancellation of size 21 detected
+Info [cancellation]: cancellation of size 21 detected
 0x1.bffffep-20
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 22
-Info [interflop_cancellation]: cancellation of size 22 detected
+Info [cancellation]: cancellation of size 22 detected
 0x1.8p-21
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 23
-Info [interflop_cancellation]: cancellation of size 23 detected
+Info [cancellation]: cancellation of size 23 detected
 0x1p-22
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 0
-Info [interflop_cancellation]: cancellation of size 0 detected
+Info [cancellation]: cancellation of size 0 detected
 0x1.41b53cebb3151p+1
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 1
-Info [interflop_cancellation]: cancellation of size 1 detected
+Info [cancellation]: cancellation of size 1 detected
 0x1.e0da9e75d98a7p+0
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 2
-Info [interflop_cancellation]: cancellation of size 2 detected
+Info [cancellation]: cancellation of size 2 detected
 0x1.f06d4f3aecc5p-1
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 3
-Info [interflop_cancellation]: cancellation of size 3 detected
+Info [cancellation]: cancellation of size 3 detected
 0x1.f836a79d76622p-2
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 4
-Info [interflop_cancellation]: cancellation of size 4 detected
+Info [cancellation]: cancellation of size 4 detected
 0x1.fc1b53cebb305p-3
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 5
-Info [interflop_cancellation]: cancellation of size 5 detected
+Info [cancellation]: cancellation of size 5 detected
 0x1.fe0da9e75d96bp-4
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 6
-Info [interflop_cancellation]: cancellation of size 6 detected
+Info [cancellation]: cancellation of size 6 detected
 0x1.ff06d4f3aec85p-5
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 7
-Info [interflop_cancellation]: cancellation of size 7 detected
+Info [cancellation]: cancellation of size 7 detected
 0x1.ff836a79d75e3p-6
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 8
-Info [interflop_cancellation]: cancellation of size 8 detected
+Info [cancellation]: cancellation of size 8 detected
 0x1.ffc1b53ceba31p-7
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 9
-Info [interflop_cancellation]: cancellation of size 9 detected
+Info [cancellation]: cancellation of size 9 detected
 0x1.ffe0da9e75b99p-8
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 10
-Info [interflop_cancellation]: cancellation of size 10 detected
+Info [cancellation]: cancellation of size 10 detected
 0x1.fff06d4f3aaccp-9
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 11
-Info [interflop_cancellation]: cancellation of size 11 detected
+Info [cancellation]: cancellation of size 11 detected
 0x1.fff836a79cf66p-10
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 12
-Info [interflop_cancellation]: cancellation of size 12 detected
+Info [cancellation]: cancellation of size 12 detected
 0x1.fffc1b53cdbb3p-11
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 13
-Info [interflop_cancellation]: cancellation of size 13 detected
+Info [cancellation]: cancellation of size 13 detected
 0x1.fffe0da9e55dap-12
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 14
-Info [interflop_cancellation]: cancellation of size 14 detected
+Info [cancellation]: cancellation of size 14 detected
 0x1.ffff06d4efaedp-13
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 15
-Info [interflop_cancellation]: cancellation of size 15 detected
+Info [cancellation]: cancellation of size 15 detected
 0x1.ffff836a71d76p-14
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 16
-Info [interflop_cancellation]: cancellation of size 16 detected
+Info [cancellation]: cancellation of size 16 detected
 0x1.ffffc1b52cebbp-15
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 17
-Info [interflop_cancellation]: cancellation of size 17 detected
+Info [cancellation]: cancellation of size 17 detected
 0x1.ffffe0da7e75ep-16
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 18
-Info [interflop_cancellation]: cancellation of size 18 detected
+Info [cancellation]: cancellation of size 18 detected
 0x1.fffff06d0f3afp-17
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 19
-Info [interflop_cancellation]: cancellation of size 19 detected
+Info [cancellation]: cancellation of size 19 detected
 0x1.fffff836279d7p-18
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 20
-Info [interflop_cancellation]: cancellation of size 20 detected
+Info [cancellation]: cancellation of size 20 detected
 0x1.fffffc1a53cecp-19
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 21
-Info [interflop_cancellation]: cancellation of size 21 detected
+Info [cancellation]: cancellation of size 21 detected
 0x1.fffffe0ba9e76p-20
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 22
-Info [interflop_cancellation]: cancellation of size 22 detected
+Info [cancellation]: cancellation of size 22 detected
 0x1.ffffff02d4f3bp-21
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 23
-Info [interflop_cancellation]: cancellation of size 23 detected
+Info [cancellation]: cancellation of size 23 detected
 0x1.ffffff7b6a79dp-22
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 24
-Info [interflop_cancellation]: cancellation of size 24 detected
+Info [cancellation]: cancellation of size 24 detected
 0x1.ffffffb1b53cfp-23
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 25
-Info [interflop_cancellation]: cancellation of size 25 detected
+Info [cancellation]: cancellation of size 25 detected
 0x1.ffffffc0da9e7p-24
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 26
-Info [interflop_cancellation]: cancellation of size 26 detected
+Info [cancellation]: cancellation of size 26 detected
 0x1.ffffffb06d4f4p-25
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 27
-Info [interflop_cancellation]: cancellation of size 27 detected
+Info [cancellation]: cancellation of size 27 detected
 0x1.ffffff7836a7ap-26
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 28
-Info [interflop_cancellation]: cancellation of size 28 detected
+Info [cancellation]: cancellation of size 28 detected
 0x1.fffffefc1b53dp-27
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 29
-Info [interflop_cancellation]: cancellation of size 29 detected
+Info [cancellation]: cancellation of size 29 detected
 0x1.fffffdfe0da9ep-28
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 30
-Info [interflop_cancellation]: cancellation of size 30 detected
+Info [cancellation]: cancellation of size 30 detected
 0x1.fffffbff06d4fp-29
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 31
-Info [interflop_cancellation]: cancellation of size 31 detected
+Info [cancellation]: cancellation of size 31 detected
 0x1.fffff7ff836a8p-30
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 32
-Info [interflop_cancellation]: cancellation of size 32 detected
+Info [cancellation]: cancellation of size 32 detected
 0x1.ffffefffc1b54p-31
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 33
-Info [interflop_cancellation]: cancellation of size 33 detected
+Info [cancellation]: cancellation of size 33 detected
 0x1.ffffdfffe0daap-32
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 34
-Info [interflop_cancellation]: cancellation of size 34 detected
+Info [cancellation]: cancellation of size 34 detected
 0x1.ffffbffff06d5p-33
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 35
-Info [interflop_cancellation]: cancellation of size 35 detected
+Info [cancellation]: cancellation of size 35 detected
 0x1.ffff7ffff836ap-34
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 36
-Info [interflop_cancellation]: cancellation of size 36 detected
+Info [cancellation]: cancellation of size 36 detected
 0x1.fffefffffc1b5p-35
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 37
-Info [interflop_cancellation]: cancellation of size 37 detected
+Info [cancellation]: cancellation of size 37 detected
 0x1.fffdfffffe0dbp-36
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 38
-Info [interflop_cancellation]: cancellation of size 38 detected
+Info [cancellation]: cancellation of size 38 detected
 0x1.fffbffffff06dp-37
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 39
-Info [interflop_cancellation]: cancellation of size 39 detected
+Info [cancellation]: cancellation of size 39 detected
 0x1.fff7ffffff837p-38
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 40
-Info [interflop_cancellation]: cancellation of size 40 detected
+Info [cancellation]: cancellation of size 40 detected
 0x1.ffefffffffc1bp-39
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 41
-Info [interflop_cancellation]: cancellation of size 41 detected
+Info [cancellation]: cancellation of size 41 detected
 0x1.ffdfffffffe0ep-40
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 42
-Info [interflop_cancellation]: cancellation of size 42 detected
+Info [cancellation]: cancellation of size 42 detected
 0x1.ffbffffffff07p-41
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 43
-Info [interflop_cancellation]: cancellation of size 43 detected
+Info [cancellation]: cancellation of size 43 detected
 0x1.ff7ffffffff83p-42
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 44
-Info [interflop_cancellation]: cancellation of size 44 detected
+Info [cancellation]: cancellation of size 44 detected
 0x1.fefffffffffc2p-43
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 45
-Info [interflop_cancellation]: cancellation of size 45 detected
+Info [cancellation]: cancellation of size 45 detected
 0x1.fdfffffffffe1p-44
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 46
-Info [interflop_cancellation]: cancellation of size 46 detected
+Info [cancellation]: cancellation of size 46 detected
 0x1.fbffffffffffp-45
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 47
-Info [interflop_cancellation]: cancellation of size 47 detected
+Info [cancellation]: cancellation of size 47 detected
 0x1.f7ffffffffff8p-46
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 48
-Info [interflop_cancellation]: cancellation of size 48 detected
+Info [cancellation]: cancellation of size 48 detected
 0x1.efffffffffffcp-47
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 49
-Info [interflop_cancellation]: cancellation of size 49 detected
+Info [cancellation]: cancellation of size 49 detected
 0x1.dfffffffffffep-48
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 50
-Info [interflop_cancellation]: cancellation of size 50 detected
+Info [cancellation]: cancellation of size 50 detected
 0x1.bffffffffffffp-49
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 51
-Info [interflop_cancellation]: cancellation of size 51 detected
+Info [cancellation]: cancellation of size 51 detected
 0x1.8p-50
-Info [interflop_cancellation]: interflop_cancellation: loaded backend with tolerance = 52
-Info [interflop_cancellation]: cancellation of size 52 detected
+Info [cancellation]: cancellation of size 52 detected
 0x1p-51

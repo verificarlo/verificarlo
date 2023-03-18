@@ -2,9 +2,6 @@
 
 import os
 import os.path
-import subprocess
-import shlex
-import warnings
 import sys
 from collections import Counter
 
@@ -16,25 +13,21 @@ def main():
 
     # check if the reference run file exists
     if os.path.exists(run1_name) is False:
-        exit("run 1 file {} does not exist!".format(run1_name))
-    run1_file = open(run1_name, "r")
+        sys.exit(f"run 1 file {run1_name} does not exist!")
 
     # check if the current run file exists
     if os.path.exists(run2_name) is False:
-        exit("current run file {} does not exist!".format(run2_name))
-    run2_file = open(run2_name, "r")
+        sys.exit("current run file {run2_name} does not exist!")
 
     # parse the two files
     run1_lines = []
-    for line in run1_file:
-        run1_lines = run1_lines + [line]
+    with open(run1_name, "r", encoding='utf-8') as run1_file:
+        for line in run1_file:
+            run1_lines = run1_lines + [line]
     run2_lines = []
-    for line in run2_file:
-        run2_lines = run2_lines + [line]
-
-    # close the files
-    run1_file.close()
-    run2_file.close()
+    with open(run2_name, "r", encoding='utf-8') as run2_file:
+        for line in run2_file:
+            run2_lines = run2_lines + [line]
 
     # the two lists should have the same length
     if len(run1_lines) != len(run2_lines):
@@ -50,7 +43,7 @@ def main():
     run1_lines_count = Counter(run1_lines_simple)
     run2_lines_count = Counter(run2_lines_simple)
     if run1_lines_count != run2_lines_count:
-        print(run1_lines_count, run2_lines_count)
+        print(run1_lines_count - run2_lines_count)
         return 1
 
     return 0

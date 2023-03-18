@@ -1,5 +1,24 @@
 #!/bin/bash
 
+max_length=$(find . -type d -name 'test_*' -exec basename {} \; | awk '{ print length, $0 }' | sort -n | tail -1 | cut -d' ' -f1)
+max_length=$((max_length + 4))
+
+if [ -z "${PROFILE_TIME}" ]; then
+    function run() {
+        elapsed=''
+        ret=$(eval $@)
+        echo $ret
+    }
+else
+    function run() {
+        start=$(date +%s%N)
+        ret=$(eval $@)
+        end=$(date +%s%N)
+        elapsed=$(printf "(%5d ms)" "$(((end - start) / 1000000))")
+        echo $ret
+    }
+fi
+
 tests="$tests $(find . -maxdepth 1 -type d -name 'test_*' | sort)"
 
 count=$(echo $tests | wc -w)
@@ -10,11 +29,11 @@ echo "1..$count"
 test_number=1
 for t in $tests; do
     echo $t
-    if bash -c "cd $t && ./test.sh > test.log 2>&1" ; then
-    echo
-        echo "ok $test_number $t"
+    if run 'bash -c "cd $t && ./test.sh > test.log 2>&1"'; then
+        echo
+        printf "ok %2d %-${max_length}s %s\n" "$test_number" "$t" "$elapsed"
     else
-        echo "not ok $test_number $t"
+        printf "not ok %2d %-${max_length}s %s\n" "$test_number" "$t" "$elapsed"
     fi
-    test_number=$[test_number+1]
+    test_number=$((test_number + 1))
 done

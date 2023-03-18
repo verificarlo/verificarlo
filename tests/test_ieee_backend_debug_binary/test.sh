@@ -2,35 +2,35 @@
 set -e
 
 # Test for the --debug-binary option
-# TODO: add a test for the --debug option
 
 check_success() {
-    if  [[ $? != 0 ]]; then
-	echo "Test failed"
-	exit 1
-    fi	
+    if [[ $? != 0 ]]; then
+        echo "Test failed"
+        exit 1
+    fi
 }
 
-compile() {
-    TYPE=$1
-    verificarlo-c -D${TYPE^^} -O0 test.c --verbose -o test -lm
-    check_success
+check_executable() {
+    if [[ ! -f $1 ]]; then
+        echo "Executable $1 not found"
+        exit 1
+    fi
 }
 
 run() {
     TYPE=$1
     if [[ $# == 2 ]]; then
-	EXTRA_OPTION='--normalize-denormal'
+        EXTRA_OPTION='--normalize-denormal'
     else
-	EXTRA_OPTION=''
+        EXTRA_OPTION=''
     fi
-    IFS=" "    
+    IFS=" "
     rm -f log.debug.binary
     while read x y op; do
-	./test "$x" "$y" "${op}" 2>> log.debug.binary
-	echo "$x" "$y" "${op}"
-    done < value.${TYPE,,}
-    ./generate.py -t ${TYPE,,} -f value.${TYPE,,} ${EXTRA_OPTION} > ref.debug.binary
+        ./test_${TYPE} "$x" "$y" "${op}" 2>>log.debug.binary
+        echo "$x" "$y" "${op}"
+    done <value.${TYPE,,}
+    ./generate.py -t ${TYPE,,} -f value.${TYPE,,} ${EXTRA_OPTION} >ref.debug.binary
     check_success
 }
 
@@ -41,18 +41,20 @@ compare() {
 
 export VFC_BACKENDS_SILENT_LOAD="TRUE"
 
+parallel -j $(nproc) --header : verificarlo -DREAL={type} -O0 test.c --verbose -o test_{type} -lm ::: type float double
+check_executable test_float
+check_executable test_double
+
 echo "denormal denormalized"
 export VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line --no-backend-name"
 for REALTYPE in "float" "double"; do
-    compile $REALTYPE
-    run $REALTYPE 
+    run $REALTYPE
     compare
 done
 
 echo "denormal normalized"
 export VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line --no-backend-name --print-subnormal-normalized"
 for REALTYPE in "float" "double"; do
-    compile $REALTYPE
     run $REALTYPE "denormal"
     compare
 done

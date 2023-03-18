@@ -56,19 +56,14 @@ else
 	modes_list=("IB" "OB" "FULL")
 fi
 
-# Instrumented function parameters
-declare -A instrumented_function
-instrumented_function[0]="applyOp_float"
-instrumented_function[1]="applyOp_double"
-
 rm -rf run_parallel
+
+# Move out compilation to faster the test
+parallel --header : "verificarlo-c -g -Wall test_${TEST}.c --function=applyOp_{type} -o test_${TEST}_{type} -lm" ::: type ${type_list_names[@]}
 
 for TYPE in "${type_list[@]}"; do
 	echo "TYPE: ${type_list_names[${TYPE}]}"
-
-	BIN=$PWD/test_${TEST}_${TYPE}
-	verificarlo-c -g -Wall test_${TEST}.c --function=${instrumented_function[${TYPE}]} -o $BIN -lm
-
+	BIN=$(realpath test_${TEST}_${TYPE})
 	for MODE in "${modes_list[@]}"; do
 		echo "MODE: ${MODE}"
 		for OP in "${operation_list[@]}"; do
@@ -86,7 +81,7 @@ parallel -j $(nproc) <run_parallel
 cat >check_status.py <<HERE
 import sys
 import glob
-paths=glob.glob('tmp.*/error.txt')
+paths=glob.glob('tmp.*')
 ret=sum([int(open(f).readline().strip()) for f in paths]) if paths != []  else 1
 print(ret)
 HERE

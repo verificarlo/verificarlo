@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+
+import argparse
+
+package_string = "@PACKAGE_STRING@"
+package_version = "@PACKAGE_VERSION@"
+
+_args = {
+    'prefix': "@prefix@",
+    'bindir': "@bindir@",
+    'libdir': "@libdir@",
+    'includedir': "@includedir@",
+    'datarootdir': "@datarootdir@/interflop",
+    'm4dir': "@datarootdir@/interflop"
+}
+
+
+def parse_args():
+    parser_desc = 'Get various information needed to compile programs which use Interflop'
+    parser = argparse.ArgumentParser('interflop-config',
+                                     description=parser_desc)
+    parser.add_argument('--version', action='version', version=package_version)
+    parser.add_argument('--prefix',
+                        action='store_true',
+                        help="print the installation prefix")
+    parser.add_argument("--bindir", action='store_true',
+                        help="directory containing interflop binaries")
+    parser.add_argument("--libdir", action='store_true',
+                        help="directory containing interflop libraries")
+    parser.add_argument("--includedir", action='store_true',
+                        help="directory containing interflop headers")
+    parser.add_argument("--datarootdir", action='store_true',
+                        help="directory containing interflop data")
+    parser.add_argument("--m4dir", action="store_true",
+                        help="directory containing interflop M4 files")
+    args = parser.parse_args()
+    return args, parser
+
+
+def main():
+    args, parser = parse_args()
+    print_arg = False
+    for name, arg in vars(args).items():
+        if arg:
+            print(_args[name])
+            print_arg = True
+
+    if not print_arg:
+        parser.print_help()
+
+
+if '__main__' == __name__:
+    main()

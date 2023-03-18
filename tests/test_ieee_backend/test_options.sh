@@ -5,24 +5,19 @@ export VFC_BACKENDS_SILENT_LOAD="true"
 export VFC_BACKENDS_LOGGER="true"
 
 run() {
+    local TYPE=$1
+    local TEST=$2
+    local DEBUG_MODE=$3
+    local OPTIONS=$4
+    local LOG=log_${TEST}_${TYPE}
     export VFC_BACKENDS="libinterflop_ieee.so ${DEBUG_MODE} ${OPTIONS}"
-    echo -e "\n### ${VFC_BACKENDS}"
-    ./test_options 2>log
-}
-
-eval_condition() {
-
-    if [[ $? != 0 ]]; then
-        echo 0
-    else
-        echo 1
-    fi
+    ./test_options_${TYPE} 2>${LOG}
+    echo $LOG
 }
 
 check() {
-
-    RESULT=$1
-    ERROR_MSG=$2
+    local RESULT=$1
+    local ERROR_MSG=$2
 
     if [[ "$RESULT" != 0 ]]; then
         echo $ERROR_MSG
@@ -32,64 +27,93 @@ check() {
     fi
 }
 
-for TYPE in float double; do
+# Compile tests
+parallel --header : "verificarlo-c -O0 test_options.c -DREAL={type} -o test_options_{type}" ::: type float double
 
-    verificarlo-c -O0 test_options.c -DREAL=float -o test_options
-
+test1() {
     DEBUG_MODE="--debug"
     OPTIONS=""
-    run
+    TYPE=$1
+    LOG=$(run $TYPE 1 $DEBUG_MODE $OPTIONS)
     check "$(
-        grep -q "Decimal" log
+        grep -q "Decimal" ${LOG}
         echo $?
     )" "Error debug mode (Decimal) not printed"
+}
+
+test2() {
 
     DEBUG_MODE="--debug-binary"
     OPTIONS=""
-    run
+    TYPE=$1
+    LOG=$(run $TYPE 1 $DEBUG_MODE $OPTIONS)
     check "$(
-        grep -q "Binary" log
+        grep -q "Binary" ${LOG}
         echo $?
     )" "Error debug mode (Decimal_bin) not printed"
+}
+
+test3() {
 
     DEBUG_MODE="--debug"
     OPTIONS="--no-backend-name"
-    run
+    TYPE=$1
+    LOG=$(run $TYPE 1 $DEBUG_MODE $OPTIONS)
     check "$(
-        grep -vq "Decimal" log
+        grep -vq "Decimal" ${LOG}
         echo $?
     )" "Error debug mode (Decimal) printed"
+}
+
+test4() {
 
     DEBUG_MODE="--debug-binary"
     OPTIONS="--no-backend-name"
-    run
+    TYPE=$1
+    LOG=$(run $TYPE 1 $DEBUG_MODE $OPTIONS)
     check "$(
-        grep -vq "Binary" log
+        grep -vq "Binary" ${LOG}
         echo $?
     )" "Error debug mode (Binary) printed"
+}
+
+test5() {
 
     DEBUG_MODE="--debug"
     OPTIONS="--print-new-line"
-    run
+    TYPE=$1
+    LOG=$(run $TYPE 1 $DEBUG_MODE $OPTIONS)
     check "$(
-        grep -vq "Decimal" log
+        grep -vq "Decimal" ${LOG}
         echo $?
     )" "Error no new lines printed"
+}
+
+test6() {
 
     DEBUG_MODE="--debug-binary"
     OPTIONS="--print-new-line"
-    run
+    TYPE=$1
+    LOG=$(run $TYPE 1 $DEBUG_MODE $OPTIONS)
     check "$(
-        test '$(wc -l log)'
+        test '$(wc -l ${LOG})'
         echo $?
     )" "Error no new lines printed"
+}
+
+test7() {
 
     DEBUG_MODE="--count-op"
     OPTIONS=""
-    run
+    TYPE=$1
+    LOG=$(run $TYPE 1 $DEBUG_MODE $OPTIONS)
     check "$(
-        grep -vq "add=" log
+        grep -vq "add=" ${LOG}
         echo $?
     )" "Error no counts printed"
+}
 
-done
+export -f run check
+export -f test1 test2 test3 test4 test5 test6 test7
+
+parallel --header : "test{test} {type}" ::: test {1..7} ::: type float double

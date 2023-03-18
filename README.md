@@ -4,6 +4,7 @@ A tool for debugging and assessing floating point precision and reproducibility.
 
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
+![GitHub Release](https://img.shields.io/github/v/release/verificarlo/verificarlo)
 ![Build Status](https://github.com/verificarlo/verificarlo/workflows/test-docker/badge.svg?branch=master)
 [![Docker Pulls](https://img.shields.io/docker/pulls/verificarlo/verificarlo)](https://hub.docker.com/r/verificarlo/verificarlo)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
@@ -11,20 +12,20 @@ A tool for debugging and assessing floating point precision and reproducibility.
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://releases.llvm.org/13.0.0/LICENSE.TXT)
 
 
-   * [Installation](#installation)
-   * [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
-   * [Usage](#usage)
-   * [Branch instrumentation](#branch-instrumentation)
-   * [Examples and Tutorial](#examples-and-tutorial)
-   * [Backends](#backends)
-   * [Inclusion / exclusion options](#inclusion--exclusion-options)
-   * [Pinpointing numerical errors with Delta-Debug](#pinpointing-numerical-errors-with-delta-debug)
-   * [VPREC Function instrumentation](#vprec-function-instrumentation)
-   * [User call instrumentation](#interflop-usercall-instrumentation)
-   * [Postprocessing](#postprocessing)
-   * [How to cite Verificarlo](#how-to-cite-verificarlo)
-   * [Discussion Group](#discussion-group)
-   * [License](#license)
+- [Installation](#installation)
+- [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
+- [Usage](#usage)
+- [Branch instrumentation](#branch-instrumentation)
+- [Examples and Tutorial](#examples-and-tutorial)
+- [Backends](#backends)
+- [Inclusion / exclusion options](#inclusion--exclusion-options)
+- [Pinpointing numerical errors with Delta-Debug](#pinpointing-numerical-errors-with-delta-debug)
+- [VPREC Function Instrumentation](#vprec-function-instrumentation)
+- [Postprocessing](#postprocessing)
+- [Interflop user call instrumentation](#interflop-user-call-instrumentation)
+- [How to cite Verificarlo](#how-to-cite-verificarlo)
+- [Discussion Group](#discussion-group)
+- [License](#license)
 
 
 ## Installation

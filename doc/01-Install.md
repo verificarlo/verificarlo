@@ -21,6 +21,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
 Then run the following command inside verificarlo directory:
 
 ```bash
+   $ ./install-interflop.sh
    $ ./autogen.sh
    $ ./configure --without-flang
    $ make

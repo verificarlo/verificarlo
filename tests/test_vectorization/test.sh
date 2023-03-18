@@ -2,8 +2,17 @@
 
 source ../paths.sh
 
-make clean
-make -e LLVM_BINDIR=${LLVM_BINDIR} GCC_PATH=${GCC_PATH}
+# ${LLVM_BINDIR}/clang -Wall -Wextra  -O3 -march=native print.c operation.c test.c -g -o test-clang -I.
+# ${GCC_PATH}          -Wall -Wextra  -O3 -march=native print.c operation.c test.c -g -o test-gcc -I.
+# verificarlo-c        -Wall -Wextra  -O3 -march=native print.c operation.c test.c -g -o test-mca -I.
+
+clang=${LLVM_BINDIR}/clang
+gcc=${GCC_PATH}
+mca=verificarlo-c
+
+cflags="-Wall -Wextra -O3 -march=native -I. -g"
+
+parallel --header : "{compiler} ${cflags} print.c operation.c test.c -o test-{#}" ::: compiler $gcc $clang $mca
 
 if [[ $? != 0 ]]; then
     echo "Test failed"
@@ -14,12 +23,12 @@ export VFC_BACKENDS_SILENT_LOAD="True"
 export VFC_BACKENDS_LOGGER="False"
 export VFC_BACKENDS="libinterflop_ieee.so"
 
-./test-gcc 2> gcc.log
-./test-clang 2> clang.log
-./test-mca 2> mca.log
+./test-1 2>gcc.log
+./test-2 2>clang.log
+./test-3 2>mca.log
 
-diff3 gcc.log clang.log mca.log > diff
-if [[ -z $diff ]]  ; then
+diff3 gcc.log clang.log mca.log >diff
+if [[ -z $diff ]]; then
     echo "Test successed"
     exit 0
 else

@@ -26,6 +26,13 @@ check_status() {
     fi
 }
 
+check_executable() {
+    if [[ ! -f $1 ]]; then
+        echo "Executable $1 not found"
+        exit 1
+    fi
+}
+
 check() {
     MAX_PREC=$1
     START_PREC=$2
@@ -43,19 +50,20 @@ check() {
 
 GCC=${GCC_PATH}
 if [[ $(arch) == "x86_64" ]]; then
-   $GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lquadmath -lm
-   $GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lquadmath -lm
+    parallel --header : "${GCC} -DREAL={type} -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_{type} -lquadmath -lm" ::: type float double
 else
-   $GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lm
-   $GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lm
+    parallel --header : "${GCC} -DREAL={type} -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_{type} -lm" ::: type float double
 fi
+check_executable compute_sig_float
+check_executable compute_sig_double
 
 export VFC_BACKENDS_LOGGER=False
 
 # Test operates at different precisions, and different operands.
 # It compares that results are equivalents up to the bit.
-verificarlo-c --function=operator --verbose -D REAL=float -D SAMPLES=$SAMPLES -O0 test.c -o test_float
-verificarlo-c --function=operator --verbose -D REAL=double -D SAMPLES=$SAMPLES -O0 test.c -o test_double
+parallel --header : "verificarlo-c --function=operator --verbose -D REAL={type} -D SAMPLES=$SAMPLES -O3 test.c -o test_{type} -lm" ::: type float double
+check_executable test_float
+check_executable test_double
 
 rm -f run_parallel
 

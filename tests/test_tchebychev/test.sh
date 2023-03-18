@@ -9,16 +9,14 @@ export LC_ALL=C
 # Tchebychev polynom becomes unstable around 1, when computed with
 # single precision
 export VFC_BACKENDS="libinterflop_mca.so --precision-binary32 23"
+export VFC_BACKENDS_SILENT_LOAD="True"
+export VFC_BACKENDS_LOGGER="False"
 
 verificarlo-c tchebychev.c -o tchebychev
 
+echo "z y" >output
 # Run 15 iterations of tchebychev for all values in [.0:1.0:.01]
-echo "z y" > output
-for z in $(seq 0.0 0.01 1.0); do
-    for i in $(seq 1 15); do
-        ./tchebychev $z >> output
-    done
-done
+parallel -k -j $(nproc) --header : "for i in {1..15} ; do ./tchebychev {z} ; done" ::: z $(seq 0.0 0.01 1.0) >>output
 
 # Plot the result, resulting graph is saved as Rplots.pdf
 # By default this line is commented to avoid including R as a

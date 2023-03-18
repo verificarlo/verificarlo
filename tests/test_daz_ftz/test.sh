@@ -3,49 +3,23 @@ set -e
 
 # Test for the --daz/--ftz options
 
-check_success() {
-    if [[ $? != 0 ]]; then
-        echo "Test failed"
+check_executable() {
+    if [[ ! -f $1 ]]; then
+        echo "Executable $1 not found"
         exit 1
     fi
-}
-
-compile() {
-    TYPE=$1
-    verificarlo-c -D REAL=${TYPE,,} -O0 test.c -o test_${TYPE,,} -lm
-    check_success
-}
-
-run() {
-    TYPE=$1
-    IFS=" "
-    while read x y op; do
-        ./test "$x" "$y" "${op}" >>log_${TYPE^^}
-    done <value.${TYPE^^}
-    check_success
-}
-
-compare() {
-    TYPE=$1
-    diff -I '#.*' log_${TYPE^^} ref_${TYPE^^}
-    check_success
 }
 
 export VFC_BACKENDS_LOGGER=False
 export VFC_BACKENDS_SILENT_LOAD="TRUE"
 
-rm -f run_parallel
-for REALTYPE in "float" "double"; do
-    compile $REALTYPE
-    for BACKEND in "libinterflop_mca.so" "libinterflop_bitmask.so"; do
-        echo "./compute_error.sh ${TYPE} ${PWD}/test_${TYPE,,} ${BACKEND}" >>run_parallel
-    done
-done
+parallel --header : "verificarlo-c -D REAL={type} -O0 test.c -o test_{type} -lm" ::: type float double
+check_executable test_float
+check_executable test_double
 
-parallel -j $(nproc) <run_parallel
+parallel -j $(nproc) --header : "./compute_error.sh {type} $PWD/test_{type} {backend}" ::: type float double ::: backend libinterflop_mca.so libinterflop_bitmask.so
 
 cat >check_status.py <<HERE
-import sys
 import glob
 paths=glob.glob('tmp.*/output.txt')
 ret=sum([int(open(f).readline().strip()) for f in paths]) if paths != [] else 1

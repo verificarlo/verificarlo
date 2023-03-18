@@ -14,9 +14,6 @@ echo "TYPE=${TYPE}"
 echo "NB_TESTS=${NB_TESTS}"
 echo "ABS_ERR=${ABS_ERR}"
 
-TMPDIR=$(mktemp -d -p .)
-cd $TMPDIR
-
 export VFC_BACKENDS="libinterflop_vprec.so --mode=${MODE} --error-mode=abs --max-abs-error-exponent=${ABS_ERR}"
 $BIN $OP $TYPE $NB_TESTS $ABS_ERR
-echo $? >error.txt
+echo $? >$(mktemp -p .)

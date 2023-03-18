@@ -31,18 +31,17 @@ rm -f compute_vprec_rounding log.error mpfr.txt vprec.txt
 verificarlo-c compute_vprec_rounding.c -DREAL=$TYPE -o compute_vprec_rounding
 
 while read a b; do
-  ./compute_mpfr_rounding.py $a $b $OP $TYPE >> mpfr.txt
-  ./compute_vprec_rounding $a $b $OP >> vprec.txt
-done < $INPUT_FILE
+  ./compute_mpfr_rounding $a $b $OP $TYPE >>mpfr.txt
+  ./compute_vprec_rounding $a $b $OP >>vprec.txt
+done <$INPUT_FILE
 
-./check_output.py 2>> log.error || echo "Output does not match"
+./check_output.py 2>>log.error || echo "Output does not match"
 
-if [ -s "log.error" ]
-	then
-    cat log.error
-		echo "Test failed"
-		exit 1
-	else
-		echo "Test suceed"
-		exit 0
+if [ -s "log.error" ]; then
+  cat log.error
+  echo "Test failed"
+  exit 1
+else
+  echo "Test suceed"
+  exit 0
 fi
