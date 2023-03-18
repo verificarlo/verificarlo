@@ -30,6 +30,9 @@ import tempfile
 PACKAGE_STRING = "@PACKAGE_STRING@"
 LIBDIR = "%LIBDIR%"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
+libinterflop_stdlib = "@INTERFLOP_PREFIX@"
+libinterflop_stdlib_include = "@INTERFLOP_INCLUDEDIR@"
+libinterflop_stdlib_lib = "@INTERFLOP_LIBDIR@"
 libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
 libvfcfuncinstrument = LIBDIR + '/libvfcfuncinstrument.so'
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
@@ -138,10 +141,13 @@ def compile_vfcwrapper(source, output, args, emit_llvm=False):
     extra_args += "-DINST_FCMP " if args.inst_fcmp else ""
     extra_args += "-DDDEBUG " if args.ddebug else ""
     extra_args += "-DINST_FUNC " if args.inst_func else ""
+    extra_args += "-DINST_FMA " if args.inst_fma else ""
 
     internal_options = (" -S -emit-llvm " if emit_llvm else "") + \
         f" -c -Wno-varargs -I {mcalib_includes} "
-    shell(f'{clang} -O3 -march=native {internal_options} {extra_args} {source} -o {output} ')
+    cmd = (f'{clang} -O3 -march=native -g {internal_options} {extra_args} '
+           f'{source} -I{libinterflop_stdlib}/include/ -o {output} ')
+    shell(cmd)
 
 
 def linker_mode(sources, options, libraries, output, args):
@@ -150,20 +156,30 @@ def linker_mode(sources, options, libraries, output, args):
 
     compile_vfcwrapper(vfcwrapper, vfcwrapper_o, args)
 
-    f = tempfile.NamedTemporaryFile(mode='w+')
-    sources = ' '.join([os.path.splitext(s)[0]+'.o' for s in sources])
-    if args.static:
-        cmd = f'{output} {sources} {options} {libraries} {vfcwrapper_o} -static -lgmp -lm -ldl'
-    else:
-        cmd = f'{output} {sources} {options} {libraries} {vfcwrapper_o} {mcalib_options} -ldl'
+    with tempfile.NamedTemporaryFile(mode='w+') as f:
+        sources = ' '.join([os.path.splitext(s)[0]+'.o' for s in sources])
+        interflop_libs = ' '.join(['-linterflop_stdlib',
+                                   '-linterflop_hashmap',
+                                   '-linterflop_logger'])
+        interflop_stdlib_flags = f' -L{libinterflop_stdlib_lib} {interflop_libs} '
 
-    f.write(cmd)
-    f.flush()
-    linker = linkers[args.linker]
-    if args.show_cmd:
-        print('{linker} {cmd}'.format(linker=linker, cmd=cmd))
-    shell('{linker} @{temp}'.format(linker=linker, temp=f.name))
-    f.close()
+        # Do not make Position Indenpendant Executable (PIE)
+        if args.ddebug:
+            options += ' -no-pie '
+
+        if args.static:
+            cmd = (f'{output} {sources} {options} {libraries} {vfcwrapper_o} '
+                   f' -static -lgmp -lm -ldl {interflop_stdlib_flags} ')
+        else:
+            cmd = (f'{output} {sources} {options} {libraries} {vfcwrapper_o} '
+                   f' {mcalib_options} -ldl {interflop_stdlib_flags} ')
+
+        f.write(cmd)
+        f.flush()
+        linker = linkers[args.linker]
+        if args.show_cmd:
+            print(f'{linker} {cmd}')
+        shell(f'{linker} @{f.name}')
 
 
 # Do not instrument
@@ -232,6 +248,10 @@ def compiler_mode(sources, options, output, args):
         if args.inst_fcmp:
             extra_args += "-vfclibinst-inst-fcmp "
 
+        # Activate fma instrumentation
+        if args.inst_fma:
+            extra_args += '-vfclibinst-inst-fma'
+
         if args.inst_func:
             # Apply function's instrumentation pass
             if int(llvm_version) >= 13:
@@ -293,6 +313,8 @@ if __name__ == "__main__":
                         help='verbose output')
     parser.add_argument('--inst-fcmp', action='store_true',
                         help='instrument floating point comparisons')
+    parser.add_argument('--inst-fma', action='store_true',
+                        help='instrument floating point fma')
     parser.add_argument('--inst-func', action='store_true',
                         help='instrument functions')
     parser.add_argument('--show-cmd', action='store_true',
@@ -334,4 +356,3 @@ if __name__ == "__main__":
             fail('no input files')
         compiler_mode(sources, llvm_options, "", args)
         linker_mode(sources, llvm_options, libraries, output, args)
-
