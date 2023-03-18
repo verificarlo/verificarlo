@@ -20,52 +20,54 @@
 
 #define __VFC_HASHMAP_HEADER__
 
-struct vfc_hashmap_st {
-  size_t nbits;
-  size_t mask;
+#include "interflop/interflop_stdlib.h"
 
-  size_t capacity;
-  size_t *items;
-  size_t nitems;
-  size_t n_deleted_items;
+struct vfc_hashmap_st {
+  ISize_t nbits;
+  ISize_t mask;
+
+  ISize_t capacity;
+  ISize_t *items;
+  ISize_t nitems;
+  ISize_t n_deleted_items;
 };
 typedef struct vfc_hashmap_st *vfc_hashmap_t;
 
 // allocate and initialize the map
-vfc_hashmap_t vfc_hashmap_create();
+vfc_hashmap_t vfc_hashmap_create(void);
 
 // get the value at an index of a map
-size_t get_value_at(size_t *items, size_t i);
+ISize_t get_value_at(ISize_t *items, ISize_t i);
 
 // get the key at an index of a map
-size_t get_key_at(size_t *items, size_t i);
+ISize_t get_key_at(ISize_t *items, ISize_t i);
 
 // set the value at an index of a map
-void set_value_at(size_t *items, size_t value, size_t i);
+void set_value_at(ISize_t *items, ISize_t value, ISize_t i);
 
 // set the key at an index of a map
-void set_key_at(size_t *items, size_t key, size_t i);
+void set_key_at(ISize_t *items, ISize_t key, ISize_t i);
 
 // free the map
 void vfc_hashmap_destroy(vfc_hashmap_t map);
 
 // insert an element in the map
-void vfc_hashmap_insert(vfc_hashmap_t map, size_t key, void *item);
+void vfc_hashmap_insert(vfc_hashmap_t map, ISize_t key, void *item);
 
 // remove an element of the map
-void vfc_hashmap_remove(vfc_hashmap_t map, size_t key);
+void vfc_hashmap_remove(vfc_hashmap_t map, ISize_t key);
 
 // test if an element is in the map
-char vfc_hashmap_have(vfc_hashmap_t map, size_t key);
+char vfc_hashmap_have(vfc_hashmap_t map, ISize_t key);
 
 // get an element of the map
-void *vfc_hashmap_get(vfc_hashmap_t map, size_t key);
+void *vfc_hashmap_get(vfc_hashmap_t map, ISize_t key);
 
 // get the number of elements in the map
-size_t vfc_hashmap_num_items(vfc_hashmap_t map);
+ISize_t vfc_hashmap_num_items(vfc_hashmap_t map);
 
 // Hash function for strings
-size_t vfc_hashmap_str_function(const char *id);
+ISize_t vfc_hashmap_str_function(const char *id);
 
 // Free the hashmap
 void vfc_hashmap_free(vfc_hashmap_t map);

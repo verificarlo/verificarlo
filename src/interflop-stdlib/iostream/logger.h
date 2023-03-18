@@ -22,6 +22,18 @@
 
 #include <stdarg.h>
 
+#ifdef __INTERFLOP_BOOTSTRAP__
+/* Must be included without the path
+ * since interflop-stdlib is not installed yet */
+#include "interflop_stdlib.h"
+#else
+#include "interflop/interflop_stdlib.h"
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 /* Display the info message */
 void logger_info(const char *fmt, ...);
 /* Display the warning message */
@@ -36,6 +48,11 @@ void vlogger_warning(const char *fmt, va_list argp);
 /* Display the error message */
 void vlogger_error(const char *fmt, va_list argp);
 
-void logger_init(void);
+void logger_init(interflop_panic_t panic, File *stream,
+                 const char *backend_name);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* __LOGGER_H__ */

@@ -12,6 +12,7 @@
  ****************************************************************************/
 
 #include "vfc_rng.h"
+#include "interflop_stdlib.h"
 #include "splitmix64.h"
 #include "xoroshiro128.h"
 
@@ -43,9 +44,9 @@ static void _set_seed(rng_state_t *random_state, const bool choose_seed,
   } else {
     /* TODO: to optimize seeding with rdseed asm instruction for Intel arch */
     struct timeval t1;
-    gettimeofday(&t1, NULL);
+    interflop_gettimeofday(&t1, NULL);
     /* Hopefully the following seed is good enough for Montercarlo */
-    random_state->seed = t1.tv_sec ^ t1.tv_usec ^ syscall(__NR_gettid);
+    random_state->seed = t1.tv_sec ^ t1.tv_usec ^ interflop_gettid();
   }
   random_state->random_state[0] = next_seed(random_state->seed);
   random_state->random_state[1] = next_seed(random_state->seed);
