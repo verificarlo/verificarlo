@@ -49,6 +49,11 @@ declare -A type_list_names
 type_list_names[0]="float"
 type_list_names[1]="double"
 
+# Names of executables
+declare -A bin_names
+bin_names[0]=""
+bin_names[1]=""
+
 # Modes list
 if [ $USECASE = "fast" ]; then
 	modes_list=("OB")
@@ -63,11 +68,16 @@ instrumented_function[1]="applyOp_double"
 
 rm -rf run_parallel
 
+# Move out compilation to faster the test
+for TYPE in "${type_list[@]}"; do
+	bin_names[$TYPE]=$PWD/test_${TEST}_${TYPE}
+	verificarlo-c -g -Wall test_${TEST}.c --function=${instrumented_function[${TYPE}]} -o ${bin_names[$TYPE]} -lm
+done
+
 for TYPE in "${type_list[@]}"; do
 	echo "TYPE: ${type_list_names[${TYPE}]}"
 
-	BIN=$PWD/test_${TEST}_${TYPE}
-	verificarlo-c -g -Wall test_${TEST}.c --function=${instrumented_function[${TYPE}]} -o $BIN -lm
+	BIN=${bin_names[${TYPE}]}
 
 	for MODE in "${modes_list[@]}"; do
 		echo "MODE: ${MODE}"
