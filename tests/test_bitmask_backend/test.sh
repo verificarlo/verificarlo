@@ -43,14 +43,18 @@ check() {
 
 GCC=${GCC_PATH}
 $GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lquadmath
+check_status
 $GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lquadmath
+check_status
 
 export VFC_BACKENDS_LOGGER=False
 
 # Test operates at different precisions, and different operands.
 # It compares that results are equivalents up to the bit.
 verificarlo-c --function=operator --verbose -D REAL=float -D SAMPLES=$SAMPLES -O0 test.c -o test_float
+check_status
 verificarlo-c --function=operator --verbose -D REAL=double -D SAMPLES=$SAMPLES -O0 test.c -o test_double
+check_status
 
 rm -f run_parallel
 
