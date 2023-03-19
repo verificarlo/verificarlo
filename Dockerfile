@@ -12,7 +12,7 @@ ARG GCC_VERSION=7
 ARG GCC_PATH=/usr/lib/gcc/x86_64-linux-gnu/${GCC_VERSION}
 ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
 ENV PATH /usr/local/bin:$PATH
-ENV PYTHONPATH /usr/local/lib/python$PYTHON_VERSION/site-packages/:$PYTHONPATH
+ENV PYTHONPATH /usr/local/lib/python${PYTHON_VERSION}/site-packages/:${PYTHONPATH}
 
 # Retrieve dependencies
 RUN apt-get -y update && apt-get -y --no-install-recommends install tzdata
@@ -22,8 +22,7 @@ RUN apt-get -y install --no-install-recommends \
     clang-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev \
     gcc-${GCC_VERSION} g++-${GCC_VERSION} \
     gfortran-${GCC_VERSION} libgfortran-${GCC_VERSION}-dev flang \
-    python3 python3-pip python3-numpy python3-pandas python3-matplotlib python3-dev cython3 \
-    parallel && \
+    python3 python3-pip python3-dev cython3 parallel && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build/
@@ -31,25 +30,25 @@ WORKDIR /build/
 ENV LIBRARY_PATH ${GCC_PATH}:$LIBRARY_PATH
 
 # Install other Python dependencies (not available with apt-get) via pip
-RUN ln -s /usr/bin/x86_64-linux-gnu-gcc-7 /usr/bin/x86_64-linux-gnu-gcc && \
-    pip3 install --upgrade pip && \
-    pip3 install scipy && \
-    pip3 install GitPython && \
-    pip3 install bigfloat && \
-    pip3 install tables && \
-    pip3 install jinja2 && \
-    pip3 install bokeh
+RUN ln -s /usr/bin/x86_64-linux-gnu-gcc-7 /usr/bin/x86_64-linux-gnu-gcc
 
 # Download and configure verificarlo from git master
+ENV AR=gcc-ar-${GCC_VERSION}
+ENV RANLIB=gcc-ranlib-${GCC_VERSION}
+ENV CC=gcc-${GCC_VERSION}
+ENV CXX=g++-${GCC_VERSION}
 COPY . /build/verificarlo/
 WORKDIR /build/verificarlo
-RUN ./autogen.sh && \
-    ./configure --with-llvm=$(llvm-config-${LLVM_VERSION} --prefix) \
+
+RUN ./install-interflop.sh  && \
+    ./autogen.sh && \
+    ./configure \
+    --with-llvm=$(llvm-config-${LLVM_VERSION} --prefix) \
     --with-flang CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} \
     || cat config.log
 
 # Build verificarlo
-RUN make && make install
+RUN make && make install 
 
 # Setup working directory
 VOLUME /workdir

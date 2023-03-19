@@ -1,5 +1,5 @@
 #!/bin/sh
-autoreconf -is
 
-rm -rf src/tools/sigdigits/
-git submodule update --init --recursive
+mkdir -p m4
+cp $(interflop-config --m4dir)/*.m4 m4/
+autoreconf -is
