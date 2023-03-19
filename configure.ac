@@ -1,12 +1,12 @@
 AC_PREREQ([2.69])
-AC_INIT([verificarlo], [0.9.1], [])
+AC_INIT([verificarlo],[0.9.1],[])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
 AM_INIT_AUTOMAKE([subdir-objects silent-rules foreign])
-AC_PROG_LIBTOOL
+LT_INIT
 
 LT_INIT
 AC_PROG_CXX
@@ -109,6 +109,7 @@ AC_CHECK_HEADERS([mpfr.h], [],
 # Reset libs after ac_check_lib We do not want each and every backend or the
 # libvfcinstrument frontend to be linked against libgfortran for
 # example. -l flags should be added individually in each Makefile.am
+
 LIBS=""
 
 # Check for header files.
@@ -180,49 +181,22 @@ else
                 AC_MSG_ERROR([could not find python 2.7 or higher])])
 fi
 
-# Check for Python modules
-AX_PYTHON_MODULE(numpy, fatal)
-AX_PYTHON_MODULE(bigfloat)
-AX_PYTHON_MODULE(pandas, fatal)
-AX_PYTHON_MODULE(tables, fatal)
-AX_PYTHON_MODULE(scipy, fatal)
-AX_PYTHON_MODULE(git, fatal)
-AX_PYTHON_MODULE(jinja2, fatal)
-AX_PYTHON_MODULE(bokeh, fatal)
-
-
-AC_ARG_ENABLE(wall, AC_HELP_STRING([--enable-wall], [Enable -Wall compilation flag]), [WALL_CFLAGS="yes"])
-AM_CONDITIONAL([WALL_CFLAGS], [test "x$WALL_CFLAGS" = "xyes"])
-if test "x$WALL_CFLAGS" = "xyes"; then
-   AC_DEFINE([WALL_CFLAGS], [],  ["Enable -Wall compilation flag"])
-   AC_MSG_NOTICE([-Wall is set])
-fi
+AX_WARNINGS()
+AX_INTERFLOP_STDLIB()
 
 # Generate config files
-
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/common/Makefile
-                 src/common/rng/Makefile
                  src/libvfcinstrument/Makefile
                  src/libvfcfuncinstrument/Makefile
                  src/vfcwrapper/Makefile
-                 src/tools/Makefile
-                 src/tools/ci/Makefile
-                 src/tools/ci/vfc_ci_report/Makefile
-                 src/tools/ci/vfc_ci_report/templates/Makefile
-                 src/tools/ci/vfc_ci_report/static/Makefile
-                 src/tools/ci/workflow_templates/Makefile
-                 src/backends/Makefile
-                 src/backends/interflop-ieee/Makefile
-                 src/backends/interflop-mca/Makefile
-                 src/backends/interflop-mca-int/Makefile
-                 src/backends/interflop-cancellation/Makefile
-                 src/backends/interflop-bitmask/Makefile
-                 src/backends/interflop-vprec/Makefile
                  tests/Makefile
-                 tests/paths.sh
                 ])
 
-AC_CONFIG_FILES([verificarlo.in])
+AC_CONFIG_FILES([verificarlo.in
+                 tests/paths.sh
+                 src/vfcwrapper/main.c
+                 ],
+                [chmod +x tests/paths.sh])
 AC_OUTPUT
