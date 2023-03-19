@@ -24,10 +24,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "float_const.h"
-#include "float_struct.h"
-#include "float_utils.h"
-#include "generic_builtin.h"
+#include "interflop/common/float_const.h"
+#include "interflop/common/float_struct.h"
+#include "interflop/common/float_utils.h"
+#include "interflop/common/generic_builtin.h"
+#include "interflop/interflop_stdlib.h"
 
 #define STRING_MAX 256
 
@@ -82,8 +83,8 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
     exponent = real.ieee.exponent - real_exp_comp + 1;                         \
     mantissa = real.ieee.mantissa;                                             \
     UINTN_TO_BIT(mantissa << (real_exp_size + real_sign_size), mantissa_str);  \
-    sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str,          \
-            exponent);                                                         \
+    interflop_sprintf(s_val, binary_fmt, sign_char, implicit_bit,              \
+                      mantissa_str, exponent);                                 \
   }
 
 /* Formats a binaryN to its binary representation */
@@ -100,8 +101,8 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
     offset = CLZ(mantissa) + 1;                                                \
     exponent = -real_exp_min - offset;                                         \
     UINTN_TO_BIT(mantissa << offset, mantissa_str);                            \
-    sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str,          \
-            exponent);                                                         \
+    interflop_sprintf(s_val, binary_fmt, sign_char, implicit_bit,              \
+                      mantissa_str, exponent);                                 \
   }
 
 /* Formats a binaryN to its binary representation */
@@ -129,19 +130,19 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
     case FP_ZERO:                                                              \
       implicit_bit = '0';                                                      \
       exponent = 0;                                                            \
-      sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str,        \
-              exponent);                                                       \
+      interflop_sprintf(s_val, binary_fmt, sign_char, implicit_bit,            \
+                        mantissa_str, exponent);                               \
       return;                                                                  \
     case FP_INFINITE:                                                          \
       implicit_bit = '1';                                                      \
       exponent = real_exp_max;                                                 \
-      sprintf(s_val, "%cinf", sign_char);                                      \
+      interflop_sprintf(s_val, "%cinf", sign_char);                            \
       return;                                                                  \
     case FP_NAN:                                                               \
       sign_char = '+';                                                         \
       implicit_bit = '1';                                                      \
       exponent = real_exp_max;                                                 \
-      sprintf(s_val, "%cnan", sign_char);                                      \
+      interflop_sprintf(s_val, "%cnan", sign_char);                            \
       return;                                                                  \
     case FP_SUBNORMAL:                                                         \
       if (info->alt) {                                                         \
@@ -156,8 +157,8 @@ const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",
       exponent = real.ieee.exponent - real_exp_comp;                           \
       UINTN_TO_BIT(mantissa << (real_exp_size + real_sign_size),               \
                    mantissa_str);                                              \
-      sprintf(s_val, binary_fmt, sign_char, implicit_bit, mantissa_str,        \
-              exponent);                                                       \
+      interflop_sprintf(s_val, binary_fmt, sign_char, implicit_bit,            \
+                        mantissa_str, exponent);                               \
       return;                                                                  \
     }                                                                          \
   }
@@ -183,7 +184,7 @@ int bit_float_handler(FILE *stream, const struct printf_info *info,
   const double *d = (const double *)args[0];
   const float f = (float)*d;
   float_to_binary(f, output, info);
-  return fprintf(stream, "%s", output);
+  return interflop_fprintf(stream, "%s", output);
 }
 
 /* Handler for double values */
@@ -192,7 +193,7 @@ int bit_double_handler(FILE *stream, const struct printf_info *info,
   char output[STRING_MAX] = "0";
   const double d = *(const double *)args[0];
   double_to_binary(d, output, info);
-  return fprintf(stream, "%s", output);
+  return interflop_fprintf(stream, "%s", output);
 }
 
 /* This hanlder set the right information in the print_info struct */
@@ -223,5 +224,5 @@ int bit_handler(FILE *stream, const struct printf_info *info,
 /* Once registered, %b can be used as %f for floating point values in printf
  * functions */
 void register_printf_bit(void) {
-  register_printf_specifier('b', bit_handler, bit_handler_arginfo);
+  interflop_register_printf_specifier('b', bit_handler, bit_handler_arginfo);
 }
