@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 
-##############################################################################\
- #                                                                           #\
- #  This file is part of the Verificarlo project,                            #\
- #  under the Apache License v2.0 with LLVM Exceptions.                      #\
- #  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 #\
- #  See https://llvm.org/LICENSE.txt for license information.                #\
- #                                                                           #\
- #                                                                           #\
- #  Copyright (c) 2015                                                       #\
- #     Universite de Versailles St-Quentin-en-Yvelines                       #\
- #     CMLA, Ecole Normale Superieure de Cachan                              #\
- #                                                                           #\
- #  Copyright (c) 2018                                                       #\
- #     Universite de Versailles St-Quentin-en-Yvelines                       #\
- #                                                                           #\
- #  Copyright (c) 2019-2021                                                  #\
- #     Verificarlo Contributors                                              #\
- #                                                                           #\
- #############################################################################
+# \
+#                                                                           #\
+#  This file is part of the Verificarlo project,                            #\
+#  under the Apache License v2.0 with LLVM Exceptions.                      #\
+#  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 #\
+#  See https://llvm.org/LICENSE.txt for license information.                #\
+#                                                                           #\
+#                                                                           #\
+#  Copyright (c) 2015                                                       #\
+#     Universite de Versailles St-Quentin-en-Yvelines                       #\
+#     CMLA, Ecole Normale Superieure de Cachan                              #\
+#                                                                           #\
+#  Copyright (c) 2018                                                       #\
+#     Universite de Versailles St-Quentin-en-Yvelines                       #\
+#                                                                           #\
+#  Copyright (c) 2019-2021                                                  #\
+#     Verificarlo Contributors                                              #\
+#                                                                           #\
+#############################################################################
 
 # This is the entry point of the Verificarlo CI command line interface, which is
 # based on argparse and this article :
@@ -223,11 +223,14 @@ def serve(args):
 
 
 ###############################################################################
-
-    # Main command group and entry point
-if __name__ == "__main__":
+def main():
     args = cli.parse_args()
     if args.subcommand is None:
         cli.print_help()
     else:
         args.func(args)
+
+
+    # Main command group and entry point
+if __name__ == "__main__":
+    main()

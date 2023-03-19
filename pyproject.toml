@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling", "pathspec"]
+build-backend = "hatchling.build"
+
+[project]
+name = "verificarlo"
+version = "0.9.1"
+description = "A tool for debugging and assessing floating point precision and reproducibility."
+authors = [
+    { name = "Verificarlo contributors", email = "verificarlo@googlegroups.com" },
+]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
+license = { file = "COPYING" }
+dependencies = [
+    "numpy>=1.19",
+    "bigfloat",
+    "pandas",
+    "tables",
+    "scipy",
+    "GitPython",
+    "jinja2",
+    "bokeh",
+    "significantdigits>=0.1.2",
+]
+
+[tool.hatch.build]
+include = [
+    "src/tools/ddebug/*.py",
+    "src/tools/ci/*.py",
+    "src/tools/ci/vfc_ci_report/*.py",
+    "src/tools/ci/vfc_ci_report/templates/index.html",
+    "src/tools/ci/vfc_ci_report/static/index.js",
+    "src/tools/ci/vfc_ci_report/workflow_templates/*.md",
+    "src/tools/ci/vfc_ci_report/workflow_templates/*.yml",
+]
+
+[tool.hatch.build.sources]
+"src/tools" = "verificarlo"
+"src/tools/ddebug" = "verificarlo/"
+"src/tools/ci" = "verificarlo/ci"
+"src/tools/ci/vfc_ci_report" = "verificarlo/ci/vfc_ci_report"
+"src/tools/ci/vfc_ci_report/workflow_templates" = "verificarlo/ci/vfc_ci_report/workflow_templates"
+"src/tools/ci/vfc_ci_report/static" = "verificarlo/ci/vfc_ci_report/static"
+
+
+[tool.hatch.build.targets.verificarlo]
+packages = ["src/tools/ddebug", "src/tools/ci"]
+
+[project.scripts]
+vfc_ddebug = "verificarlo.ddebug.main:main"
+vfc_ci = "verificarlo.ci.__main__:main"
+vfc_precexp = "verificarlo.optimize.precexp:main"
+vfc_report = "verificarlo.optimize.report:main"
+vfc_vtk = "verificarlo.vtk.__main__:main"
+
+[project.urls]
+"Bug Tracker" = "https://github.com/verificarlo/verificarlo/issues"
