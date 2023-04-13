@@ -4,6 +4,13 @@
 
 #include <time.h>
 
+// _Float128, used in the header files below, is not supported by clang, which
+// causes issues when compiling this test.  This test requires b32 and b64 but
+// does not use the quad types defined in float_{struct/utils}.h. Since we are
+// not using it we redefine, in the context of this test, _Float128 as long
+// double.
+
+#define _Float128 long double
 #include "../../src/common/float_const.h"
 #include "../../src/common/float_struct.h"
 #include "../../src/common/float_utils.h"
