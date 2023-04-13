@@ -134,10 +134,10 @@ if test "x$cc_have_uint128" = "xno"; then
    AC_MSG_ERROR([__uint128_t is not supported])
 fi
 
-# Checks if __float128 is supported
-AC_CHECK_TYPE(__float128,[cc_have_float128="yes"], [cc_have_float128="no"])
+# Checks if _Float128 is supported
+AC_CHECK_TYPE(_Float128,[cc_have_float128="yes"], [cc_have_float128="no"])
 if test "x$cc_have_float128" = "xno"; then
-   AC_MSG_ERROR([__float128 is not supported])
+   AC_MSG_ERROR([_Float128 is not supported])
 fi
 
 # Checks if _Generic keyword is supported

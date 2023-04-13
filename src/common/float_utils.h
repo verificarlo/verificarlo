@@ -81,7 +81,7 @@ int fpd(double x) {
   return f;
 }
 
-int fpq(__float128 x) {
+int fpq(_Float128 x) {
   binary128 b128 = {.f128 = x};
   int f = -1;
   if (b128.ieee128.exponent == QUAD_EXP_INF && b128.ieee128.mantissa == 0) {
@@ -101,7 +101,7 @@ int fpq(__float128 x) {
 
 #if __clang__
 #define FPCLASSIFY(X)                                                          \
-  _Generic(X, float : fpf(X), double : fpd(X), __float128 : fpq(X))
+  _Generic(X, float : fpf(X), double : fpd(X), _Float128 : fpq(X))
 #elif __GNUC__
 #define FPCLASSIFY(X)                                                          \
   _Generic(X, float                                                            \
@@ -110,7 +110,7 @@ int fpq(__float128 x) {
              double                                                            \
            : __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL,              \
                                   FP_SUBNORMAL, FP_ZERO, X),                   \
-             __float128                                                        \
+             _Float128                                                        \
            : __builtin_fpclassify(QUADFP_NAN, QUADFP_INFINITE, QUADFP_NORMAL,  \
                                   QUADFP_SUBNORMAL, QUADFP_ZERO, X))
 #endif
@@ -156,7 +156,7 @@ static inline bool _is_representable_binary64(const double x,
 
 /* Return true if the binary128 x is representable on the precision
  * virtual_precision  */
-static inline bool _is_representable_binary128(const __float128 x,
+static inline bool _is_representable_binary128(const _Float128 x,
                                                const int virtual_precision) {
   binary128 b128 = {.f128 = x};
   /* We must check if the mantissa is 0 since the behavior of ctzl is undefied
@@ -182,7 +182,7 @@ static inline bool _is_representable_binary128(const __float128 x,
 #define _IS_REPRESENTABLE(X, VT)                                               \
   _Generic(X, float                                                            \
            : _is_representable_binary32, double                                \
-           : _is_representable_binary64, __float128                            \
+           : _is_representable_binary64, _Float128                            \
            : _is_representable_binary128)(X, VT)
 
 /* Returns the unbiased exponent of the binary32 f */
@@ -200,7 +200,7 @@ static inline int32_t _get_exponent_binary64(const double d) {
 }
 
 /* Returns the unbiased exponent of the binary128 q */
-static inline int32_t _get_exponent_binary128(const __float128 q) {
+static inline int32_t _get_exponent_binary128(const _Float128 q) {
   binary128 x = {.f128 = q};
   /* Substracts the bias */
   return x.ieee.exponent - QUAD_EXP_COMP;
@@ -224,7 +224,7 @@ static inline double _fast_pow2_binary64(const int exp) {
 
 /* Returns 2^exp for binary128 */
 /* Fast function that implies no overflow neither underflow */
-static inline __float128 _fast_pow2_binary128(const int exp) {
+static inline _Float128 _fast_pow2_binary128(const int exp) {
   binary128 b128 = {.f128 = 0.0Q};
   b128.ieee128.exponent = exp + QUAD_EXP_COMP;
   return b128.f128;
@@ -234,7 +234,7 @@ static inline __float128 _fast_pow2_binary128(const int exp) {
 #define GET_EXP_FLT(X)                                                         \
   _Generic(X, float                                                            \
            : _get_exponent_binary32, double                                    \
-           : _get_exponent_binary64, __float128                                \
+           : _get_exponent_binary64, _Float128                                \
            : _get_exponent_binary128)(X)
 
 #endif /* __FLOAT_UTILS_H__ */

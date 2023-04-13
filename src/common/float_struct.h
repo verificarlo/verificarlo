@@ -15,12 +15,12 @@
 /* Main union type we use to manipulate the floating-point type.  */
 
 typedef union {
-  __float128 f128;
+  _Float128 f128;
   __uint128_t u128;
   __int128_t i128;
 
   /* Generic fields */
-  __float128 type;
+  _Float128 type;
   __int128_t i;
   __uint128_t u;
 
