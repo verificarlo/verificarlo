@@ -213,10 +213,10 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
 /* is comprised between: */
 /* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
-static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
+static _Float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
   /* random number in (-0.5, 0.5) */
-  const __float128 noise =
-      (__float128)get_rand_double01(rng_state, &global_tid) - 0.5Q;
+  const _Float128 noise =
+      (_Float128)get_rand_double01(rng_state, &global_tid) - 0.5Q;
   binary128 b128 = {.f128 = noise};
   b128.ieee128.exponent = b128.ieee128.exponent + exp;
   return b128.f128;
@@ -243,7 +243,7 @@ static __float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
   _Generic(X, double                                                           \
-           : _noise_binary64, __float128                                       \
+           : _noise_binary64, _Float128                                       \
            : _noise_binary128)(EXP, RNG_STATE)
 
 /* Fast version of _INEXACT macro that adds noise in relative error.
@@ -295,7 +295,7 @@ static void _mca_inexact_binary64(double *da, void *context) {
 }
 
 /* Adds the mca noise to qa */
-static void _mca_inexact_binary128(__float128 *qa, void *context) {
+static void _mca_inexact_binary128(_Float128 *qa, void *context) {
   _INEXACT(qa, MCALIB_BINARY64_T, context, rng_state);
 }
 
@@ -303,7 +303,7 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
 /* The function is choosen depending on the type of X  */
 #define _INEXACT_BINARYN(X, A, CTX)                                            \
   _Generic(X, double                                                           \
-           : _mca_inexact_binary64, __float128                                 \
+           : _mca_inexact_binary64, _Float128                                 \
            : _mca_inexact_binary128)(A, CTX)
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
@@ -369,7 +369,7 @@ inline float _mca_binary32_binary_op(const float a, const float b,
 /* Intermediate computations are performed with binary128 */
 inline double _mca_binary64_binary_op(const double a, const double b,
                                       const mca_operations qop, void *context) {
-  _MCA_BINARY_OP(a, b, qop, context, (__float128)0);
+  _MCA_BINARY_OP(a, b, qop, context, (_Float128)0);
 }
 
 /************************* FPHOOKS FUNCTIONS *************************
@@ -396,7 +396,7 @@ _INTERFLOP_OP_CALL(double, div, mca_div, _mca_binary64_binary_op)
 
 void _interflop_usercall_inexact(void *context, va_list ap) {
   double xd = 0;
-  __float128 xq = 0;
+  _Float128 xq = 0;
   enum FTYPES ftype;
   void *value = NULL;
   int precision = 0, t = 0;
@@ -417,9 +417,9 @@ void _interflop_usercall_inexact(void *context, va_list ap) {
     *((double *)value) = xq;
     break;
   case FQUAD:
-    xq = *((__float128 *)value);
+    xq = *((_Float128 *)value);
     _FAST_INEXACT(&xq, precision, context, rng_state);
-    *((__float128 *)value) = xq;
+    *((_Float128 *)value) = xq;
     break;
   default:
     logger_warning(

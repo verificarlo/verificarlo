@@ -190,10 +190,10 @@ static inline void _noise_binary64(double *x, const int exp,
 /* is comprised between: */
 /* 1023+1023 = 2046 < QUAD_EXP_MAX (16383)  */
 /* -1022-53+-1022-53 = -2200 > QUAD_EXP_MIN (-16382) */
-static void _noise_binary128(__float128 *x, const int exp,
+static void _noise_binary128(_Float128 *x, const int exp,
                              rng_state_t *rng_state) {
 
-  // Convert preserving-bytes __float128 to __int128
+  // Convert preserving-bytes _Float128 to __int128
   binary128 *b128 = (binary128 *)x;
 
   // amount by which to shift the noise term sign (1) + exp (15) + noise
@@ -224,7 +224,7 @@ static void _noise_binary128(__float128 *x, const int exp,
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
   _Generic(*X, double                                                          \
-           : _noise_binary64, __float128                                       \
+           : _noise_binary64, _Float128                                       \
            : _noise_binary128)(X, EXP, RNG_STATE)
 
 /* Macro function that adds mca noise to X
@@ -250,7 +250,7 @@ static void _mca_inexact_binary64(double *da, void *context) {
 }
 
 /* Adds the mca noise to qa */
-static void _mca_inexact_binary128(__float128 *qa, void *context) {
+static void _mca_inexact_binary128(_Float128 *qa, void *context) {
   _INEXACT(qa, MCALIB_BINARY64_T, context, rng_state);
 }
 
@@ -258,7 +258,7 @@ static void _mca_inexact_binary128(__float128 *qa, void *context) {
 /* The function is choosen depending on the type of X  */
 #define _INEXACT_BINARYN(X, A, CTX)                                            \
   _Generic(X, double                                                           \
-           : _mca_inexact_binary64, __float128                                 \
+           : _mca_inexact_binary64, _Float128                                 \
            : _mca_inexact_binary128)(A, CTX)
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
@@ -324,7 +324,7 @@ inline float _mca_binary32_binary_op(const float a, const float b,
 /* Intermediate computations are performed with binary128 */
 inline double _mca_binary64_binary_op(const double a, const double b,
                                       const mca_operations qop, void *context) {
-  _MCA_BINARY_OP(a, b, qop, context, (__float128)0);
+  _MCA_BINARY_OP(a, b, qop, context, (_Float128)0);
 }
 
 /************************* FPHOOKS FUNCTIONS *************************
