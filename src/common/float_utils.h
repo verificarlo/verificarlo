@@ -110,7 +110,7 @@ int fpq(_Float128 x) {
              double                                                            \
            : __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL,              \
                                   FP_SUBNORMAL, FP_ZERO, X),                   \
-             _Float128                                                        \
+             _Float128                                                         \
            : __builtin_fpclassify(QUADFP_NAN, QUADFP_INFINITE, QUADFP_NORMAL,  \
                                   QUADFP_SUBNORMAL, QUADFP_ZERO, X))
 #endif
@@ -182,7 +182,7 @@ static inline bool _is_representable_binary128(const _Float128 x,
 #define _IS_REPRESENTABLE(X, VT)                                               \
   _Generic(X, float                                                            \
            : _is_representable_binary32, double                                \
-           : _is_representable_binary64, _Float128                            \
+           : _is_representable_binary64, _Float128                             \
            : _is_representable_binary128)(X, VT)
 
 /* Returns the unbiased exponent of the binary32 f */
@@ -234,7 +234,7 @@ static inline _Float128 _fast_pow2_binary128(const int exp) {
 #define GET_EXP_FLT(X)                                                         \
   _Generic(X, float                                                            \
            : _get_exponent_binary32, double                                    \
-           : _get_exponent_binary64, _Float128                                \
+           : _get_exponent_binary64, _Float128                                 \
            : _get_exponent_binary128)(X)
 
 #endif /* __FLOAT_UTILS_H__ */

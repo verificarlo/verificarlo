@@ -243,7 +243,7 @@ static _Float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
   _Generic(X, double                                                           \
-           : _noise_binary64, _Float128                                       \
+           : _noise_binary64, _Float128                                        \
            : _noise_binary128)(EXP, RNG_STATE)
 
 /* Fast version of _INEXACT macro that adds noise in relative error.
@@ -303,7 +303,7 @@ static void _mca_inexact_binary128(_Float128 *qa, void *context) {
 /* The function is choosen depending on the type of X  */
 #define _INEXACT_BINARYN(X, A, CTX)                                            \
   _Generic(X, double                                                           \
-           : _mca_inexact_binary64, _Float128                                 \
+           : _mca_inexact_binary64, _Float128                                  \
            : _mca_inexact_binary128)(A, CTX)
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
