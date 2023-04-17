@@ -21,11 +21,14 @@ else
     echo "comparison operations instrumented"
 fi
 
-if grep "_4xdoublecmp" test.*.2.ll; then
-    echo "vector comparison instrumented"
-else
-    echo "vector comparison NOT instrumented with --inst-fcmp"
-    exit 1
+# Only test vector comparisons in x86_64
+if [[ $(arch) == "x86_64" ]]; then
+    if grep "_4xdoublecmp" test.*.2.ll; then
+        echo "vector comparison instrumented"
+    else
+        echo "vector comparison NOT instrumented with --inst-fcmp"
+        exit 1
+    fi
 fi
 
 # Test correct interposition for scalar and vector cases
