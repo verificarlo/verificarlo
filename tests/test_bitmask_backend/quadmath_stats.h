@@ -1,12 +1,14 @@
 #ifndef __QUADMATH_STATS_H__
 #define __QUADMATH_STATS_H__
 
+#include "pfp128.h"
+
 /* Computes the means */
-__float128 compute_mean(const int N, const REAL data[]);
+FP128 compute_mean(const int N, const FP128 data[]);
 /* Knuth compensated online variance */
-__float128 compute_variance(const int N, const __float128 mean,
-                            const REAL data[]);
+FP128 compute_variance(const int N, const FP128 mean,
+                            const FP128 data[]);
 /* Computes the number of significant digits */
-double compute_sig(const int N, const REAL data[]);
+double compute_sig(const int N, const FP128 data[]);
 
 #endif /* __QUADMATH_STATS_H__ */

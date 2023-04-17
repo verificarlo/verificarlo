@@ -42,8 +42,13 @@ check() {
 }
 
 GCC=${GCC_PATH}
-$GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lquadmath
-$GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lquadmath
+if [[ $(arch) == "x86_64" ]]; then
+   $GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lquadmath -lm
+   $GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lquadmath -lm
+else
+   $GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lm
+   $GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lm
+fi
 
 export VFC_BACKENDS_LOGGER=False
 
