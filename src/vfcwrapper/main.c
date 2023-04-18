@@ -167,9 +167,9 @@ void ddebug_generate_inclusion(char *dd_generate_path, vfc_hashmap_t map) {
                  (void *)(get_value_at(map->items, i) - CALL_OP_SIZE));
         snprintf(executable, 64, "/proc/%d/exe", getppid());
         dup2(output, 1);
-        execlp(LLVM_BINDIR "/llvm-addr2line", LLVM_BINDIR "/llvm-addr2line",
-               "-fpaCs", "-e", executable, addr, NULL);
-        logger_error("error running " LLVM_BINDIR "/llvm-addr2line");
+        execlp(ADDR2LINE_PATH, ADDR2LINE_PATH, "-fpaCs", "-e", executable, addr,
+               NULL);
+        logger_error("error running " ADDR2LINE_PATH);
       } else {
         int status;
         wait(&status);
