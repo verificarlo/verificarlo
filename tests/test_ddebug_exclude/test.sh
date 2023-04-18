@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-verificarlo-c --ddebug -g -O0 test.c -o test
+verificarlo-c --ddebug -O0 test.c -o test
 
 # Generation run
 VFC_BACKENDS="libinterflop_ieee.so --debug" VFC_DDEBUG_GEN="operations.txt" ./test

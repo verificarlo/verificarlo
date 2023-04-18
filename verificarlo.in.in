@@ -150,12 +150,18 @@ def linker_mode(sources, options, libraries, output, args):
 
     compile_vfcwrapper(vfcwrapper, vfcwrapper_o, args)
 
+    # Force no-pie when using ddebug and inst_func; since we use addresses to
+    # indentify the instrumented instructions, we require that the .text segment
+    # is loaded a a statically known address.
+    nopie = '-no-pie' if args.inst_func or args.ddebug else ''
+
     f = tempfile.NamedTemporaryFile(mode='w+')
     sources = ' '.join([os.path.splitext(s)[0]+'.o' for s in sources])
     if args.static:
-        cmd = f'{output} {sources} {options} {libraries} {vfcwrapper_o} -static -lgmp -lm -ldl'
+        cmd = f'{nopie} {output} {sources} {options} {libraries} {vfcwrapper_o} -static -lgmp -lm -ldl'
     else:
-        cmd = f'{output} {sources} {options} {libraries} {vfcwrapper_o} {mcalib_options} -ldl'
+        cmd = f'{nopie} {output} {sources} {options} {libraries} {vfcwrapper_o} {mcalib_options} -ldl'
+
 
     f.write(cmd)
     f.flush()
@@ -199,7 +205,7 @@ def compiler_mode(sources, options, output, args):
         compiler = linkers[args.linker]
         include = f" -I {mcalib_includes} "
 
-        debug = '-g' if args.inst_func else ''
+        debug = '-g' if args.inst_func or args.ddebug else ''
 
         if is_assembly(source):
             if not output:
