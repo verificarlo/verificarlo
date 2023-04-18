@@ -93,6 +93,14 @@ else
    AC_SUBST(FC, $FLANG)
 fi
 
+# Check for addr2line (required by delta-debug DDEBUG)
+AC_PATH_PROGS([ADDR2LINE], [llvm-addr2line addr2line], "", $LLVM_BINDIR/ $PATH)
+if test -z "$ADDR2LINE"; then
+  AC_MSG_ERROR([Could not find llvm-addr2line or addr2line])
+fi
+AC_DEFINE_UNQUOTED([ADDR2LINE_PATH], ["$ADDR2LINE"], [addr2line path])
+AC_SUBST(ADDR2LINE_PATH, $ADDR2LINE)
+
 # Check for parallel (required for the test infrastructure)
 AC_PATH_PROG(PARALLEL, [parallel], [])
 if test -z "$PARALLEL"; then
