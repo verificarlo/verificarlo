@@ -120,8 +120,8 @@ void vfc_call_stack_free() {
 
 // Function called before each function's call of the code
 void vfc_enter_function(char *func_name, char isLibraryFunction,
-                        char isIntrinsicFunction, size_t useFloat,
-                        size_t useDouble, int n, ...) {
+                        char isIntrinsicFunction, char useFloat, char useDouble,
+                        int n, ...) {
   // Get a pointer to the function if she is in the table
   interflop_function_info_t *function = vfc_func_table_get(func_name);
 
@@ -137,7 +137,7 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
     va_list ap;
     // n is the number of arguments intercepted, each argument
     // is represented by a type ID and a pointer
-    va_start(ap, n * 4);
+    va_start(ap, n);
 
     for (int i = 0; i < loaded_backends; i++)
       if (backends[i].interflop_enter_function)
@@ -152,12 +152,12 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
 void vfc_exit_function(__attribute__((unused)) char *func_name,
                        __attribute__((unused)) char isLibraryFunction,
                        __attribute__((unused)) char isIntrinsicFunction,
-                       size_t useFloat, size_t useDouble, int n, ...) {
+                       char useFloat, char useDouble, int n, ...) {
   if ((useFloat != 0) || (useDouble != 0)) {
     va_list ap;
     // n is the number of arguments intercepted, each argument
     // is represented by a type ID and a pointer
-    va_start(ap, n * 4);
+    va_start(ap, n);
 
     for (int i = 0; i < loaded_backends; i++)
       if (backends[i].interflop_exit_function)

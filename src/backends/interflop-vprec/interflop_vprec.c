@@ -653,13 +653,13 @@ typedef struct _vprec_inst_function {
   // Id of the function
   char id[500];
   // Indicate if the function is from library
-  short isLibraryFunction;
+  char isLibraryFunction;
   // Indicate if the function is intrinsic
-  short isIntrinsicFunction;
-  // Counter of Floating Point instruction
-  size_t useFloat;
-  // Counter of Floating Point instruction
-  size_t useDouble;
+  char isIntrinsicFunction;
+  // Uses single Floating Point instruction
+  char useFloat;
+  // Uses double Floating Point instruction
+  char useDouble;
   // Internal Operations Range64
   int OpsRange64;
   // Internal Operations Prec64
@@ -688,7 +688,7 @@ void _vprec_write_hasmap(FILE *fout) {
       _vprec_inst_function_t *function =
           (_vprec_inst_function_t *)get_value_at(_vprec_func_map->items, ii);
 
-      fprintf(fout, "%s\t%hd\t%hd\t%zu\t%zu\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+      fprintf(fout, "%s\t%hhd\t%hhd\t%hhd\t%hhd\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
               function->id, function->isLibraryFunction,
               function->isIntrinsicFunction, function->useFloat,
               function->useDouble, function->OpsPrec64, function->OpsRange64,
@@ -721,7 +721,7 @@ void _vprec_write_hasmap(FILE *fout) {
 void _vprec_read_hasmap(FILE *fin) {
   _vprec_inst_function_t function;
 
-  while (fscanf(fin, "%s\t%hd\t%hd\t%zu\t%zu\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+  while (fscanf(fin, "%s\t%hhd\t%hhd\t%hhd\t%hhd\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
                 function.id, &function.isLibraryFunction,
                 &function.isIntrinsicFunction, &function.useFloat,
                 &function.useDouble, &function.OpsPrec64, &function.OpsRange64,
