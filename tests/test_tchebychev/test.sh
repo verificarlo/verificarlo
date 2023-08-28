@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# required so that seq behaves correctly in all locales
+export LC_ALL=C
+
 # Compile tchebychev.c using MCA lib instrumentation
 
 # Tchebychev polynom becomes unstable around 1, when computed with
