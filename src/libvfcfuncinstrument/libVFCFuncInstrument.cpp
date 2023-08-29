@@ -427,12 +427,10 @@ struct VfclibFunc : public ModulePass {
     // void vfc_enter_function (char*, char, char, char, char, int, ...)
     func_enter = Function::Create(FunTy, Function::ExternalLinkage,
                                   "vfc_enter_function", &M);
-    func_enter->setCallingConv(CallingConv::C);
 
     // void vfc_exit_function (char*, char, char, char, char, int, ...)
     func_exit = Function::Create(FunTy, Function::ExternalLinkage,
                                  "vfc_exit_function", &M);
-    func_exit->setCallingConv(CallingConv::C);
 
     /*************************************************************************
      *                             Main special case                         *
