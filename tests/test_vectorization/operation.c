@@ -2,7 +2,7 @@
 
 #define define_arithmetic_vector_operation(type, operation, operator, size)    \
   type##size __attribute__((noinline))                                         \
-      operation##_##size##x##_##type(type##size a, type x) {                   \
+  operation##_##size##x##_##type(type##size a, type x) {                       \
     type##size res;                                                            \
     _Pragma("unroll") for (int i = 0; i < size; i++) {                         \
       res[i] = a[i] operator x;                                                \
@@ -12,7 +12,7 @@
 
 #define define_comparison_vector_operation(type, operation, operator, size)    \
   int##size __attribute__((noinline))                                          \
-      operation##_##size##x##_##type##_cmp(type##size a, int x) {              \
+  operation##_##size##x##_##type##_cmp(type##size a, int x) {                  \
     int##size res;                                                             \
     _Pragma("unroll") for (int i = 0; i < size; i++) {                         \
       int o = i % x;                                                           \
@@ -46,6 +46,7 @@ define_comparison_vector_operation(double, fge, >=, 2);
 define_comparison_vector_operation(double, feq, ==, 2);
 define_comparison_vector_operation(double, fneq, !=, 2);
 
+#if defined(__x86_64__)
 /* Vector size 4  */
 define_arithmetic_vector_operation(float, add, +, 4);
 define_arithmetic_vector_operation(float, sub, -, 4);
@@ -120,3 +121,4 @@ define_comparison_vector_operation(double, fgt, >, 16);
 define_comparison_vector_operation(double, fge, >=, 16);
 define_comparison_vector_operation(double, feq, ==, 16);
 define_comparison_vector_operation(double, fneq, !=, 16);
+#endif
