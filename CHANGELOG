@@ -1,5 +1,9 @@
 Verificarlo CHANGELOG
 
+# [master] unreleased
+  * Added support for Aarch64 (arm64) architectures
+  * verificarlo accepts LLVM byte-code as input and can produce byte-code as output
+
 # [v0.9.1] 2022/10/21
 
 ## Fixed

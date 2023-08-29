@@ -29,7 +29,7 @@ A tool for debugging and assessing floating point precision and reproducibility.
 
 ## Installation
 
-To install Verificarlo please refer to the [installation documentation](doc/01-Install.md).
+To install Verificarlo please refer to the [installation documentation](doc/01-Install.md). Verificarlo supports both amd64 and aarch64 architectures.
 
 ## Using Verificarlo through its Docker image
 
