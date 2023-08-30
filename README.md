@@ -1,4 +1,4 @@
-## Verificarlo v0.9.1
+## Verificarlo v1.0.0
 
 A tool for debugging and assessing floating point precision and reproducibility.
 
