@@ -1,12 +1,11 @@
 AC_PREREQ([2.69])
-AC_INIT([verificarlo], [0.9.1], [])
+AC_INIT([verificarlo], [1.0.0], [])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
 AM_INIT_AUTOMAKE([subdir-objects silent-rules foreign])
-AC_PROG_LIBTOOL
 
 LT_INIT
 AC_PROG_CXX
