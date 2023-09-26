@@ -289,7 +289,7 @@ inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
 static _Float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
   /* random number in (-0.5, 0.5) */
   const _Float128 noise =
-      (_Float128)get_rand_double01(rng_state, &global_tid) - 0.5Q;
+      (_Float128)get_rand_double01(rng_state, &mcaquad_global_tid) - 0.5Q;
   binary128 b128 = {.f128 = noise};
   b128.ieee128.exponent = b128.ieee128.exponent + exp;
   return b128.f128;

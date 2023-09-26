@@ -44,10 +44,14 @@ check() {
 GCC=${GCC_PATH}
 if [[ $(arch) == "x86_64" ]]; then
     $GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lquadmath -lm
+    check_status
     $GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lquadmath -lm
+    check_status
 else
     $GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lm
+    check_status
     $GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lm
+    check_status
 fi
 
 export VFC_BACKENDS_LOGGER=False

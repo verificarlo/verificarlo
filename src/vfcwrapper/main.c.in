@@ -184,9 +184,9 @@ void ddebug_generate_inclusion(char *dd_generate_path, vfc_hashmap_t map) {
                  (void *)(get_value_at(map->items, i) - CALL_OP_SIZE));
         snprintf(executable, 64, "/proc/%d/exe", getppid());
         dup2(output, 1);
-        execlp(ADDR2LINE_PATH, ADDR2LINE_PATH, "-fpaCs", "-e", executable, addr,
-               NULL);
-        logger_error("error running " ADDR2LINE_PATH);
+        execlp(ADDR2LINE_BIN, ADDR2LINE_PATH,
+               "-fpaCs", "-e", executable, addr, NULL);
+        logger_error("error running " ADDR2LINE_BIN);
       } else {
         int status;
         wait(&status);
