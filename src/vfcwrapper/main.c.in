@@ -1,0 +1,740 @@
+/*****************************************************************************\
+ *                                                                           *\
+ *  This file is part of the Verificarlo project,                            *\
+ *  under the Apache License v2.0 with LLVM Exceptions.                      *\
+ *  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 *\
+ *  See https://llvm.org/LICENSE.txt for license information.                *\
+ *                                                                           *\
+ *                                                                           *\
+ *  Copyright (c) 2015                                                       *\
+ *     Universite de Versailles St-Quentin-en-Yvelines                       *\
+ *     CMLA, Ecole Normale Superieure de Cachan                              *\
+ *                                                                           *\
+ *  Copyright (c) 2018                                                       *\
+ *     Universite de Versailles St-Quentin-en-Yvelines                       *\
+ *                                                                           *\
+ *  Copyright (c) 2019-2021                                                  *\
+ *     Verificarlo Contributors                                              *\
+ *                                                                           *\
+ ****************************************************************************/
+#include <argp.h>
+#include <assert.h>
+#include <dlfcn.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <math.h>
+#include <printf.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include "interflop/interflop.h"
+#include "interflop/interflop_stdlib.h"
+
+/* In delta-debug we retrieve the return address of
+ * instrumented operations. Call op size allows us
+ * to compute the previous instruction so that the
+ * user sees the address of the actual operation */
+#ifdef __x86_64__
+#define CALL_OP_SIZE 5
+#else
+/* On other architectures we assume an instruction is
+ * 4 bytes */
+#define CALL_OP_SIZE 4
+#endif
+
+#if @LLVM_VERSION_MAJOR@ <= 7
+#define ADDR2LINE_BIN "addr2line"
+#define ADDR2LINE_PATH "/usr/bin/addr2line"
+#else
+#define ADDR2LINE_BIN "@LLVM_BINDIR@/llvm-addr2line"
+#define ADDR2LINE_PATH "@LLVM_BINDIR@/llvm-addr2line"
+#endif
+
+typedef int int2 __attribute__((ext_vector_type(2)));
+typedef int int4 __attribute__((ext_vector_type(4)));
+typedef int int8 __attribute__((ext_vector_type(8)));
+typedef int int16 __attribute__((ext_vector_type(16)));
+
+typedef float float2 __attribute__((ext_vector_type(2)));
+typedef float float4 __attribute__((ext_vector_type(4)));
+typedef float float8 __attribute__((ext_vector_type(8)));
+typedef float float16 __attribute__((ext_vector_type(16)));
+
+typedef double double2 __attribute__((ext_vector_type(2)));
+typedef double double4 __attribute__((ext_vector_type(4)));
+typedef double double8 __attribute__((ext_vector_type(8)));
+typedef double double16 __attribute__((ext_vector_type(16)));
+
+typedef struct interflop_backend_interface_t (*interflop_init_t)(void *context);
+
+typedef void (*interflop_pre_init_t)(interflop_panic_t panic, FILE *stream, 
+                                     void **context);
+typedef void (*interflop_cli_t)(int argc, char **argv, void *context);
+typedef void (*interflop_panic_t)(const char *msg);
+
+#define MAX_BACKENDS 16
+#define MAX_ARGS 256
+
+#define XSTR(X) STR(X)
+#define STR(X) #X
+
+struct interflop_backend_interface_t backends[MAX_BACKENDS];
+void *contexts[MAX_BACKENDS] = {NULL};
+unsigned char loaded_backends = 0;
+unsigned char already_initialized = 0;
+
+/* Logger functions */
+
+void logger_init(interflop_panic_t panic, File *stream, const char *name);
+void logger_info(const char *fmt, ...);
+void logger_warning(const char *fmt, ...);
+void logger_error(const char *fmt, ...);
+
+__attribute__((unused)) static char *dd_exclude_path = NULL;
+__attribute__((unused)) static char *dd_include_path = NULL;
+__attribute__((unused)) static char *dd_generate_path = NULL;
+
+/* Function instrumentation prototypes */
+
+void vfc_init_func_inst();
+
+void vfc_quit_func_inst();
+
+/* Hashmap header */
+
+#define __VFC_HASHMAP_HEADER__
+
+struct vfc_hashmap_st {
+  size_t nbits;
+  size_t mask;
+
+  size_t capacity;
+  size_t *items;
+  size_t nitems;
+  size_t n_deleted_items;
+};
+
+typedef struct vfc_hashmap_st *vfc_hashmap_t;
+// allocate and initialize the map
+vfc_hashmap_t vfc_hashmap_create();
+
+// free the map
+void vfc_hashmap_destroy(vfc_hashmap_t map);
+
+// get the value at an index of a map
+size_t get_value_at(size_t *items, size_t i);
+
+// get the key at an index of a map
+size_t get_key_at(size_t *items, size_t i);
+
+// set the value at an index of a map
+void set_value_at(size_t *items, size_t value, size_t i);
+
+// set the key at an index of a map
+void set_key_at(size_t *items, size_t key, size_t i);
+
+// insert an element in the map
+void vfc_hashmap_insert(vfc_hashmap_t map, size_t key, void *item);
+
+// remove an element of the map
+void vfc_hashmap_remove(vfc_hashmap_t map, size_t key);
+
+// test if an element is in the map
+char vfc_hashmap_have(vfc_hashmap_t map, size_t key);
+
+// get an element of the map
+void *vfc_hashmap_get(vfc_hashmap_t map, size_t key);
+
+// get the number of elements in the map
+size_t vfc_hashmap_num_items(vfc_hashmap_t map);
+
+// Hash function for strings
+size_t vfc_hashmap_str_function(const char *id);
+
+// Free the hashmap
+void vfc_hashmap_free(vfc_hashmap_t map);
+
+/* dd_must_instrument is used to apply and generate include DD filters */
+/* dd_mustnot_instrument is used to apply exclude DD filters */
+vfc_hashmap_t dd_must_instrument;
+vfc_hashmap_t dd_mustnot_instrument;
+
+void ddebug_generate_inclusion(char *dd_generate_path, vfc_hashmap_t map) {
+  int output = open(dd_generate_path, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
+  if (output == -1) {
+    logger_error("cannot open DDEBUG_GEN file %s", dd_generate_path);
+  }
+  for (size_t i = 0; i < map->capacity; i++) {
+    if (get_value_at(map->items, i) != 0 && get_value_at(map->items, i) != 1) {
+      pid_t pid = fork();
+      if (pid == 0) {
+        char addr[19];
+        char executable[64];
+        snprintf(addr, 19, "%p",
+                 (void *)(get_value_at(map->items, i) - CALL_OP_SIZE));
+        snprintf(executable, 64, "/proc/%d/exe", getppid());
+        dup2(output, 1);
+        execlp(ADDR2LINE_BIN, ADDR2LINE_PATH,
+               "-fpaCs", "-e", executable, addr, NULL);
+        logger_error("error running " ADDR2LINE_BIN);
+      } else {
+        int status;
+        wait(&status);
+        assert(status == 0);
+      }
+    }
+  }
+  close(output);
+}
+
+__attribute__((destructor(0))) static void vfc_atexit(void) {
+
+  /* Send finalize message to backends */
+  for (int i = 0; i < loaded_backends; i++)
+    if (backends[i].interflop_finalize)
+      backends[i].interflop_finalize(contexts[i]);
+
+#ifdef DDEBUG
+  if (dd_generate_path) {
+    ddebug_generate_inclusion(dd_generate_path, dd_must_instrument);
+    logger_info("ddebug: generated complete inclusion file at %s\n",
+                dd_generate_path);
+  }
+  vfc_hashmap_destroy(dd_must_instrument);
+  vfc_hashmap_destroy(dd_mustnot_instrument);
+#endif
+
+#ifdef INST_FUNC
+  vfc_quit_func_inst();
+#endif
+}
+
+/* Checks that a least one of the loaded backend implements the chosen
+ * operation at a given precision */
+#define check_backends_implements(precision, operation)                        \
+  do {                                                                         \
+    int res = 0;                                                               \
+    for (unsigned char i = 0; i < loaded_backends; i++) {                      \
+      if (backends[i].interflop_##operation##_##precision) {                   \
+        res = 1;                                                               \
+        break;                                                                 \
+      }                                                                        \
+    }                                                                          \
+    if (res == 0)                                                              \
+      logger_error("No backend instruments " #operation " for " #precision     \
+                   ".\n"                                                       \
+                   "Include one backend in VFC_BACKENDS that provides it");    \
+  } while (0)
+
+#if DDEBUG
+/* vfc_read_filter_file reads an inclusion/exclusion ddebug file and returns
+ * an address map */
+static void vfc_read_filter_file(const char *dd_filter_path,
+                                 vfc_hashmap_t map) {
+  FILE *input = fopen(dd_filter_path, "r");
+  if (input) {
+    void *addr;
+    char line[2048];
+    int lineno = 0;
+    while (fgets(line, sizeof line, input)) {
+      lineno++;
+      if (sscanf(line, "%p", &addr) == 1) {
+        vfc_hashmap_insert(map, (size_t)addr + CALL_OP_SIZE,
+                           addr + CALL_OP_SIZE);
+      } else {
+        logger_error(
+            "ddebug: error parsing VFC_DDEBUG_[INCLUDE/EXCLUDE] %s at line %d",
+            dd_filter_path, lineno);
+      }
+    }
+  }
+}
+#endif
+
+/* Parse the different VFC_BACKENDS variables per priorty order */
+/* 1- VFC_BACKENDS */
+/* 2- VFC_BACKENDS_FROM_FILE */
+/* Set the backends read in vfc_backends */
+/* Set the name of the environment variable read in vfc_backends_env */
+void parse_vfc_backends_env(char **vfc_backends, char **vfc_backends_env) {
+
+  /* Parse VFC_BACKENDS */
+  *vfc_backends_env = (char *)malloc(sizeof(char) * 256);
+  *vfc_backends = (char *)malloc(sizeof(char) * 256);
+
+  sprintf(*vfc_backends_env, "VFC_BACKENDS");
+  *vfc_backends = getenv(*vfc_backends_env);
+
+  /* Parse VFC_BACKENDS_FROM_FILE if VFC_BACKENDS is empty*/
+  if (*vfc_backends == NULL) {
+    sprintf(*vfc_backends_env, "VFC_BACKENDS_FROM_FILE");
+    char *vfc_backends_fromfile_file = getenv(*vfc_backends_env);
+    if (vfc_backends_fromfile_file != NULL) {
+      FILE *fi = fopen(vfc_backends_fromfile_file, "r");
+      if (fi == NULL) {
+        logger_error("Error while opening file pointed by %s: %s",
+                     *vfc_backends_env, strerror(errno));
+      } else {
+        size_t len = 0;
+        ssize_t nread;
+        nread = getline(vfc_backends, &len, fi);
+        if (nread == -1) {
+          logger_error("Error while reading file pointed by %s: %s",
+                       *vfc_backends_env, strerror(errno));
+        } else {
+          if ((*vfc_backends)[nread - 1] == '\n') {
+            (*vfc_backends)[nread - 1] = '\0';
+          }
+        }
+      }
+    }
+  }
+}
+
+long _vfc_strtol(const char *nptr, char **endptr, int *error) {
+  *error = 0;
+  errno = 0;
+  long val = strtoll(nptr, endptr, 10);
+  if (errno != 0) {
+    *error = 1;
+  }
+  return val;
+}
+
+double _vfc_strtod(const char *nptr, char **endptr, int *error) {
+  *error = 0;
+  errno = 0;
+  double val = strtod(nptr, endptr);
+  if (errno != 0) {
+    *error = 1;
+  }
+  return val;
+}
+
+/* Load the function <function> in <handle> .so of name <token> */
+void *load_function(const char *token, void *handle, const char *function) {
+  /* reset dl errors */
+  dlerror();
+  /* get the address of the interflop_pre_init function */
+  void *handler = dlsym(handle, function);
+  const char *dlsym_error = dlerror();
+  if (dlsym_error) {
+    logger_error("No %s function in backend %s: %s", function, token,
+                 strerror(errno));
+  }
+  /* reset dl errors */
+  dlerror();
+  return handler;
+}
+
+pid_t get_tid() { return syscall(__NR_gettid); }
+
+void _vfc_inf_handler(void) {
+
+}
+
+void _vfc_nan_handler(void) {
+
+}
+
+void _vfc_cancellation_handler(int unused) {
+
+}
+
+void _vfc_denormal_handler(void) {
+
+}
+
+void _vfc_floatmax_handler(void) {
+
+}
+
+void vfc_set_handlers(const char *token, void *handle) {
+
+  interflop_set_handler_t set_handler = (interflop_set_handler_t)load_function(
+      token, handle, "interflop_set_handler");
+  set_handler("getenv", getenv);
+  set_handler("sprintf", sprintf);
+  set_handler("strerror", strerror);
+  set_handler("gettid", get_tid);
+  set_handler("fopen", fopen);
+  set_handler("strcasecmp", strcasecmp);
+  set_handler("vwarnx", vwarnx);
+  set_handler("fprintf", fprintf);
+  set_handler("exit", exit);
+  set_handler("vfprintf", vfprintf);
+  set_handler("malloc", malloc);
+  set_handler("strcmp", strcmp);
+  set_handler("strtol", _vfc_strtol);
+  set_handler("strtod", _vfc_strtod);
+  set_handler("strcpy", strcpy);
+  set_handler("fclose", fclose);
+  set_handler("fgets", fgets);
+  set_handler("strtok_r", strtok_r);
+  set_handler("free", free);
+  set_handler("calloc", calloc);
+  set_handler("argp_parse", argp_parse);
+  set_handler("gettimeofday", gettimeofday);
+  set_handler("register_printf_specifier", register_printf_specifier);
+  set_handler("infHandler", _vfc_inf_handler);
+  set_handler("nanHandler", _vfc_nan_handler);
+  set_handler("cancellationHandler", _vfc_cancellation_handler);
+  set_handler("denormalHandler", _vfc_denormal_handler);
+  set_handler("maxHandler", _vfc_floatmax_handler);
+}
+
+void _vfc_panic(const char *msg) {
+  fprintf(stderr, "%s", msg);
+  exit(1);
+}
+
+/* vfc_init is run when loading vfcwrapper and initializes vfc backends */
+__attribute__((constructor(0))) static void vfc_init(void) {
+
+  /* The vfcwrapper library constructor may be loaded multiple times.  This
+   * happends for example, when a .so compiled with Verificarlo is loaded with
+   * dlopen into another program also compiled with Verificarlo.
+   *
+   * The following hook should ensure that vfc_init is loaded only once.
+   * Is this code robust? dlopen is thread safe, so this should work.
+   *
+   */
+  if (already_initialized == 0) {
+    already_initialized = 1;
+  } else {
+    return;
+  }
+
+  /* function required by vfcwrapper.c */
+  interflop_set_handler("getenv", getenv);
+  interflop_set_handler("sprintf", sprintf);
+  interflop_set_handler("strerror", strerror);
+  interflop_set_handler("gettid", get_tid);
+  interflop_set_handler("fopen", fopen);
+  interflop_set_handler("strcasecmp", strcasecmp);
+  interflop_set_handler("vwarnx", vwarnx);
+  interflop_set_handler("fprintf", fprintf);
+  interflop_set_handler("exit", exit);
+  interflop_set_handler("vfprintf", vfprintf);
+  interflop_set_handler("malloc", malloc);
+  interflop_set_handler("strcmp", strcmp);
+  interflop_set_handler("strtol", _vfc_strtol);
+  interflop_set_handler("strtod", _vfc_strtod);
+  interflop_set_handler("strcpy", strcpy);
+  interflop_set_handler("fclose", fclose);
+  interflop_set_handler("fgets", fgets);
+  interflop_set_handler("strtok_r", strtok_r);
+  interflop_set_handler("free", free);
+  interflop_set_handler("calloc", calloc);
+  interflop_set_handler("gettimeofday", gettimeofday);
+  interflop_set_handler("register_printf_specifier", register_printf_specifier);
+
+  /* Initialize the logger */
+  logger_init(_vfc_panic, stderr, "verificarlo");
+
+  /* Initialize instumentation */
+#ifdef INST_FUNC
+  vfc_init_func_inst();
+#endif
+
+  char *vfc_backends = NULL, *vfc_backends_env = NULL;
+  parse_vfc_backends_env(&vfc_backends, &vfc_backends_env);
+
+  if (vfc_backends == NULL) {
+    logger_error("At least one backend should be provided "
+                 "by defining VFC_BACKENDS or VFC_BACKENDS_FROM_FILE "
+                 "environment variables",
+                 vfc_backends_env);
+  }
+
+  /* Environnement variable to disable loading message */
+  char *silent_load_env = getenv("VFC_BACKENDS_SILENT_LOAD");
+  bool silent_load =
+      ((silent_load_env == NULL) || (strcasecmp(silent_load_env, "True") != 0))
+          ? false
+          : true;
+
+  /* For each backend, load and register the backend vtable interface
+     Backends .so are separated by semi-colons in the VFC_BACKENDS
+     env variable */
+  char *semicolonptr;
+  char *token = strtok_r(vfc_backends, ";", &semicolonptr);
+  while (token) {
+    /* Parse each backend arguments, argv[0] is the backend name */
+    int backend_argc = 0;
+    char *backend_argv[MAX_ARGS];
+    char *spaceptr;
+    char *arg = strtok_r(token, " ", &spaceptr);
+    while (arg) {
+      if (backend_argc >= MAX_ARGS) {
+        logger_error("%s syntax error: too many arguments", vfc_backends_env);
+      }
+      backend_argv[backend_argc++] = arg;
+      arg = strtok_r(NULL, " ", &spaceptr);
+    }
+    backend_argv[backend_argc] = NULL;
+
+    /* load the backend .so */
+    void *handle = dlopen(backend_argv[0], RTLD_NOW);
+    if (handle == NULL) {
+      logger_error("Cannot load backend %s: dlopen error\n%s", token,
+                   dlerror());
+    }
+
+    if (!silent_load)
+      logger_info("loaded backend %s\n", token);
+
+    /* get the addresses of the interflop_init, interflop_pre_init, and
+     * interflop_cli functions */
+    interflop_pre_init_t handle_pre_init = (interflop_pre_init_t)load_function(
+        token, handle, "interflop_pre_init");
+    interflop_cli_t handle_cli =
+        (interflop_cli_t)load_function(token, handle, "interflop_cli");
+    interflop_init_t handle_init =
+        (interflop_init_t)load_function(token, handle, "interflop_init");
+
+    vfc_set_handlers(token, handle);
+
+    /* Register backend */
+    if (loaded_backends == MAX_BACKENDS) {
+      logger_error("No more than %d backends can be used simultaneously",
+                   MAX_BACKENDS);
+    }
+    handle_pre_init(_vfc_panic, stderr, &contexts[loaded_backends]);
+    handle_cli(backend_argc, backend_argv, contexts[loaded_backends]);
+    backends[loaded_backends] = handle_init(contexts[loaded_backends]);
+    loaded_backends++;
+
+    /* parse next backend token */
+    token = strtok_r(NULL, ";", &semicolonptr);
+  }
+
+  if (loaded_backends == 0) {
+    logger_error("%s syntax error: at least one backend should be provided",
+                 vfc_backends_env);
+  }
+
+  /* Check that at least one backend implements each required operation */
+  check_backends_implements(float, add);
+  check_backends_implements(float, sub);
+  check_backends_implements(float, mul);
+  check_backends_implements(float, div);
+  check_backends_implements(double, add);
+  check_backends_implements(double, sub);
+  check_backends_implements(double, mul);
+  check_backends_implements(double, div);
+#ifdef INST_FCMP
+  check_backends_implements(float, cmp);
+  check_backends_implements(double, cmp);
+#endif
+#ifdef INST_FMA
+  check_backends_implements(float, fma);
+  check_backends_implements(double, fma);
+#endif
+
+#ifdef DDEBUG
+  /* Initialize ddebug */
+  dd_must_instrument = vfc_hashmap_create();
+  dd_mustnot_instrument = vfc_hashmap_create();
+  dd_exclude_path = getenv("VFC_DDEBUG_EXCLUDE");
+  dd_include_path = getenv("VFC_DDEBUG_INCLUDE");
+  dd_generate_path = getenv("VFC_DDEBUG_GEN");
+  if (dd_include_path && dd_generate_path) {
+    logger_error(
+        "VFC_DDEBUG_INCLUDE and VFC_DDEBUG_GEN should not be both defined "
+        "at the same time");
+  }
+  if (dd_include_path) {
+    vfc_read_filter_file(dd_include_path, dd_must_instrument);
+    logger_info("ddebug: only %zu addresses will be instrumented\n",
+                vfc_hashmap_num_items(dd_must_instrument));
+  }
+  if (dd_exclude_path) {
+    vfc_read_filter_file(dd_exclude_path, dd_mustnot_instrument);
+    logger_info("ddebug: %zu addresses will not be instrumented\n",
+                vfc_hashmap_num_items(dd_mustnot_instrument));
+  }
+#endif
+}
+
+/* Arithmetic wrappers */
+#ifdef DDEBUG
+/* When delta-debug run flags are passed, check filter rules,
+ *  - exclude rules are applied first and have priority
+ * */
+#define ddebug(operation)                                                      \
+  void *addr = __builtin_return_address(0);                                    \
+  if (dd_exclude_path) {                                                       \
+    /* Ignore addr in exclude file */                                          \
+    if (vfc_hashmap_have(dd_mustnot_instrument, (size_t)addr)) {               \
+      return operation;                                                        \
+    }                                                                          \
+  }                                                                            \
+  if (dd_include_path) {                                                       \
+    /* Ignore addr not in include file */                                      \
+    if (!vfc_hashmap_have(dd_must_instrument, (size_t)addr)) {                 \
+      return operation;                                                        \
+    }                                                                          \
+  } else if (dd_generate_path) {                                               \
+    vfc_hashmap_insert(dd_must_instrument, (size_t)addr, addr);                \
+  }
+
+#else
+/* When delta-debug flags are not passed do nothing */
+#define ddebug(operation)                                                      \
+  do {                                                                         \
+  } while (0)
+#endif
+
+void interflop_call(interflop_call_id id, ...) {
+  va_list ap;
+  for (unsigned char i = 0; i < loaded_backends; i++) {
+    if (backends[i].interflop_user_call) {
+      va_start(ap, id);
+      backends[i].interflop_user_call(contexts[i], id, ap);
+      va_end(ap);
+    }
+  }
+}
+
+#define define_arithmetic_wrapper(precision, operation, operator)              \
+  precision _##precision##operation(precision a, precision b) {                \
+    precision c = NAN;                                                         \
+    ddebug(operator);                                                          \
+    for (unsigned char i = 0; i < loaded_backends; i++) {                      \
+      if (backends[i].interflop_##operation##_##precision) {                   \
+        backends[i].interflop_##operation##_##precision(a, b, &c,              \
+                                                        contexts[i]);          \
+      }                                                                        \
+    }                                                                          \
+    return c;                                                                  \
+  }
+
+define_arithmetic_wrapper(float, add, (a + b));
+define_arithmetic_wrapper(float, sub, (a - b));
+define_arithmetic_wrapper(float, mul, (a * b));
+define_arithmetic_wrapper(float, div, (a / b));
+define_arithmetic_wrapper(double, add, (a + b));
+define_arithmetic_wrapper(double, sub, (a - b));
+define_arithmetic_wrapper(double, mul, (a * b));
+define_arithmetic_wrapper(double, div, (a / b));
+
+int _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
+  int c;
+  for (unsigned int i = 0; i < loaded_backends; i++) {
+    if (backends[i].interflop_cmp_float) {
+      backends[i].interflop_cmp_float(p, a, b, &c, contexts[i]);
+    }
+  }
+  return c;
+}
+
+int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
+  int c;
+  for (unsigned int i = 0; i < loaded_backends; i++) {
+    if (backends[i].interflop_cmp_double) {
+      backends[i].interflop_cmp_double(p, a, b, &c, contexts[i]);
+    }
+  }
+  return c;
+}
+
+/* Arithmetic vector wrappers */
+#define define_vectorized_arithmetic_wrapper(precision, operation, size)       \
+  precision##size _##size##x##precision##operation(const precision##size a,    \
+                                                   const precision##size b) {  \
+    precision##size c;                                                         \
+                                                                               \
+    _Pragma("unroll") for (int i = 0; i < size; i++) {                         \
+      c[i] = _##precision##operation(a[i], b[i]);                              \
+    }                                                                          \
+    return c;                                                                  \
+  }
+
+/* Define vector of size 2 */
+define_vectorized_arithmetic_wrapper(float, add, 2);
+define_vectorized_arithmetic_wrapper(float, sub, 2);
+define_vectorized_arithmetic_wrapper(float, mul, 2);
+define_vectorized_arithmetic_wrapper(float, div, 2);
+define_vectorized_arithmetic_wrapper(double, add, 2);
+define_vectorized_arithmetic_wrapper(double, sub, 2);
+define_vectorized_arithmetic_wrapper(double, mul, 2);
+define_vectorized_arithmetic_wrapper(double, div, 2);
+
+/* Define vector of size 4 */
+define_vectorized_arithmetic_wrapper(float, add, 4);
+define_vectorized_arithmetic_wrapper(float, sub, 4);
+define_vectorized_arithmetic_wrapper(float, mul, 4);
+define_vectorized_arithmetic_wrapper(float, div, 4);
+define_vectorized_arithmetic_wrapper(double, add, 4);
+define_vectorized_arithmetic_wrapper(double, sub, 4);
+define_vectorized_arithmetic_wrapper(double, mul, 4);
+define_vectorized_arithmetic_wrapper(double, div, 4);
+
+/* Define vector of size 8 */
+define_vectorized_arithmetic_wrapper(float, add, 8);
+define_vectorized_arithmetic_wrapper(float, sub, 8);
+define_vectorized_arithmetic_wrapper(float, mul, 8);
+define_vectorized_arithmetic_wrapper(float, div, 8);
+define_vectorized_arithmetic_wrapper(double, add, 8);
+define_vectorized_arithmetic_wrapper(double, sub, 8);
+define_vectorized_arithmetic_wrapper(double, mul, 8);
+define_vectorized_arithmetic_wrapper(double, div, 8);
+
+/* Define vector of size 16 */
+define_vectorized_arithmetic_wrapper(float, add, 16);
+define_vectorized_arithmetic_wrapper(float, sub, 16);
+define_vectorized_arithmetic_wrapper(float, mul, 16);
+define_vectorized_arithmetic_wrapper(float, div, 16);
+define_vectorized_arithmetic_wrapper(double, add, 16);
+define_vectorized_arithmetic_wrapper(double, sub, 16);
+define_vectorized_arithmetic_wrapper(double, mul, 16);
+define_vectorized_arithmetic_wrapper(double, div, 16);
+
+/* Comparison vector wrappers */
+#define define_vectorized_comparison_wrapper(precision, size)                  \
+  int##size _##size##x##precision##cmp(enum FCMP_PREDICATE p,                  \
+                                       precision##size a, precision##size b) { \
+    int##size c;                                                               \
+    _Pragma("unroll") for (int i = 0; i < size; i++) {                         \
+      c[i] = _##precision##cmp(p, a[i], b[i]);                                 \
+    }                                                                          \
+    return c;                                                                  \
+  }
+
+define_vectorized_comparison_wrapper(float, 2);
+define_vectorized_comparison_wrapper(double, 2);
+
+define_vectorized_comparison_wrapper(float, 4);
+define_vectorized_comparison_wrapper(double, 4);
+
+define_vectorized_comparison_wrapper(float, 8);
+define_vectorized_comparison_wrapper(double, 8);
+
+define_vectorized_comparison_wrapper(float, 16);
+define_vectorized_comparison_wrapper(double, 16);
+
+#define define_arithmetic_fma_wrapper(precision)                               \
+  precision _##precision##fma(precision a, precision b, precision c) {         \
+    precision d = NAN;                                                         \
+    ddebug((a * b + c));                                                       \
+    for (unsigned char i = 0; i < loaded_backends; i++) {                      \
+      if (backends[i].interflop_fma_##precision) {                             \
+        backends[i].interflop_fma_##precision(a, b, c, &d, contexts[i]);       \
+      }                                                                        \
+    }                                                                          \
+    return d;                                                                  \
+  }
+
+define_arithmetic_fma_wrapper(float);
+define_arithmetic_fma_wrapper(double);

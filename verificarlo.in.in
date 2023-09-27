@@ -30,26 +30,29 @@ import tempfile
 PACKAGE_STRING = "@PACKAGE_STRING@"
 LIBDIR = "%LIBDIR%"
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-libvfcinstrument = LIBDIR + '/libvfcinstrument.so'
-libvfcfuncinstrument = LIBDIR + '/libvfcfuncinstrument.so'
+libinterflop_stdlib = "@INTERFLOP_PREFIX@"
+libinterflop_stdlib_include = "@INTERFLOP_INCLUDEDIR@"
+libinterflop_stdlib_lib = "@INTERFLOP_LIBDIR@"
+libvfcinstrument = LIBDIR + "/libvfcinstrument.so"
+libvfcfuncinstrument = LIBDIR + "/libvfcfuncinstrument.so"
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
 mcalib_includes = PROJECT_ROOT + "/../include/"
-vfcwrapper = mcalib_includes + 'vfcwrapper.c'
+vfcwrapper = mcalib_includes + "vfcwrapper.c"
 llvm_bindir = "@LLVM_BINDIR@"
 llvm_version = "@LLVM_VERSION_MAJOR@"
-clang = '@CLANG_PATH@'
-clangxx = '@CLANGXX_PATH@'
-llvm_link = '@LLVM_LINK_PATH@'
-flang = '@FLANG_PATH@'
-opt = llvm_bindir + '/opt'
+clang = "@CLANG_PATH@"
+clangxx = "@CLANGXX_PATH@"
+llvm_link = "@LLVM_LINK_PATH@"
+flang = "@FLANG_PATH@"
+opt = llvm_bindir + "/opt"
 FORTRAN_EXTENSIONS = [".f", ".f90", ".f77"]
 C_EXTENSIONS = [".c"]
-CXX_EXTENSIONS = ['.cc', '.cp', '.cpp', '.cxx', 'c++']
-ASSEMBLY_EXTENSIONS = ['.s']
-LLVM_BITCODE_EXTENSIONS = ['.bc', '.ll']
-COMPILE_EXTRA_FLAGS = '-ffp-contract=off'
-linkers = {'clang': clang, 'flang': flang, 'clang++': clangxx}
-default_linker = 'clang'
+CXX_EXTENSIONS = [".cc", ".cp", ".cpp", ".cxx", "c++"]
+ASSEMBLY_EXTENSIONS = [".s"]
+LLVM_BITCODE_EXTENSIONS = [".bc", ".ll"]
+COMPILE_EXTRA_FLAGS = "-ffp-contract=off"
+linkers = {"clang": clang, "flang": flang, "clang++": clangxx}
+default_linker = "clang"
 temp_files_set = set()
 
 
@@ -69,7 +72,7 @@ def close_tmp_files():
 
 def fail(msg):
     close_tmp_files()
-    print(sys.argv[0] + ': ' + msg, file=sys.stderr)
+    print(sys.argv[0] + ": " + msg, file=sys.stderr)
     sys.exit(1)
 
 
@@ -92,6 +95,7 @@ def is_assembly(name):
 def is_llvm_bitcode(name):
     return os.path.splitext(name)[1].lower() in LLVM_BITCODE_EXTENSIONS
 
+
 def shell_escape(argument):
     # prevents argument expansion in shell call
     return "'" + argument + "'"
@@ -105,8 +109,10 @@ def parse_extra_args(args):
     for a in args:
         if is_fortran(a):
             if not flang:
-                fail("fortran not supported. "
-                     + "--without-flang was used during configuration.")
+                fail(
+                    "fortran not supported. "
+                    + "--without-flang was used during configuration."
+                )
             sources.append(a)
         elif is_c(a):
             sources.append(a)
@@ -116,12 +122,12 @@ def parse_extra_args(args):
             sources.append(a)
         elif is_llvm_bitcode(a):
             sources.append(a)
-        elif a.startswith('-l'):
+        elif a.startswith("-l"):
             libraries.append(a)
         else:
             options.append(shell_escape(a))
 
-    return sources, ' '.join(options), ' '.join(libraries)
+    return sources, " ".join(options), " ".join(libraries)
 
 
 def shell(cmd):
@@ -130,7 +136,7 @@ def shell(cmd):
             print(cmd)
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError:
-        fail('command failed:\n' + cmd)
+        fail("command failed:\n" + cmd)
 
 
 def compile_vfcwrapper(source, output, args, emit_llvm=False):
@@ -138,55 +144,70 @@ def compile_vfcwrapper(source, output, args, emit_llvm=False):
     extra_args += "-DINST_FCMP " if args.inst_fcmp else ""
     extra_args += "-DDDEBUG " if args.ddebug else ""
     extra_args += "-DINST_FUNC " if args.inst_func else ""
+    extra_args += "-DINST_FMA " if args.inst_fma else ""
 
-    internal_options = (" -S -emit-llvm " if emit_llvm else "") + \
-        f" -c -Wno-varargs -I {mcalib_includes} "
-    shell(f'{clang} -O3 -march=native {internal_options} {extra_args} {source} -o {output} ')
+    internal_options = (
+        " -S -emit-llvm " if emit_llvm else ""
+    ) + f" -c -Wno-varargs -I {mcalib_includes} "
+    cmd = (
+        f"{clang} -O3 -march=native -g {internal_options} {extra_args} "
+        f"{source} -I{libinterflop_stdlib}/include/ -o {output} "
+    )
+    shell(cmd)
 
 
 def linker_mode(sources, options, libraries, output, args):
-
     vfcwrapper_o = ".vfcwrapper.o"
 
     compile_vfcwrapper(vfcwrapper, vfcwrapper_o, args)
 
-    # Force no-pie when using ddebug and inst_func; since we use addresses to
-    # indentify the instrumented instructions, we require that the .text segment
-    # is loaded a a statically known address.
-    nopie = '-no-pie' if args.inst_func or args.ddebug else ''
+    with tempfile.NamedTemporaryFile(mode="w+") as f:
+        sources = " ".join([os.path.splitext(s)[0] + ".o" for s in sources])
+        interflop_libs = " ".join(
+            ["-linterflop_stdlib", "-linterflop_hashmap", "-linterflop_logger"]
+        )
+        interflop_stdlib_flags = f" -L{libinterflop_stdlib_lib} {interflop_libs} "
 
-    f = tempfile.NamedTemporaryFile(mode='w+')
-    sources = ' '.join([os.path.splitext(s)[0]+'.o' for s in sources])
-    if args.static:
-        cmd = f'{nopie} {output} {sources} {options} {libraries} {vfcwrapper_o} -static -lgmp -lm -ldl'
-    else:
-        cmd = f'{nopie} {output} {sources} {options} {libraries} {vfcwrapper_o} {mcalib_options} -ldl'
+        # Do not make Position Indenpendant Executable (PIE)
+        # Force no-pie when using ddebug and inst_func; since we use addresses to
+        # indentify the instrumented instructions, we require that the .text segment
+        # is loaded a a statically known address.
+        if args.ddebug or args.inst_func:
+            options += " -no-pie "
 
+        if args.static:
+            cmd = (
+                f"{output} {sources} {options} {libraries} {vfcwrapper_o} "
+                f" -static -lgmp -lm -ldl {interflop_stdlib_flags} "
+            )
+        else:
+            cmd = (
+                f"{output} {sources} {options} {libraries} {vfcwrapper_o} "
+                f" {mcalib_options} -ldl {interflop_stdlib_flags} "
+            )
 
-    f.write(cmd)
-    f.flush()
-    linker = linkers[args.linker]
-    if args.show_cmd:
-        print('{linker} {cmd}'.format(linker=linker, cmd=cmd))
-    shell('{linker} @{temp}'.format(linker=linker, temp=f.name))
-    f.close()
+        f.write(cmd)
+        f.flush()
+        linker = linkers[args.linker]
+        if args.show_cmd:
+            print(f"{linker} {cmd}")
+        shell(f"{linker} @{f.name}")
 
 
 # Do not instrument
 def compile_only(sources, options, output, args):
     compiler = linkers[args.linker]
-    sources = ' '.join(sources)
-    shell(f'{compiler} {sources} {options} {output}')
+    sources = " ".join(sources)
+    shell(f"{compiler} {sources} {options} {output}")
 
 
 def get_tmp_filename(prefix, suffix, args):
     filename_ext = os.path.basename(prefix)
     basename = os.path.splitext(filename_ext)[0]
     abs_prefix = os.getcwd() + os.sep + basename + "."
-    tmp = tempfile.NamedTemporaryFile(mode='w+b',
-                                      prefix=abs_prefix,
-                                      suffix=suffix,
-                                      delete=not args.save_temps)
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w+b", prefix=abs_prefix, suffix=suffix, delete=not args.save_temps
+    )
     temp_files_set.add(tmp)
     return tmp
 
@@ -199,25 +220,26 @@ def compiler_mode(sources, options, output, args):
 
     for source in sources:
         basename = os.path.splitext(source)[0]
-        ir = get_tmp_filename(basename, '.1.ll', args)
-        ins = get_tmp_filename(basename, '.2.ll', args)
+        ir = get_tmp_filename(basename, ".1.ll", args)
+        ins = get_tmp_filename(basename, ".2.ll", args)
 
         compiler = linkers[args.linker]
         include = f" -I {mcalib_includes} "
 
-        debug = '-g' if args.inst_func or args.ddebug else ''
+        debug = "-g" if args.inst_func or args.ddebug else ""
 
         if is_assembly(source):
             if not output:
-                basename_output = '-o ' + basename + '.o'
+                basename_output = "-o " + basename + ".o"
             else:
                 basename_output = output
-            compile_only([source], ' -c ' + options, basename_output, args)
+            compile_only([source], " -c " + options, basename_output, args)
             continue
 
         # Compile to ir (fortran uses flang, c uses clang)
         shell(
-            f'{compiler} -c -S {debug} {source} {include} -emit-llvm {COMPILE_EXTRA_FLAGS} {options} -o {ir.name}')
+            f"{compiler} -c -S {debug} {source} {include} -emit-llvm {COMPILE_EXTRA_FLAGS} {options} -o {ir.name}"
+        )
 
         selectfunction = ""
         if args.function:
@@ -238,78 +260,110 @@ def compiler_mode(sources, options, output, args):
         if args.inst_fcmp:
             extra_args += "-vfclibinst-inst-fcmp "
 
+        # Activate fma instrumentation
+        if args.inst_fma:
+            extra_args += "-vfclibinst-inst-fma"
+
         if args.inst_func:
             # Apply function's instrumentation pass
             if int(llvm_version) >= 13:
                 shell(
-                    f'{opt} -S -enable-new-pm=0  -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}')
+                    f"{opt} -S -enable-new-pm=0  -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}"
+                )
             else:
                 shell(
-                    f'{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}')
+                    f"{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}"
+                )
             ir = ins
-            ins = get_tmp_filename(basename, '.3.ll', args)
+            ins = get_tmp_filename(basename, ".3.ll", args)
 
         # Apply MCA instrumentation pass
         # For LLVM >= 13 we fallback to the legacy pass manager
         if int(llvm_version) >= 13:
-            shell((f'{opt} -S -enable-new-pm=0  -load {libvfcinstrument} '
-                   f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} '
-                   f' -vfclibinst {extra_args} {selectfunction} '
-                   f' {ir.name} -o {ins.name}'))
+            shell(
+                (
+                    f"{opt} -S -enable-new-pm=0  -load {libvfcinstrument} "
+                    f" -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} "
+                    f" -vfclibinst {extra_args} {selectfunction} "
+                    f" {ir.name} -o {ins.name}"
+                )
+            )
         else:
-            shell((f'{opt} -S -load {libvfcinstrument} '
-                   f' -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} '
-                   f' -vfclibinst {extra_args} {selectfunction} '
-                   f' {ir.name} -o {ins.name}'))
+            shell(
+                (
+                    f"{opt} -S -load {libvfcinstrument} "
+                    f" -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} "
+                    f" -vfclibinst {extra_args} {selectfunction} "
+                    f" {ir.name} -o {ins.name}"
+                )
+            )
 
         if not output:
-            basename_output = '-o ' + basename + '.o'
+            basename_output = "-o " + basename + ".o"
         else:
             basename_output = output
 
         if not args.emit_llvm:
             # Produce object file
-            shell(f'{compiler} -c {basename_output} {ins.name} {options}')
+            shell(f"{compiler} -c {basename_output} {ins.name} {options}")
         else:
             # Produce a bc file with the wrapper bc linked in.
-            shell(f'{llvm_link} {ins.name} {vfcwrapper_ir.name} {basename_output}')
+            shell(f"{llvm_link} {ins.name} {vfcwrapper_ir.name} {basename_output}")
 
 
 if __name__ == "__main__":
     parser = NoPrefixParser(
-        description='Compiles a program replacing floating point operation with calls to the mcalib (Montecarlo Arithmetic).')
-    parser.add_argument('-E', action='store_true',
-                        help='only run the preprocessor')
-    parser.add_argument('-S', action='store_true',
-                        help='only run preprocess and compilation steps')
-    parser.add_argument('-c', action='store_true',
-                        help='only run preprocess, compile, and assemble steps')
-    parser.add_argument('-o', metavar='file', help='write output to <file>')
-    parser.add_argument('--ddebug', action='store_true',
-                        help='enable delta-debug mode')
-    parser.add_argument('--function', metavar='function',
-                        help='only instrument <function>')
-    parser.add_argument('--include-file', metavar='file',
-                        help='include-list module and functions')
-    parser.add_argument('--exclude-file', metavar='file',
-                        help='exclude-list module and functions')
-    parser.add_argument('-static', '--static',
-                        action='store_true', help='produce a static binary')
-    parser.add_argument('--verbose', action='store_true',
-                        help='verbose output')
-    parser.add_argument('--inst-fcmp', action='store_true',
-                        help='instrument floating point comparisons')
-    parser.add_argument('--inst-func', action='store_true',
-                        help='instrument functions')
-    parser.add_argument('--show-cmd', action='store_true',
-                        help='show internal commands')
-    parser.add_argument('--save-temps', action='store_true',
-                        help='save intermediate files')
-    parser.add_argument('--version', action='version', version=PACKAGE_STRING)
-    parser.add_argument('--linker', choices=linkers.keys(), default=default_linker,
-                        help="linker to use, {dl} by default".format(dl=default_linker))
-    parser.add_argument('--emit-llvm', action='store_true',
-                        help='emit an LLVM bitcode with the instrumentation built-in')
+        description="Compiles a program replacing floating point operation with calls to the mcalib (Montecarlo Arithmetic)."
+    )
+    parser.add_argument("-E", action="store_true", help="only run the preprocessor")
+    parser.add_argument(
+        "-S", action="store_true", help="only run preprocess and compilation steps"
+    )
+    parser.add_argument(
+        "-c",
+        action="store_true",
+        help="only run preprocess, compile, and assemble steps",
+    )
+    parser.add_argument("-o", metavar="file", help="write output to <file>")
+    parser.add_argument("--ddebug", action="store_true", help="enable delta-debug mode")
+    parser.add_argument(
+        "--function", metavar="function", help="only instrument <function>"
+    )
+    parser.add_argument(
+        "--include-file", metavar="file", help="include-list module and functions"
+    )
+    parser.add_argument(
+        "--exclude-file", metavar="file", help="exclude-list module and functions"
+    )
+    parser.add_argument(
+        "-static", "--static", action="store_true", help="produce a static binary"
+    )
+    parser.add_argument("--verbose", action="store_true", help="verbose output")
+    parser.add_argument(
+        "--inst-fcmp", action="store_true", help="instrument floating point comparisons"
+    )
+    parser.add_argument(
+        "--inst-fma", action="store_true", help="instrument floating point fma"
+    )
+    parser.add_argument("--inst-func", action="store_true", help="instrument functions")
+    parser.add_argument(
+        "--show-cmd", action="store_true", help="show internal commands"
+    )
+    parser.add_argument(
+        "--save-temps", action="store_true", help="save intermediate files"
+    )
+    parser.add_argument("--version", action="version", version=PACKAGE_STRING)
+    parser.add_argument(
+        "--linker",
+        choices=linkers.keys(),
+        default=default_linker,
+        help="linker to use, {dl} by default".format(dl=default_linker),
+    )
+    parser.add_argument(
+        "--emit-llvm",
+        action="store_true",
+        help="emit an LLVM bitcode with the instrumentation built-in",
+    )
 
     args, other = parser.parse_known_args()
 
@@ -317,27 +371,26 @@ if __name__ == "__main__":
 
     # check input files
     if (args.E or args.S or args.c) and len(sources) > 1 and args.o:
-        fail('cannot specify -o when generating multiple output files')
+        fail("cannot specify -o when generating multiple output files")
 
     # check mutually excluding args
     if args.function and (args.include_file or args.exclude_file):
-        fail('Cannot use --function and --include-file/--exclude-file together')
+        fail("Cannot use --function and --include-file/--exclude-file together")
 
     output = "-o " + args.o if args.o else ""
 
     if args.E:
-        llvm_options += ' -E '
+        llvm_options += " -E "
         compile_only(sources, llvm_options, output, args)
     elif args.S:
-        llvm_options += ' -S '
+        llvm_options += " -S "
         compile_only(sources, llvm_options, output, args)
     elif args.c or args.emit_llvm:
         if len(sources) == 0:
-            fail('no input files')
+            fail("no input files")
         compiler_mode(sources, llvm_options, output, args)
     else:
         if len(sources) == 0 and len(llvm_options) == 0:
-            fail('no input files')
+            fail("no input files")
         compiler_mode(sources, llvm_options, "", args)
         linker_mode(sources, llvm_options, libraries, output, args)
-

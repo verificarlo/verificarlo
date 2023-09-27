@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../src/common/float_const.h"
+#include "interflop/common/float_const.h"
 
 typedef union {
   double f64;

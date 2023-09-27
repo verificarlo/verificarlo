@@ -45,6 +45,8 @@ import sys
 import os
 
 # Start with some helpers.
+
+
 class OutcomeCache:
     # This class holds test outcomes for configurations.  This avoids
     # running the same test twice.
@@ -70,24 +72,24 @@ class OutcomeCache:
         cs.sort()
 
         p = self
-        for start in range(len(c)):
-            if not c[start] in p.tail:
-                p.tail[c[start]] = OutcomeCache()
-            p = p.tail[c[start]]
+        for start in c:
+            if start not in p.tail:
+                p.tail[start] = OutcomeCache()
+            p = p.tail[start]
 
         p.result = result
 
     def lookup(self, c):
         """Return RESULT if (C, RESULT) is in the cache; None, otherwise."""
         p = self
-        for start in range(len(c)):
-            if not c[start] in p.tail:
+        for start in c:
+            if start not in p.tail:
                 return None
-            p = p.tail[c[start]]
+            p = p.tail[start]
 
         return p.result
 
-    def lookup_superset(self, c, start = 0):
+    def lookup_superset(self, c, start=0):
         """Return RESULT if there is some (C', RESULT) in the cache with
         C' being a superset of C or equal to C.  Otherwise, return None."""
 
@@ -95,23 +97,22 @@ class OutcomeCache:
         if start >= len(c):
             if self.result:
                 return self.result
-            elif self.tail != {}:
+            if self.tail:
                 # Select some superset
                 superset = self.tail[self.tail.keys()[0]]
                 return superset.lookup_superset(c, start + 1)
-            else:
-                return None
+            return None
 
         if c[start] in self.tail:
             return self.tail[c[start]].lookup_superset(c, start + 1)
 
         # Let K0 be the largest element in TAIL such that K0 <= C[START]
         k0 = None
-        for k in self.tail.keys():
-            if (k0 == None or k > k0) and k <= c[start]:
+        for k in self.tail:
+            if (k0 is None or k > k0) and k <= c[start]:
                 k0 = k
 
-        if k0 != None:
+        if k0 is not None:
             return self.tail[k0].lookup_superset(c, start)
 
         return None
@@ -120,33 +121,31 @@ class OutcomeCache:
         """Return RESULT if there is some (C', RESULT) in the cache with
         C' being a subset of C or equal to C.  Otherwise, return None."""
         p = self
-        for start in range(len(c)):
-            if c[start] in p.tail:
-                p = p.tail[c[start]]
+        for start in c:
+            if start in p.tail:
+                p = p.tail[start]
 
         return p.result
-
-
 
 
 # Test the outcome cache
 def oc_test():
     oc = OutcomeCache()
 
-    assert oc.lookup([1, 2, 3]) == None
+    assert oc.lookup([1, 2, 3]) is None
     oc.add([1, 2, 3], 4)
     assert oc.lookup([1, 2, 3]) == 4
-    assert oc.lookup([1, 2, 3, 4]) == None
+    assert oc.lookup([1, 2, 3, 4]) is None
 
-    assert oc.lookup([5, 6, 7]) == None
+    assert oc.lookup([5, 6, 7]) is None
     oc.add([5, 6, 7], 8)
     assert oc.lookup([5, 6, 7]) == 8
 
-    assert oc.lookup([]) == None
+    assert oc.lookup([]) is None
     oc.add([], 0)
     assert oc.lookup([]) == 0
 
-    assert oc.lookup([1, 2]) == None
+    assert oc.lookup([1, 2]) is None
     oc.add([1, 2], 3)
     assert oc.lookup([1, 2]) == 3
     assert oc.lookup([1, 2, 3]) == 4
@@ -157,21 +156,21 @@ def oc_test():
     assert oc.lookup_superset([5, 6]) == 8
     assert oc.lookup_superset([6, 7]) == 8
     assert oc.lookup_superset([7]) == 8
-    assert oc.lookup_superset([]) != None
+    assert oc.lookup_superset([]) is not None
 
-    assert oc.lookup_superset([9]) == None
-    assert oc.lookup_superset([7, 9]) == None
-    assert oc.lookup_superset([-5, 1]) == None
-    assert oc.lookup_superset([1, 2, 3, 9]) == None
-    assert oc.lookup_superset([4, 5, 6, 7]) == None
+    assert oc.lookup_superset([9]) is None
+    assert oc.lookup_superset([7, 9]) is None
+    assert oc.lookup_superset([-5, 1]) is None
+    assert oc.lookup_superset([1, 2, 3, 9]) is None
+    assert oc.lookup_superset([4, 5, 6, 7]) is None
 
     assert oc.lookup_subset([]) == 0
     assert oc.lookup_subset([1, 2, 3]) == 4
     assert oc.lookup_subset([1, 2, 3, 4]) == 4
-    assert oc.lookup_subset([1, 3]) == None
+    assert oc.lookup_subset([1, 3]) is None
     assert oc.lookup_subset([1, 2]) == 3
 
-    assert oc.lookup_subset([-5, 1]) == None
+    assert oc.lookup_subset([-5, 1]) is None
     assert oc.lookup_subset([-5, 1, 2]) == 3
     assert oc.lookup_subset([-5]) == 0
 
@@ -198,25 +197,25 @@ class DD:
     # purposes.
 
     # Test outcomes.
-    PASS       = "PASS"
-    FAIL       = "FAIL"
+    PASS = "PASS"
+    FAIL = "FAIL"
     UNRESOLVED = "UNRESOLVED"
 
     # Resolving directions.
-    ADD    = "ADD"			# Add deltas to resolve
+    ADD = "ADD"			# Add deltas to resolve
     REMOVE = "REMOVE"			# Remove deltas to resolve
 
     # Debugging output (set to 1 to enable)
-    debug_test      = 0
-    debug_dd        = 0
-    debug_split     = 0
-    debug_resolve   = 0
+    debug_test = 0
+    debug_dd = 0
+    debug_split = 0
+    debug_resolve = 0
 
     def __init__(self):
         self.__resolving = 0
         self.__last_reported_length = 0
         self.monotony = 0
-        self.outcome_cache  = OutcomeCache()
+        self.outcome_cache = OutcomeCache()
         self.cache_outcomes = 1
         self.minimize = 1
         self.maximize = 1
@@ -231,7 +230,7 @@ class DD:
 
         c = []
         for delta in c1:
-            if not delta in s2:
+            if delta not in s2:
                 c.append(delta)
 
         return c
@@ -257,7 +256,7 @@ class DD:
 
         c = c1[:]
         for delta in c2:
-            if not delta in s1:
+            if delta not in s1:
                 c.append(delta)
 
         return c
@@ -269,7 +268,7 @@ class DD:
             s2[delta] = 1
 
         for delta in c1:
-            if not delta in s2:
+            if delta not in s2:
                 return 0
 
         return 1
@@ -289,12 +288,12 @@ class DD:
     # Testing
     def test(self, c):
         """Test the configuration C.  Return PASS, FAIL, or UNRESOLVED"""
-        #c.sort()
+        # c.sort()
 
         # If we had this test before, return its result
         if self.cache_outcomes:
             cached_result = self.outcome_cache.lookup(c)
-            if cached_result != None:
+            if cached_result is not None:
                 return cached_result
 
         if self.monotony:
@@ -325,8 +324,8 @@ class DD:
         """Stub to overload in subclasses"""
         return self.UNRESOLVED		# Placeholder
 
-
     # Splitting
+
     def split(self, c, n):
         """Split C into [C_1, C_2, ..., C_n]."""
         if self.debug_split:
@@ -335,7 +334,8 @@ class DD:
         outcome = self._split(c, n)
 
         if self.debug_split:
-            print( "split(" + self.coerce(c) + ", " + repr(n) + ") = " + repr(outcome))
+            print("split(" + self.coerce(c) + ", " +
+                  repr(n) + ") = " + repr(outcome))
 
         return outcome
 
@@ -349,32 +349,31 @@ class DD:
             start = start + len(subset)
         return subsets
 
-
     # Resolving
+
     def resolve(self, csub, c, direction):
         """If direction == ADD, resolve inconsistency by adding deltas
         to CSUB.  Otherwise, resolve by removing deltas from CSUB."""
 
         if self.debug_resolve:
-            print("resolve(" + repr(csub) + ", " + self.coerce(c) + ", " + \
-                repr(direction) + ")...")
+            print("resolve(" + repr(csub) + ", " + self.coerce(c) + ", " +
+                  repr(direction) + ")...")
 
         outcome = self._resolve(csub, c, direction)
 
         if self.debug_resolve:
-            print("resolve(" + repr(csub) + ", " + self.coerce(c) + ", " + \
+            print("resolve(" + repr(csub) + ", " + self.coerce(c) + ", " +
                   repr(direction) + ") = " + repr(outcome))
 
         return outcome
-
 
     def _resolve(self, csub, c, direction):
         """Stub to overload in subclasses."""
         # By default, no way to resolve
         return None
 
-
     # Test with fixes
+
     def test_and_resolve(self, csub, r, c, direction):
         """Repeat testing CSUB + R while unresolved."""
 
@@ -392,7 +391,7 @@ class DD:
             self.__resolving = 1
             csubr = self.resolve(csubr, c, direction)
 
-            if csubr == None:
+            if csubr is None:
                 # Nothing left to resolve
                 break
 
@@ -411,7 +410,7 @@ class DD:
             t = self.test(csubr)
 
         self.__resolving = 0
-        if csubr == None:
+        if csubr is None:
             return self.UNRESOLVED, initial_csub
 
         # assert t == self.PASS or t == self.FAIL
@@ -423,34 +422,34 @@ class DD:
         """Return 1 while resolving."""
         return self.__resolving
 
-
     # Logging
+
     def report_progress(self, c, title):
         if len(c) != self.__last_reported_length:
             print()
-            print(title + ": " + repr(len(c)) + " deltas left:", self.coerce(c))
+            print(title + ": " + repr(len(c)) +
+                  " deltas left:", self.coerce(c))
             self.__last_reported_length = len(c)
 
-
     # Delta Debugging (old ESEC/FSE version)
-    def old_dd(self, c, r = [], n = 2):
+
+    def old_dd(self, c, r=[], n=2):
         """Return the failure-inducing subset of C"""
 
         assert self.test([]) == dd.PASS
-        assert self.test(c)  == dd.FAIL
+        assert self.test(c) == dd.FAIL
 
         if self.debug_dd:
-            print ("dd(" + self.pretty(c) + ", " + repr(r) + ", " + repr(n) + ")...")
+            print("dd(" + self.pretty(c) + ", " +
+                  repr(r) + ", " + repr(n) + ")...")
 
         outcome = self._old_dd(c, r, n)
 
         if self.debug_dd:
-            print ("dd(" + self.pretty(c) + ", " + repr(r) + ", " + repr(n) +
-                   ") = " + repr(outcome))
+            print("dd(" + self.pretty(c) + ", " + repr(r) + ", " + repr(n) +
+                  ") = " + repr(outcome))
 
         return outcome
-
-
 
     def test_mix(self, csub, c, direction):
         if self.minimize:
@@ -460,7 +459,7 @@ class DD:
 
         if self.maximize:
             csubbar = self.__listminus(self.CC, csub)
-            cbar    = self.__listminus(self.CC, c)
+            cbar = self.__listminus(self.CC, c)
             if direction == self.ADD:
                 directionbar = self.REMOVE
             else:
@@ -480,9 +479,8 @@ class DD:
 
         return (t, csub)
 
-
-
     # Delta Debugging (new ISSTA version)
+
     def ddgen(self, c, minimize, maximize):
         """Return a 1-minimal failing subset of C"""
 
@@ -493,20 +491,20 @@ class DD:
         self.CC = c
 
         if self.debug_dd:
-            print ("dd(" + self.pretty(c) + ", " + repr(n) + ")...")
+            print("dd(" + self.pretty(c) + ", " + repr(n) + ")...")
 
         outcome = self._dd(c, n)
 
         if self.debug_dd:
-            print ("dd(" + self.pretty(c) + ", " + repr(n) + ") = " + repr(outcome))
+            print("dd(" + self.pretty(c) + ", " + repr(n) + ") = " + repr(outcome))
 
         return outcome
 
     def _dd(self, c, n):
         """Stub to overload in subclasses"""
 
-        testNoDelta=self.test([])
-        if testNoDelta!=self.PASS:
+        testNoDelta = self.test([])
+        if testNoDelta != self.PASS:
             self.noDeltaSucceedMsg()
             print("ERROR: test([]) == FAILED")
             sys.exit()
@@ -519,30 +517,30 @@ class DD:
         while 1:
             tc = self._test(c)
             if tc != self.FAIL and tc != self.UNRESOLVED:
-                if run==1:
+                if run == 1:
                     self.deltaFailedMsg(c)
 
                 if "VERROU_DD_UNSAFE" in os.environ:
-                    print ("WARNING: test([all deltas]) == PASS")
+                    print("WARNING: test([all deltas]) == PASS")
                 else:
                     self.allDeltaFailedMsg(c)
-                    print ("ERROR: test([all deltas]) == PASS")
+                    print("ERROR: test([all deltas]) == PASS")
                     sys.exit(1)
-
 
             if n > len(c):
                 # No further minimizing
-                print ("dd: done")
+                print("dd: done")
                 return c
 
             self.report_progress(c, "dd")
 
             cs = self.split(c, n)
 
-            print ()
-            print ("dd (run #" + repr(run) + "): trying", "+".join([repr(len(cs[i])) for i in range(n)] ) )
+            print()
+            print("dd (run #" + repr(run) + "): trying",
+                  "+".join([repr(len(cs[i])) for i in range(n)]))
 
-            c_failed    = 0
+            c_failed = 0
             cbar_failed = 0
 
             next_c = c[:]
@@ -551,15 +549,15 @@ class DD:
             # Check subsets
             for i in range(n):
                 if self.debug_dd:
-                    print ("dd: trying", self.pretty(cs[i]))
+                    print("dd: trying", self.pretty(cs[i]))
 
                 (t, cs[i]) = self.test_mix(cs[i], c, self.REMOVE)
 
                 if t == self.FAIL:
                     # Found
                     if self.debug_dd:
-                        print ("dd: found", len(cs[i]), "deltas:",)
-                        print (self.pretty(cs[i]))
+                        print("dd: found", len(cs[i]), "deltas:",)
+                        print(self.pretty(cs[i]))
 
                     c_failed = 1
                     next_c = cs[i]
@@ -585,9 +583,9 @@ class DD:
 
                     if t == self.FAIL:
                         if self.debug_dd:
-                            print ("dd: reduced to", len(cbars[i]),)
-                            print ("deltas:", end="")
-                            print (self.pretty(cbars[i]))
+                            print("dd: reduced to", len(cbars[i]),)
+                            print("deltas:", end="")
+                            print(self.pretty(cbars[i]))
 
                         cbar_failed = 1
                         next_c = self.__listintersect(next_c, cbars[i])
@@ -601,11 +599,11 @@ class DD:
             if not c_failed and not cbar_failed:
                 if n >= len(c):
                     # No further minimizing
-                    print ("dd: done")
+                    print("dd: done")
                     return c
 
                 next_n = min(len(c), n * 2)
-                print ("dd: increase granularity to", next_n)
+                print("dd: increase granularity to", next_n)
                 cbar_offset = (cbar_offset * next_n) // n
 
             c = next_c
@@ -614,14 +612,14 @@ class DD:
 
     def interflop_dd_max(self, c):
         """Stub to overload in subclasses"""
-        self.maximize=1
-        self.minimize=0
+        self.maximize = 1
+        self.minimize = 0
         n = 2
         self.CC = c
-        algo_name="dd_max"
+        algo_name = "dd_max"
 
-        testNoDelta=self.test([])
-        if testNoDelta!=self.PASS:
+        testNoDelta = self.test([])
+        if testNoDelta != self.PASS:
             self.noDeltaSucceedMsg()
             print("ERROR: test([]) == FAILED")
             sys.exit()
@@ -634,31 +632,30 @@ class DD:
         while 1:
             tc = self.test(c)
             if tc != self.FAIL and tc != self.UNRESOLVED:
-                if run==1:
+                if run == 1:
                     self.deltaFailedMsg(c)
 
                 if "VERROU_DD_UNSAFE" in os.environ:
-                    print ("WARNING: test([all deltas]) == PASS")
-
+                    print("WARNING: test([all deltas]) == PASS")
 
             if n > len(c):
                 # No further minimizing
-                print (algo_name+": done")
+                print(algo_name+": done")
                 return c
 
             self.report_progress(c, algo_name)
 
             cs = self.split(c, n)
 
-            print ()
-            print (algo_name+" (run #" + repr(run) + "): trying", "+".join([repr(len(cs[i])) for i in range(n)] ) )
+            print()
+            print(algo_name+" (run #" + repr(run) + "): trying",
+                  "+".join([repr(len(cs[i])) for i in range(n)]))
 
-            c_failed    = 0
+            c_failed = 0
             cbar_failed = 0
 
             next_c = c[:]
             next_n = n
-
 
             if not c_failed:
                 # Check complements
@@ -677,9 +674,9 @@ class DD:
 
                     if t == self.FAIL:
                         if self.debug_dd:
-                            print (algo_name+": reduced to", len(cbars[i]),)
-                            print ("deltas:", end="")
-                            print (self.pretty(cbars[i]))
+                            print(algo_name+": reduced to", len(cbars[i]),)
+                            print("deltas:", end="")
+                            print(self.pretty(cbars[i]))
 
                         cbar_failed = 1
                         next_c = self.__listintersect(next_c, cbars[i])
@@ -693,62 +690,57 @@ class DD:
             if not c_failed and not cbar_failed:
                 if n >= len(c):
                     # No further minimizing
-                    print (algo_name+": done")
+                    print(algo_name+": done")
                     return c
 
                 next_n = min(len(c), n * 2)
-                print (algo_name+": increase granularity to", next_n)
+                print(algo_name+": increase granularity to", next_n)
                 cbar_offset = (cbar_offset * next_n) // n
 
             c = next_c
             n = next_n
             run = run + 1
 
-
-
-    def interflop_dd_min(self, c , nbRun):
+    def interflop_dd_min(self, c, nbRun):
         """Stub to overload in subclasses"""
         n = 2
-        algo_name="ddmin"
+        algo_name = "ddmin"
 
-        testNoDelta=self._test([],nbRun)
-        if testNoDelta!=self.PASS:
+        testNoDelta = self._test([], nbRun)
+        if testNoDelta != self.PASS:
             print("ERROR: test([]) == FAILED")
             self.noDeltaSucceedMsg()
-
 
         run = 1
         cbar_offset = 0
 
         # We replace the tail recursion from the paper by a loop
         while 1:
-            tc = self._test(c ,nbRun)
+            tc = self._test(c, nbRun)
             if tc != self.FAIL and tc != self.UNRESOLVED:
-                if run==1:
+                if run == 1:
                     self.deltaFailedMsg(c)
 
                 if "INTERFLOP_DD_UNSAFE" in os.environ:
-                    print ("WARNING: test([all deltas]) == PASS")
+                    print("WARNING: test([all deltas]) == PASS")
                 else:
-                    print ("ERROR: test([all deltas]) == PASS")
+                    print("ERROR: test([all deltas]) == PASS")
                     self.allDeltaFailedMsg(c)
-
-
-
 
             if n > len(c):
                 # No further minimizing
-                print (algo_name+": done")
+                print(algo_name+": done")
                 return c
 
             self.report_progress(c, algo_name)
 
             cs = self.split(c, n)
 
-            print ()
-            print (algo_name+" (run #" + repr(run) + "): trying", "+".join([repr(len(cs[i])) for i in range(n)] ) )
+            print()
+            print(algo_name+" (run #" + repr(run) + "): trying",
+                  "+".join([repr(len(cs[i])) for i in range(n)]))
 
-            c_failed    = False
+            c_failed = False
             cbar_failed = False
 
             next_c = c[:]
@@ -757,15 +749,15 @@ class DD:
             # Check subsets
             for i in range(n):
                 if self.debug_dd:
-                    print (algo_name+": trying", self.pretty(cs[i]))
+                    print(algo_name+": trying", self.pretty(cs[i]))
 
-                t = self._test(cs[i],nbRun)
+                t = self._test(cs[i], nbRun)
 
                 if t == self.FAIL:
                     # Found
                     if self.debug_dd:
-                        print (algo_name+": found", len(cs[i]), "deltas:",)
-                        print (self.pretty(cs[i]))
+                        print(algo_name+": found", len(cs[i]), "deltas:",)
+                        print(self.pretty(cs[i]))
 
                     c_failed = True
                     next_c = cs[i]
@@ -783,13 +775,13 @@ class DD:
                 for j in range(n):
                     i = (j + cbar_offset) % n
                     cbars[i] = self.__listminus(c, cs[i])
-                    t = self._test(cbars[i],nbRun)
+                    t = self._test(cbars[i], nbRun)
 
                     if t == self.FAIL:
                         if self.debug_dd:
-                            print (algo_name+": reduced to", len(cbars[i]),)
-                            print ("deltas:", end="")
-                            print (self.pretty(cbars[i]))
+                            print(algo_name+": reduced to", len(cbars[i]),)
+                            print("deltas:", end="")
+                            print(self.pretty(cbars[i]))
 
                         cbar_failed = True
                         next_c = cbars[i]
@@ -803,11 +795,11 @@ class DD:
             if not c_failed and not cbar_failed:
                 if n >= len(c):
                     # No further minimizing
-                    print (algo_name+": done")
+                    print(algo_name+": done")
                     return c
 
                 next_n = min(len(c), n * 2)
-                print (algo_name+": increase granularity to", next_n)
+                print(algo_name+": increase granularity to", next_n)
                 cbar_offset = (cbar_offset * next_n) // n
 
             c = next_c
@@ -823,19 +815,19 @@ class DD:
     def ddmix(self, c):
         return self.ddgen(c, 1, 1)
 
-
     # General delta debugging (new TSE version)
+
     def dddiff(self, c):
         n = 2
 
         if self.debug_dd:
-            print ("dddiff(" + self.pretty(c) + ", " + repr(n) + ")...")
+            print("dddiff(" + self.pretty(c) + ", " + repr(n) + ")...")
 
         outcome = self._dddiff([], c, n)
 
         if self.debug_dd:
-            print ("dddiff(" + self.pretty(c) + ", " + repr(n) + ") = " +
-                   repr(outcome))
+            print("dddiff(" + self.pretty(c) + ", " + repr(n) + ") = " +
+                  repr(outcome))
 
         return outcome
 
@@ -846,8 +838,8 @@ class DD:
         # We replace the tail recursion from the paper by a loop
         while 1:
             if self.debug_dd:
-                print ("dd: c1 =", self.pretty(c1))
-                print ("dd: c2 =", self.pretty(c2))
+                print("dd: c1 =", self.pretty(c1))
+                print("dd: c2 =", self.pretty(c2))
 
             if self.assume_axioms_hold:
                 t1 = self.PASS
@@ -863,24 +855,24 @@ class DD:
             c = self.__listminus(c2, c1)
 
             if self.debug_dd:
-                print ("dd: c2 - c1 =", self.pretty(c))
+                print("dd: c2 - c1 =", self.pretty(c))
 
             if n > len(c):
                 # No further minimizing
-                print ("dd: done")
+                print("dd: done")
                 return (c, c1, c2)
 
             self.report_progress(c, "dd")
 
             cs = self.split(c, n)
 
-            print ()
-            print ("dd (run #" + repr(run) + "): trying",)
+            print()
+            print("dd (run #" + repr(run) + "): trying",)
             for i in range(n):
                 if i > 0:
-                    print ("+",)
-                print (len(cs[i]),)
-            print ()
+                    print("+",)
+                print(len(cs[i]),)
+            print()
 
             progress = 0
 
@@ -893,35 +885,34 @@ class DD:
                 i = (j + cbar_offset) % n
 
                 if self.debug_dd:
-                    print ("dd: trying", self.pretty(cs[i]))
+                    print("dd: trying", self.pretty(cs[i]))
 
                 (t, csub) = self.test_and_resolve(cs[i], c1, c, self.REMOVE)
                 csub = self.__listunion(c1, csub)
 
                 if t == self.FAIL and t1 == self.PASS:
                     # Found
-                    progress    = 1
-                    next_c2     = csub
-                    next_n      = 2
+                    progress = 1
+                    next_c2 = csub
+                    next_n = 2
                     cbar_offset = 0
 
                     if self.debug_dd:
-                        print ("dd: reduce c2 to", len(next_c2), "deltas:",)
-                        print (self.pretty(next_c2))
+                        print("dd: reduce c2 to", len(next_c2), "deltas:",)
+                        print(self.pretty(next_c2))
                     break
 
                 if t == self.PASS and t2 == self.FAIL:
                     # Reduce to complement
-                    progress    = 1
-                    next_c1     = csub
-                    next_n      = max(next_n - 1, 2)
+                    progress = 1
+                    next_c1 = csub
+                    next_n = max(next_n - 1, 2)
                     cbar_offset = i
 
                     if self.debug_dd:
-                        print ("dd: increase c1 to", len(next_c1), "deltas:",)
-                        print (self.pretty(next_c1))
+                        print("dd: increase c1 to", len(next_c1), "deltas:",)
+                        print(self.pretty(next_c1))
                     break
-
 
                 csub = self.__listminus(c, cs[i])
                 (t, csub) = self.test_and_resolve(csub, c1, c, self.ADD)
@@ -929,26 +920,26 @@ class DD:
 
                 if t == self.PASS and t2 == self.FAIL:
                     # Found
-                    progress    = 1
-                    next_c1     = csub
-                    next_n      = 2
+                    progress = 1
+                    next_c1 = csub
+                    next_n = 2
                     cbar_offset = 0
 
                     if self.debug_dd:
-                        print ("dd: increase c1 to", len(next_c1), "deltas:",)
-                        print (self.pretty(next_c1))
+                        print("dd: increase c1 to", len(next_c1), "deltas:",)
+                        print(self.pretty(next_c1))
                     break
 
                 if t == self.FAIL and t1 == self.PASS:
                     # Increase
-                    progress    = 1
-                    next_c2     = csub
-                    next_n      = max(next_n - 1, 2)
+                    progress = 1
+                    next_c2 = csub
+                    next_n = max(next_n - 1, 2)
                     cbar_offset = i
 
                     if self.debug_dd:
-                        print ("dd: reduce c2 to", len(next_c2), "deltas:",)
-                        print (self.pretty(next_c2))
+                        print("dd: reduce c2 to", len(next_c2), "deltas:",)
+                        print(self.pretty(next_c2))
                     break
 
             if progress:
@@ -956,25 +947,23 @@ class DD:
             else:
                 if n >= len(c):
                     # No further minimizing
-                    print ("dd: done")
+                    print("dd: done")
                     return (c, c1, c2)
 
                 next_n = min(len(c), n * 2)
-                print ("dd: increase granularity to", next_n)
+                print("dd: increase granularity to", next_n)
                 cbar_offset = (cbar_offset * next_n) // n
 
-            c1  = next_c1
-            c2  = next_c2
-            n   = next_n
+            c1 = next_c1
+            c2 = next_c2
+            n = next_n
             run = run + 1
 
     def dd(self, c):
         return self.dddiff(c)           # Backwards compatibility
 
 
-
-
-if __name__ == '__main__':
+def main():
     # Test the outcome cache
     oc_test()
 
@@ -988,7 +977,7 @@ if __name__ == '__main__':
             #	return self.UNRESOLVED
             # if 3 in c and not 7 in c:
             #   return self.UNRESOLVED
-            if 7 in c and not 2 in c:
+            if 7 in c and 2 not in c:
                 return self.UNRESOLVED
             if 5 in c and 8 in c:
                 return self.FAIL
@@ -1018,8 +1007,7 @@ if __name__ == '__main__':
             self._test = self._test_c
             DD.__init__(self)
 
-
-    print ("WYNOT - a tool for delta debugging.")
+    print("WYNOT - a tool for delta debugging.")
     mydd = MyDD()
     # mydd.debug_test     = 1			# Enable debugging output
     # mydd.debug_dd       = 1			# Enable debugging output
@@ -1029,19 +1017,21 @@ if __name__ == '__main__':
     # mydd.cache_outcomes = 0
     # mydd.monotony = 0
 
-    print ("Minimizing failure-inducing input...")
+    print("Minimizing failure-inducing input...")
     c = mydd.ddmin([1, 2, 3, 4, 5, 6, 7, 8])  # Invoke DDMIN
-    print ("The 1-minimal failure-inducing input is", c)
-    print ("Removing any element will make the failure go away.")
-    print ()
+    print("The 1-minimal failure-inducing input is", c)
+    print("Removing any element will make the failure go away.")
+    print()
 
-    print ("Computing the failure-inducing difference...")
-    (c, c1, c2) = mydd.dd([1, 2, 3, 4, 5, 6, 7, 8])	# Invoke DD
-    print ("The 1-minimal failure-inducing difference is", c)
-    print (c1, "passes,", c2, "fails")
+    print("Computing the failure-inducing difference...")
+    (c, c1, c2) = mydd.dd([1, 2, 3, 4, 5, 6, 7, 8])  # Invoke DD
+    print("The 1-minimal failure-inducing difference is", c)
+    print(c1, "passes,", c2, "fails")
 
 
-
 # Local Variables:
 # mode: python
 # End:
+
+if __name__ == '__main__':
+    main()

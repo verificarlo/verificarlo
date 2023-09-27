@@ -20,7 +20,7 @@ echo "N_SAMPLES=${N_SAMPLES}"
 
 ROOT=$PWD
 SRC=$PWD/compute_vprec_rounding.c
-COMPUTE_VPREC_ROUNDING=./compute_vprec_rounding
+COMPUTE_VPREC_ROUNDING=${COMPUTE_VPREC_ROUNDING}_${TYPE}
 COMPUTE_MPFR_ROUNDING=$PWD/compute_mpfr_rounding.py
 GENERATE_INPUT=$PWD/generate_input.py
 CHECK_OUTPUT=$PWD/check_output.py
@@ -61,16 +61,41 @@ declare -A precision_option
 precision_option["float"]=--precision-binary32
 precision_option["double"]=--precision-binary64
 
+check_status() {
+    if [[ $? != 0 ]]; then
+        echo "Error"
+        exit 1
+    fi
+}
+
+compute_mpfr_rounding() {
+    a=$1
+    b=$2
+    op=$3
+    context=$4
+    file=$5
+    $COMPUTE_MPFR_ROUNDING $a $b $op $context >>$file
+    # check_status
+}
+
+compute_vprec_rounding() {
+    a=$1
+    b=$2
+    op=$3
+    file=$4
+    $COMPUTE_VPREC_ROUNDING $a $b $op >>$file
+    # check_status
+}
+
 compute_op() {
     while read a b; do
-        $COMPUTE_MPFR_ROUNDING $a $b $1 $2 >>mpfr.txt
-        $COMPUTE_VPREC_ROUNDING $a $b $1 >>vprec.txt
+        compute_mpfr_rounding $a $b $1 $2 mpfr.txt
+        compute_vprec_rounding $a $b $1 vprec.txt
     done <input.txt
 }
 
 echo "TYPE: ${TYPE}"
 export VERIFICARLO_VPREC_TYPE=$TYPE
-verificarlo-c $SRC -DREAL=$TYPE -o $COMPUTE_VPREC_ROUNDING --verbose --show-cmd
 
 echo "Range: ${RANGE}"
 export VERIFICARLO_VPREC_RANGE=$RANGE

@@ -1,5 +1,6 @@
 ACLOCAL_AMFLAGS=-I m4
 SUBDIRS=src/
+
 dist_bin_SCRIPTS=verificarlo verificarlo-c verificarlo-f verificarlo-c++
 
 edit_script = $(SED) -e 's,%LIBDIR%,$(libdir),'g $(NULL)
@@ -23,6 +24,10 @@ CLEANFILES = verificarlo
 
 check:
 	@echo "Tests should be run after install with make installcheck"
+
+install-exec-hook:
+	$(PYTHON) -m pip install . && \
+	echo "Run 'source $(setenvdir)/set-env' to set environment variables"
 
 installcheck:
 # Run tests

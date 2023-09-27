@@ -53,7 +53,7 @@ check_logger_info() {
 
 check_backend_info() {
     check "$(
-        grep -q "Info \[interflop_mca\]" ${1}
+        grep -q "Info \[interflop-mcaquad\]" ${1}
         echo $?
     )" "${2}"
 }

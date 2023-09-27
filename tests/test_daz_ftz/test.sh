@@ -34,9 +34,13 @@ compare() {
 export VFC_BACKENDS_LOGGER=False
 export VFC_BACKENDS_SILENT_LOAD="TRUE"
 
-rm -f run_parallel
 for REALTYPE in "float" "double"; do
     compile $REALTYPE
+done
+
+rm -f run_parallel
+
+for REALTYPE in "float" "double"; do
     for BACKEND in "libinterflop_mca.so" "libinterflop_bitmask.so"; do
         echo "./compute_error.sh ${TYPE} ${PWD}/test_${TYPE,,} ${BACKEND}" >>run_parallel
     done

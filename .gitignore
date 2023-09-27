@@ -14,7 +14,7 @@
 **/#*
 **/.DS_Store
 **/Makefile
-*.in
+**/Makefile.in
 verificarlo
 src/vfcwrapper/vfcwrapper.c
 configure

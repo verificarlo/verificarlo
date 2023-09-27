@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+
+import sys
+import re
+import argparse
+
+global_lut = {}
+'''
+Map each variable to its value
+'''
+
+reverse_lut = {}
+'''
+Map each variable contained in expressions to
+the list of variables it belongs
+'''
+
+var_regexp = re.compile(r'\${(?P<var>[^}{]+)}')
+subst_regexp = re.compile(r'@(?P<var>[^@]+)@')
+
+it = '#__TOKEN_TO_REPLACE__#'
+
+
+def unquote(s):
+    '''
+    Unquote the string
+    '''
+    if s.startswith("'") and s.endswith("'"):
+        return s[1:-1]
+    if s.startswith('"') and s.endswith('"'):
+        return s[1:-1]
+    return s
+
+
+def fill_reverse_table(identifier, value):
+    '''
+    Add an entry in the reverse lookup table 
+    for each variable in the identifier expression
+    '''
+    for var in var_regexp.findall(value):
+        reverse_lut[var] = reverse_lut.get(var, []) + [identifier]
+
+
+def build_global_table(args):
+    '''
+    Build the mapping between variables
+    and their expression
+    '''
+    with open(args.config_log, 'r', encoding='utf-8') as fi:
+        for line in fi:
+            if '=' in line:
+                line_spl = line.strip().split('=')
+                identifer = line_spl[0]
+                value = ''.join(line_spl[1:])
+                if identifer.isidentifier():
+                    global_lut[identifer] = unquote(value)
+                    fill_reverse_table(identifer, value)
+
+
+def recursive_expansion():
+    '''
+    Recursively expand variable until all variables are expanded
+    '''
+    to_replace = set(reverse_lut)
+    while to_replace:
+        to_subst = to_replace.pop()
+        variables = reverse_lut[to_subst]
+        for variable in variables:
+            expr = global_lut[variable]
+            if to_subst not in global_lut:
+                continue
+            global_lut[variable] = expr.replace(
+                f'${{{to_subst}}}', global_lut[to_subst])
+            fill_reverse_table(variable, global_lut[variable])
+
+
+def replace(args):
+    '''
+    Expand the variable @<var>@ by global_lut[<var>] (i.e. ${var})
+    '''
+    with open(args.input, 'r', encoding='utf-8') as fi:
+        with open(args.output, 'w', encoding='utf-8') as fo:
+            for line in fi:
+                matches = subst_regexp.findall(line)
+                if matches != []:
+                    for match in matches:
+                        line = line.replace(
+                            f'@{match}@', global_lut[match])
+                fo.write(line)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        'automake-expand', description='Expand automake variables')
+    parser.add_argument('--config-log', required=True,
+                        help='Name of the config.log file')
+    parser.add_argument('--input', required=True,
+                        help='Input filename where to expand')
+    parser.add_argument('--output', required=True, help='Output filename')
+    parser.add_argument('--verbose', action='store_true', help='Verbose mode')
+    args = parser.parse_args()
+    return args
+
+
+def main():
+    args = parse_args()
+    build_global_table(args)
+    recursive_expansion()
+
+    if args.verbose:
+        for arg, value in global_lut.items():
+            print(f'{arg}={value}')
+
+    replace(args)
+
+
+if __name__ == '__main__':
+    main()

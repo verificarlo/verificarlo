@@ -1,0 +1,6 @@
+-O0
+Test passed
+-O3
+Test passed
+-Ofast
+Test passed
