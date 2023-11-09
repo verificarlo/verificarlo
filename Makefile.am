@@ -6,7 +6,7 @@ SUBDIRS=src/
 
 dist_bin_SCRIPTS=verificarlo verificarlo-c verificarlo-f verificarlo-c++
 
-edit_script = $(SED) -e 's,%LIBDIR%,$(libdir),'g $(NULL)
+edit_script = $(SED) -e 's,%LIBDIR%,$(libdir),' -e 's,%INCLUDEDIR%,$(includedir),' $(NULL)
 
 verificarlo: verificarlo.in Makefile
 	$(AM_V_GEN)rm -f $@ $@.tmp && \

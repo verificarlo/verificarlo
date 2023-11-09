@@ -287,9 +287,8 @@ static void _noise_binary128(_Float128 *x, const int exp,
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
-  _Generic(*X, double                                                          \
-           : _noise_binary64, _Float128                                        \
-           : _noise_binary128)(X, EXP, RNG_STATE)
+  _Generic(*X, double: _noise_binary64, _Float128: _noise_binary128)(          \
+      X, EXP, RNG_STATE)
 
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
@@ -324,9 +323,9 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
 /* Generic functions that adds noise to A */
 /* The function is choosen depending on the type of X  */
 #define _INEXACT_BINARYN(X, A, CTX)                                            \
-  _Generic(X, double                                                           \
-           : _mcaint_inexact_binary64, _Float128                               \
-           : _mcaint_inexact_binary128)(A, CTX)
+  _Generic(X,                                                                  \
+      double: _mcaint_inexact_binary64,                                        \
+      _Float128: _mcaint_inexact_binary128)(A, CTX)
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the MCA operation. Operands
@@ -336,12 +335,12 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
  *******************************************************************/
 
 #define PERFORM_FMA(A, B, C)                                                   \
-  _Generic(A, float                                                            \
-           : interflop_fma_binary32, double                                    \
-           : interflop_fma_binary64, _Float128                                 \
-           : interflop_fma_binary128)(A, B, C)
+  _Generic(A,                                                                  \
+      float: interflop_fma_binary32,                                           \
+      double: interflop_fma_binary64,                                          \
+      _Float128: interflop_fma_binary128)(A, B, C)
 
-/* perform_ternary_op: applies the ternary operator (op) to (a), (b) and (c) */
+/* perform_ternary_op: applies the ternary operator (op) to (a) */
 /* and stores the result in (res) */
 #define PERFORM_UNARY_OP(op, res, a)                                           \
   switch (op) {                                                                \
@@ -383,7 +382,7 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
     logger_error("invalid operator %c", op);                                   \
   };
 
-/* Generic macro function that returns mca(A OP B) */
+/* Generic macro function that returns mca(OP(A)) */
 /* Functions are determined according to the type of X */
 #define _MCAINT_UNARY_OP(A, OP, CTX, X)                                        \
   do {                                                                         \
@@ -406,7 +405,7 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
     return (typeof(A))(_RES);                                                  \
   } while (0);
 
-/* Generic macro function that returns mca(A OP B) */
+/* Generic macro function that returns mca(OP(A,B)) */
 /* Functions are determined according to the type of X */
 #define _MCAINT_BINARY_OP(A, B, OP, CTX, X)                                    \
   do {                                                                         \
@@ -432,7 +431,7 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
     return (typeof(A))(_RES);                                                  \
   } while (0);
 
-/* Generic macro function that returns mca(A OP B OP C) */
+/* Generic macro function that returns mca(OP(A,B,C)) */
 /* Functions are determined according to the type of X */
 #define _MCAINT_TERNARY_OP(A, B, C, OP, CTX, X)                                \
   do {                                                                         \
@@ -508,10 +507,6 @@ static inline double _mcaint_binary64_binary_op(const double a, const double b,
 
 /* Performs mca(a qop b qop c) where a, b and c are binary64 values */
 /* Intermediate computations are performed with binary128 */
-// double _mcaint_binary64_ternary_op(const double a, const double b, const
-// double c,
-//                                 const mcaint_operations qop, void *context);
-
 static inline double _mcaint_binary64_ternary_op(const double a, const double b,
                                                  const double c,
                                                  const mcaint_operations qop,

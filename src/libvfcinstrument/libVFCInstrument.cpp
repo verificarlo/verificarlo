@@ -95,7 +95,7 @@ static Module *vfcwrapperM = nullptr;
 namespace {
 // Define an enum type to classify the floating points operations
 // that are instrumented by verificarlo
-enum Fops {
+enum FPOps {
   FOP_ADD,
   FOP_SUB,
   FOP_MUL,
@@ -307,7 +307,7 @@ struct VfclibInst : public ModulePass {
   /* it is built as: */
   /*  _ <size>x<type><operation> for vector */
   /*   _<type><operation> for scalar */
-  std::string getMCAFunctionName(Instruction *I, Fops opCode) {
+  std::string getMCAFunctionName(Instruction *I, FPOps opCode) {
     std::string functionName;
     std::string size = "";
 
@@ -537,7 +537,7 @@ struct VfclibInst : public ModulePass {
   }
 
   /* Returns the MCA function */
-  Function *getMCAFunction(Module &M, Instruction *I, Fops opCode) {
+  Function *getMCAFunction(Module &M, Instruction *I, FPOps opCode) {
     const std::string mcaFunctionName = getMCAFunctionName(I, opCode);
     Function *vfcwrapperF = vfcwrapperM->getFunction(mcaFunctionName);
 #if LLVM_VERSION_MAJOR < 9
@@ -563,7 +563,7 @@ struct VfclibInst : public ModulePass {
             caller->getFnAttribute("target-cpu"));
   }
 
-  Value *replaceWithMCACall(Module &M, Instruction *I, Fops opCode) {
+  Value *replaceWithMCACall(Module &M, Instruction *I, FPOps opCode) {
     if (not isValidInstruction(I)) {
       return nullptr;
     }
@@ -600,7 +600,12 @@ struct VfclibInst : public ModulePass {
 
   bool isFMAOperation(Instruction &I) {
     CallInst *CI = static_cast<CallInst *>(&I);
-    const std::string &name = CI->getCalledFunction()->getName().str();
+    if (CI->getCalledFunction() == nullptr)
+      return false;
+
+    const auto name = CI->getCalledFunction()->getName();
+    if (name.empty())
+      return false;
     if (name == "llvm.fmuladd.f32")
       return true;
     if (name == "llvm.fmuladd.f64")
@@ -625,7 +630,7 @@ struct VfclibInst : public ModulePass {
     return false;
   }
 
-  Fops mustReplace(Instruction &I) {
+  FPOps mustReplace(Instruction &I) {
     switch (I.getOpcode()) {
     case Instruction::FAdd:
       return FOP_ADD;
@@ -664,10 +669,10 @@ struct VfclibInst : public ModulePass {
 
   bool runOnBasicBlock(Module &M, BasicBlock &B) {
     bool modified = false;
-    std::set<std::pair<Instruction *, Fops>> WorkList;
+    std::set<std::pair<Instruction *, FPOps>> WorkList;
     for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
       Instruction &I = *ii;
-      Fops opCode = mustReplace(I);
+      FPOps opCode = mustReplace(I);
       if (opCode == FOP_IGNORE)
         continue;
       WorkList.insert(std::make_pair(&I, opCode));
@@ -675,7 +680,7 @@ struct VfclibInst : public ModulePass {
 
     for (auto p : WorkList) {
       Instruction *I = p.first;
-      Fops opCode = p.second;
+      FPOps opCode = p.second;
       if (VfclibInstVerbose)
         errs() << "Instrumenting" << *I << '\n';
       Value *value = replaceWithMCACall(M, I, opCode);

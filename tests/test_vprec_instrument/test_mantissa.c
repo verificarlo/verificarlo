@@ -13,8 +13,7 @@ static void print_double(double d) {
 
   printf("\t\t");
   for (int i = 63; i >= 0; i--)
-    (i == 63 || i == 52) ? printf("%lld ", bit(a, i))
-                         : printf("%lld", bit(a, i));
+    (i == 63 || i == 52) ? printf("%lu ", bit(a, i)) : printf("%lu", bit(a, i));
 }
 
 static void print_float(float f) {
@@ -22,7 +21,7 @@ static void print_float(float f) {
 
   printf("\t\t");
   for (int i = 31; i >= 0; i--)
-    (i == 31 || i == 23) ? printf("%d ", bit(a, i)) : printf("%d", bit(a, i));
+    (i == 31 || i == 23) ? printf("%u ", bit(a, i)) : printf("%d", bit(a, i));
 }
 
 static void print_log(double *d, float *f, char *log) {

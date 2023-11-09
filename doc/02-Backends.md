@@ -7,6 +7,11 @@
   - [Bitmask Backend (libinterflop\_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
   - [Cancellation Backend (libinterflop\_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
   - [VPREC Backend (libinterflop\_vprec.so)](#vprec-backend-libinterflop_vprecso)
+  - [PRISM Backend](#prism-backend)
+    - [Dispatching Modes](#dispatching-modes)
+    - [Debug Options](#debug-options)
+    - [Architecture Support](#architecture-support)
+    - [Usage Example](#usage-example)
 
 Once your program is compiled with Verificarlo, it can be instrumented with
 different floating-point backends.
@@ -427,4 +432,62 @@ The following example shows the computation with single precision and the simula
    (2.903225*2.903225)*16384.000000 = inf
 ```
 
+### PRISM Backend
+
+The PRISM backend implements Stochastic Rounding [Fasi, 2020](https://ieeexplore.ieee.org/document/9387551) and Up & Down rounding [TBD].
+
+It is built upon the [PRISM](https://yohanchatelain/prism.git) library and utilizes the [Highway](https://github.com/google/highway.git) library for vectorized operations.
+
+Unlike other backends, the PRISM backend does not conform to the interflop interface or support dynamic loading. Instead, it must be specified during instrumentation using the `--prism-backend=MODE` option, where `MODE` can be:
+
+* `up-down`: Implements Up & Down rounding.
+* `sr`: Implements Stochastic Rounding.
+
+The PRISM backend fully instruments vector instructions without serializing them, enabling better performance. However, challenges may arise when user code and backend code are compiled with differing architecture flags (e.g., `--march=native`). To address this, the backend provides two dispatching modes:
+
+#### Dispatching Modes
+
+1. **Static Dispatch (`--prism-backend-dispatch=static`)**:
+   - Passes vector registers by value.
+   - User code and the PRISM backend must be compiled with identical architecture flags for proper functionality.
+   - Vector instructions are not instrumented if architecture mismatches occur.
+
+2. **Dynamic Dispatch (`--prism-backend-dispatch=dynamic`)**:
+   - Passes vectors by pointer, offering better flexibility.
+   - Leverages Highway’s dynamic dispatching to select the best implementation based on the architecture (e.g., AVX, AVX2, AVX-512).
+   - While dynamic dispatch incurs overhead from pointer passing, it mitigates this with vectorized implementations.
+
+#### Debug Options 
+
+The PRISM backend provides several debug options:
+
+* `getoperands`: Outputs the operands involved in vectorized operations.
+* `abi`: Prints ABI compatibility checks between the caller and callee, ensuring proper functioning.
+* `targetfeatures`: Displays the features of the target architecture.
+
+#### Architecture Support 
+
+Although it should support all architectures supported by [Highay](https://google.github.io/highway/en/master/README.html#targets), the PRISM backend has only been tested on :
+- x86:
+  - SSE2
+  - SSE3
+  - SSE4
+  - AVX2
+  - AVX3
+
+#### Usage Example
+
+To use the PRISM backend with stochastic rounding and dynamic dispatch:
+
+```bash
+$ verificarlo-c --prism-backend=sr --prism-backend-dispatch=dynamic" test.c -o test
+$ ./test
+```
+
+For up & down rounding with static dispatch:
+
+```bash
+$ verificarlo-c --prism-backend=up-down --prism-backend-dispatch=static" test.c -o test
+$ ./test
+```
 

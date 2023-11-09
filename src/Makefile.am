@@ -1,2 +1,2 @@
-SUBDIRS=common libvfcfuncinstrument libvfcinstrument vfcwrapper backends interflop-stdlib
+SUBDIRS=common libvfcfuncinstrument libvfcinstrument libvfcinstrumentprism vfcwrapper backends interflop-stdlib
 include_HEADERS=common/vfc_probes.h
