@@ -23,8 +23,8 @@ from __future__ import print_function
 
 import argparse
 import os
-import sys
 import subprocess
+import sys
 import tempfile
 
 PACKAGE_STRING = "@PACKAGE_STRING@"
@@ -35,6 +35,8 @@ libinterflop_stdlib_include = "@INTERFLOP_INCLUDEDIR@"
 libinterflop_stdlib_lib = "@INTERFLOP_LIBDIR@"
 libvfcinstrument = LIBDIR + "/libvfcinstrument.so"
 libvfcfuncinstrument = LIBDIR + "/libvfcfuncinstrument.so"
+libvfcinstrumentprism = LIBDIR + "/libvfcinstrumentprism.so"
+libprismdir = "%INCLUDEDIR%"
 mcalib_options = "-rpath {0} -L {0}".format(LIBDIR)
 mcalib_includes = PROJECT_ROOT + "/../include/"
 vfcwrapper = mcalib_includes + "vfcwrapper.c"
@@ -55,6 +57,30 @@ linkers = {"clang": clang, "flang": flang, "clang++": clangxx}
 default_linker = "clang"
 temp_files_set = set()
 march_flag = "@MARCH_FLAG@"
+
+
+class prism_modes:
+    up_down = "up-down"
+    stochastic_rounding = "stochastic-rounding"
+
+
+class PrismModeAction(argparse.Action):
+    _PRISM_MODES_ALIASES = {
+        "ud": prism_modes.up_down,
+        "sr": prism_modes.stochastic_rounding,
+    }
+
+    PRISM_MODES = list(_PRISM_MODES_ALIASES.keys()) + list(
+        _PRISM_MODES_ALIASES.values()
+    )
+
+    def __call__(self, parser, namespace, values, option_string):
+        arg = values
+        if arg in PrismModeAction._PRISM_MODES_ALIASES:
+            value = PrismModeAction._PRISM_MODES_ALIASES.get(arg)
+        else:
+            value = arg
+        setattr(namespace, self.dest, value)
 
 
 class NoPrefixParser(argparse.ArgumentParser):
@@ -131,9 +157,9 @@ def parse_extra_args(args):
     return sources, " ".join(options), " ".join(libraries)
 
 
-def shell(cmd):
+def shell(cmd, verbose=False):
     try:
-        if args.show_cmd:
+        if verbose:
             print(cmd)
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError:
@@ -148,92 +174,158 @@ def compile_vfcwrapper(source, output, args, emit_llvm=False):
     extra_args += "-DINST_FMA " if args.inst_fma else ""
     extra_args += "-DINST_CAST " if args.inst_cast else ""
 
+    emit_format = get_emit_format(args)
     internal_options = (
-        " -S -emit-llvm " if emit_llvm else ""
+        f" {emit_format} -emit-llvm " if emit_llvm else ""
     ) + f" -c -Wno-varargs -I {mcalib_includes} "
     cmd = (
         f"{clang} -O3 {march_flag} -g {internal_options} {extra_args} "
         f"{source} -I{libinterflop_stdlib_include} -o {output} "
     )
-    shell(cmd)
+    shell(cmd, verbose=args.show_cmd)
 
 
 def linker_mode(sources, options, libraries, output, args):
-    vfcwrapper_o = get_tmp_name(".vfcwrapper.", ".o")
-
-    compile_vfcwrapper(vfcwrapper, vfcwrapper_o, args)
-
-    with tempfile.NamedTemporaryFile(mode="w+") as f:
-        sources = " ".join([os.path.splitext(s)[0] + ".o" for s in sources])
-        interflop_libs = " ".join(
-            ["-linterflop_stdlib", "-linterflop_hashmap", "-linterflop_logger"]
-        )
-        interflop_stdlib_flags = f" -L{libinterflop_stdlib_lib} {interflop_libs} "
-
-        # Do not make Position Indenpendant Executable (PIE)
-        # Force no-pie when using ddebug and inst_func; since we use addresses to
-        # indentify the instrumented instructions, we require that the .text segment
-        # is loaded a a statically known address.
-        if args.ddebug or args.inst_func:
-            options += " -no-pie "
-
-        if args.static:
-            cmd = (
-                f"{output} {sources} {options} {libraries} {vfcwrapper_o} "
-                f" -static -lgmp -lm -ldl {interflop_stdlib_flags} "
-            )
+    if args.prism_backend:
+        vfcwrapper_o = ""
+        if args.prism_backend_dispatch == "dynamic":
+            libprism = "-lprism-dynamic"
+        elif args.prism_backend_dispatch == "static":
+            libprism = "-lprism-static"
         else:
-            cmd = (
-                f"{output} {sources} {options} {libraries} {vfcwrapper_o} "
-                f" {mcalib_options} -ldl {interflop_stdlib_flags} "
-            )
+            fail("Invalid dispatching method for PRISM backend")
+            libprism = ""
+        if args.prism_backend_debug:
+            libprism += "-dbg"
+        libraries += f" {libprism} -lhwy -lstdc++ "
+    else:
+        vfcwrapper_o = get_tmp_filename(
+            ".vfcwrapper.", ".o", args, force_delete=True
+        ).name
+        compile_vfcwrapper(vfcwrapper, vfcwrapper_o, args)
 
-        f.write(cmd)
-        f.flush()
-        linker = linkers[args.linker]
-        if args.show_cmd:
-            print(f"{linker} {cmd}")
-        shell(f"{linker} @{f.name}")
+    sources = " ".join([os.path.splitext(s)[0] + ".o" for s in sources])
+    interflop_libs = " ".join(
+        ["-linterflop_stdlib", "-linterflop_hashmap", "-linterflop_logger"]
+    )
+    interflop_stdlib_flags = f" -L{libinterflop_stdlib_lib} {interflop_libs} "
+
+    # Do not make Position Indenpendant Executable (PIE)
+    # Force no-pie when using ddebug and inst_func; since we use addresses to
+    # indentify the instrumented instructions, we require that the .text segment
+    # is loaded a a statically known address.
+    if args.ddebug or args.inst_func:
+        options += " -no-pie "
+
+    if args.static:
+        cmd = (
+            f"{output} {sources} {options} {libraries} {vfcwrapper_o} "
+            f" -static -lgmp -lm -ldl {interflop_stdlib_flags} "
+        )
+    else:
+        cmd = (
+            f"{output} {sources} {options} {libraries} {vfcwrapper_o} "
+            f" {mcalib_options} -ldl {interflop_stdlib_flags} "
+        )
+
+    linker = linkers[args.linker]
+    shell(f"{linker} {cmd}", verbose=args.show_cmd)
 
 
 # Do not instrument
 def compile_only(sources, options, output, args):
     compiler = linkers[args.linker]
     sources = " ".join(sources)
-    shell(f"{compiler} {sources} {options} {output}")
+    shell(f"{compiler} {sources} {options} {output}", verbose=args.show_cmd)
 
 
-def get_tmp_name(prefix, suffix):
-    """Return a temporary file name with the given prefix and suffix. (do not create the file)"""
-    return tempfile.mktemp(suffix=suffix, prefix=prefix, dir="")
-
-
-def get_tmp_filename(prefix, suffix, args):
+def get_tmp_filename(prefix, suffix, args, force_delete=False):
     filename_ext = os.path.basename(prefix)
     basename = os.path.splitext(filename_ext)[0]
     abs_prefix = os.getcwd() + os.sep + basename + "."
+    delete = not args.save_temps or force_delete
     tmp = tempfile.NamedTemporaryFile(
-        mode="w+b", prefix=abs_prefix, suffix=suffix, delete=not args.save_temps
+        mode="w+b", prefix=abs_prefix, suffix=suffix, delete=delete
     )
     temp_files_set.add(tmp)
     return tmp
 
 
+def get_llvm_pass_manager():
+    if 13 <= int(llvm_version) < 17:
+        return "-enable-new-pm=0"
+    return ""
+
+
+def get_emit_format(args):
+    """return the opt option to emit llvm ir bytecode or plain text"""
+    return " -S " if args.save_temps else ""
+
+
+# Apply function's instrumentation pass
+def apply_function_instrumentation_pass(ir, ins, args):
+    enable_new_pm = get_llvm_pass_manager()
+    emit_format = get_emit_format(args)
+    shell(
+        f"{opt} {emit_format} {enable_new_pm} -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}",
+        verbose=args.show_cmd,
+    )
+
+
+# Apply MCA instrumentation pass
+def apply_mca_instrumentation_pass(
+    ir, ins, vfcwrapper_ir, extra_args, selectfunction, args
+):
+    if args.prism_backend:
+        vfclibinst_prism_dynamic_ll = os.path.join(libprismdir, "prism-dynamic.ll")
+        vfclibinst_prism_static_ll = os.path.join(libprismdir, "prism-static.ll")
+        libvfcinst = libvfcinstrumentprism
+        extra_args += f" -vfclibinst-mode {args.prism_backend} "
+        extra_args += f" -vfclibinst-dispatch {args.prism_backend_dispatch} "
+        extra_args += f" -vfclibinst-prism-static-ir-file {vfclibinst_prism_static_ll} "
+        extra_args += (
+            f" -vfclibinst-prism-dynamic-ir-file {vfclibinst_prism_dynamic_ll} "
+        )
+        if args.prism_backend_debug:
+            extra_args += " -vfclibinst-debug "
+            for debug in args.prism_backend_debug:
+                if debug:
+                    extra_args += f" -vfclibinst-debug-{debug} "
+    else:
+        libvfcinst = libvfcinstrument
+        extra_args += f" -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} "
+
+    enable_new_pm = get_llvm_pass_manager()
+    emit_format = get_emit_format(args)
+    shell(
+        (
+            f"{opt} {emit_format} {enable_new_pm}  -load {libvfcinst} "
+            f" -vfclibinst {extra_args} {selectfunction} "
+            f" {ir.name} -o {ins.name}"
+        ),
+        verbose=args.show_cmd,
+    )
+
+
 def compiler_mode(sources, options, output, args):
     extra_args = "-static " if args.static else "-fPIC "
+    ir_ext = "ll" if args.emit_llvm or args.save_temps else "bc"
 
-    vfcwrapper_ir = get_tmp_filename(".vfcwrapper", ".ll", args)
-    compile_vfcwrapper(vfcwrapper, vfcwrapper_ir.name, args, emit_llvm=True)
+    if not args.prism_backend:
+        vfcwrapper_ir = get_tmp_filename(".vfcwrapper", f".{ir_ext}", args)
+        compile_vfcwrapper(vfcwrapper, vfcwrapper_ir.name, args, emit_llvm=True)
+    else:
+        vfcwrapper_ir = None
 
     for source in sources:
         basename = os.path.splitext(source)[0]
-        ir = get_tmp_filename(basename, ".1.ll", args)
-        ins = get_tmp_filename(basename, ".2.ll", args)
+        ir = get_tmp_filename(basename, f".1.{ir_ext}", args)
+        ins = get_tmp_filename(basename, f".2.{ir_ext}", args)
 
         compiler = linkers[args.linker]
         include = f" -I {mcalib_includes} "
 
-        debug = "-g" if args.inst_func or args.ddebug else ""
+        debug = " -g " if args.inst_func or args.ddebug else ""
 
         if is_assembly(source):
             if not output:
@@ -244,87 +336,68 @@ def compiler_mode(sources, options, output, args):
             continue
 
         # Compile to ir (fortran uses flang, c uses clang)
+        emit_format = get_emit_format(args)
         shell(
-            f"{compiler} -c -S {debug} {source} {include} -emit-llvm {COMPILE_EXTRA_FLAGS} {options} -o {ir.name}"
+            f"{compiler} -c {emit_format} -emit-llvm {debug} {source} {include} {COMPILE_EXTRA_FLAGS} {options} -o {ir.name}",
+            verbose=args.show_cmd,
         )
 
         selectfunction = ""
         if args.function:
-            selectfunction = "-vfclibinst-function " + args.function
+            selectfunction = " -vfclibinst-function " + args.function
         else:
             if args.include_file:
-                selectfunction = "-vfclibinst-include-file " + args.include_file
+                selectfunction = " -vfclibinst-include-file " + args.include_file
             if args.exclude_file:
                 selectfunction += " -vfclibinst-exclude-file " + args.exclude_file
+
+        if args.inst_func:
+            # Apply function's instrumentation pass
+            apply_function_instrumentation_pass(ir, ins, args)
+            ir = ins
+            ins = get_tmp_filename(basename, f".3.{ir_ext}", args)
 
         extra_args = ""
 
         # Activate verbose mode
         if args.verbose:
-            extra_args += "-vfclibinst-verbose "
+            extra_args += " -vfclibinst-verbose "
 
         # Activate fcmp instrumentation
         if args.inst_fcmp:
-            extra_args += "-vfclibinst-inst-fcmp "
+            extra_args += " -vfclibinst-inst-fcmp "
 
         # Activate fma instrumentation
         if args.inst_fma:
-            extra_args += "-vfclibinst-inst-fma"
+            extra_args += " -vfclibinst-inst-fma "
 
         # Activate cast instrumentation
         if args.inst_cast:
-            extra_args += "-vfclibinst-inst-cast"
-
-        if args.inst_func:
-            # Apply function's instrumentation pass
-            if 13 <= int(llvm_version) < 17:
-                shell(
-                    f"{opt} -S -enable-new-pm=0  -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}"
-                )
-            else:
-                shell(
-                    f"{opt} -S -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}"
-                )
-            ir = ins
-            ins = get_tmp_filename(basename, ".3.ll", args)
+            extra_args += " -vfclibinst-inst-cast "
 
         # Apply MCA instrumentation pass
-        # For LLVM >= 13 we fallback to the legacy pass manager
-        if 13 <= int(llvm_version) < 17:
-            shell(
-                (
-                    f"{opt} -S -enable-new-pm=0  -load {libvfcinstrument} "
-                    f" -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} "
-                    f" -vfclibinst {extra_args} {selectfunction} "
-                    f" {ir.name} -o {ins.name}"
-                )
-            )
-        else:
-            shell(
-                (
-                    f"{opt} -S -load {libvfcinstrument} "
-                    f" -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} "
-                    f" -vfclibinst {extra_args} {selectfunction} "
-                    f" {ir.name} -o {ins.name}"
-                )
-            )
+        apply_mca_instrumentation_pass(
+            ir, ins, vfcwrapper_ir, extra_args, selectfunction, args
+        )
 
-        if not output:
-            # Use a temporary file to store the object
-            # to avoid race conditions
-            cmd_output = " -o " + basename + ".o"
-        else:
-            cmd_output = output
+        cmd_output = output if output else " -o " + basename + ".o"
 
         if not args.emit_llvm:
             # Produce object file
-            shell(f"{compiler} -c {cmd_output} {ins.name} {options}")
+            shell(
+                f"{compiler} -c {cmd_output} {ins.name} {options}",
+                verbose=args.show_cmd,
+            )
         else:
             # Produce a bc file with the wrapper bc linked in.
-            shell(f"{llvm_link} {ins.name} {vfcwrapper_ir.name} {cmd_output}")
+            vfcwrapper_ir_name = vfcwrapper_ir.name if vfcwrapper_ir else ""
+            shell(
+                f"{llvm_link} {ins.name} {vfcwrapper_ir_name} {cmd_output}",
+                verbose=args.show_cmd,
+            )
 
 
-if __name__ == "__main__":
+def parse_args():
     parser = NoPrefixParser(
         description="Compiles a program replacing floating point operation with calls to the mcalib (Montecarlo Arithmetic)."
     )
@@ -373,17 +446,45 @@ if __name__ == "__main__":
         "--linker",
         choices=linkers.keys(),
         default=default_linker,
-        help="linker to use, {dl} by default".format(dl=default_linker),
+        help=f"linker to use, {default_linker} by default",
     )
     parser.add_argument(
         "--emit-llvm",
         action="store_true",
         help="emit an LLVM bitcode with the instrumentation built-in",
     )
+    parser.add_argument(
+        "--prism-backend",
+        action=PrismModeAction,
+        choices=PrismModeAction.PRISM_MODES,
+        type=str,
+        help=f"PRISM backend. (modes: {', '.join(PrismModeAction.PRISM_MODES)})",
+    )
+    parser.add_argument(
+        "--prism-backend-dispatch",
+        action="store",
+        choices=["static", "dynamic"],
+        default="dynamic",
+        help="Set the dispatching method for PRISM backend. Use 'dynamic' for portable code or 'static' for ISA-specific code (default: dynamic)",
+    )
+    parser.add_argument(
+        "--prism-backend-debug",
+        action="store",
+        nargs="*",
+        default=[],
+        choices=["getoperands", "abi", "targetfeatures", ""],
+        help="Enable prism backend instrumentation debug modes",
+    )
 
     args, other = parser.parse_known_args()
 
     sources, llvm_options, libraries = parse_extra_args(other)
+
+    return args, sources, llvm_options, libraries
+
+
+def main():
+    args, sources, llvm_options, libraries = parse_args()
 
     # check input files
     if (args.E or args.S or args.c) and len(sources) > 1 and args.o:
@@ -394,6 +495,8 @@ if __name__ == "__main__":
         fail("Cannot use --function and --include-file/--exclude-file together")
 
     output = "-o " + args.o if args.o else ""
+
+    llvm_options += " -Wno-unused-command-line-argument "
 
     if args.E:
         llvm_options += " -E "
@@ -410,3 +513,7 @@ if __name__ == "__main__":
             fail("no input files")
         compiler_mode(sources, llvm_options, "", args)
         linker_mode(sources, llvm_options, libraries, output, args)
+
+
+if __name__ == "__main__":
+    main()

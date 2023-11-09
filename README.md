@@ -136,6 +136,7 @@ Verificarlo includes different numerical backends. Please refer to the [backends
   * [Bitmask Backend (libinterflop_bitmask.so)](doc/02-Backends.md#bitmask-backend-libinterflop_bitmaskso)
   * [Cancellation Backend (libinterflop_cancellation.so)](doc/02-Backends.md#cancellation-backend-libinterflop_cancellationso)
   * [VPREC Backend (libinterflop_vprec.so)](doc/02-Backends.md#vprec-backend-libinterflop_vprecso)
+  * [PRISM Backend](doc/02-Backends.md#prism-backend)
 
 ## Inclusion/exclusion options
 To include only certain parts of the code in the analysis or exclude parts of

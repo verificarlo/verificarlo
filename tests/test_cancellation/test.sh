@@ -5,6 +5,7 @@ set -e
 SEED=5929
 
 export VFC_BACKENDS_SILENT_LOAD="True"
+export VFC_BACKENDS_LOGGER="True"
 
 parallel --header : "verificarlo-c test_{type}.c -o test_{type}" ::: type float double
 

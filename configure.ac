@@ -169,7 +169,7 @@ fi
 
 # Checks if clang support -march=native
 AC_MSG_CHECKING([if $CLANG supports -march=native])
-doit='$CLANG -march=native -E - </dev/null'
+doit='$CLANG -march=native -E - </dev/null >/dev/null 2>&1'
 if AC_TRY_EVAL(doit); then
   AC_DEFINE_UNQUOTED([MARCH_FLAG], ["-march=native"], [The -march=native flag])
   AC_SUBST(MARCH_FLAG, "-march=native")
@@ -179,8 +179,6 @@ else
   AC_SUBST(MARCH_FLAG, "-mtune=native")
   AC_MSG_RESULT([no])
 fi
-
-
 
 # Checks for library functions.
 AC_FUNC_ALLOCA
@@ -230,6 +228,7 @@ AC_DEFINE_UNQUOTED([PYTHON_INSTALL_FLAGS], ["$PYTHON_INSTALL_FLAGS"], [Python in
 AC_SUBST(PYTHON_INSTALL_FLAGS, $PYTHON_INSTALL_FLAGS)
 
 AC_CONFIG_SUBDIRS([src/interflop-stdlib])
+AC_CONFIG_SUBDIRS([src/backends/prism])
 
 AX_WARNINGS()
 AX_LTO()
@@ -242,6 +241,7 @@ AC_CONFIG_FILES([Makefile
                  src/common/Makefile
                  src/libvfcinstrument/Makefile
                  src/libvfcfuncinstrument/Makefile
+                 src/libvfcinstrumentprism/Makefile
                  src/vfcwrapper/Makefile
                  src/backends/Makefile
                  tests/Makefile
