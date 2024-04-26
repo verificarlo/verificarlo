@@ -52,7 +52,7 @@
 #define CALL_OP_SIZE 4
 #endif
 
-#if @LLVM_VERSION_MAJOR@ <= 7
+#if @LLVM_VERSION_MAJOR@ <= 8
 #define ADDR2LINE_BIN "addr2line"
 #define ADDR2LINE_PATH "/usr/bin/addr2line"
 #else
@@ -77,7 +77,7 @@ typedef double double16 __attribute__((ext_vector_type(16)));
 
 typedef struct interflop_backend_interface_t (*interflop_init_t)(void *context);
 
-typedef void (*interflop_pre_init_t)(interflop_panic_t panic, FILE *stream, 
+typedef void (*interflop_pre_init_t)(interflop_panic_t panic, FILE *stream,
                                      void **context);
 typedef void (*interflop_cli_t)(int argc, char **argv, void *context);
 typedef void (*interflop_panic_t)(const char *msg);
@@ -184,8 +184,8 @@ void ddebug_generate_inclusion(char *dd_generate_path, vfc_hashmap_t map) {
                  (void *)(get_value_at(map->items, i) - CALL_OP_SIZE));
         snprintf(executable, 64, "/proc/%d/exe", getppid());
         dup2(output, 1);
-        execlp(ADDR2LINE_BIN, ADDR2LINE_PATH,
-               "-fpaCs", "-e", executable, addr, NULL);
+        execlp(ADDR2LINE_BIN, ADDR2LINE_PATH, "-fpaCs", "-e", executable, addr,
+               NULL);
         logger_error("error running " ADDR2LINE_BIN);
       } else {
         int status;
@@ -339,25 +339,15 @@ void *load_function(const char *token, void *handle, const char *function) {
 
 pid_t get_tid() { return syscall(__NR_gettid); }
 
-void _vfc_inf_handler(void) {
+void _vfc_inf_handler(void) {}
 
-}
+void _vfc_nan_handler(void) {}
 
-void _vfc_nan_handler(void) {
+void _vfc_cancellation_handler(int unused) {}
 
-}
+void _vfc_denormal_handler(void) {}
 
-void _vfc_cancellation_handler(int unused) {
-
-}
-
-void _vfc_denormal_handler(void) {
-
-}
-
-void _vfc_floatmax_handler(void) {
-
-}
+void _vfc_floatmax_handler(void) {}
 
 void vfc_set_handlers(const char *token, void *handle) {
 
@@ -378,6 +368,7 @@ void vfc_set_handlers(const char *token, void *handle) {
   set_handler("strtol", _vfc_strtol);
   set_handler("strtod", _vfc_strtod);
   set_handler("strcpy", strcpy);
+  set_handler("strncpy", strncpy);
   set_handler("fclose", fclose);
   set_handler("fgets", fgets);
   set_handler("strtok_r", strtok_r);
@@ -431,6 +422,7 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   interflop_set_handler("strtol", _vfc_strtol);
   interflop_set_handler("strtod", _vfc_strtod);
   interflop_set_handler("strcpy", strcpy);
+  interflop_set_handler("strncpy", strncpy);
   interflop_set_handler("fclose", fclose);
   interflop_set_handler("fgets", fgets);
   interflop_set_handler("strtok_r", strtok_r);

@@ -1,22 +1,13 @@
 #!/bin/bash
 set -e
 
-# for EXP in FLOAT FLOAT_POW2 DOUBLE DOUBLE_POW2; do
-#   verificarlo-c -D${EXP} -O0 rr_mode.c -o rr_mode_${EXP,,}
-# done
+experiments=(FLOAT FLOAT_POW2 DOUBLE DOUBLE_POW2)
+precisions=("--precision-binary32=24" "--precision-binary64=53")
 
-parallel --header : "verificarlo-c -D{EXP} -O0 rr_mode.c -o rr_mode_{EXP}" ::: EXP FLOAT FLOAT_POW2 DOUBLE DOUBLE_POW2
-exit 1
+parallel --header : "make --silent exp={exp}" ::: exp ${experiments[@]}
 
-rm -f run_parallel
-export BACKEND=libinterflop_mca.so
-for PREC in "--precision-binary32=24" "--precision-binary64=53"; do
-  echo Testing $EXP with $BACKEND
-  BIN=$PWD/rr_mode_${EXP}
-  echo "./compute_error.sh ${BACKEND} ${EXP} ${PREC} ${BIN}" >>run_parallel
-done
-
-parallel -j $(nproc) <run_parallel
+backends=libinterflop_mca.so
+parallel -j $(nproc) --header : "./compute_error.sh ${backends} {exp} {prec} ${PWD}/rr_mode_{exp} " ::: exp ${experiments[@]} ::: prec ${precisions[@]}
 
 cat >check_status.py <<HERE
 import sys

@@ -34,6 +34,8 @@
 extern "C" {
 #endif
 
+/* Display the debug message */
+void logger_debug(const char *fmt, ...);
 /* Display the info message */
 void logger_info(const char *fmt, ...);
 /* Display the warning message */
@@ -41,6 +43,8 @@ void logger_warning(const char *fmt, ...);
 /* Display the error message */
 void logger_error(const char *fmt, ...);
 
+/* Display the debug message */
+void vlogger_debug(const char *fmt, va_list argp);
 /* Display the info message */
 void vlogger_info(const char *fmt, va_list argp);
 /* Display the warning message */

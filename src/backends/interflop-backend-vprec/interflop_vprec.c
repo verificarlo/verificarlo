@@ -396,7 +396,7 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
 #define PERFORM_FMA(A, B, C)                                                   \
   _Generic(A, float                                                            \
            : interflop_fma_binary32, double                                    \
-           : interflop_fma_binary64, __float128                                \
+           : interflop_fma_binary64, _Float128                                 \
            : interflop_fma_binary128)(A, B, C)
 
 /* perform_binary_op: applies the binary operator (op) to (a) and (b) */
@@ -434,7 +434,6 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
 float _vprec_round_binary32(float a, char is_input, void *context,
                             int binary32_range, int binary32_precision) {
   vprec_context_t *currentContext = (vprec_context_t *)context;
-
   /* test if 'a' is a special case */
   if (!isfinite(a)) {
     return a;
@@ -557,18 +556,23 @@ static inline float _vprec_binary32_binary_op(float a, float b,
   vprec_context_t *ctx = (vprec_context_t *)context;
   float res = 0;
 
+  logger_debug("[Inputs] binary32: a=%+.6a b=%+.6a op=%c\n", a, b, op);
+
   if ((ctx->mode == vprecmode_full) || (ctx->mode == vprecmode_ib)) {
     a = _vprec_round_binary32(a, 1, context, ctx->binary32_range,
                               ctx->binary32_precision);
     b = _vprec_round_binary32(b, 1, context, ctx->binary32_range,
                               ctx->binary32_precision);
+    logger_debug("[Round ] binary32: a=%+.6a b=%+.6a op=%c\n", a, b, op);
   }
 
   perform_binary_op(op, res, a, b);
+  logger_debug("[Result] binary32: res=%.6a\n", res);
 
   if ((ctx->mode == vprecmode_full) || (ctx->mode == vprecmode_ob)) {
     res = _vprec_round_binary32(res, 0, context, ctx->binary32_range,
                                 ctx->binary32_precision);
+    logger_debug("[Round ] binary32: res=%+.6a\n", res);
   }
 
   return res;
@@ -579,19 +583,23 @@ static inline double _vprec_binary64_binary_op(double a, double b,
                                                void *context) {
   vprec_context_t *ctx = (vprec_context_t *)context;
   double res = 0;
+  logger_debug("[Inputs] binary64: a=%+.13a b=%+.13a op=%c\n", a, b, op);
 
   if ((ctx->mode == vprecmode_full) || (ctx->mode == vprecmode_ib)) {
     a = _vprec_round_binary64(a, 1, context, ctx->binary64_range,
                               ctx->binary64_precision);
     b = _vprec_round_binary64(b, 1, context, ctx->binary64_range,
                               ctx->binary64_precision);
+    logger_debug("[Round ] binary64: a=%+.13a b=%+.13a op=%c\n", a, b, op);
   }
 
   perform_binary_op(op, res, a, b);
+  logger_debug("[Result] binary64: res=%.13a\n", res);
 
   if ((ctx->mode == vprecmode_full) || (ctx->mode == vprecmode_ob)) {
     res = _vprec_round_binary64(res, 0, context, ctx->binary64_range,
                                 ctx->binary64_precision);
+    logger_debug("[Round ] binary64: res=%+.13a\n", res);
   }
 
   return res;
@@ -755,25 +763,26 @@ const char *INTERFLOP_VPREC_API(get_backend_version)(void) {
 }
 
 void _vprec_check_stdlib() {
-  INTERFLOP_CHECK_IMPL(malloc);
-  INTERFLOP_CHECK_IMPL(fopen);
-  INTERFLOP_CHECK_IMPL(strcmp);
-  INTERFLOP_CHECK_IMPL(strcasecmp);
-  INTERFLOP_CHECK_IMPL(strtol);
-  INTERFLOP_CHECK_IMPL(getenv);
-  INTERFLOP_CHECK_IMPL(fprintf);
-  INTERFLOP_CHECK_IMPL(strcpy);
-  INTERFLOP_CHECK_IMPL(fclose);
-  INTERFLOP_CHECK_IMPL(gettid);
-  INTERFLOP_CHECK_IMPL(strerror);
-  INTERFLOP_CHECK_IMPL(sprintf);
-  INTERFLOP_CHECK_IMPL(vwarnx);
-  INTERFLOP_CHECK_IMPL(vfprintf);
-  INTERFLOP_CHECK_IMPL(exit);
-  INTERFLOP_CHECK_IMPL(strtok_r);
-  INTERFLOP_CHECK_IMPL(fgets);
-  INTERFLOP_CHECK_IMPL(free);
   INTERFLOP_CHECK_IMPL(calloc);
+  INTERFLOP_CHECK_IMPL(exit);
+  INTERFLOP_CHECK_IMPL(fclose);
+  INTERFLOP_CHECK_IMPL(fgets);
+  INTERFLOP_CHECK_IMPL(fopen);
+  INTERFLOP_CHECK_IMPL(fprintf);
+  INTERFLOP_CHECK_IMPL(free);
+  INTERFLOP_CHECK_IMPL(getenv);
+  INTERFLOP_CHECK_IMPL(gettid);
+  INTERFLOP_CHECK_IMPL(malloc);
+  INTERFLOP_CHECK_IMPL(sprintf);
+  INTERFLOP_CHECK_IMPL(strcasecmp);
+  INTERFLOP_CHECK_IMPL(strcmp);
+  INTERFLOP_CHECK_IMPL(strcpy);
+  INTERFLOP_CHECK_IMPL(strncpy);
+  INTERFLOP_CHECK_IMPL(strerror);
+  INTERFLOP_CHECK_IMPL(strtok_r);
+  INTERFLOP_CHECK_IMPL(strtol);
+  INTERFLOP_CHECK_IMPL(vfprintf);
+  INTERFLOP_CHECK_IMPL(vwarnx);
 }
 
 /* allocate the context */

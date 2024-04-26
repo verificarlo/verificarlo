@@ -19,7 +19,11 @@ AC_ARG_WITH([interflop-stdlib],
 if test "x$with_interflop_stdlib" = "xno"; then
    AC_MSG_ERROR([Could not find interflop-stdlib library])
 elif test "x$with_interflop_stdlib" = "xyes"; then
-   with_interflop_stdlib_path="$ac_default_prefix"
+   if test "x$prefix" != "xNONE"; then
+      with_interflop_stdlib_path="$prefix"
+   else
+      with_interflop_stdlib_path="$ac_default_prefix"
+   fi
 else
    with_interflop_stdlib_path="$with_interflop_stdlib"
 fi

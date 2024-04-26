@@ -1,20 +1,22 @@
 #!/bin/bash
 #set -e
 
+check_status() {
+  if [[ $? != 0 ]]; then
+    echo "Error"
+    exit 1
+  fi
+}
+
 export VFC_BACKENDS_SILENT_LOAD=True
 export VFC_BACKENDS_LOGGER=False
 status=0
 
 parallel --header : "verificarlo-c -O0 -DREAL={type} test.c -o test_{type}" ::: type float double
+check_status
 
-# rm -f run_parallel
-# for dtype in "float" "double"; do
-#   for sparsity in 1 0.9 0.5 0.25 0.1 0.01; do
-#     echo "./compute_error.sh ${PWD}/test_${dtype} ${sparsity}" >>run_parallel
-#   done
-# done
-
-parallel -j $(nproc) --header : ./compute_error.sh test_{type} {sparsity} ::: type float double ::: sparsity 1 0.9 0.5 0.25 0.1 0.01
+parallel -k -j $(nproc) --header : ./compute_error.sh test_{type} {sparsity} ::: type float double ::: sparsity 1 0.9 0.5 0.25 0.1 0.01
+check_status
 
 cat >check_status.py <<HERE
 import sys
@@ -32,6 +34,6 @@ else
   echo "Failed!"
 fi
 
-# rm -rf tmp.*
+rm -rf tmp.*
 
 exit $status

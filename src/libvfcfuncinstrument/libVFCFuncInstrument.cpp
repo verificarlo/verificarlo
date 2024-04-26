@@ -61,15 +61,27 @@ namespace {
 static Function *func_enter;
 static Function *func_exit;
 
-// Enumeration of managed types
-enum Ftypes { FLOAT, DOUBLE, FLOAT_PTR, DOUBLE_PTR };
+/* from interflop.h*/
+/* Enumeration of types managed by function instrumentation */
+enum FTYPES {
+  FFLOAT,
+  FDOUBLE,
+  FQUAD,
+  FFLOAT_PTR,
+  FDOUBLE_PTR,
+  FQUAD_PTR,
+  FTYPES_END
+};
 
 // Types
 llvm::Type *FloatTy, *DoubleTy, *FloatPtrTy, *DoublePtrTy, *Int8Ty, *Int8PtrTy,
     *Int32Ty;
 
 // Array of values
-Value *Types2val[] = {NULL, NULL, NULL, NULL};
+Value *Types2val[] = {
+    [FFLOAT] = NULL,     [FDOUBLE] = NULL,     [FQUAD] = NULL,
+    [FFLOAT_PTR] = NULL, [FDOUBLE_PTR] = NULL, [FQUAD_PTR] = NULL,
+    [FTYPES_END] = NULL};
 
 // Fill use_double and use_float with true if the call_inst pi use at least
 // of the managed types
@@ -186,47 +198,123 @@ std::string getArgName(Function *F, unsigned int i) {
   return "parameter_" + std::to_string(i + 1);
 }
 
+void allocateMemoryForPointers(Function *CurrentFunction,
+                               Function *HookedFunction, IRBuilder<> &Builder,
+                               std::vector<Value *> &InputAlloca,
+                               std::vector<Value *> &OutputAlloca,
+                               size_t &input_cpt, size_t &output_cpt,
+                               const CallInst *call, Module &M) {
+
+  Type *RetTy = HookedFunction->getReturnType();
+  if (RetTy == DoubleTy or RetTy == FloatTy) {
+    OutputAlloca.push_back(Builder.CreateAlloca(RetTy, nullptr));
+    output_cpt++;
+  } else if ((RetTy == FloatPtrTy or RetTy == DoublePtrTy) and call) {
+    output_cpt++;
+  }
+
+  for (auto &args : CurrentFunction->args()) {
+    Type *argTy = args.getType();
+    if (argTy == DoubleTy or argTy == FloatTy) {
+      InputAlloca.push_back(Builder.CreateAlloca(argTy, nullptr));
+      input_cpt++;
+    } else if ((argTy == FloatPtrTy or argTy == DoublePtrTy) and call) {
+      input_cpt++;
+      output_cpt++;
+    }
+  }
+};
+
+FTYPES ftypesFromType(Type *Ty) {
+  if (Ty == FloatTy)
+    return FFLOAT;
+  if (Ty == DoubleTy)
+    return FDOUBLE;
+  if (Ty == FloatPtrTy)
+    return FFLOAT_PTR;
+  if (Ty == DoublePtrTy)
+    return FDOUBLE_PTR;
+  return FTYPES_END;
+}
+
+void initializeInputArgs(std::vector<Value *> &EnterArgs,
+                         std::vector<Value *> &InputMetaData,
+                         Function *CurrentFunction, Function *HookedFunction,
+                         const CallInst *call, IRBuilder<> &Builder,
+                         std::vector<Value *> &InputAlloca) {
+  size_t input_index = 0;
+  for (auto &args : CurrentFunction->args()) {
+    Type *argTy = args.getType();
+    FTYPES type = ftypesFromType(argTy);
+
+    if (type != FTYPES_END) {
+      std::string arg_name = getArgName(HookedFunction, args.getArgNo());
+      EnterArgs.push_back(Types2val[type]);
+      EnterArgs.push_back(Builder.CreateGlobalStringPtr(arg_name));
+    }
+
+    if (argTy == DoubleTy or argTy == FloatTy) {
+      EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
+      EnterArgs.push_back(InputAlloca[input_index]);
+      Builder.CreateStore(&args, InputAlloca[input_index++]);
+    } else if ((argTy == FloatPtrTy or argTy == DoublePtrTy) and call) {
+      unsigned int size = getSizeOf(call->getOperand(args.getArgNo()),
+                                    call->getParent()->getParent());
+      EnterArgs.push_back(ConstantInt::get(Int32Ty, size));
+      EnterArgs.push_back(&args);
+    }
+  }
+}
+
+void initializeOutputArgs(std::vector<Value *> &ExitArgs,
+                          Function *CurrentFunction, Function *HookedFunction,
+                          Value *ret, const CallInst *call,
+                          IRBuilder<> &Builder,
+                          std::vector<Value *> &OutputAlloca, Module &M) {
+
+  Type *retTy = ret->getType();
+  FTYPES type = ftypesFromType(retTy);
+
+  if (type != FTYPES_END) {
+    ExitArgs.push_back(Types2val[type]);
+    ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
+  }
+
+  if (retTy == FloatTy or retTy == DoubleTy) {
+    ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+    ExitArgs.push_back(OutputAlloca[0]);
+    Builder.CreateStore(ret, OutputAlloca[0]);
+  } else if ((retTy == FloatPtrTy or retTy == DoublePtrTy) and call) {
+    unsigned int size = getSizeOf(ret, call->getParent()->getParent());
+    ExitArgs.push_back(ConstantInt::get(Int32Ty, size));
+    ExitArgs.push_back(ret);
+  }
+
+  for (auto &args : CurrentFunction->args()) {
+    if ((retTy == FloatPtrTy or retTy == DoublePtrTy) and call) {
+      std::string arg_name = getArgName(HookedFunction, args.getArgNo());
+      ExitArgs.push_back(Types2val[type]);
+      ExitArgs.push_back(Builder.CreateGlobalStringPtr(arg_name));
+      unsigned int size = getSizeOf(call->getOperand(args.getArgNo()),
+                                    call->getParent()->getParent());
+      ExitArgs.push_back(ConstantInt::get(Int32Ty, size));
+      ExitArgs.push_back(&args);
+    }
+  }
+}
+
 void InstrumentFunction(std::vector<Value *> MetaData,
                         Function *CurrentFunction, Function *HookedFunction,
                         const CallInst *call, BasicBlock *B, Module &M) {
   IRBuilder<> Builder(B);
 
   // Step 1: add space on the heap for pointers
-  size_t output_cpt = 0;
-  std::vector<Value *> OutputAlloca;
+  size_t input_cpt = 0, output_cpt = 0;
+  std::vector<Value *> InputAlloca, OutputAlloca;
 
-  if (HookedFunction->getReturnType() == DoubleTy) {
-    OutputAlloca.push_back(Builder.CreateAlloca(DoubleTy, nullptr));
-    output_cpt++;
-  } else if (HookedFunction->getReturnType() == FloatTy) {
-    OutputAlloca.push_back(Builder.CreateAlloca(FloatTy, nullptr));
-    output_cpt++;
-  } else if (HookedFunction->getReturnType() == FloatPtrTy && call) {
-    output_cpt++;
-  } else if (HookedFunction->getReturnType() ==
-                 Type::getDoublePtrTy(M.getContext()) &&
-             call) {
-    output_cpt++;
-  }
-
-  size_t input_cpt = 0;
-  std::vector<Value *> InputAlloca;
-
-  for (auto &args : CurrentFunction->args()) {
-    if (args.getType() == DoubleTy) {
-      InputAlloca.push_back(Builder.CreateAlloca(DoubleTy, nullptr));
-      input_cpt++;
-    } else if (args.getType() == FloatTy) {
-      InputAlloca.push_back(Builder.CreateAlloca(FloatTy, nullptr));
-      input_cpt++;
-    } else if (args.getType() == FloatPtrTy && call) {
-      input_cpt++;
-      output_cpt++;
-    } else if (args.getType() == Type::getDoublePtrTy(M.getContext()) && call) {
-      input_cpt++;
-      output_cpt++;
-    }
-  }
+  allocateMemoryForPointers(CurrentFunction, HookedFunction, Builder,
+                            InputAlloca, OutputAlloca, input_cpt, output_cpt,
+                            call, M);
 
   std::vector<Value *> InputMetaData = MetaData;
   InputMetaData.push_back(ConstantInt::get(Builder.getInt32Ty(), input_cpt));
@@ -237,54 +325,19 @@ void InstrumentFunction(std::vector<Value *> MetaData,
   // Step 2: for each function input (arguments), add its type, size, name and
   // address to the list of parameters sent to vfc_enter for processing.
   std::vector<Value *> EnterArgs = InputMetaData;
-  size_t input_index = 0;
-  for (auto &args : CurrentFunction->args()) {
-    if (args.getType() == DoubleTy) {
-      EnterArgs.push_back(Types2val[DOUBLE]);
-      EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
-      EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
-      EnterArgs.push_back(InputAlloca[input_index]);
-      Builder.CreateStore(&args, InputAlloca[input_index++]);
-    } else if (args.getType() == FloatTy) {
-      EnterArgs.push_back(Types2val[FLOAT]);
-      EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
-      EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
-      EnterArgs.push_back(InputAlloca[input_index]);
-      Builder.CreateStore(&args, InputAlloca[input_index++]);
-    } else if (args.getType() == FloatPtrTy && call) {
-      EnterArgs.push_back(Types2val[FLOAT_PTR]);
-      EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
-      EnterArgs.push_back(
-          ConstantInt::get(Int32Ty, getSizeOf(call->getOperand(args.getArgNo()),
-                                              call->getParent()->getParent())));
-      EnterArgs.push_back(&args);
-    } else if (args.getType() == DoublePtrTy && call) {
-      EnterArgs.push_back(Types2val[DOUBLE_PTR]);
-      EnterArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
-      EnterArgs.push_back(
-          ConstantInt::get(Int32Ty, getSizeOf(call->getOperand(args.getArgNo()),
-                                              call->getParent()->getParent())));
-      EnterArgs.push_back(&args);
-    }
-  }
+  initializeInputArgs(EnterArgs, InputMetaData, CurrentFunction, HookedFunction,
+                      call, Builder, InputAlloca);
 
   // Step 3: call vfc_enter
   Builder.CreateCall(func_enter, EnterArgs);
 
   // Step 4: load modified values
   std::vector<Value *> FunctionArgs;
-  input_index = 0;
+  size_t input_index = 0;
   for (auto &args : CurrentFunction->args()) {
-    if (args.getType() == DoubleTy) {
+    if (args.getType() == FloatTy or args.getType() == DoubleTy) {
       FunctionArgs.push_back(
-          Builder.CreateLoad(DoubleTy, InputAlloca[input_index++]));
-    } else if (args.getType() == FloatTy) {
-      FunctionArgs.push_back(
-          Builder.CreateLoad(FloatTy, InputAlloca[input_index++]));
+          Builder.CreateLoad(args.getType(), InputAlloca[input_index++]));
     } else {
       FunctionArgs.push_back(&args);
     }
@@ -310,52 +363,8 @@ void InstrumentFunction(std::vector<Value *> MetaData,
   // add its type, size, name and address to the list of parameters sent to
   // vfc_exit for processing.
   std::vector<Value *> ExitArgs = OutputMetaData;
-  if (ret->getType() == DoubleTy) {
-    ExitArgs.push_back(Types2val[DOUBLE]);
-    ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
-    ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
-    ExitArgs.push_back(OutputAlloca[0]);
-    Builder.CreateStore(ret, OutputAlloca[0]);
-  } else if (ret->getType() == FloatTy) {
-    ExitArgs.push_back(Types2val[FLOAT]);
-    ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
-    ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
-    ExitArgs.push_back(OutputAlloca[0]);
-    Builder.CreateStore(ret, OutputAlloca[0]);
-  } else if (HookedFunction->getReturnType() == FloatPtrTy && call) {
-    ExitArgs.push_back(Types2val[FLOAT_PTR]);
-    ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
-    ExitArgs.push_back(ConstantInt::get(
-        Int32Ty, getSizeOf(ret, call->getParent()->getParent())));
-    ExitArgs.push_back(ret);
-  } else if (HookedFunction->getReturnType() == DoublePtrTy && call) {
-    ExitArgs.push_back(Types2val[DOUBLE_PTR]);
-    ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
-    ExitArgs.push_back(ConstantInt::get(
-        Int32Ty, getSizeOf(ret, call->getParent()->getParent())));
-    ExitArgs.push_back(ret);
-  }
-
-  for (auto &args : CurrentFunction->args()) {
-    if (args.getType() == FloatPtrTy && call) {
-      ExitArgs.push_back(Types2val[FLOAT_PTR]);
-      ExitArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
-      ExitArgs.push_back(
-          ConstantInt::get(Int32Ty, getSizeOf(call->getOperand(args.getArgNo()),
-                                              call->getParent()->getParent())));
-      ExitArgs.push_back(&args);
-    } else if (args.getType() == DoublePtrTy && call) {
-      ExitArgs.push_back(Types2val[DOUBLE_PTR]);
-      ExitArgs.push_back(Builder.CreateGlobalStringPtr(
-          getArgName(HookedFunction, args.getArgNo())));
-      ExitArgs.push_back(
-          ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                           getSizeOf(call->getOperand(args.getArgNo()),
-                                     call->getParent()->getParent())));
-      ExitArgs.push_back(&args);
-    }
-  }
+  initializeOutputArgs(ExitArgs, CurrentFunction, HookedFunction, ret, call,
+                       Builder, OutputAlloca, M);
 
   // Step 7: call vfc_exit
   Builder.CreateCall(func_exit, ExitArgs);
@@ -399,10 +408,10 @@ struct VfclibFunc : public ModulePass {
     Int8PtrTy = Type::getInt8PtrTy(M.getContext());
     Int32Ty = Type::getInt32Ty(M.getContext());
 
-    Types2val[0] = ConstantInt::get(Int32Ty, 0);
-    Types2val[1] = ConstantInt::get(Int32Ty, 1);
-    Types2val[2] = ConstantInt::get(Int32Ty, 2);
-    Types2val[3] = ConstantInt::get(Int32Ty, 3);
+    Types2val[FFLOAT] = ConstantInt::get(Int32Ty, FFLOAT);
+    Types2val[FDOUBLE] = ConstantInt::get(Int32Ty, FDOUBLE);
+    Types2val[FFLOAT_PTR] = ConstantInt::get(Int32Ty, FFLOAT_PTR);
+    Types2val[FDOUBLE_PTR] = ConstantInt::get(Int32Ty, FDOUBLE_PTR);
 
     /*************************************************************************
      *                  Get original functions's names                       *
@@ -593,7 +602,6 @@ struct VfclibFunc : public ModulePass {
     return true;
   }
 }; // namespace
-
 } // namespace
 
 char VfclibFunc::ID = 0;

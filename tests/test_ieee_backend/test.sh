@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+
 verificarlo-c --save-temps -O0 test.c -o test
 
 # Check that all the operations have been instrumented

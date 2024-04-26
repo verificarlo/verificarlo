@@ -68,6 +68,7 @@ typedef double (*interflop_strtod_t)(const char *nptr, char **endptr,
 typedef char *(*interflop_getenv_t)(const char *name);
 typedef int (*interflop_fprintf_t)(File *stream, const char *format, ...);
 typedef char (*interflop_strcpy_t)(char *dest, const char *src);
+typedef char (*interflop_strncpy_t)(char *dest, const char *src, ISize_t n);
 typedef int (*interflop_fclose_t)(File *stream);
 typedef int (*interflop_gettid_t)(void);
 typedef char *(*interflop_strerror_t)(int error);
@@ -108,6 +109,7 @@ extern interflop_strtod_t interflop_strtod;
 extern interflop_getenv_t interflop_getenv;
 extern interflop_fprintf_t interflop_fprintf;
 extern interflop_strcpy_t interflop_strcpy;
+extern interflop_strncpy_t interflop_strncpy;
 extern interflop_fclose_t interflop_fclose;
 extern interflop_gettid_t interflop_gettid;
 extern interflop_strerror_t interflop_strerror;

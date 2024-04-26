@@ -1,8 +1,10 @@
 #!/bin/bash
+set -e
+
 export VFC_BACKENDS="libinterflop_mca.so"
 
 # Compile program with -O2 (test_1) and -O2 -ffastmath -freciprocalmath (test_2)
-parallel --header : "verificarlo-c -O2 {options} test.c -o test_{#}" ::: options "" "-ffast-math -freciprocal-math"
+parallel --header : "make --silent options={options}" ::: options "" "-ffast-math -freciprocal-math"
 
 echo "z y" >output1
 for i in $(seq 1 30); do

@@ -1,4 +1,5 @@
 #!/bin/bash
+
 OUTPUT_FILE=output
 ERROR_FILE=error
 
@@ -60,6 +61,10 @@ check_backend_info() {
 
 compile() {
     verificarlo test.c -o test
+    if [[ $? != 0 ]]; then
+        echo "Compilation failed"
+        exit 1
+    fi
 }
 
 run() {

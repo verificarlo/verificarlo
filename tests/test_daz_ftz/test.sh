@@ -3,19 +3,10 @@ set -e
 
 # Test for the --daz/--ftz options
 
-check_executable() {
-    if [[ ! -f $1 ]]; then
-        echo "Executable $1 not found"
-        exit 1
-    fi
-}
-
 export VFC_BACKENDS_LOGGER=False
 export VFC_BACKENDS_SILENT_LOAD="TRUE"
 
-parallel --header : "verificarlo-c -D REAL={type} -O0 test.c -o test_{type} -lm" ::: type float double
-check_executable test_float
-check_executable test_double
+parallel --header : "make --silent type={type}" ::: type float double
 
 parallel -j $(nproc) --header : "./compute_error.sh {type} $PWD/test_{type} {backend}" ::: type float double ::: backend libinterflop_mca.so libinterflop_bitmask.so
 

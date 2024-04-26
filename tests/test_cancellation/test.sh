@@ -1,3 +1,7 @@
+#!/bin/bash
+
+set -e
+
 SEED=5929
 
 export VFC_BACKENDS_SILENT_LOAD="True"

@@ -16,12 +16,10 @@ AC_SUBST(INTERFLOP_DIRNAME, interflop-${PACKAGE_VERSION})
 
 AX_WARNINGS()
 AX_LTO()
-AX_INTRINSIC_FMA()
 
 AC_CONFIG_FILES([
  Makefile
  rng/Makefile
- prng/Makefile
  fma/Makefile
  hashmap/Makefile
  iostream/Makefile

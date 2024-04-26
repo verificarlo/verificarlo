@@ -7,6 +7,13 @@ export VFC_BACKENDS_SILENT_LOAD=True
 export VFC_BACKENDS_LOGGER=False
 BACKENDS_OPTIONS="libinterflop_mca.so --mode=rr --precision-binary64=1 --precision-binary32=1 --sparsity=${SPARSITY}"
 
+# if bin ends with float print FLOAT else DOUBLE
+if [[ $BIN == *"float"* ]]; then
+    type="FLT"
+else
+    type="DBL"
+fi
+
 LOG=$(mktemp -p .)
 START="$(date +%s%N)"
 for i in $(seq 500); do
@@ -19,4 +26,4 @@ perc=$(python3 parse.py ${LOG} ${SPARSITY})
 rm ${LOG}
 
 echo $? >$(mktemp -p .)
-printf "Sparsity: %.3f | %8.4f%% IEEE (Time Elapsed: %4d ms)\n" $SPARSITY $perc $DURATION
+printf "[${type}] Sparsity: %.3f | %8.4f%% IEEE (Time Elapsed: %4d ms)\n" $SPARSITY $perc $DURATION

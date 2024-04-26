@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -Rf *~ archimedes dd.line test.log
+rm -Rf *~ archimedes dd.line test.log *.o .*.o

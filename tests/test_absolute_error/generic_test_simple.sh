@@ -1,56 +1,55 @@
 #!/bin/bash
 ##uncomment to stop on error
-#set -e
+set -e
 ##uncomment to show all commands executed by the script
 #set -x
 
+# Check the number of arguments
 if [[ $# != 5 ]]; then
-	echo "expected 5 arguments, $# given"
-	echo "usecase absErr_min absErr_step nb_tests test"
+	echo "Expected 5 arguments, $# given"
+	echo "Usage: script_name usecase absErr_min absErr_step nb_tests test"
 	exit 1
 else
-	USECASE=$1
-	ABS_ERR_MIN=$2
-	ABS_ERR_STEP=$3
-	NB_TESTS=$4
-	TEST=$5
-	echo "USECASE=${USECASE}"
-	echo "ABS_ERR_MIN=${ABS_ERR_MIN}"
-	echo "ABS_ERR_STEP=${ABS_ERR_STEP}"
-	echo "NB_TESTS=${NB_TESTS}"
-	echo "TEST=${TEST}"
+	usecase=$1
+	abs_err_min=$2
+	abs_err_step=$3
+	nb_tests=$4
+	test=$5
+
+	echo "Usecase: ${usecase}"
+	echo "Minimum absolute error: ${abs_err_min}"
+	echo "Absolute error step: ${abs_err_step}"
+	echo "Number of tests: ${nb_tests}"
+	echo "Test: ${test}"
+	echo "======================================="
 fi
 
-export VERIFICARLO_BACKEND=VPREC
-
-if [ $TEST == "additive" ]; then
-	declare -A abs_error_max
-	abs_error_max[0]=-126
-	abs_error_max[1]=-1022
-elif [ $TEST == "generative" ]; then # generative
-	declare -A abs_error_max
-	abs_error_max[0]=-23
-	abs_error_max[1]=-52
-else
-	echo "Unkown test ${TEST}"
+case "$test" in
+"additive")
+	declare -A abs_error_max=(["float"]=-126 ["double"]=-1022)
+	;;
+"generative")
+	declare -A abs_error_max=(["float"]=-23 ["double"]=-52)
+	;;
+*)
+	echo "Unknown test ${test}"
 	exit 1
-fi
+	;;
+esac
 
 # Operation parameters
-if [ $USECASE = "fast" ]; then
+if [ $usecase = "fast" ]; then
 	operation_list=("+" "x")
 else
 	operation_list=("+" "-" "x" "/")
 fi
 
 # Floating-point type list
-type_list=(0 1)
-declare -A type_list_names
-type_list_names[0]="float"
-type_list_names[1]="double"
+# type_list=("float" "double")
+declare -A type_list=(["float"]=0 ["double"]=1)
 
 # Modes list
-if [ $USECASE = "fast" ]; then
+if [ $usecase = "fast" ]; then
 	modes_list=("OB")
 else
 	modes_list=("IB" "OB" "FULL")
@@ -59,18 +58,14 @@ fi
 rm -rf run_parallel
 
 # Move out compilation to faster the test
-parallel --header : "verificarlo-c -g -Wall test_${TEST}.c --function=applyOp_{type} -o test_${TEST}_{type} -lm" ::: type ${type_list_names[@]}
+parallel --header : "make --silent test=${test} type={type}" ::: type ${!type_list[@]}
 
-for TYPE in "${type_list[@]}"; do
-	echo "TYPE: ${type_list_names[${TYPE}]}"
-	BIN=$(realpath test_${TEST}_${TYPE})
-	for MODE in "${modes_list[@]}"; do
-		echo "MODE: ${MODE}"
-		for OP in "${operation_list[@]}"; do
-			echo "OP: ${OP}"
-			for ABS_ERR in $(seq ${ABS_ERR_MIN} ${ABS_ERR_STEP} ${abs_error_max[${TYPE}]}); do
-				echo "Absolute Error Threshold: ${ABS_ERR}"
-				echo "./compute_error.sh ${BIN} ${MODE} ${OP} ${TYPE} ${NB_TESTS} ${ABS_ERR}" >>run_parallel
+for type in "${!type_list[@]}"; do
+	bin=$(realpath test_${test}_${type})
+	for mode in "${modes_list[@]}"; do
+		for op in "${operation_list[@]}"; do
+			for abs_err in $(seq ${abs_err_min} ${abs_err_step} ${abs_error_max["${type}"]}); do
+				echo "./compute_error.sh ${bin} ${mode} ${op} ${type_list[$type]} ${nb_tests} ${abs_err}" >>run_parallel
 			done
 		done
 	done
@@ -81,7 +76,7 @@ parallel -j $(nproc) <run_parallel
 cat >check_status.py <<HERE
 import sys
 import glob
-paths=glob.glob('tmp.*')
+paths=glob.glob('*.err')
 ret=sum([int(open(f).readline().strip()) for f in paths]) if paths != []  else 1
 print(ret)
 HERE
@@ -94,6 +89,6 @@ else
 	echo "Failed!"
 fi
 
-rm -rf tmp.*
+rm -rf *.err
 
 exit $status

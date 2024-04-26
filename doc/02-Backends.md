@@ -1,11 +1,12 @@
 ## Backends
 
-  * [IEEE Backend (libinterflop_ieee.so)](#ieee-backend-libinterflop_ieeeso)
-  * [MCA Backends (libinterflop_mca.so and lib_interflop_mca_int.so)](#mca-backends)
-  * [Bitmask Backend (libinterflop_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
-  * [Cancellation Backend (libinterflop_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
-  * [VPREC Backend (libinterflop_vprec.so)](#vprec-backend-libinterflop_vprecso)
-
+- [Backends](#backends)
+  - [Logger](#logger)
+  - [IEEE Backend (libinterflop\_ieee.so)](#ieee-backend-libinterflop_ieeeso)
+  - [MCA Backends](#mca-backends)
+  - [Bitmask Backend (libinterflop\_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
+  - [Cancellation Backend (libinterflop\_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
+  - [VPREC Backend (libinterflop\_vprec.so)](#vprec-backend-libinterflop_vprecso)
 
 Once your program is compiled with Verificarlo, it can be instrumented with
 different floating-point backends.
@@ -50,7 +51,10 @@ read the value of `VFC_BACKENDS` from a file,
    $ export VFC_BACKENDS_FROM_FILE=$PWD/config.txt
 ```
 
-> :warning: `VFC_BACKENDS` takes precedence over `VFC_BACKENDS_FROM_FILE`
+> [!IMPORTANT]
+> `VFC_BACKENDS` takes precedence over `VFC_BACKENDS_FROM_FILE`
+
+### Logger
 
 To suppress the messages when loading backends, export the
 environment variable `VFC_BACKENDS_SILENT_LOAD`.
@@ -91,7 +95,12 @@ Verificarlo will suffix the name with the current TID.
    $ verificarlo.log.3636865
 ```
 
-The IEEE, MCA, Bitmask and Cancellation backends are all re-entrant.
+To define the level of verbosity, export the environment variable
+`VFC_BACKENDS_LOGGER_LEVEL=<level>` with level: `debug`, `info`, `warning`, `error`.
+Set to `info` by default.
+
+> [!NOTE]
+> The IEEE, MCA, Bitmask and Cancellation backends are all re-entrant.
 
 ### IEEE Backend (libinterflop_ieee.so)
 
@@ -342,7 +351,7 @@ developpement.
 ### VPREC Backend (libinterflop_vprec.so)
 
 The VPREC backend simulates any floating-point formats that can fit into
-the IEEE-754 double precision format with a round to the nearest.
+the IEEE-754 double precision format with a round to the nearest ties to even.
 The backend allows modifying the bit length of the exponent (range) and the
 pseudo-mantissa (precision).
 

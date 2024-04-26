@@ -93,15 +93,12 @@ namespace {
 enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_FMA, FOP_IGNORE };
 
 // Each instruction can be translated to a string representation
-const std::string Fops2str[] = {
-    [FOP_ADD] = "add",      [FOP_SUB] = "sub", [FOP_MUL] = "mul",
-    [FOP_DIV] = "div",      [FOP_CMP] = "cmp", [FOP_FMA] = "fma",
-    [FOP_IGNORE] = "ignore"};
+const std::string Fops2str[] = {"add", "sub", "mul",   "div",
+                                "cmp", "fma", "ignore"};
 
 /* valid floating-point type to instrument */
 std::map<Type::TypeID, std::string> validTypesMap = {
-    std::pair<Type::TypeID, std::string>(Type::FloatTyID, "float"),
-    std::pair<Type::TypeID, std::string>(Type::DoubleTyID, "double")};
+    {Type::FloatTyID, "float"}, {Type::DoubleTyID, "double"}};
 
 /* valid vector sizes to instrument */
 const std::set<unsigned> validVectorSizes = {2, 4, 8, 16};
@@ -619,7 +616,11 @@ struct VfclibInst : public ModulePass {
       Value *value = replaceWithMCACall(M, I, opCode);
       if (value != nullptr) {
         BasicBlock::iterator ii(I);
+#if LLVM_VERSION_MAJOR >= 16
+        ReplaceInstWithValue(ii, value);
+#else
         ReplaceInstWithValue(B.getInstList(), ii, value);
+#endif
       }
       modified = true;
     }

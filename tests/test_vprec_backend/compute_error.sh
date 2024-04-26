@@ -1,65 +1,65 @@
 #!/usr/bin/bash
 
-TYPE=$1
-RANGE=$2
-USECASE=$3
-RANGE_MIN=$4
-RANGE_STEP=$5
-PRECISION_MIN=$6
-PRECISION_STEP=$7
-N_SAMPLES=$8
+VERBOSE=0
 
-echo "TYPE=${TYPE}"
-echo "RANGE=${RANGE}"
-echo "USECASE=${USECASE}"
-echo "RANGE_MIN=${RANGE_MIN}"
-echo "RANGE_STEP=${RANGE_STEP}"
-echo "PRECISION_MIN=${PRECISION_MIN}"
-echo "PRECISION_STEP=${PRECISION_STEP}"
-echo "N_SAMPLES=${N_SAMPLES}"
+# Assign command line arguments to variables
+type=$1
+range=$2
+usecase=$3
+range_min=$4
+range_step=$5
+precision_min=$6
+precision_step=$7
+n_samples=$8
 
-ROOT=$PWD
-SRC=$PWD/compute_vprec_rounding.c
-COMPUTE_VPREC_ROUNDING=${COMPUTE_VPREC_ROUNDING}_${TYPE}
-COMPUTE_MPFR_ROUNDING=$PWD/compute_mpfr_rounding
-GENERATE_INPUT=$PWD/generate_input.py
-CHECK_OUTPUT=$PWD/check_output.py
+if [ $VERBOSE ]; then
+    # Print the variable values
+    echo "Type: ${type}"
+    echo "Range: ${range}"
+    echo "Use Case: ${usecase}"
+    echo "Range Min: ${range_min}"
+    echo "Range Step: ${range_step}"
+    echo "Precision Min: ${precision_min}"
+    echo "Precision Step: ${precision_step}"
+    echo "Number of Samples: ${n_samples}"
+fi
 
-echo $COMPUTE_MPFR_ROUNDING
-echo $GENERATE_INPUT
+# Define paths
+root=$PWD
+src="${root}/compute_vprec_rounding.c"
+compute_vprec_rounding="${root}/compute_vprec_rounding_${type}"
+compute_mpfr_rounding="${root}/compute_mpfr_rounding"
+generate_input="${root}/generate_input.py"
+check_output="${root}/check_output.py"
+
+# Print paths
+echo "Compute MPFR Rounding: ${compute_mpfr_rounding}"
+echo "Generate Input: ${generate_input}"
 
 TMPDIR=$(mktemp -d -p .)
 cd $TMPDIR
 
 # Operation parameters
-if [ $USECASE = "fast" ]; then
+if [ "$usecase" = "fast" ]; then
     operation_list=("+" "x")
 else
     operation_list=("+" "-" "/" "x")
 fi
 
 # Modes list
-if [ $USECASE = "fast" ]; then
+if [ "$usecase" = "fast" ]; then
     modes_list=("OB")
 else
     modes_list=("IB" "OB" "FULL")
 fi
 
 # Range parameters
-declare -A range_max
-range_max["float"]=8
-range_max["double"]=11
-declare -A range_option
-range_option["float"]=--range-binary32
-range_option["double"]=--range-binary64
+declare -A range_max=(["float"]=8 ["double"]=11)
+declare -A range_option=(["float"]="--range-binary32" ["double"]="--range-binary64")
 
 # Precision parameters
-declare -A precision_max
-precision_max["float"]=23
-precision_max["double"]=52
-declare -A precision_option
-precision_option["float"]=--precision-binary32
-precision_option["double"]=--precision-binary64
+declare -A precision_max=(["float"]=23 ["double"]=52)
+declare -A precision_option=(["float"]="--precision-binary32" ["double"]="--precision-binary64")
 
 check_status() {
     if [[ $? != 0 ]]; then
@@ -74,8 +74,8 @@ compute_mpfr_rounding() {
     op=$3
     context=$4
     file=$5
-    $COMPUTE_MPFR_ROUNDING $a $b $op $context >>$file
-    # check_status
+    $compute_mpfr_rounding $a $b $op $context >>$file
+    check_status
 }
 
 compute_vprec_rounding() {
@@ -83,8 +83,8 @@ compute_vprec_rounding() {
     b=$2
     op=$3
     file=$4
-    $COMPUTE_VPREC_ROUNDING $a $b $op >>$file
-    # check_status
+    $compute_vprec_rounding $a $b $op >>$file
+    check_status
 }
 
 compute_op() {
@@ -92,33 +92,43 @@ compute_op() {
         compute_mpfr_rounding $a $b $1 $2 mpfr.txt
         compute_vprec_rounding $a $b $1 vprec.txt
     done <input.txt
+    check_status
 }
 
-echo "TYPE: ${TYPE}"
-export VERIFICARLO_VPREC_TYPE=$TYPE
+echo "type: ${type}"
+export VERIFICARLO_VPREC_TYPE=$type
 
-echo "Range: ${RANGE}"
-export VERIFICARLO_VPREC_RANGE=$RANGE
+echo "range: ${range}"
+export VERIFICARLO_VPREC_RANGE=$range
+
 rm -f input.txt
-$GENERATE_INPUT $N_SAMPLES $RANGE
+$generate_input $n_samples $range
+check_status
 
-for MODE in "${modes_list[@]}"; do
-    echo "MODE: ${MODE}"
-    export VERIFICARLO_VPREC_MODE=$MODE
+set_vfc_backends() {
+    local precision=$1
+    local type=$2
+    local range=$3
+    local mode=$4
 
-    for OP in "${operation_list[@]}"; do
-        echo "OP: ${OP}"
-        export VERIFICARLO_OP=$OP
+    export VERIFICARLO_VPREC_MODE=$mode
+    export VERIFICARLO_OP=$op
+    export VERIFICARLO_PRECISION=$precision
 
-        for PRECISION in $(seq ${PRECISION_MIN} ${PRECISION_STEP} ${precision_max[$TYPE]}); do
-            echo "Precision: ${PRECISION}"
-            export VERIFICARLO_PRECISION=$PRECISION
-            export VFC_BACKENDS="libinterflop_vprec.so ${precision_option[$TYPE]}=${PRECISION} ${range_option[$TYPE]}=${RANGE} --mode=${MODE}"
-            echo $VFC_BACKENDS
+    local _precision="${precision_option[$type]}=${precision}"
+    local _range="${range_option[$type]}=${range}"
+    local _mode="--mode=${mode}"
+    export VFC_BACKENDS="libinterflop_vprec.so ${_precision} ${_range} ${_mode}"
+
+}
+
+for mode in "${modes_list[@]}"; do
+    for op in "${operation_list[@]}"; do
+        for precision in $(seq ${precision_min} ${precision_step} ${precision_max[$type]}); do
+            set_vfc_backends $precision $type $range $mode
             rm -f mpfr.txt vprec.txt
-            compute_op $OP $TYPE
-            $CHECK_OUTPUT 2>>log.error
+            compute_op $op $type
+            $check_output 2>>log.error
         done
-
     done
 done

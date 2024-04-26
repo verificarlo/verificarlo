@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 find_function_in_obj() {
     nm test_${1}.o | grep loop_${1}
     if [[ $? != 0 ]]; then

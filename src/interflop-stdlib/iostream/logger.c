@@ -37,12 +37,14 @@ typedef enum {
   blue,
   magenta,
   cyan,
+  gray,
   bold_red,
   bold_green,
   bold_yellow,
   bold_blue,
   bold_magenta,
   bold_cyan,
+  bold_gray,
   reset
 } ansi_colors_t;
 
@@ -53,6 +55,7 @@ static const char ansi_color_yellow[] = "\x1b[33m";
 static const char ansi_color_blue[] = "\x1b[34m";
 static const char ansi_color_magenta[] = "\x1b[35m";
 static const char ansi_color_cyan[] = "\x1b[36m";
+static const char ansi_color_gray[] = "\x1b[38;5;250m";
 static const char ansi_color_reset[] = "\x1b[0m";
 
 /* ANSI escape sequences for bold colors */
@@ -62,27 +65,51 @@ static const char ansi_color_bold_yellow[] = "\x1b[1;33m";
 static const char ansi_color_bold_blue[] = "\x1b[1;34m";
 static const char ansi_color_bold_magenta[] = "\x1b[1;35m";
 static const char ansi_color_bold_cyan[] = "\x1b[1;36m";
+static const char ansi_color_bold_gray[] = "\x1b[1;38;5;250m";
 
 /* Array of ANSI colors */
 /* The order of the colors must be the same than the ansi_colors_t one */
 static const char *ansi_colors[] = {
-    ansi_color_red,       ansi_color_green,        ansi_color_yellow,
-    ansi_color_blue,      ansi_color_magenta,      ansi_color_cyan,
-    ansi_color_bold_red,  ansi_color_bold_green,   ansi_color_bold_yellow,
-    ansi_color_bold_blue, ansi_color_bold_magenta, ansi_color_bold_cyan,
-    ansi_color_reset};
+    [red] = ansi_color_red,
+    [green] = ansi_color_green,
+    [yellow] = ansi_color_yellow,
+    [blue] = ansi_color_blue,
+    [magenta] = ansi_color_magenta,
+    [cyan] = ansi_color_cyan,
+    [gray] = ansi_color_gray,
+    [bold_red] = ansi_color_bold_red,
+    [bold_green] = ansi_color_bold_green,
+    [bold_yellow] = ansi_color_bold_yellow,
+    [bold_blue] = ansi_color_bold_blue,
+    [bold_magenta] = ansi_color_bold_magenta,
+    [bold_cyan] = ansi_color_bold_cyan,
+    [bold_gray] = ansi_color_bold_gray,
+    [reset] = ansi_color_reset,
+};
 
 /* Define the color of each level */
 typedef enum {
   backend_color = green,
+  debug_color = bold_gray,
   info_color = bold_blue,
   warning_color = bold_yellow,
   error_color = bold_red,
   reset_color = reset
 } level_color;
 
+/* Define the logger level */
+typedef enum {
+  logger_level_debug = 0,
+  logger_level_info,
+  logger_level_warning,
+  logger_level_error
+} logger_level_t;
+
 /* Environment variable for enabling/disabling the logger */
 static const char vfc_backends_logger[] = "VFC_BACKENDS_LOGGER";
+
+/* Environment variable for setting the logger level */
+static const char vfc_backends_logger_level[] = "VFC_BACKENDS_LOGGER_LEVEL";
 
 /* Environment variable for specifying the verificarlo logger output File */
 static const char vfc_backends_logfile[] = "VFC_BACKENDS_LOGFILE";
@@ -94,6 +121,7 @@ static IBool logger_enabled = ITrue;
 static IBool logger_colored = IFalse;
 static File *logger_logfile = Null;
 static File *logger_stderr = Null;
+static int logger_level = logger_level_info;
 
 /* Returns ITrue if the logger is enabled */
 IBool is_logger_enabled(void) {
@@ -117,6 +145,23 @@ IBool is_logger_colored(void) {
     return ITrue;
   } else {
     return IFalse;
+  }
+}
+
+logger_level_t get_logger_level(void) {
+  const char *logger_level_env = interflop_getenv(vfc_backends_logger_level);
+  if (logger_level_env == Null) {
+    return logger_level_info;
+  } else if (interflop_strcasecmp(logger_level_env, "debug") == 0) {
+    return logger_level_debug;
+  } else if (interflop_strcasecmp(logger_level_env, "info") == 0) {
+    return logger_level_info;
+  } else if (interflop_strcasecmp(logger_level_env, "warning") == 0) {
+    return logger_level_warning;
+  } else if (interflop_strcasecmp(logger_level_env, "error") == 0) {
+    return logger_level_error;
+  } else {
+    return logger_level_info;
   }
 }
 
@@ -170,9 +215,20 @@ static void logger_header(File *stream, const char *lvl_name,
   }
 }
 
+/* Display the debug message */
+void logger_debug(const char *fmt, ...) {
+  if (logger_enabled && logger_level <= logger_level_debug) {
+    logger_header(logger_logfile, "Debug", debug_color, logger_colored);
+    va_list ap;
+    va_start(ap, fmt);
+    interflop_vfprintf(logger_logfile, fmt, ap);
+    va_end(ap);
+  }
+}
+
 /* Display the info message */
 void logger_info(const char *fmt, ...) {
-  if (logger_enabled) {
+  if (logger_enabled && logger_level <= logger_level_info) {
     logger_header(logger_logfile, "Info", info_color, logger_colored);
     va_list ap;
     va_start(ap, fmt);
@@ -183,7 +239,7 @@ void logger_info(const char *fmt, ...) {
 
 /* Display the warning message */
 void logger_warning(const char *fmt, ...) {
-  if (logger_enabled) {
+  if (logger_enabled && logger_level <= logger_level_warning) {
     logger_header(logger_stderr, "Warning", warning_color, logger_colored);
   }
   va_list ap;
@@ -194,7 +250,7 @@ void logger_warning(const char *fmt, ...) {
 
 /* Display the error message */
 void logger_error(const char *fmt, ...) {
-  if (logger_enabled) {
+  if (logger_enabled && logger_level <= logger_level_error) {
     logger_header(logger_stderr, "Error", error_color, logger_colored);
   }
   va_list ap;
@@ -203,9 +259,17 @@ void logger_error(const char *fmt, ...) {
   va_end(ap);
 }
 
+/* Display the debug message */
+void vlogger_debug(const char *fmt, va_list argp) {
+  if (logger_enabled && logger_level <= logger_level_debug) {
+    logger_header(logger_logfile, "Debug", debug_color, logger_colored);
+    interflop_vfprintf(logger_logfile, fmt, argp);
+  }
+}
+
 /* Display the info message */
 void vlogger_info(const char *fmt, va_list argp) {
-  if (logger_enabled) {
+  if (logger_enabled && logger_level <= logger_level_info) {
     logger_header(logger_logfile, "Info", info_color, logger_colored);
     interflop_vfprintf(logger_logfile, fmt, argp);
   }
@@ -213,7 +277,7 @@ void vlogger_info(const char *fmt, va_list argp) {
 
 /* Display the warning message */
 void vlogger_warning(const char *fmt, va_list argp) {
-  if (logger_enabled) {
+  if (logger_enabled && logger_level <= logger_level_warning) {
     logger_header(logger_stderr, "Warning", warning_color, logger_colored);
   }
   interflop_vwarnx(fmt, argp);
@@ -221,7 +285,7 @@ void vlogger_warning(const char *fmt, va_list argp) {
 
 /* Display the error message */
 void vlogger_error(const char *fmt, va_list argp) {
-  if (logger_enabled) {
+  if (logger_enabled && logger_level <= logger_level_error) {
     logger_header(logger_stderr, "Error", error_color, logger_colored);
   }
   _interflop_verrx(EXIT_FAILURE, fmt, argp);
@@ -249,6 +313,7 @@ void logger_init(interflop_panic_t panic, File *stream,
 
   logger_enabled = is_logger_enabled();
   logger_colored = is_logger_colored();
+  logger_level = get_logger_level();
   set_logger_logfile();
 }
 

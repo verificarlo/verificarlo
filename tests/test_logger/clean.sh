@@ -1,1 +1,1 @@
-rm -Rf .vfcwrapper* *.ll *.o *.log error output test
+rm -Rf .vfcwrapper* *.ll *.o *.log error output test .*.o

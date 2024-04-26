@@ -53,9 +53,10 @@ instrumented with the noise backend during the run).
 The union of the _"culprit"_ instructions can also be found in
 `dd.line/rddmin-cmp/dd.line.exclude`.
 
-A full example demonstrating delta-debug usage can be found in the
-[tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) and in
-the `tests/test_ddebug_archimedes`.
+> [!TIP]
+> A full example demonstrating delta-debug usage can be found in the
+> [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) and in
+> the `tests/test_ddebug_archimedes`.
 
 As an example, in the `test_ddebug_archimedes`, two ddmin sets are found:
 
@@ -70,10 +71,11 @@ indicating that the two instructions at lines `archimedes.c:16` and
 `archimedes.c:17` are responsible for the numerical instability. The first
 number indicates the exact assembly instruction address.
 
-It is possible to highlight faulty instructions inside your code editor by
-using a script such as `tests/test_ddebug_archimedes/vfc_dderrors.py`, which
-returns a [quickfix](http://vimdoc.sourceforge.net/htmldoc/quickfix.html)
-compatible output with the union of _ddmin_ instructions.
+> [!TIP]
+> It is possible to highlight faulty instructions inside your code editor by
+> using a script such as `tests/test_ddebug_archimedes/vfc_dderrors.py`, which
+> returns a [quickfix](http://vimdoc.sourceforge.net/htmldoc/quickfix.html)
+> compatible output with the union of _ddmin_ instructions.
 
 
 

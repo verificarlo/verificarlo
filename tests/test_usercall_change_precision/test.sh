@@ -1,11 +1,19 @@
 #!/bin/bash
 
+check_status() {
+    if [ $? -ne 0 ]; then
+        echo "Test fail"
+        exit 1
+    fi
+}
+
 clean() {
     rm -f *.log
 }
 
 clean
 verificarlo-c test.c -o test
+check_status
 
 VFC_BACKENDS="libinterflop_mca.so --precision-binary32 23 --seed=1234" ./test 0 0 >23.log 2>/dev/null
 VFC_BACKENDS="libinterflop_mca.so --precision-binary32 10 --seed=1234" ./test 0 0 >10.log 2>/dev/null

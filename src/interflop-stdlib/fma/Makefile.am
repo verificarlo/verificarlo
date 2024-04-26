@@ -13,25 +13,15 @@ WARNING_FLAGS =
 endif
 
 libinterflop_fma_la_SOURCES = \
-    fmaqApprox.c \
-    interflop_fma.cxx
+    interflop_fma.c
 
 libinterflop_fma_la_CFLAGS = \
     $(LTO_FLAGS) -O3 \
     -fno-stack-protector \
     -I../$(top_srcdir) \
     $(WARNIN_FLAGS)
-libinterflop_fma_la_CXXFLAGS = \
-    $(LTO_FLAGS) -O3 \
-    -fno-stack-protector \
-    -I../$(top_srcdir) \
-    $(WARNIN_FLAGS)
 libinterflop_fma_la_LDFLAGS = \
-    $(LTO_FLAGS) -O3
+    $(LTO_FLAGS) -O3 -lquadmath
 
-if HAVE_FMA_INTRINSIC
-libinterflop_fma_la_CXXFLAGS += -DHAVE_FMA_INTRINSIC
-libinterflop_fma_la_CFLAGS += -DHAVE_FMA_INTRINSIC
-endif
 
 library_includedir = $(includedir)/

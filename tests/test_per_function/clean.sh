@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -Rf *~ output* test test.log *.ll *.o .vfcwrapper* .test*
+rm -Rf *~ output* test test.log *.ll *.o .vfcwrapper* .test* .*.o

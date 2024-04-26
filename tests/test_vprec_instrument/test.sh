@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -e
 
 function check_status() {
 	if [[ $? != 0 ]]; then

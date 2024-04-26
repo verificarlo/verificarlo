@@ -22,13 +22,19 @@ GCC_VERSION=`$CC --version | head -n1 | awk '{print $NF;}'`
 AC_MSG_CHECKING([for gcc version])
 AC_DEFINE_UNQUOTED([GCC_VERSION],[$GCC_VERSION],[The gcc version])
 AC_MSG_RESULT([$GCC_VERSION])
-AX_COMPARE_VERSION([$GCC_VERSION],[ge],['6.0.0'],[],[AC_MSG_ERROR([At least GCC version 6 is required])])
+AX_COMPARE_VERSION([$GCC_VERSION],[ge],['7.0.0'],[],[AC_MSG_ERROR([At least GCC version 7 is required])])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for compiling)])
 AC_SUBST(GCC_PATH, $CC)
-AX_LLVM([4.0],[15.0.6],[all])
+AX_LLVM([4.0],[16.0.6],[all])
 AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
 AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
 AC_SUBST(LLVM_VERSION_MAJOR, $LLVM_VERSION_MAJOR)
+
+GLIBC_VERSION=`ldd --version | head -n1 | awk '{print $NF;}'`
+AC_MSG_CHECKING([for glibc version])
+AC_DEFINE_UNQUOTED([GLIBC_VERSION],[$GLIBC_VERSION],[The glibc version])
+AC_MSG_RESULT([$GLIBC_VERSION])
+AX_COMPARE_VERSION([$GLIBC_VERSION],[ge],['2.28.0'],[],[AC_MSG_ERROR([At least glibc version 2.28 is required])])
 
 AC_PATH_PROG([CLANG], [clang], "", $LLVM_BINDIR/ $PATH)
 if test -z "$CLANG"; then
@@ -174,8 +180,8 @@ AC_FUNC_REALLOC
 
 AC_CHECK_FUNCS([atexit dup2 floor getenv gettimeofday getpagesize getpid memset mkdir pow sqrt strcasecmp strchr strdup strerror strrchr strstr strtol strtoull tzset utime])
 
-# Check for Python 3
-AM_PATH_PYTHON([3])
+# Check for Python 3.8
+AM_PATH_PYTHON([3.8])
 
 if test -n "$PYTHON" && test -x "$PYTHON" ; then
   AC_MSG_CHECKING([for python])
@@ -190,7 +196,25 @@ else
                 AC_MSG_ERROR([could not find python 2.7 or higher])])
 fi
 
+# Get Python version
+PYTHON_VERSION=`$PYTHON --version 2>&1 | awk '{print $2;}'`
+AC_MSG_CHECKING([for python version])
+AC_DEFINE_UNQUOTED([PYTHON_VERSION],[$PYTHON_VERSION],[The python version])
+AC_MSG_RESULT([$PYTHON_VERSION])
 
+# Compare Python version with 3.11
+AX_COMPARE_VERSION([$PYTHON_VERSION],[ge],['3.11.0'],
+  # Since Python 3.11, the --break-system-packages flag is required to install packages
+  # in the user site directory. This is to avoid conflicts with system packages like apt.
+  # https://peps.python.org/pep-0668/
+  [PYTHON_INSTALL_FLAGS="--break-system-packages"],  # If Python version >= 3.11
+  [PYTHON_INSTALL_FLAGS=""]                          # If Python version < 3.11
+)
+
+AC_DEFINE_UNQUOTED([PYTHON_INSTALL_FLAGS], ["$PYTHON_INSTALL_FLAGS"], [Python install flags])
+AC_SUBST(PYTHON_INSTALL_FLAGS, $PYTHON_INSTALL_FLAGS)
+
+AC_CONFIG_SUBDIRS([src/interflop-stdlib])
 
 AX_WARNINGS()
 AX_LTO()

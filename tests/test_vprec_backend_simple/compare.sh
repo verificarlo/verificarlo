@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [[ $# != 6 ]]; then
   echo "usecase: mode range precision type op input_file"
   exit 1

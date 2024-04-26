@@ -4,19 +4,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define STRTOFLT(x) _Generic(x, float: strtof, double: strtod)
-#define FMT(x) _Generic(x, float: "%.6a\n", double: "%.13a\n")
+#define STRTOFLT(x) _Generic(x, float : strtof, double : strtod)
+#define FMT(x) _Generic(x, float : "%.6a\n", double : "%.13a\n")
 
 REAL operation(REAL x, REAL y, char op) {
   switch (op) {
   case '+':
-    return x+y;
+    return x + y;
   case '-':
-    return x-y;
+    return x - y;
   case '*':
-    return x*y;
+    return x * y;
   case '/':
-    return x/y;
+    return x / y;
   default:
     fprintf(stderr, "Invalid operation %c\n", op);
     exit(1);
@@ -32,8 +32,8 @@ int main(int argc, char *argv[]) {
 
   char op;
   REAL x, y, z;
-  x = STRTOFLT(x)(argv[1],NULL);
-  y = STRTOFLT(y)(argv[2],NULL);
+  x = STRTOFLT(x)(argv[1], NULL);
+  y = STRTOFLT(y)(argv[2], NULL);
   op = argv[3][0];
   z = operation(x, y, op);
 

@@ -3,6 +3,13 @@
 export VFC_BACKENDS_LOGGER=False
 export N=30
 
+check_status() {
+    if [[ $? != 0 ]]; then
+        echo "Test fail"
+        exit 1
+    fi
+}
+
 clean() {
     rm -f bfr.* aft.*
 }
@@ -24,7 +31,8 @@ run_test() {
 }
 
 # Move out compilation to faster test
-parallel --header : "verificarlo-c -Og test.c -DREAL={type} -DN=${N} -o test_{type}" ::: type float double
+parallel --header : "make --silent type={type} N=${N}" ::: type float double
+check_status
 
 clean
 for REAL in float double; do

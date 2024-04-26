@@ -41,9 +41,7 @@ compare() {
 
 export VFC_BACKENDS_SILENT_LOAD="TRUE"
 
-parallel -j $(nproc) --header : verificarlo -DREAL={type} -O0 test.c --verbose -o test_{type} -lm ::: type float double
-check_executable test_float
-check_executable test_double
+parallel --header : "make --silent type={type}" ::: type float double
 
 echo "denormal denormalized"
 export VFC_BACKENDS="libinterflop_ieee.so --debug-binary --print-new-line --no-backend-name"

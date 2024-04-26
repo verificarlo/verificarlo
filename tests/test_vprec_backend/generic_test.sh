@@ -1,34 +1,44 @@
 #!/bin/bash
 ##uncomment to stop on error
-#set -e
+set -e
 ##uncomment to show all command executed by the script
 #set -x
 
+check_status() {
+	if [[ $? != 0 ]]; then
+		echo "Error"
+		exit 1
+	fi
+}
+
 export VFC_BACKENDS_LOGGER=False
 
-if [[ $# != 6 ]]; then
-	echo "expected 5 arguments, $# given"
-	echo "usecase range_min range_step precision_min precision_step n_samples"
+# Check the number of arguments
+if [[ $# -ne 6 ]]; then
+	echo "Expected 6 arguments, $# given"
+	echo "Usage: script_name usecase range_min range_step precision_min precision_step n_samples"
 	exit 1
 else
-	USECASE=$1
-	RANGE_MIN=$2
-	RANGE_STEP=$3
-	PRECISION_MIN=$4
-	PRECISION_STEP=$5
-	N_SAMPLES=$6
-	echo "USECASE=${USECASE}"
-	echo "RANGE_MIN=${RANGE_MIN}"
-	echo "RANGE_STEP=${RANGE_STEP}"
-	echo "PRECISION_MIN=${PRECISION_MIN}"
-	echo "PRECISION_STEP=${PRECISION_STEP}"
-	echo "N_SAMPLES=${N_SAMPLES}"
-fi
+	# Assign arguments to meaningful variable names
+	usecase=$1
+	range_min=$2
+	range_step=$3
+	precision_min=$4
+	precision_step=$5
+	n_samples=$6
 
+	# Print the variable values
+	echo "Usecase: ${usecase}"
+	echo "Range Min: ${range_min}"
+	echo "Range Step: ${range_step}"
+	echo "Precision Min: ${precision_min}"
+	echo "Precision Step: ${precision_step}"
+	echo "Number of Samples: ${n_samples}"
+fi
 export VERIFICARLO_BACKEND=VPREC
 
 # Operation parameters
-if [ $USECASE = fast ]; then
+if [ "$usecase" = "fast" ]; then
 	operation_list=("+" "x")
 else
 	operation_list=("+" "-" "/" "x")
@@ -38,44 +48,34 @@ fi
 float_type_list=("float" "double")
 
 # Modes list
-if [ $USECASE = "fast" ]; then
+if [ "$usecase" = "fast" ]; then
 	modes_list=("OB")
 else
 	modes_list=("IB" "OB" "FULL")
 fi
 
 # Range parameters
-declare -A range_max
-range_max["float"]=8
-range_max["double"]=11
-declare -A range_option
-range_option["float"]=--range-binary32
-range_option["double"]=--range-binary64
-
-# Precision parameters
-declare -A precision_max
-precision_max["float"]=23
-precision_max["double"]=52
-declare -A precision_option
-precision_option["float"]=--precision-binary32
-precision_option["double"]=--precision-binary64
+declare -A range_max=(["float"]=8 ["double"]=11)
+declare -A range_option=(["float"]="--range-binary32" ["double"]="--range-binary64")
 
 rm -f log.error
-rm -f run_parallel.sh
+rm -f run_parallel
 
-parallel --header : "verificarlo-c compute_vprec_rounding.c -DREAL={type} -o compute_vprec_rounding_{type} --verbose" ::: type float double
+parallel --header : "make --silent type={type}" ::: type float double
 
 export COMPUTE_VPREC_ROUNDING=$(realpath compute_vprec_rounding)
 
-for TYPE in "${float_type_list[@]}"; do
-	for RANGE in $(seq ${RANGE_MIN} ${RANGE_STEP} ${range_max[$TYPE]}); do
-		echo "./compute_error.sh $TYPE $RANGE $USECASE $RANGE_MIN $RANGE_STEP $PRECISION_MIN $PRECISION_STEP $N_SAMPLES" >>run_parallel
+for type in "${float_type_list[@]}"; do
+	for range in $(seq ${range_min} ${range_step} ${range_max[$type]}); do
+		echo "./compute_error.sh $type $range $usecase $range_min $range_step $precision_min $precision_step $n_samples" >>run_parallel
 	done
 done
 
 parallel -j $(nproc) <run_parallel
+# check_status
 
 cat tmp.*/log.error >log.error
+# check_status
 
 rm -rf tmp.*
 
@@ -85,6 +85,6 @@ if [ -s "log.error" ]; then
 	echo "Test failed"
 	exit 1
 else
-	echo "Test suceed"
+	echo "Test succeeded"
 	exit 0
 fi
