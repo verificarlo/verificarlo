@@ -351,7 +351,7 @@ developpement.
 ### VPREC Backend (libinterflop_vprec.so)
 
 The VPREC backend simulates any floating-point formats that can fit into
-the IEEE-754 double precision format with a round to the nearest ties to even.
+the IEEE-754 double precision format with a faithful rounding.
 The backend allows modifying the bit length of the exponent (range) and the
 pseudo-mantissa (precision).
 
