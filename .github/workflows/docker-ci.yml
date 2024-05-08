@@ -84,7 +84,6 @@ jobs:
           - os: ubuntu:24.04
             llvm: 16
             gcc: 9
-            file: Dockerfile_ubuntu-24.04
     runs-on: ubuntu-22.04
     env:
       TEST_TAG: verificarlo/verificarlo:test-llvm-${{ matrix.llvm }}
