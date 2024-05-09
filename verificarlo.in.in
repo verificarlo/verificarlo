@@ -145,6 +145,7 @@ def compile_vfcwrapper(source, output, args, emit_llvm=False):
     extra_args += "-DDDEBUG " if args.ddebug else ""
     extra_args += "-DINST_FUNC " if args.inst_func else ""
     extra_args += "-DINST_FMA " if args.inst_fma else ""
+    extra_args += "-DINST_CAST " if args.inst_cast else ""
 
     internal_options = (
         " -S -emit-llvm " if emit_llvm else ""
@@ -269,6 +270,10 @@ def compiler_mode(sources, options, output, args):
         if args.inst_fma:
             extra_args += "-vfclibinst-inst-fma"
 
+        # Activate cast instrumentation
+        if args.inst_cast:
+            extra_args += "-vfclibinst-inst-cast"
+
         if args.inst_func:
             # Apply function's instrumentation pass
             if 13 <= int(llvm_version) < 17:
@@ -351,6 +356,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--inst-fma", action="store_true", help="instrument floating point fma"
+    )
+    parser.add_argument(
+        "--inst-cast", action="store_true", help="instrument floating point castings"
     )
     parser.add_argument("--inst-func", action="store_true", help="instrument functions")
     parser.add_argument(

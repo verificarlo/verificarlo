@@ -533,6 +533,9 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   check_backends_implements(float, fma);
   check_backends_implements(double, fma);
 #endif
+#ifdef INST_CAST
+  check_backends_implements(double_to_float, cast);
+#endif
 
 #ifdef DDEBUG
   /* Initialize ddebug */
@@ -730,3 +733,13 @@ define_vectorized_comparison_wrapper(double, 16);
 
 define_arithmetic_fma_wrapper(float);
 define_arithmetic_fma_wrapper(double);
+
+float _doubletofloatcast(double a) {
+  float b;
+  for (unsigned int i = 0; i < loaded_backends; i++) {
+    if (backends[i].interflop_cast_double_to_float) {
+      backends[i].interflop_cast_double_to_float(a, &b, contexts[i]);
+    }
+  }
+  return b;
+}
