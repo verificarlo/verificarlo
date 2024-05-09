@@ -55,7 +55,7 @@ static inline FP128 strtoFP128(char const *s, char **sp) {
 #warning FP128_CONST tag is F128
 #warning FP128 function suffix is f128
 #warning strtoFP128 => strtof128
-#warning 
+#warning
 #endif
 #elif (defined(__LONG_DOUBLE_IEEE128__))
 // No standard conformant support has been promised by the implementation.
@@ -299,8 +299,9 @@ FOREACH_TERNARY_FUNCTION(CreateTernaryShim)
   FP128_CONST(0.693147180559945309417232121458176568) /* log_e 2 */
 #define M_LN10_FP128                                                           \
   FP128_CONST(2.302585092994045684017991454684364208) /* log_e 10 */
-#define M_PI_FP128 FP128_CONST(3.141592653589793238462643383279502884) /* pi   \
-                                                                        */
+#define M_PI_FP128                                                             \
+  FP128_CONST(3.141592653589793238462643383279502884) /* pi                    \
+                                                       */
 #define M_PI_2_FP128                                                           \
   FP128_CONST(1.570796326794896619231321691639751442) /* pi/2 */
 #define M_PI_4_FP128                                                           \

@@ -98,7 +98,6 @@ jobs:
           context: .
           load: true
           tags: ${{ env.TEST_TAG }}
-          file: ${{ matrix.file || 'Dockerfile' }}
           build-args: |
             UBUNTU_VERSION=${{ matrix.os }}
             LLVM_VERSION=${{ matrix.llvm }}
