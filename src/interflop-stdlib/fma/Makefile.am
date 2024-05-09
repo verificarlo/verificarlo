@@ -12,16 +12,23 @@ else
 WARNING_FLAGS = 
 endif
 
+if HAVE_QUADMATH
+QUADMATH_FLAGS = -DHAS_QUADMATH
+else
+QUADMATH_FLAGS =
+endif
+
+
 libinterflop_fma_la_SOURCES = \
     interflop_fma.c
-
 libinterflop_fma_la_CFLAGS = \
     $(LTO_FLAGS) -O3 \
     -fno-stack-protector \
     -I../$(top_srcdir) \
-    $(WARNIN_FLAGS)
+    $(WARNING_FLAGS) \
+    $(QUADMATH_FLAGS) 
 libinterflop_fma_la_LDFLAGS = \
-    $(LTO_FLAGS) -O3 -lquadmath
+    $(LTO_FLAGS) -O3 $(QUADMATH_LIBS)
 
 
 library_includedir = $(includedir)/

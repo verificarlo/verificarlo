@@ -221,7 +221,7 @@ AX_LTO()
 AX_INTERFLOP_STDLIB()
 AX_INTERFLOP_BACKENDS()
 
-# Generate config files
+# Generate config files 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/common/Makefile

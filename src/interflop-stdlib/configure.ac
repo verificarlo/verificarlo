@@ -17,6 +17,13 @@ AC_SUBST(INTERFLOP_DIRNAME, interflop-${PACKAGE_VERSION})
 AX_WARNINGS()
 AX_LTO()
 
+# Checks if the libquadmath library is available
+AC_CHECK_LIB([quadmath], [fmaq], 
+    [QUADMATH_LIBS="-lquadmath" HAVE_QUADMATH=yes],
+    [QUADMATH_LIBS="" HAVE_QUADMATH=no])
+AC_SUBST(QUADMATH_LIBS)
+AM_CONDITIONAL([HAVE_QUADMATH], [test "x$HAVE_QUADMATH" = "xyes"])
+
 AC_CONFIG_FILES([
  Makefile
  rng/Makefile
