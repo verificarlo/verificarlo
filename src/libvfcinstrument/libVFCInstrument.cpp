@@ -325,10 +325,6 @@ struct VfclibInst : public ModulePass {
 #endif
     }
 
-    errs() << "getMCAFunctionName\n";
-    errs() << "baseType: " << *baseType << "\n";
-    errs() << "opType: " << *opType << "\n";
-
     std::string precision;
     if (opCode == FOP_CAST) {
       auto srcTyName = validTypesMap[I->getOperand(0)->getType()->getTypeID()];
@@ -340,8 +336,6 @@ struct VfclibInst : public ModulePass {
 
     auto operation = Fops2str[opCode];
     functionName = "_" + size + precision + operation;
-
-    errs() << "Function name: " << functionName << "\n";
 
     return functionName;
   }
@@ -498,12 +492,6 @@ struct VfclibInst : public ModulePass {
                                       Instruction *I) {
     Type *opType = I->getOperand(0)->getType();
     Type *retType = I->getType();
-
-    errs() << "===\n";
-    errs() << "Replacing comparison instruction\n";
-    errs() << "Instruction: " << *I << "\n";
-    errs() << "Operand type: " << *opType << "\n";
-    errs() << "Return type: " << *retType << "\n";
 
     Value *op1 = I->getOperand(0);
     Value *op2 = I->getOperand(1);
