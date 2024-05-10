@@ -54,6 +54,7 @@ COMPILE_EXTRA_FLAGS = ""
 linkers = {"clang": clang, "flang": flang, "clang++": clangxx}
 default_linker = "clang"
 temp_files_set = set()
+march_flag = "@MARCH_FLAG@"
 
 
 class NoPrefixParser(argparse.ArgumentParser):
@@ -151,8 +152,8 @@ def compile_vfcwrapper(source, output, args, emit_llvm=False):
         " -S -emit-llvm " if emit_llvm else ""
     ) + f" -c -Wno-varargs -I {mcalib_includes} "
     cmd = (
-        f"{clang} -O3 -march=native -g {internal_options} {extra_args} "
-        f"{source} -I{libinterflop_stdlib}/include/ -o {output} "
+        f"{clang} -O3 {march_flag} -g {internal_options} {extra_args} "
+        f"{source} -I{libinterflop_stdlib_include} -o {output} "
     )
     shell(cmd)
 

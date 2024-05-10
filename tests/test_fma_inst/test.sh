@@ -45,6 +45,12 @@ function test_perturbation() {
         ./test_${type} 0.1 0.2 0.3 >>out
     done
 
+    local status=$?
+    if [ $status -ne 0 ]; then
+        echo "Execution failed"
+        exit 1
+    fi
+
     variability=$(python3 -c "import numpy as np; print(len(set((np.loadtxt('out')))) != 1)")
     echo $variability
 

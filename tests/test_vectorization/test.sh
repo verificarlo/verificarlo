@@ -10,7 +10,7 @@ clang=${LLVM_BINDIR}/clang
 gcc=${GCC_PATH}
 mca=verificarlo-c
 
-cflags="-Wall -Wextra -O3 -march=native -I. -g"
+cflags="-Wall -Wextra -O3 ${MARCH_FLAG} -I. -g"
 
 parallel --header : "{compiler} ${cflags} print.c operation.c test.c -o test-{#}" ::: compiler $gcc $clang $mca
 

@@ -1,11 +1,12 @@
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #define bit(A, i) ((A >> i) & 1)
 
-typedef unsigned long long int u_64;
-typedef unsigned int u_32;
+typedef uint64_t u_64;
+typedef uint32_t u_32;
 
 static void print_double(double d) {
   u_64 a = *((u_64 *)&d);
@@ -25,11 +26,11 @@ static void print_float(float f) {
 }
 
 static void print_log(double *d, float *f, char *log) {
-  if (d != NULL){
+  if (d != NULL) {
     print_double(*d);
-  }else if (f != NULL){
+  } else if (f != NULL) {
     print_float(*f);
-  }else{
+  } else {
     fprintf(stderr, "undefined real size\n");
   }
 
@@ -67,7 +68,7 @@ double Fdouble(double a, double b) {
   print_double(c);
   */
 
-  double e = pow(a,1);
+  double e = pow(a, 1);
   print_log(&e, NULL, " <= Internal Function Call");
   /*
   printf("Internal Function Call :\t");
@@ -99,13 +100,13 @@ float Ffloat(float a, float b) {
   print_log(NULL, &b, " <= Input");
 
   float c = a + zero;
-  print_log(NULL, &c, " <= Internal Operation");  
+  print_log(NULL, &c, " <= Internal Operation");
   /*
   printf("Internal Operation :\t\t\t");
   print_float(c);
   */
 
-  float e = powf(a,1);
+  float e = powf(a, 1);
   print_log(NULL, &e, " <= Internal Function Call");
   /*
   printf("Internal Function Call :\t");
@@ -119,19 +120,18 @@ float Ffloat(float a, float b) {
   */
   print_log(NULL, &d, " <= Internal Operation");
 
-
   return t_32.f;
 }
 
 int main(int argc, char const *argv[]) {
   if (argc < 3) {
-    fprintf(stderr, "./test_mantissa [double mantissa_size] [float mantissa_size]\n");
+    fprintf(stderr,
+            "./test_mantissa [double mantissa_size] [float mantissa_size]\n");
     abort();
   }
 
   int size_64 = atoi(argv[1]);
   int size_32 = atoi(argv[2]);
-
 
   if (size_64 != -1) {
     t_64.i = pow(2, 52 - size_64) - 1;

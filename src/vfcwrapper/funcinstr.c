@@ -156,7 +156,7 @@ void vfc_enter_function(char *func_name, char isLibraryFunction,
 void vfc_exit_function(__attribute__((unused)) char *func_name,
                        __attribute__((unused)) char isLibraryFunction,
                        __attribute__((unused)) char isIntrinsicFunction,
-                       size_t useFloat, size_t useDouble, int n, ...) {
+                       char useFloat, char useDouble, int n, ...) {
 
   if ((useFloat != 0) || (useDouble != 0)) {
     va_list ap;

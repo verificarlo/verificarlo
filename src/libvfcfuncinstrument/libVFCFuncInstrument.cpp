@@ -284,14 +284,17 @@ void initializeOutputArgs(std::vector<Value *> &ExitArgs,
     ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
     ExitArgs.push_back(OutputAlloca[0]);
     Builder.CreateStore(ret, OutputAlloca[0]);
-  } else if ((retTy == FloatPtrTy or retTy == DoublePtrTy) and call) {
+  } else if ((retTy == FloatPtrTy or retTy == DoublePtrTy) and
+             call != nullptr) {
     unsigned int size = getSizeOf(ret, call->getParent()->getParent());
     ExitArgs.push_back(ConstantInt::get(Int32Ty, size));
     ExitArgs.push_back(ret);
   }
 
   for (auto &args : CurrentFunction->args()) {
-    if ((retTy == FloatPtrTy or retTy == DoublePtrTy) and call) {
+    Type *argTy = args.getType();
+    type = ftypesFromType(argTy);
+    if ((argTy == FloatPtrTy or argTy == DoublePtrTy) and call != nullptr) {
       std::string arg_name = getArgName(HookedFunction, args.getArgNo());
       ExitArgs.push_back(Types2val[type]);
       ExitArgs.push_back(Builder.CreateGlobalStringPtr(arg_name));

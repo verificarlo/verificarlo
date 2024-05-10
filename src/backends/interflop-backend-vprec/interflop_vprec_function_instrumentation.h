@@ -58,13 +58,13 @@ typedef struct _vprec_function_instrumentation {
   // Id of the function
   char id[FUNCTION_ID_MAX_LENGTH];
   // Indicate if the function is from library
-  short isLibraryFunction;
+  char isLibraryFunction;
   // Indicate if the function is intrinsic
-  short isIntrinsicFunction;
+  char isIntrinsicFunction;
   // Counter of Floating Point instruction
-  ISize_t useFloat;
+  char useFloat;
   // Counter of Floating Point instruction
-  ISize_t useDouble;
+  char useDouble;
   // Internal Operations Range64
   int OpsRange64;
   // Internal Operations Prec64

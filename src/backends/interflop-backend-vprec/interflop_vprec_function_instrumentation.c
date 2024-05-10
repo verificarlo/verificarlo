@@ -174,7 +174,7 @@ void _vfi_write_hasmap(FILE *fout, vprec_context_t *ctx) {
       _vfi_t *function = (_vfi_t *)get_value_at(ctx->vfi->map->items, ii);
 
       interflop_fprintf(
-          fout, "%s\t%hd\t%hd\t%zu\t%zu\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+          fout, "%s\t%hhd\t%hhd\t%hhd\t%hhd\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
           function->id, function->isLibraryFunction,
           function->isIntrinsicFunction, function->useFloat,
           function->useDouble, function->OpsPrec64, function->OpsRange64,
@@ -791,7 +791,6 @@ void _vfi_exit_function(interflop_function_stack_t *stack, void *context,
       _vfi_print_log(ctx, "%la\t(%d,%d)\n", *value, mantissa_length,
                      exponent_length);
     } else if (type == FDOUBLE_PTR) {
-
       double *value = (double *)raw_value;
       _vfi_print_log_exit(value, function_inst, arg_id, 0, type, ctx);
       if (value == NULL) {

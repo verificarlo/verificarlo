@@ -28,7 +28,7 @@ libinterflop_fma_la_CFLAGS = \
     $(WARNING_FLAGS) \
     $(QUADMATH_FLAGS) 
 libinterflop_fma_la_LDFLAGS = \
-    $(LTO_FLAGS) -O3 $(QUADMATH_LIBS)
+    $(LTO_FLAGS) -O3 -lm $(QUADMATH_LIBS)
 
 
 library_includedir = $(includedir)/

@@ -1,5 +1,3 @@
-#include <quadmath.h>
-
 #include "interflop_fma.h"
 #include "pfp128.h"
 
