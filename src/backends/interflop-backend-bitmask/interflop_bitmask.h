@@ -5,7 +5,7 @@
  *  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 *\
  *  See https://llvm.org/LICENSE.txt for license information.                *\
  *                                                                           *\
- *  Copyright (c) 2019-2023                                                  *\
+ *  Copyright (c) 2019-2024                                                  *\
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/

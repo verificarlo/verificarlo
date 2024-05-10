@@ -1,3 +1,15 @@
+/*****************************************************************************\
+ *                                                                           *\
+ *  This file is part of the Verificarlo project,                            *\
+ *  under the Apache License v2.0 with LLVM Exceptions.                      *\
+ *  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 *\
+ *  See https://llvm.org/LICENSE.txt for license information.                *\
+ *                                                                           *\
+ *  Copyright (c) 2024                                                       *\
+ *     Verificarlo Contributors                                              *\
+ *                                                                           *\
+ ****************************************************************************/
+
 #include "interflop_fma.h"
 #include "pfp128.h"
 
