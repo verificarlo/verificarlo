@@ -1,5 +1,29 @@
 Verificarlo CHANGELOG
 
+# [v2.0.0] 2024/05/10
+
+## Added
+  * New API designed for interchangeable backends to enhance flexibility and modularity.
+  * `interflop-stdlib` which includes the core API, libc wrappers, common libraries (FMA, RNG, logger), and commonly used headers.
+  * FMA and cast instrumentation capabilities in backends, enabled through verificarlo options (`--inst-fma`, `--inst-cast`).
+  * `logger_debug` function to log debug messages.
+  * `VFC_BACKENDS_LOGGER_LEVEL` environment variable to control logger verbosity.
+  * Python script management overhaul using `pyproject.toml`.
+  * New testing strategies including parallel execution, skipable tests, and marking tests as expected to fail (XFAIL).
+  * Dockerfiles to test several ubuntu versions 20.04-24.04
+  * GitHub actions to test LLVM versions from 7-16 (on PR only)
+
+## Changed
+  * Decoupled allocation of data structures from initialization, introducing new functions (`interflop_pre_init`, `interflop_cli`, `interflop_configure`, `interflop_init`).
+  * GCC version requirement from 6.0 to 7.0.
+  * glibc 2.28 dependency for <threads.h> support.
+  * LLVM support to version 16, ensuring compatibility with python3.11 and newer.
+  * Checks in `configure.ac` for `-march=native` flag and `libquadmath` support.
+
+## Fixed
+  * Refactored `interflop_vprec_function_instrumentation.c` for bug fixes and functionality improvements.
+  * Single rounding implementation (now round-to-nearest ties-to-even).
+
 # [v1.0.0] 2023/08/30
 
 ## Added
