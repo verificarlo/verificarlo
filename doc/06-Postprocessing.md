@@ -322,8 +322,9 @@ non-deterministic backends, and one for the deterministic backends. Depending
 on the backend type, data used for the probe validation will also be shown in
 the table.
 
- > :warning: In the "Inspect runs" mode, you have 6 different selection
-possibilities. Depending on your test setup, all of these combinations might
-not make sense (combining results from different backends, especially, might
-not yield easily interpretable results). This is another factor that you should
-take into account when designing your tests.
+> [!WARNING]
+> In the "Inspect runs" mode, you have 6 different selection
+> possibilities. Depending on your test setup, all of these combinations might
+> not make sense (combining results from different backends, especially, might
+> not yield easily interpretable results). This is another factor that you should
+> take into account when designing your tests.

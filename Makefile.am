@@ -1,5 +1,13 @@
 ACLOCAL_AMFLAGS=-I m4
+
+all: interflop-stdlib-install $(SUBDIRS)
+
+interflop-stdlib-install:
+	make -C src/interflop-stdlib
+	make -C src/interflop-stdlib install
+
 SUBDIRS=src/
+
 dist_bin_SCRIPTS=verificarlo verificarlo-c verificarlo-f verificarlo-c++
 
 edit_script = $(SED) -e 's,%LIBDIR%,$(libdir),'g $(NULL)
@@ -24,6 +32,10 @@ CLEANFILES = verificarlo
 check:
 	@echo "Tests should be run after install with make installcheck"
 
+install-exec-hook:
+	$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS) . && \
+	echo "Run 'source $(setenvdir)/set-env' to set environment variables"
+
 installcheck:
 # Run tests
 # When successful print simple message
@@ -39,7 +51,11 @@ installcheck:
 	fi
 
 # clean-local is a clean dependency of autotool clean target
-clean-local: cleantests
+clean-local: cleanstdlib cleantests
+
+cleanstdlib:
+# Clean interflop-stdlib directory
+	cd src/interflop-stdlib && make clean && cd ../..
 
 cleantests:
 # Clean tests directory

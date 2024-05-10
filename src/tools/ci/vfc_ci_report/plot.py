@@ -1,46 +1,47 @@
 ##############################################################################\
- #                                                                           #\
- #  This file is part of the Verificarlo project,                            #\
- #  under the Apache License v2.0 with LLVM Exceptions.                      #\
- #  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 #\
- #  See https://llvm.org/LICENSE.txt for license information.                #\
- #                                                                           #\
- #                                                                           #\
- #  Copyright (c) 2015                                                       #\
- #     Universite de Versailles St-Quentin-en-Yvelines                       #\
- #     CMLA, Ecole Normale Superieure de Cachan                              #\
- #                                                                           #\
- #  Copyright (c) 2018                                                       #\
- #     Universite de Versailles St-Quentin-en-Yvelines                       #\
- #                                                                           #\
- #  Copyright (c) 2019-2021                                                  #\
- #     Verificarlo Contributors                                              #\
- #                                                                           #\
- #############################################################################
+#                                                                           #\
+#  This file is part of the Verificarlo project,                            #\
+#  under the Apache License v2.0 with LLVM Exceptions.                      #\
+#  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 #\
+#  See https://llvm.org/LICENSE.txt for license information.                #\
+#                                                                           #\
+#                                                                           #\
+#  Copyright (c) 2015                                                       #\
+#     Universite de Versailles St-Quentin-en-Yvelines                       #\
+#     CMLA, Ecole Normale Superieure de Cachan                              #\
+#                                                                           #\
+#  Copyright (c) 2018                                                       #\
+#     Universite de Versailles St-Quentin-en-Yvelines                       #\
+#                                                                           #\
+#  Copyright (c) 2019-2021                                                  #\
+#     Verificarlo Contributors                                              #\
+#                                                                           #\
+#############################################################################
 
 # General functions for filling plots with data in all report's views
 
-from bokeh.plotting import figure
-from bokeh.models import HoverTool, TapTool, CustomJS
-from bokeh.models.annotations import Legend, LegendItem
-from bokeh.colors import color
-from bokeh.transform import dodge
-
 from math import pi
+
+from bokeh.models import CustomJS, HoverTool, TapTool
+from bokeh.transform import dodge
 
 
 def fill_dotplot(
-    plot, source, data_field,
-    tooltips=None, tooltips_formatters=None,
-    js_tap_callback=None, server_tap_callback=None,
+    plot,
+    source,
+    data_field,
+    tooltips=None,
+    tooltips_formatters=None,
+    js_tap_callback=None,
+    server_tap_callback=None,
     lines=False,
     lower_bound=False,
     second_series=None,
     legend=None,
     second_legend=None,
-    custom_colors="#1f77b4"
+    custom_colors="#1f77b4",
 ):
-    '''
+    """
     General function for filling dotplots.
     Here are the possible parameters :
 
@@ -56,7 +57,7 @@ def fill_dotplot(
     second_legend: same for the second optional data series
     custom_colors: Will plot additional glyphs with a custom color (to display
     check errors for instance). Should be the name of the series of colors.
-    '''
+    """
 
     # (Optional) Tooltip and tooltip formatters
     if tooltips is not None:
@@ -75,9 +76,12 @@ def fill_dotplot(
     # (Optional) Add segment to represent a lower bound
     if lower_bound:
         lower_segment = plot.segment(
-            x0="%s_x" % data_field, y0=data_field,
-            x1="%s_x" % data_field, y1="%s_lower_bound" % data_field,
-            source=source, line_color="black"
+            x0="%s_x" % data_field,
+            y0=data_field,
+            x1="%s_x" % data_field,
+            y1="%s_lower_bound" % data_field,
+            source=source,
+            line_color="black",
         )
 
     # (Optional) Draw a second data series
@@ -85,21 +89,32 @@ def fill_dotplot(
         if second_legend is not None:
             second_circle = plot.circle(
                 name="second_circle",
-                x="%s_x" % data_field, y=second_series, source=source, size=12,
-                fill_color="gray", line_color="gray",
-                legend_label=second_legend
+                x="%s_x" % data_field,
+                y=second_series,
+                source=source,
+                size=12,
+                fill_color="gray",
+                line_color="gray",
+                legend_label=second_legend,
             )
         else:
             second_circle = plot.circle(
                 name="second_circle",
-                x="%s_x" % data_field, y=second_series, source=source, size=12,
-                fill_color="gray", line_color="gray",
+                x="%s_x" % data_field,
+                y=second_series,
+                source=source,
+                size=12,
+                fill_color="gray",
+                line_color="gray",
             )
 
         if lines:
             second_line = plot.line(
-                x="%s_x" % data_field, y=second_series, source=source,
-                color="gray", line_dash="dashed"
+                x="%s_x" % data_field,
+                y=second_series,
+                source=source,
+                color="gray",
+                line_dash="dashed",
             )
 
     # (Optional) Draw lines between dots
@@ -110,15 +125,23 @@ def fill_dotplot(
     if legend is not None:
         circle = plot.circle(
             name="circle",
-            x="%s_x" % data_field, y=data_field, source=source, size=12,
-            fill_color=custom_colors, line_color=custom_colors,
-            legend_label=legend
+            x="%s_x" % data_field,
+            y=data_field,
+            source=source,
+            size=12,
+            fill_color=custom_colors,
+            line_color=custom_colors,
+            legend_label=legend,
         )
     else:
         circle = plot.circle(
             name="circle",
-            x="%s_x" % data_field, y=data_field, source=source, size=12,
-            fill_color=custom_colors, line_color=custom_colors
+            x="%s_x" % data_field,
+            y=data_field,
+            source=source,
+            size=12,
+            fill_color=custom_colors,
+            line_color=custom_colors,
         )
 
     # (Optional) Add server tap callback
@@ -137,13 +160,16 @@ def fill_dotplot(
 
 
 def fill_boxplot(
-    plot, source,
+    plot,
+    source,
     prefix="",
-    tooltips=None, tooltips_formatters=None,
-    js_tap_callback=None, server_tap_callback=None,
-    custom_colors=None
+    tooltips=None,
+    tooltips_formatters=None,
+    js_tap_callback=None,
+    server_tap_callback=None,
+    custom_colors=None,
 ):
-    '''
+    """
     General function for filling boxplots.
     Here are the possible parameters :
 
@@ -154,7 +180,7 @@ def fill_boxplot(
     server_tap_callback: Callback object for server side click callback
     custom_colors: Will plot additional glyphs with a custom color (to display
     check errors for instance). Series of colors.
-    '''
+    """
 
     # (Optional) Tooltip and tooltip formatters
     if tooltips is not None:
@@ -178,57 +204,74 @@ def fill_boxplot(
 
     # Stems
     top_stem = plot.segment(
-        x0="%sx" % prefix, y0="%smax" % prefix,
-        x1="%sx" % prefix, y1="%squantile75" % prefix,
-        source=source, line_color="black"
+        x0="%sx" % prefix,
+        y0="%smax" % prefix,
+        x1="%sx" % prefix,
+        y1="%squantile75" % prefix,
+        source=source,
+        line_color="black",
     )
     bottom_stem = plot.segment(
-        x0="%sx" % prefix, y0="%smin" % prefix,
-        x1="%sx" % prefix, y1="%squantile25" % prefix,
-        source=source, line_color="black"
+        x0="%sx" % prefix,
+        y0="%smin" % prefix,
+        x1="%sx" % prefix,
+        y1="%squantile25" % prefix,
+        source=source,
+        line_color="black",
     )
 
     # Boxes
     if custom_colors is not None:
         full_box = plot.vbar(
             name="full_box",
-            x="%sx" % prefix, width=0.5,
-            top="%squantile75" % prefix, bottom="%squantile25" % prefix,
-            source=source, line_color="black", fill_color=custom_colors
+            x="%sx" % prefix,
+            width=0.5,
+            top="%squantile75" % prefix,
+            bottom="%squantile25" % prefix,
+            source=source,
+            line_color="black",
+            fill_color=custom_colors,
         )
         bottom_box = plot.vbar(
-            x="%sx" % prefix, width=0.5,
-            top="%squantile50" % prefix, bottom="%squantile25" % prefix,
-            source=source, line_color="black", fill_color=custom_colors
+            x="%sx" % prefix,
+            width=0.5,
+            top="%squantile50" % prefix,
+            bottom="%squantile25" % prefix,
+            source=source,
+            line_color="black",
+            fill_color=custom_colors,
         )
     else:
         full_box = plot.vbar(
             name="full_box",
-            x="%sx" % prefix, width=0.5,
-            top="%squantile75" % prefix, bottom="%squantile25" % prefix,
-            source=source, line_color="black"
+            x="%sx" % prefix,
+            width=0.5,
+            top="%squantile75" % prefix,
+            bottom="%squantile25" % prefix,
+            source=source,
+            line_color="black",
         )
         bottom_box = plot.vbar(
-            x="%sx" % prefix, width=0.5,
-            top="%squantile50" % prefix, bottom="%squantile25" % prefix,
-            source=source, line_color="black"
+            x="%sx" % prefix,
+            width=0.5,
+            top="%squantile50" % prefix,
+            bottom="%squantile25" % prefix,
+            source=source,
+            line_color="black",
         )
 
     # Mu dot
     mu_dot = plot.dot(
-        x="%sx" % prefix, y="%smu" % prefix, size=30, source=source,
-        color="black"
+        x="%sx" % prefix, y="%smu" % prefix, size=30, source=source, color="black"
     )
 
     # (Optional) Add server tap callback
     if server_tap_callback is not None:
         top_stem.data_source.selected.on_change("indices", server_tap_callback)
-        bottom_stem.data_source.selected.on_change(
-            "indices", server_tap_callback)
+        bottom_stem.data_source.selected.on_change("indices", server_tap_callback)
 
         full_box.data_source.selected.on_change("indices", server_tap_callback)
-        bottom_box.data_source.selected.on_change(
-            "indices", server_tap_callback)
+        bottom_box.data_source.selected.on_change("indices", server_tap_callback)
 
         mu_dot.data_source.selected.on_change("indices", server_tap_callback)
 
@@ -244,12 +287,16 @@ def fill_boxplot(
 
 
 def fill_barplot(
-    plot, source,
-    single_series=None, double_series=None,
-    tooltips=None, tooltips_formatters=None,
-    js_tap_callback=None, server_tap_callback=None,
+    plot,
+    source,
+    single_series=None,
+    double_series=None,
+    tooltips=None,
+    tooltips_formatters=None,
+    js_tap_callback=None,
+    server_tap_callback=None,
 ):
-    '''
+    """
     General function for filling barplots.
     Here are the possible parameters :
 
@@ -262,7 +309,7 @@ def fill_barplot(
     tooltips_formatters: Formatter for the tooltip
     js_tap_callback: CustomJS object for client side click callback
     server_tap_callback: Callback object for server side click callback
-    '''
+    """
 
     vbars = []
     vbars_names = []
@@ -270,10 +317,7 @@ def fill_barplot(
     # Draw "single" vbar
     if single_series is not None:
         vbar = plot.vbar(
-            name="vbar",
-            x="x", width=0.5,
-            top=single_series,
-            source=source
+            name="vbar", x="x", width=0.5, top=single_series, source=source
         )
 
         vbars.append(vbar)
@@ -283,18 +327,20 @@ def fill_barplot(
     if double_series is not None:
         vbar1 = plot.vbar(
             name="vbar1",
-            x=dodge("x", -0.15, range=plot.x_range), width=0.25,
+            x=dodge("x", -0.15, range=plot.x_range),
+            width=0.25,
             top=double_series[0],
-            source=source
+            source=source,
         )
 
         vbar2 = plot.vbar(
             name="vbar2",
-            x=dodge("x", 0.15, range=plot.x_range), width=0.25,
+            x=dodge("x", 0.15, range=plot.x_range),
+            width=0.25,
             top=double_series[1],
             source=source,
             line_color="gray",
-            fill_color="gray"
+            fill_color="gray",
         )
 
         vbars.append(vbar1)

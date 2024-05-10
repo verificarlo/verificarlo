@@ -1,5 +1,24 @@
 #!/bin/bash
 
+# Find the longest test directory name and add 4 to its length for pretty printing
+max_length=$(find . -type d -name 'test_*' -exec basename {} \; | awk '{ print length, $0 }' | sort -n | tail -1 | cut -d' ' -f1)
+max_length=$((max_length + 4))
+
+function run() {
+    if [ -z "${PROFILE_TIME}" ]; then
+        eval $@ >/dev/null 2>&1
+        ret=$?
+    else
+        # If PROFILE_TIME is set, measures execution time
+        start=$(date +%s%N)
+        eval $@ >/dev/null 2>&1
+        ret=$?
+        end=$(date +%s%N)
+        elapsed=$(printf "(%5d ms)" "$(((end - start) / 1000000))")
+    fi
+    return $ret
+}
+
 tests="$tests $(find . -maxdepth 1 -type d -name 'test_*' | sort)"
 
 count=$(echo $tests | wc -w)
@@ -10,11 +29,19 @@ echo "1..$count"
 test_number=1
 for t in $tests; do
     echo $t
-    if bash -c "cd $t && ./test.sh > test.log 2>&1" ; then
+    run 'bash -c "cd $t && ./test.sh > test.log 2>&1"'
+    ret=$?
     echo
-        echo "ok $test_number $t"
+    if [ $ret -eq 0 ]; then
+        printf "ok %2d %-${max_length}s %s\n" "$test_number" "$t" "$elapsed"
+    elif [ $ret -eq 77 ]; then
+        # SKIP test
+        printf "ok %2d %-${max_length}s %s # SKIP\n" "$test_number" "$t" "$elapsed"
+    elif [ $ret -eq 88 ]; then
+        # XFAIL test
+        printf "not ok %2d %-${max_length}s %s # TODO\n" "$test_number" "$t" "$elapsed"
     else
-        echo "not ok $test_number $t"
+        printf "not ok %2d %-${max_length}s %s\n" "$test_number" "$t" "$elapsed"
     fi
-    test_number=$[test_number+1]
+    test_number=$((test_number + 1))
 done

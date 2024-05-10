@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -Rf *~ test.log run_parallel test_{additive,generative}_{0,1} check_status.py
+rm -Rf *~ .vfcwrapper* *.o *.err test.log run_parallel test_{additive,generative}_{float,double} check_status.py

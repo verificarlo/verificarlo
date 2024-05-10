@@ -1,5 +1,7 @@
+m4_define([VERIFICARLO_VERSION], [m4_esyscmd([grep -oPZ '(?<=__version__ = ")[^"]*' VERSION | tr -d '\n'])])
+
 AC_PREREQ([2.69])
-AC_INIT([verificarlo], [1.0.0], [])
+AC_INIT([verificarlo], [VERIFICARLO_VERSION], [])
 AM_SILENT_RULES([yes])
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_MACRO_DIR([m4])
@@ -20,13 +22,19 @@ GCC_VERSION=`$CC --version | head -n1 | awk '{print $NF;}'`
 AC_MSG_CHECKING([for gcc version])
 AC_DEFINE_UNQUOTED([GCC_VERSION],[$GCC_VERSION],[The gcc version])
 AC_MSG_RESULT([$GCC_VERSION])
-AX_COMPARE_VERSION([$GCC_VERSION],[ge],['6.0.0'],[],[AC_MSG_ERROR([At least GCC version 6 is required])])
+AX_COMPARE_VERSION([$GCC_VERSION],[ge],['7.0.0'],[],[AC_MSG_ERROR([At least GCC version 7 is required])])
 AC_DEFINE_UNQUOTED([GCC_PATH], ["$CC"], [GCC path (for compiling)])
 AC_SUBST(GCC_PATH, $CC)
-AX_LLVM([4.0],[15.0.6],[all])
+AX_LLVM([4.0],[16.0.6],[all])
 AC_SUBST(LLVM_CPPFLAGS, $LLVM_CPPFLAGS)
 AC_SUBST(LLVM_LDFLAGS, $LLVM_LDFLAGS)
 AC_SUBST(LLVM_VERSION_MAJOR, $LLVM_VERSION_MAJOR)
+
+GLIBC_VERSION=`ldd --version | head -n1 | awk '{print $NF;}'`
+AC_MSG_CHECKING([for glibc version])
+AC_DEFINE_UNQUOTED([GLIBC_VERSION],[$GLIBC_VERSION],[The glibc version])
+AC_MSG_RESULT([$GLIBC_VERSION])
+AX_COMPARE_VERSION([$GLIBC_VERSION],[ge],['2.28.0'],[],[AC_MSG_ERROR([At least glibc version 2.28 is required])])
 
 AC_PATH_PROG([CLANG], [clang], "", $LLVM_BINDIR/ $PATH)
 if test -z "$CLANG"; then
@@ -116,6 +124,7 @@ AC_CHECK_HEADERS([mpfr.h], [],
 # Reset libs after ac_check_lib We do not want each and every backend or the
 # libvfcinstrument frontend to be linked against libgfortran for
 # example. -l flags should be added individually in each Makefile.am
+
 LIBS=""
 
 # Check for header files.
@@ -158,6 +167,21 @@ else
   AC_MSG_ERROR([_Generic is not supported])
 fi
 
+# Checks if clang support -march=native
+AC_MSG_CHECKING([if $CLANG supports -march=native])
+doit='$CLANG -march=native -E - </dev/null'
+if AC_TRY_EVAL(doit); then
+  AC_DEFINE_UNQUOTED([MARCH_FLAG], ["-march=native"], [The -march=native flag])
+  AC_SUBST(MARCH_FLAG, "-march=native")
+  AC_MSG_RESULT([yes])
+else
+  AC_DEFINE_UNQUOTED([MARCH_FLAG], ["-mtune=native"], [The -mtune=native flag])
+  AC_SUBST(MARCH_FLAG, "-mtune=native")
+  AC_MSG_RESULT([no])
+fi
+
+
+
 # Checks for library functions.
 AC_FUNC_ALLOCA
 AC_FUNC_CHOWN
@@ -171,8 +195,8 @@ AC_FUNC_REALLOC
 
 AC_CHECK_FUNCS([atexit dup2 floor getenv gettimeofday getpagesize getpid memset mkdir pow sqrt strcasecmp strchr strdup strerror strrchr strstr strtol strtoull tzset utime])
 
-# Check for Python 3
-AM_PATH_PYTHON([3])
+# Check for Python 3.8
+AM_PATH_PYTHON([3.8])
 
 if test -n "$PYTHON" && test -x "$PYTHON" ; then
   AC_MSG_CHECKING([for python])
@@ -187,49 +211,45 @@ else
                 AC_MSG_ERROR([could not find python 2.7 or higher])])
 fi
 
-# Check for Python modules
-AX_PYTHON_MODULE(numpy, fatal)
-AX_PYTHON_MODULE(bigfloat)
-AX_PYTHON_MODULE(pandas, fatal)
-AX_PYTHON_MODULE(tables, fatal)
-AX_PYTHON_MODULE(scipy, fatal)
-AX_PYTHON_MODULE(git, fatal)
-AX_PYTHON_MODULE(jinja2, fatal)
-AX_PYTHON_MODULE(bokeh, fatal)
+# Get Python version
+PYTHON_VERSION=`$PYTHON --version 2>&1 | awk '{print $2;}'`
+AC_MSG_CHECKING([for python version])
+AC_DEFINE_UNQUOTED([PYTHON_VERSION],[$PYTHON_VERSION],[The python version])
+AC_MSG_RESULT([$PYTHON_VERSION])
 
+# Compare Python version with 3.11
+AX_COMPARE_VERSION([$PYTHON_VERSION],[ge],['3.11.0'],
+  # Since Python 3.11, the --break-system-packages flag is required to install packages
+  # in the user site directory. This is to avoid conflicts with system packages like apt.
+  # https://peps.python.org/pep-0668/
+  [PYTHON_INSTALL_FLAGS="--break-system-packages"],  # If Python version >= 3.11
+  [PYTHON_INSTALL_FLAGS=""]                          # If Python version < 3.11
+)
 
-AC_ARG_ENABLE(wall, AC_HELP_STRING([--enable-wall], [Enable -Wall compilation flag]), [WALL_CFLAGS="yes"])
-AM_CONDITIONAL([WALL_CFLAGS], [test "x$WALL_CFLAGS" = "xyes"])
-if test "x$WALL_CFLAGS" = "xyes"; then
-   AC_DEFINE([WALL_CFLAGS], [],  ["Enable -Wall compilation flag"])
-   AC_MSG_NOTICE([-Wall is set])
-fi
+AC_DEFINE_UNQUOTED([PYTHON_INSTALL_FLAGS], ["$PYTHON_INSTALL_FLAGS"], [Python install flags])
+AC_SUBST(PYTHON_INSTALL_FLAGS, $PYTHON_INSTALL_FLAGS)
 
-# Generate config files
+AC_CONFIG_SUBDIRS([src/interflop-stdlib])
 
+AX_WARNINGS()
+AX_LTO()
+AX_INTERFLOP_STDLIB()
+AX_INTERFLOP_BACKENDS()
+
+# Generate config files 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/common/Makefile
-                 src/common/rng/Makefile
                  src/libvfcinstrument/Makefile
                  src/libvfcfuncinstrument/Makefile
                  src/vfcwrapper/Makefile
-                 src/tools/Makefile
-                 src/tools/ci/Makefile
-                 src/tools/ci/vfc_ci_report/Makefile
-                 src/tools/ci/vfc_ci_report/templates/Makefile
-                 src/tools/ci/vfc_ci_report/static/Makefile
-                 src/tools/ci/workflow_templates/Makefile
                  src/backends/Makefile
-                 src/backends/interflop-ieee/Makefile
-                 src/backends/interflop-mca/Makefile
-                 src/backends/interflop-mca-int/Makefile
-                 src/backends/interflop-cancellation/Makefile
-                 src/backends/interflop-bitmask/Makefile
-                 src/backends/interflop-vprec/Makefile
                  tests/Makefile
                  tests/paths.sh
                 ])
 
-AC_CONFIG_FILES([verificarlo.in])
+AC_CONFIG_FILES([verificarlo.in
+                 src/vfcwrapper/main.c
+                 ],
+                [chmod +x tests/paths.sh])
 AC_OUTPUT

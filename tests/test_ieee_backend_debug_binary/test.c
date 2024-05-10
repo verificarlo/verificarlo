@@ -4,26 +4,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef DOUBLE
-#  define strtoflt(x) strtod(x,NULL)
-#  define REAL double
-#elif defined(FLOAT)
-#  define strtoflt(x) strtof(x,NULL)
-#  define REAL float
-#else
-#error "REAL type is not provided"
-#endif
+#define STRTOFLT(x) _Generic(x, float : strtof, double : strtod)
 
 REAL operation(REAL x, REAL y, char op) {
   switch (op) {
   case '+':
-    return x+y;
+    return x + y;
   case '-':
-    return x-y;
+    return x - y;
   case '*':
-    return x*y;
+    return x * y;
   case '/':
-    return x/y;
+    return x / y;
   default:
     fprintf(stderr, "Invalid operation %c\n", op);
     exit(1);
@@ -37,10 +29,10 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  REAL x = strtoflt(argv[1]);
-  REAL y = strtoflt(argv[2]);
+  REAL x = STRTOFLT((REAL)0)(argv[1], NULL);
+  REAL y = STRTOFLT((REAL)0)(argv[2], NULL);
   char op = argv[3][0];
   operation(x, y, op);
-  
+
   return 0;
 }

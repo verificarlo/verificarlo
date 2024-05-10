@@ -39,7 +39,8 @@ main g*
 dir/* *
 ```
 
-Inclusion and exclusion files can be used together, in that case inclusion
-takes precedence over exclusion.
+> [!TIP]
+> Inclusion and exclusion files can be used together, in that case inclusion
+> takes precedence over exclusion.
 
 

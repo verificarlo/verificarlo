@@ -1,29 +1,28 @@
 ##############################################################################\
- #                                                                           #\
- #  This file is part of the Verificarlo project,                            #\
- #  under the Apache License v2.0 with LLVM Exceptions.                      #\
- #  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 #\
- #  See https://llvm.org/LICENSE.txt for license information.                #\
- #                                                                           #\
- #                                                                           #\
- #  Copyright (c) 2015                                                       #\
- #     Universite de Versailles St-Quentin-en-Yvelines                       #\
- #     CMLA, Ecole Normale Superieure de Cachan                              #\
- #                                                                           #\
- #  Copyright (c) 2018                                                       #\
- #     Universite de Versailles St-Quentin-en-Yvelines                       #\
- #                                                                           #\
- #  Copyright (c) 2019-2021                                                  #\
- #     Verificarlo Contributors                                              #\
- #                                                                           #\
- #############################################################################
+#                                                                           #\
+#  This file is part of the Verificarlo project,                            #\
+#  under the Apache License v2.0 with LLVM Exceptions.                      #\
+#  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 #\
+#  See https://llvm.org/LICENSE.txt for license information.                #\
+#                                                                           #\
+#                                                                           #\
+#  Copyright (c) 2015                                                       #\
+#     Universite de Versailles St-Quentin-en-Yvelines                       #\
+#     CMLA, Ecole Normale Superieure de Cachan                              #\
+#                                                                           #\
+#  Copyright (c) 2018                                                       #\
+#     Universite de Versailles St-Quentin-en-Yvelines                       #\
+#                                                                           #\
+#  Copyright (c) 2019-2021                                                  #\
+#     Verificarlo Contributors                                              #\
+#                                                                           #\
+#############################################################################
 
 # Helper script to set up Verificarlo CI on the current branch
 
-import git
-
-import sys
 import os
+
+import git
 from jinja2 import Environment, FileSystemLoader
 
 ##########################################################################
@@ -32,7 +31,6 @@ from jinja2 import Environment, FileSystemLoader
 
 
 def gen_readme(dev_branch, ci_branch):
-
     # Init template loader
     path = os.path.dirname(os.path.abspath(__file__))
     env = Environment(loader=FileSystemLoader(path))
@@ -47,15 +45,13 @@ def gen_readme(dev_branch, ci_branch):
 
 
 def gen_workflow(git_host, dev_branch, ci_branch, repo):
-
     # Init template loader
     path = os.path.dirname(os.path.abspath(__file__))
     env = Environment(loader=FileSystemLoader(path))
 
     if git_host == "github":
         # Load template
-        template = env.get_template(
-            "workflow_templates/vfc_test_workflow.j2.yml")
+        template = env.get_template("workflow_templates/vfc_test_workflow.j2.yml")
 
         # Render it
         render = template.render(dev_branch=dev_branch, ci_branch=ci_branch)
@@ -71,9 +67,9 @@ def gen_workflow(git_host, dev_branch, ci_branch, repo):
 
         # Ask for the user who will run the jobs (Gitlab specific)
         username = input(
-            "[vfc_ci] Enter the name of the user who will run the CI jobs:")
-        email = input(
-            "[vfc_ci] Enter the e-mail of the user who will run the CI jobs:")
+            "[vfc_ci] Enter the name of the user who will run the CI jobs:"
+        )
+        email = input("[vfc_ci] Enter the e-mail of the user who will run the CI jobs:")
 
         remote_url = repo.remotes[0].config_reader.get("url")
         remote_url = remote_url.replace("http://", "")
@@ -84,7 +80,7 @@ def gen_workflow(git_host, dev_branch, ci_branch, repo):
             ci_branch=ci_branch,
             username=username,
             email=email,
-            remote_url=remote_url
+            remote_url=remote_url,
         )
 
         filename = ".gitlab-ci.yml"
@@ -94,8 +90,9 @@ def gen_workflow(git_host, dev_branch, ci_branch, repo):
 
 ##########################################################################
 
+
 def run(git_host):
-    '''Entry point of vfc_ci setup'''
+    """Entry point of vfc_ci setup"""
 
     # Init repo and make sure that the workflow setup is possible
 
@@ -103,8 +100,9 @@ def run(git_host):
     repo.remotes.origin.fetch()
 
     # Make sure that repository is clean
-    assert(not repo.is_dirty()), "Error [vfc_ci]: Unstaged changes detected " \
-        "in your work tree."
+    assert not repo.is_dirty(), (
+        "Error [vfc_ci]: Unstaged changes detected " "in your work tree."
+    )
 
     dev_branch = repo.active_branch
     dev_branch_name = str(dev_branch)
@@ -112,14 +110,17 @@ def run(git_host):
 
     # Make sure that the active branch (on which to setup the workflow) has a
     # remote
-    assert(dev_remote is not None), "Error [vfc_ci]: The current branch doesn't " \
-        "have a remote."
+    assert dev_remote is not None, (
+        "Error [vfc_ci]: The current branch doesn't " "have a remote."
+    )
 
     # Make sure that we are not behind the remote (so we can push safely later)
     rev = "%s...%s" % (dev_branch_name, str(dev_remote))
     commits_behind = list(repo.iter_commits(rev))
-    assert(commits_behind == []), "Error [vfc_ci]: The local branch seems " \
+    assert commits_behind == [], (
+        "Error [vfc_ci]: The local branch seems "
         "to be at least one commit behind remote."
+    )
 
     # Commit the workflow on the current (dev) branch
 
@@ -140,11 +141,9 @@ def run(git_host):
 
     repo.index.commit(
         "[auto] Create the Verificarlo CI branch for %s" % dev_branch_name,
-        parent_commits=None
+        parent_commits=None,
     )
-    repo.remote(name="origin").push(
-        refspec="%s:%s" % (ci_branch_name, ci_branch_name)
-    )
+    repo.remote(name="origin").push(refspec="%s:%s" % (ci_branch_name, ci_branch_name))
 
     # Force checkout back to the original (dev) branch
     repo.git.checkout(dev_branch_name, force=True)
@@ -156,12 +155,14 @@ def run(git_host):
         "%s." % dev_branch_name
     )
     print(
-        "Info [vfc_ci]: Make sure that you have a \"vfc_tests_config.json\" on "
-        "this branch. You can also perform a \"vfc_ci test\" dry run before "
-        "pushing other commits.")
+        'Info [vfc_ci]: Make sure that you have a "vfc_tests_config.json" on '
+        'this branch. You can also perform a "vfc_ci test" dry run before '
+        "pushing other commits."
+    )
 
     if git_host == "gitlab":
         print(
             "Info [vfc_ci]: Since you are using GitLab, make sure that you "
             "have created an access token for the user you specified (registered "
-            "as a variable called \"CI_PUSH_TOKEN\" in your repository).")
+            'as a variable called "CI_PUSH_TOKEN" in your repository).'
+        )

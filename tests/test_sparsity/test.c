@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define FMT(X) _Generic((X), double: strtod, float: strtof)
+#define FMT(X) _Generic((X), double : strtod, float : strtof)
 
 int main(int argc, char *argv[]) {
   REAL sum = 0.0;
@@ -12,4 +12,3 @@ int main(int argc, char *argv[]) {
     printf("%.13a\n", sum);
   }
 }
-

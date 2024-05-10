@@ -1,27 +1,28 @@
 #!/bin/bash
 
+set -e
+
 source ../paths.sh
 
 SAMPLES=100
 SEED=$RANDOM
 echo "Seed: $SEED"
 
-declare -A options
-options[FLOAT]=--precision-binary32
-options[DOUBLE]=--precision-binary64
-
-declare -A precision
-precision[FLOAT]=24
-precision[DOUBLE]=53
-
-declare -A bitmask_modes
-declare -A mca_modes
-bitmask_modes=([IB]="ib" [OB]="ob" [FULL]="full")
-mca_modes=([IB]="pb" [OB]="rr" [FULL]="mca")
+declare -A options=([FLOAT]=--precision-binary32 [DOUBLE]=--precision-binary64)
+declare -A precision=([FLOAT]=24 [DOUBLE]=53)
+declare -A bitmask_modes=([IB]="ib" [OB]="ob" [FULL]="full")
+declare -A mca_modes=([IB]="pb" [OB]="rr" [FULL]="mca")
 
 check_status() {
     if [[ $? != 0 ]]; then
         echo "Fail"
+        exit 1
+    fi
+}
+
+check_executable() {
+    if [[ ! -f $1 ]]; then
+        echo "Executable $1 not found"
         exit 1
     fi
 }
@@ -43,19 +44,20 @@ check() {
 
 GCC=${GCC_PATH}
 if [[ $(arch) == "x86_64" ]]; then
-   $GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lquadmath -lm
-   $GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lquadmath -lm
+    parallel --header : "${GCC} -DREAL={type} -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_{type} -lquadmath -lm" ::: type float double
 else
-   $GCC -D REAL=double -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_float -lm
-   $GCC -D REAL=float -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_double -lm
+    parallel --header : "${GCC} -DREAL={type} -D SAMPLES=$SAMPLES -O3 quadmath_stats.c -o compute_sig_{type} -lm" ::: type float double
 fi
+check_executable compute_sig_float
+check_executable compute_sig_double
 
 export VFC_BACKENDS_LOGGER=False
 
 # Test operates at different precisions, and different operands.
 # It compares that results are equivalents up to the bit.
-verificarlo-c --function=operator --verbose -D REAL=float -D SAMPLES=$SAMPLES -O0 test.c -o test_float
-verificarlo-c --function=operator --verbose -D REAL=double -D SAMPLES=$SAMPLES -O0 test.c -o test_double
+parallel --header : "verificarlo-c --function=operator --verbose -D REAL={type} -D SAMPLES=$SAMPLES -O3 test.c -o test_{type} -lm" ::: type float double
+check_executable test_float
+check_executable test_double
 
 rm -f run_parallel
 

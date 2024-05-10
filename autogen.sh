@@ -1,5 +1,6 @@
 #!/bin/sh
-autoreconf -is
 
-rm -rf src/tools/sigdigits/
-git submodule update --init --recursive
+mkdir -p m4
+for i in src/backends/interflop-backend-*; do mkdir -p $i/m4; done
+
+autoreconf -is -I $(realpath src/interflop-stdlib/m4/)

@@ -13,7 +13,7 @@
  *  Copyright (c) 2018                                                       *\
  *     Universite de Versailles St-Quentin-en-Yvelines                       *\
  *                                                                           *\
- *  Copyright (c) 2019-2021                                                  *\
+ *  Copyright (c) 2019-2024                                                  *\
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/
@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <vfc_hashmap.h>
+#include "interflop/hashmap/vfc_hashmap.h"
 
 #ifndef VAR_NAME
 #define VAR_NAME(var) #var // Simply returns the name of var into a string

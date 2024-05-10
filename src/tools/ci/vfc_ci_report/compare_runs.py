@@ -1,22 +1,22 @@
 ##############################################################################\
- #                                                                           #\
- #  This file is part of the Verificarlo project,                            #\
- #  under the Apache License v2.0 with LLVM Exceptions.                      #\
- #  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 #\
- #  See https://llvm.org/LICENSE.txt for license information.                #\
- #                                                                           #\
- #                                                                           #\
- #  Copyright (c) 2015                                                       #\
- #     Universite de Versailles St-Quentin-en-Yvelines                       #\
- #     CMLA, Ecole Normale Superieure de Cachan                              #\
- #                                                                           #\
- #  Copyright (c) 2018                                                       #\
- #     Universite de Versailles St-Quentin-en-Yvelines                       #\
- #                                                                           #\
- #  Copyright (c) 2019-2021                                                  #\
- #     Verificarlo Contributors                                              #\
- #                                                                           #\
- #############################################################################
+#                                                                           #\
+#  This file is part of the Verificarlo project,                            #\
+#  under the Apache License v2.0 with LLVM Exceptions.                      #\
+#  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.                 #\
+#  See https://llvm.org/LICENSE.txt for license information.                #\
+#                                                                           #\
+#                                                                           #\
+#  Copyright (c) 2015                                                       #\
+#     Universite de Versailles St-Quentin-en-Yvelines                       #\
+#     CMLA, Ecole Normale Superieure de Cachan                              #\
+#                                                                           #\
+#  Copyright (c) 2018                                                       #\
+#     Universite de Versailles St-Quentin-en-Yvelines                       #\
+#                                                                           #\
+#  Copyright (c) 2019-2021                                                  #\
+#     Verificarlo Contributors                                              #\
+#                                                                           #\
+#############################################################################
 
 # Manage the view comparing a variable over different runs
 # At its creation, a CompareRuns object will create all the needed Bokeh widgets
@@ -25,49 +25,41 @@
 # Then, when callback functions are triggered, widgets selections are updated,
 # and plots are re-generated with the newly selected data.
 
-import time
-
-import pandas as pd
-
-from math import pi
-
-from bokeh.plotting import figure, curdoc
-from bokeh.embed import components
-from bokeh.models import Select, ColumnDataSource, Panel, Tabs, HoverTool, \
-    TextInput, CheckboxGroup, TapTool, CustomJS
 
 import helper
 import plot
-
+from bokeh.models import (
+    CheckboxGroup,
+    ColumnDataSource,
+    CustomJS,
+    Panel,
+    Select,
+    Tabs,
+    TextInput,
+)
 
 ##########################################################################
 
 
 class CompareRuns:
-
     # Plots update function
 
     def update_plots(self):
-
         if self.data.empty:
             # Initialize empty dicts and return
 
             for stat in ["sigma", "s10", "s2"]:
                 dict = {
                     "%s_x" % stat: [],
-
                     "is_git_commit": [],
                     "date": [],
                     "hash": [],
                     "author": [],
                     "message": [],
-
                     stat: [],
-
                     "nsamples": [],
                     "accuracy_threshold": [],
-
-                    "custom_colors": []
+                    "custom_colors": [],
                 }
 
                 if stat == "s10" or stat == "s2":
@@ -82,7 +74,6 @@ class CompareRuns:
                 "hash": [],
                 "author": [],
                 "message": [],
-
                 "x": [],
                 "min": [],
                 "quantile25": [],
@@ -91,10 +82,8 @@ class CompareRuns:
                 "max": [],
                 "mu": [],
                 "pvalue": [],
-
                 "nsamples": [],
-
-                "custom_colors": []
+                "custom_colors": [],
             }
 
             self.sources["boxplot_source"].data = dict
@@ -103,17 +92,17 @@ class CompareRuns:
 
         # Select all data matching current test/var/backend
 
-        runs = self.data.loc[[self.widgets["select_test"].value],
-                             self.widgets["select_var"].value,
-                             self.widgets["select_backend"].value]
+        runs = self.data.loc[
+            [self.widgets["select_test"].value],
+            self.widgets["select_var"].value,
+            self.widgets["select_backend"].value,
+        ]
 
         runs = runs.sort_values(by=["timestamp"])
 
         timestamps = runs["timestamp"]
         x_series, x_metadata = helper.gen_x_series(
-            self.metadata,
-            timestamps.sort_values(),
-            self.current_n_runs
+            self.metadata, timestamps.sort_values(), self.current_n_runs
         )
 
         # Update source
@@ -137,32 +126,27 @@ class CompareRuns:
         for stat in ["sigma", "s10", "s2"]:
             dict = {
                 "%s_x" % stat: main_dict["x"],
-
                 "is_git_commit": main_dict["is_git_commit"],
                 "date": main_dict["date"],
                 "hash": main_dict["hash"],
                 "author": main_dict["author"],
                 "message": main_dict["message"],
-
                 stat: main_dict[stat],
-
                 "nsamples": main_dict["nsamples"],
                 "accuracy_threshold": main_dict["accuracy_threshold"],
-
-                "custom_colors": custom_colors
+                "custom_colors": custom_colors,
             }
 
             if stat == "s10" or stat == "s2":
-                dict["%s_lower_bound" %
-                     stat] = main_dict["%s_lower_bound" %
-                                       stat]
+                dict["%s_lower_bound" % stat] = main_dict["%s_lower_bound" % stat]
 
             # Filter outliers if the box is checked
             if len(self.widgets["outliers_filtering_compare"].active) > 0:
                 outliers = helper.detect_outliers(dict[stat])
                 dict[stat] = helper.remove_outliers(dict[stat], outliers)
                 dict["%s_x" % stat] = helper.remove_outliers(
-                    dict["%s_x" % stat], outliers)
+                    dict["%s_x" % stat], outliers
+                )
 
             # Assign ColumnDataSource
             self.sources["%s_source" % stat].data = dict
@@ -174,7 +158,6 @@ class CompareRuns:
             "hash": main_dict["hash"],
             "author": main_dict["author"],
             "message": main_dict["message"],
-
             "x": main_dict["x"],
             "min": main_dict["min"],
             "quantile25": main_dict["quantile25"],
@@ -183,10 +166,8 @@ class CompareRuns:
             "max": main_dict["max"],
             "mu": main_dict["mu"],
             "pvalue": main_dict["pvalue"],
-
             "nsamples": main_dict["nsamples"],
-
-            "custom_colors": custom_colors
+            "custom_colors": custom_colors,
         }
 
         self.sources["boxplot_source"].data = dict
@@ -194,26 +175,21 @@ class CompareRuns:
         # Update x axis
 
         helper.reset_x_range(
-            self.plots["boxplot"],
-            self.sources["boxplot_source"].data["x"]
+            self.plots["boxplot"], self.sources["boxplot_source"].data["x"]
         )
         helper.reset_x_range(
-            self.plots["sigma_plot"],
-            self.sources["sigma_source"].data["sigma_x"]
+            self.plots["sigma_plot"], self.sources["sigma_source"].data["sigma_x"]
         )
         helper.reset_x_range(
-            self.plots["s10_plot"],
-            self.sources["s10_source"].data["s10_x"]
+            self.plots["s10_plot"], self.sources["s10_source"].data["s10_x"]
         )
         helper.reset_x_range(
-            self.plots["s2_plot"],
-            self.sources["s2_source"].data["s2_x"]
+            self.plots["s2_plot"], self.sources["s2_source"].data["s2_x"]
         )
 
         # Widgets' callback functions
 
     def update_test(self, attrname, old, new):
-
         # If the value is updated by the CustomJS, self.widgets["select_var"].value
         # won't be updated, so we have to look for that case and assign it
         # manually
@@ -233,8 +209,12 @@ class CompareRuns:
             return
 
         # New list of available vars
-        self.vars = self.data.loc[new]\
-            .index.get_level_values("variable").drop_duplicates().tolist()
+        self.vars = (
+            self.data.loc[new]
+            .index.get_level_values("variable")
+            .drop_duplicates()
+            .tolist()
+        )
         self.widgets["select_var"].options = self.vars
 
         # Reset var selection if old one is not available in new vars
@@ -248,7 +228,6 @@ class CompareRuns:
             self.update_var("", "", self.widgets["select_var"].value)
 
     def update_var(self, attrname, old, new):
-
         # If the value is updated by the CustomJS, self.widgets["select_var"].value
         # won't be updated, so we have to look for that case and assign it
         # manually
@@ -263,8 +242,14 @@ class CompareRuns:
             return
 
         # New list of available backends
-        self.backends = self.data.loc[self.widgets["select_test"].value, self.widgets["select_var"].value]\
-            .index.get_level_values("vfc_backend").drop_duplicates().tolist()
+        self.backends = (
+            self.data.loc[
+                self.widgets["select_test"].value, self.widgets["select_var"].value
+            ]
+            .index.get_level_values("vfc_backend")
+            .drop_duplicates()
+            .tolist()
+        )
         self.widgets["select_backend"].options = self.backends
 
         # Reset backend selection if old one is not available in new backends
@@ -278,7 +263,6 @@ class CompareRuns:
             self.update_backend("", "", self.widgets["select_backend"].value)
 
     def update_backend(self, attrname, old, new):
-
         # Simply update plots, since no other data is affected
         self.update_plots()
 
@@ -295,18 +279,21 @@ class CompareRuns:
         # Bokeh setup functions
 
     def setup_plots(self):
-
         tools = "pan, wheel_zoom, xwheel_zoom, ywheel_zoom, reset, save"
 
         # Custom JS callback that will be used when tapping on a run
         # Only switches the view, a server callback is required to update plots
-        js_tap_callback = "changeView(\"inspect-runs\");"
+        js_tap_callback = 'changeView("inspect-runs");'
 
         # Box plot
         self.plots["boxplot"] = figure(
-            name="boxplot", title="Variable distribution over runs",
-            plot_width=900, plot_height=400, x_range=[""],
-            tools=tools, sizing_mode="scale_width"
+            name="boxplot",
+            title="Variable distribution over runs",
+            plot_width=900,
+            plot_height=400,
+            x_range=[""],
+            tools=tools,
+            sizing_mode="scale_width",
         )
 
         box_tooltips = [
@@ -322,7 +309,7 @@ class CompareRuns:
             ("3rd quartile", "@quantile75{%0.18e}"),
             ("μ", "@mu{%0.18e}"),
             ("p-value", "@pvalue"),
-            ("Number of samples", "@nsamples")
+            ("Number of samples", "@nsamples"),
         ]
         box_tooltips_formatters = {
             "@min": "printf",
@@ -330,24 +317,29 @@ class CompareRuns:
             "@quantile25": "printf",
             "@quantile50": "printf",
             "@quantile75": "printf",
-            "@mu": "printf"
+            "@mu": "printf",
         }
 
         plot.fill_boxplot(
-            self.plots["boxplot"], self.sources["boxplot_source"],
+            self.plots["boxplot"],
+            self.sources["boxplot_source"],
             tooltips=box_tooltips,
             tooltips_formatters=box_tooltips_formatters,
             js_tap_callback=js_tap_callback,
             server_tap_callback=self.inspect_run_callback_boxplot,
-            custom_colors="custom_colors"
+            custom_colors="custom_colors",
         )
         self.doc.add_root(self.plots["boxplot"])
 
         # Sigma plot (bar plot)
         self.plots["sigma_plot"] = figure(
-            name="sigma_plot", title="Standard deviation σ over runs",
-            plot_width=900, plot_height=400, x_range=[""],
-            tools=tools, sizing_mode="scale_width"
+            name="sigma_plot",
+            title="Standard deviation σ over runs",
+            plot_width=900,
+            plot_height=400,
+            x_range=[""],
+            tools=tools,
+            sizing_mode="scale_width",
         )
 
         sigma_tooltips = [
@@ -358,24 +350,30 @@ class CompareRuns:
             ("Message", "@message"),
             ("σ", "@sigma"),
             ("Number of samples", "@nsamples"),
-            ("Check's accuracy target", "@accuracy_threshold")
+            ("Check's accuracy target", "@accuracy_threshold"),
         ]
 
         plot.fill_dotplot(
-            self.plots["sigma_plot"], self.sources["sigma_source"], "sigma",
+            self.plots["sigma_plot"],
+            self.sources["sigma_source"],
+            "sigma",
             tooltips=sigma_tooltips,
             js_tap_callback=js_tap_callback,
             server_tap_callback=self.inspect_run_callback_sigma,
             lines=True,
-            custom_colors="custom_colors"
+            custom_colors="custom_colors",
         )
         self.doc.add_root(self.plots["sigma_plot"])
 
         # s plot (bar plot with 2 tabs)
         self.plots["s10_plot"] = figure(
-            name="s10_plot", title="Significant digits s over runs",
-            plot_width=900, plot_height=400, x_range=[""],
-            tools=tools, sizing_mode="scale_width"
+            name="s10_plot",
+            title="Significant digits s over runs",
+            plot_width=900,
+            plot_height=400,
+            x_range=[""],
+            tools=tools,
+            sizing_mode="scale_width",
         )
 
         s10_tooltips = [
@@ -387,24 +385,30 @@ class CompareRuns:
             ("s", "@s10"),
             ("s lower bound", "@s10_lower_bound"),
             ("Number of samples", "@nsamples"),
-            ("Check's accuracy target", "@accuracy_threshold")
+            ("Check's accuracy target", "@accuracy_threshold"),
         ]
 
         plot.fill_dotplot(
-            self.plots["s10_plot"], self.sources["s10_source"], "s10",
+            self.plots["s10_plot"],
+            self.sources["s10_source"],
+            "s10",
             tooltips=s10_tooltips,
             js_tap_callback=js_tap_callback,
             server_tap_callback=self.inspect_run_callback_s10,
             lines=True,
             lower_bound=True,
-            custom_colors="custom_colors"
+            custom_colors="custom_colors",
         )
         s10_tab = Panel(child=self.plots["s10_plot"], title="Base 10")
 
         self.plots["s2_plot"] = figure(
-            name="s2_plot", title="Significant digits s over runs",
-            plot_width=900, plot_height=400, x_range=[""],
-            tools=tools, sizing_mode="scale_width"
+            name="s2_plot",
+            title="Significant digits s over runs",
+            plot_width=900,
+            plot_height=400,
+            x_range=[""],
+            tools=tools,
+            sizing_mode="scale_width",
         )
 
         s2_tooltips = [
@@ -415,42 +419,48 @@ class CompareRuns:
             ("Message", "@message"),
             ("s", "@s2"),
             ("s lower bound", "@s2_lower_bound"),
-            ("Number of samples", "@nsamples")
+            ("Number of samples", "@nsamples"),
         ]
 
         plot.fill_dotplot(
-            self.plots["s2_plot"], self.sources["s2_source"], "s2",
+            self.plots["s2_plot"],
+            self.sources["s2_source"],
+            "s2",
             tooltips=s2_tooltips,
             js_tap_callback=js_tap_callback,
             server_tap_callback=self.inspect_run_callback_s2,
             lines=True,
             lower_bound=True,
-            custom_colors="custom_colors"
+            custom_colors="custom_colors",
         )
         s2_tab = Panel(child=self.plots["s2_plot"], title="Base 2")
 
-        s_tabs = Tabs(
-            name="s_tabs",
-            tabs=[s10_tab, s2_tab],
-            tabs_location="below"
-        )
+        s_tabs = Tabs(name="s_tabs", tabs=[s10_tab, s2_tab], tabs_location="below")
 
         self.doc.add_root(s_tabs)
 
     def setup_widgets(self):
-
         # Initial selections
 
         # Test/var/backend combination (we select all first elements at init)
         if not self.data.empty:
-            self.tests = self.data\
-                .index.get_level_values("test").drop_duplicates().tolist()
+            self.tests = (
+                self.data.index.get_level_values("test").drop_duplicates().tolist()
+            )
 
-            self.vars = self.data.loc[self.tests[0]]\
-                .index.get_level_values("variable").drop_duplicates().tolist()
+            self.vars = (
+                self.data.loc[self.tests[0]]
+                .index.get_level_values("variable")
+                .drop_duplicates()
+                .tolist()
+            )
 
-            self.backends = self.data.loc[self.tests[0], self.vars[0]]\
-                .index.get_level_values("vfc_backend").drop_duplicates().tolist()
+            self.backends = (
+                self.data.loc[self.tests[0], self.vars[0]]
+                .index.get_level_values("vfc_backend")
+                .drop_duplicates()
+                .tolist()
+            )
 
         else:
             self.tests = ["None"]
@@ -471,7 +481,7 @@ class CompareRuns:
             "Last 3 runs": 3,
             "Last 5 runs": 5,
             "Last 10 runs": 10,
-            "All runs": 0
+            "All runs": 0,
         }
 
         # Contains all options strings
@@ -482,8 +492,7 @@ class CompareRuns:
 
         # Selector widget
         self.widgets["select_test"] = Select(
-            name="select_test", title="Test :",
-            value=self.tests[0], options=self.tests
+            name="select_test", title="Test :", value=self.tests[0], options=self.tests
         )
         self.doc.add_root(self.widgets["select_test"])
         self.widgets["select_test"].on_change("value", self.update_test)
@@ -496,17 +505,19 @@ class CompareRuns:
         self.widgets["test_filter"].js_on_change(
             "value",
             CustomJS(
-                args=dict(
-                    options=self.tests,
-                    selector=self.widgets["select_test"]),
-                code=filter_callback_js))
+                args=dict(options=self.tests, selector=self.widgets["select_test"]),
+                code=filter_callback_js,
+            ),
+        )
         self.doc.add_root(self.widgets["test_filter"])
 
         # Number of runs to display
 
         self.widgets["select_n_runs"] = Select(
-            name="select_n_runs", title="Display :",
-            value=n_runs_display[1], options=n_runs_display
+            name="select_n_runs",
+            title="Display :",
+            value=n_runs_display[1],
+            options=n_runs_display,
         )
         self.doc.add_root(self.widgets["select_n_runs"])
         self.widgets["select_n_runs"].on_change("value", self.update_n_runs)
@@ -514,8 +525,7 @@ class CompareRuns:
         # Variable selector widget
 
         self.widgets["select_var"] = Select(
-            name="select_var", title="Variable :",
-            value=self.vars[0], options=self.vars
+            name="select_var", title="Variable :", value=self.vars[0], options=self.vars
         )
         self.doc.add_root(self.widgets["select_var"])
         self.widgets["select_var"].on_change("value", self.update_var)
@@ -524,8 +534,10 @@ class CompareRuns:
         # Backend selector widget
 
         self.widgets["select_backend"] = Select(
-            name="select_backend", title="Verificarlo backend :",
-            value=self.backends[0], options=self.backends
+            name="select_backend",
+            title="Verificarlo backend :",
+            value=self.backends[0],
+            options=self.backends,
         )
         self.doc.add_root(self.widgets["select_backend"])
         self.widgets["select_backend"].on_change("value", self.update_backend)
@@ -533,20 +545,20 @@ class CompareRuns:
         # Outliers filtering checkbox
 
         self.widgets["outliers_filtering_compare"] = CheckboxGroup(
-            name="outliers_filtering_compare",
-            labels=["Filter outliers"], active=[]
+            name="outliers_filtering_compare", labels=["Filter outliers"], active=[]
         )
         self.doc.add_root(self.widgets["outliers_filtering_compare"])
-        self.widgets["outliers_filtering_compare"]\
-            .on_change("active", self.update_outliers_filtering)
+        self.widgets["outliers_filtering_compare"].on_change(
+            "active", self.update_outliers_filtering
+        )
 
         # Communication methods
         # (to send/receive messages to/from master)
 
     def inspect_run_callback(self, new, source_name, x_name):
-        '''
+        """
         Callback to change view to "Inspect runs" when plot element is clicked
-        '''
+        """
 
         # In case we just unselected everything on the plot, then do nothing
         if not new:
@@ -577,23 +589,30 @@ class CompareRuns:
         self.inspect_run_callback(new, "s10_source", "s10_x")
 
     def change_repo(self, new_data, new_metadata):
-        '''
+        """
         When received, update data and metadata with the new repo, and update
         everything
-        '''
+        """
 
         self.data = new_data
         self.metadata = new_metadata
 
         # Update widgets(and automatically trigger plot updates)
-        self.tests = self.data\
-            .index.get_level_values("test").drop_duplicates().tolist()
+        self.tests = self.data.index.get_level_values("test").drop_duplicates().tolist()
 
-        self.vars = self.data.loc[self.tests[0]]\
-            .index.get_level_values("variable").drop_duplicates().tolist()
+        self.vars = (
+            self.data.loc[self.tests[0]]
+            .index.get_level_values("variable")
+            .drop_duplicates()
+            .tolist()
+        )
 
-        self.backends = self.data.loc[self.tests[0], self.vars[0]]\
-            .index.get_level_values("vfc_backend").drop_duplicates().tolist()
+        self.backends = (
+            self.data.loc[self.tests[0], self.vars[0]]
+            .index.get_level_values("vfc_backend")
+            .drop_duplicates()
+            .tolist()
+        )
 
         self.widgets["select_test"].options = self.tests
         self.widgets["select_test"].value = self.tests[0]
@@ -607,7 +626,7 @@ class CompareRuns:
         # Constructor
 
     def __init__(self, master, doc, data, metadata):
-        '''
+        """
         Here are the most important attributes of the CompareRuns class
 
         master : reference to the ViewMaster class
@@ -619,7 +638,7 @@ class CompareRuns:
         data for the plots (inside the .data attribute)
         plots : dictionary of Bokeh plots
         widgets : dictionary of Bokeh widgets
-        '''
+        """
 
         self.master = master
 
@@ -631,7 +650,7 @@ class CompareRuns:
             "boxplot_source": ColumnDataSource(data={}),
             "sigma_source": ColumnDataSource(data={}),
             "s10_source": ColumnDataSource(data={}),
-            "s2_source": ColumnDataSource(data={})
+            "s2_source": ColumnDataSource(data={}),
         }
 
         self.plots = {}

@@ -1,5 +1,10 @@
 #!/bin/sh
 
+set -e
+
+export VFC_BACKENDS_SILENT_LOAD="True"
+export VFC_BACKENDS_LOGGER="False"
+
 vfc_ci test
 
 if ls *.vfcrun.h5; then

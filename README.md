@@ -1,9 +1,10 @@
-## Verificarlo v1.0.0
+## Verificarlo v2.0.0
 
 A tool for debugging and assessing floating point precision and reproducibility.
 
 ![verificarlo logo](https://avatars1.githubusercontent.com/u/12033642)
 
+![GitHub Release](https://img.shields.io/github/v/release/verificarlo/verificarlo)
 ![Build Status](https://github.com/verificarlo/verificarlo/workflows/test-docker/badge.svg?branch=master)
 [![Docker Pulls](https://img.shields.io/docker/pulls/verificarlo/verificarlo)](https://hub.docker.com/r/verificarlo/verificarlo)
 [![DOI](https://zenodo.org/badge/34260221.svg)](https://zenodo.org/badge/latestdoi/34260221)
@@ -11,20 +12,23 @@ A tool for debugging and assessing floating point precision and reproducibility.
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://releases.llvm.org/13.0.0/LICENSE.TXT)
 
 
-   * [Installation](#installation)
-   * [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
-   * [Usage](#usage)
-   * [Branch instrumentation](#branch-instrumentation)
-   * [Examples and Tutorial](#examples-and-tutorial)
-   * [Backends](#backends)
-   * [Inclusion / exclusion options](#inclusion--exclusion-options)
-   * [Pinpointing numerical errors with Delta-Debug](#pinpointing-numerical-errors-with-delta-debug)
-   * [VPREC Function instrumentation](#vprec-function-instrumentation)
-   * [User call instrumentation](#interflop-usercall-instrumentation)
-   * [Postprocessing](#postprocessing)
-   * [How to cite Verificarlo](#how-to-cite-verificarlo)
-   * [Discussion Group](#discussion-group)
-   * [License](#license)
+- [Verificarlo v2.0.0](#verificarlo-v200)
+- [Installation](#installation)
+- [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
+- [Usage](#usage)
+- [Branch instrumentation](#branch-instrumentation)
+- [FMA instrumentation](#fma-instrumentation)
+- [Cast instrumentation](#cast-instrumentation)
+- [Examples and Tutorial](#examples-and-tutorial)
+- [Backends](#backends)
+- [Inclusion/exclusion options](#inclusionexclusion-options)
+- [Pinpointing numerical errors with Delta-Debug](#pinpointing-numerical-errors-with-delta-debug)
+- [VPREC Function Instrumentation](#vprec-function-instrumentation)
+- [Postprocessing](#postprocessing)
+- [Interflop user call instrumentation](#interflop-user-call-instrumentation)
+- [How to cite Verificarlo](#how-to-cite-verificarlo)
+- [Discussion Group](#discussion-group)
+- [License](#license)
 
 
 ## Installation
@@ -79,12 +83,12 @@ You can also use the provided wrappers to call `verificarlo` with the right link
 * `verificarlo-c++` for C++
 * `verificarlo-f` for Fortran
 
-First make sure that the verificarlo installation
+First, make sure that the verificarlo installation
 directory is in your PATH.
 
 Then you can use the `verificarlo-c`, `verificarlo-f` and `verificarlo-c++` commands to compile your programs.
 Either modify your makefile to use `verificarlo` as the compiler (`CC=verificarlo-c`,
-`FC=verificarlo-f` and `CXX=verificarlo-c++`) and linker (`LD=verificarlo --linker=<linker>`) or use the verificarlo command
+`FC=verificarlo-f`, and `CXX=verificarlo-c++`) and linker (`LD=verificarlo --linker=<linker>`) or use the verificarlo command
 directly:
 
 ```bash
@@ -95,7 +99,7 @@ If you are trying to compile a shared library, such as those built by the Cython
 extension to Python, you can then also set the shared linker environment variable
 (`LDSHARED='verificarlo --linker=<linker> -shared'`) to enable position-independent linking.
 
-When invoked with the `--verbose` flag, verificarlo provides detailed output of
+When invoked with the `--verbose` flag, verificarlo provides a detailed output of
 the instrumentation process.
 
 It is important to include the necessary link flags if you use extra libraries.
@@ -106,8 +110,16 @@ library.
 
 Verificarlo can instrument floating point comparison operations. By default,
 comparison operations are not instrumented and default backends do not make use of
-this feature. If your backend requires instrumenting floating point comparisons, you
+this feature. If your backend requires instrumenting floating-point comparisons, you
 must call `verificarlo` with the `--inst-fcmp` flag.
+
+## FMA instrumentation
+
+Verificarlo can instrument Fused Multiply-Add (FMA) operations. By default, FMA operations are not instrumented and default backends do not make use of this feature. If your backend requires instrumenting FMA operations, you must call `verificarlo` with the `--inst-fma` flag.
+
+## Cast instrumentation
+
+Verificarlo can also instrument cast operations. By default, cast operations are not instrumented and default backends do not make use of this feature. If your backend requires instrumenting cast operations, you must call `verificarlo` with the `--inst-cast` flag.
 
 ## Examples and Tutorial
 
@@ -117,7 +129,7 @@ A [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) is avail
 
 ## Backends
 
-Verificarlo includes different numerical backends. Please refer to the [backends documentation](doc/02-Backends.md).
+Verificarlo includes different numerical backends. Please refer to the [backends' documentation](doc/02-Backends.md).
 
   * [IEEE Backend (libinterflop_ieee.so)](doc/02-Backends.md#ieee-backend-libinterflop_ieeeso)
   * [MCA Backends (libinterflop_mca.so and lib_interflop_mca_int.so)](doc/02-Backends.md#mca-backends)
@@ -125,10 +137,9 @@ Verificarlo includes different numerical backends. Please refer to the [backends
   * [Cancellation Backend (libinterflop_cancellation.so)](doc/02-Backends.md#cancellation-backend-libinterflop_cancellationso)
   * [VPREC Backend (libinterflop_vprec.so)](doc/02-Backends.md#vprec-backend-libinterflop_vprecso)
 
-## Inclusion / exclusion options
-
-To inlude only certain parts of the code in the analysis or exclude parts of
-the code from instrumentation please refer to [inclusion / exclusion options documentation](doc/03-inclusion-exclusion.md).
+## Inclusion/exclusion options
+To include only certain parts of the code in the analysis or exclude parts of
+the code from instrumentation please refer to [inclusion/exclusion options documentation](doc/03-inclusion-exclusion.md).
 
 
 ## Pinpointing numerical errors with Delta-Debug
@@ -142,7 +153,7 @@ the function granularity level. Please refer to the [VPREC Function Instrumentat
 
 ## Postprocessing
 
-Verificarlo includes a set of [postprocessing tools](doc/06-Postprocessing.md) to help analyse Verificarlo results and produce high-level reports.
+Verificarlo includes a set of [postprocessing tools](doc/06-Postprocessing.md) to help analyze Verificarlo results and produce high-level reports.
 
   * [Find Optimal precision with vfc_precexp and vfc_report](doc/06-Postprocessing.md#find-optimal-precision-with-vfc_precexp-and-vfc_report)
   * [Unstable branch detection](doc/06-Postprocessing.md#unstable-branch-detection)
@@ -162,11 +173,11 @@ If you use Verificarlo in your research, please cite one of the following papers
 - VPREC Backend: https://hal.archives-ouvertes.fr/hal-02564972
 - VPREC Function Instrumentation and exploration: http://dx.doi.org/10.1109/TETC.2021.3070422
 
-Thanks !
+Thanks! :sparkles:
 
 ## Discussion Group
 
-For questions, feedbacks or discussions about Verificarlo you can use the [Discussions section](https://github.com/verificarlo/verificarlo/discussions) in our github project page.
+For questions, feedback, or discussions about Verificarlo, you can use the [Discussions section](https://github.com/verificarlo/verificarlo/discussions) on our GitHub project page.
 
 ## License
 This file is part of the Verificarlo project,                        
@@ -174,7 +185,7 @@ under the Apache License v2.0 with LLVM Exceptions.
 SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception.             
 See https://llvm.org/LICENSE.txt for license information.            
 
-Copyright (c) 2019-2022
+Copyright (c) 2019-2024
    Verificarlo Contributors
 
 Copyright (c) 2018

@@ -7,7 +7,7 @@ function changeRepository(repoName) {
     repoUrl = repoNamesDict[repoName];
 
     // If we're lookin at commits not linked to a repo
-    if(repoUrl == "") {
+    if (repoUrl == "") {
         // Hide the link button
         gitRepoLink.style.display = "none";
     }
@@ -22,7 +22,7 @@ function changeRepository(repoName) {
 
         // Get host name (GitHub/GitLab)
         let gitHost = "";
-        if(repoUrl.indexOf("github.com") != -1) {
+        if (repoUrl.indexOf("github.com") != -1) {
             gitHost = "GitHub";
         }
         else {
@@ -42,15 +42,15 @@ function changeRepository(repoName) {
 
 // Listen to clicks on breadcrumb (for responsive header)
 document.getElementById("navbar-burger")
-.addEventListener("click", () => {
+    .addEventListener("click", () => {
 
-    document.getElementById("navbar-burger")
-    .classList.toggle("is-active");
+        document.getElementById("navbar-burger")
+            .classList.toggle("is-active");
 
-    document.getElementById("navbar-content")
-    .classList.toggle("is-active");
+        document.getElementById("navbar-content")
+            .classList.toggle("is-active");
 
-})
+    })
 
 
 
@@ -62,11 +62,11 @@ function changeView(classPrefix) {
     let buttons = document.getElementById("buttons-container").childNodes;
     let toggledButtonId = classPrefix + "-button";
 
-    for(let i=0; i<buttons.length; i++) {
-        if(toggledButtonId == buttons[i].id) {
+    for (let i = 0; i < buttons.length; i++) {
+        if (toggledButtonId == buttons[i].id) {
             buttons[i].classList.add("is-active");
         }
-        else if(buttons[i].classList != undefined) {
+        else if (buttons[i].classList != undefined) {
             buttons[i].classList.remove("is-active");
         }
     }
@@ -75,8 +75,8 @@ function changeView(classPrefix) {
     let containers = document.getElementsByTagName("MAIN");
     let toggledContainerId = classPrefix + "-container"
 
-    for(let i=0; i<containers.length; i++) {
-        if(toggledContainerId == containers[i].id) {
+    for (let i = 0; i < containers.length; i++) {
+        if (toggledContainerId == containers[i].id) {
             containers[i].style.display = "block";
         }
         else {
@@ -88,7 +88,7 @@ function changeView(classPrefix) {
 // Listen to clicks on "Compare runs" non-deterministic button
 let compareButtons = document.getElementsByClassName("compare-runs-button");
 
-for (let i=0; i<compareButtons.length; i++) {
+for (let i = 0; i < compareButtons.length; i++) {
     compareButtons[i].addEventListener("click", () => {
         changeView("compare-runs");
     });
@@ -100,46 +100,46 @@ document.getElementById("deterministic-button").addEventListener("click", () => 
 });
 
 document.getElementById("inspect-runs-button")
-.addEventListener("click", () => {
-    changeView("inspect-runs")
-});
+    .addEventListener("click", () => {
+        changeView("inspect-runs")
+    });
 
 
 // Listen to clicks on "Checks" non-deterministic button
 let checksButtons = document.getElementsByClassName("checks-button");
 
-for (let i=0; i<checksButtons.length; i++) {
+for (let i = 0; i < checksButtons.length; i++) {
     checksButtons[i].addEventListener("click", () => {
         changeView("non-deterministic-checks");
     });
 }
 
 document.getElementById("checks-deterministic-button")
-.addEventListener("click", () => {
-    changeView("deterministic-checks");
-});
+    .addEventListener("click", () => {
+        changeView("deterministic-checks");
+    });
 
 
 
 // Toggle the display properties of the loader/report
 function removeLoader() {
     document.getElementById("loader")
-    .style.display = "none";
+        .style.display = "none";
 
     document.getElementById("report")
-    .style.display = "";
+        .style.display = "";
 }
 
 // To detect the end of Bokeh initialization and remove the loader,
 // we look at the number of children of a div containing widgets
 let nChildren = document.getElementById('compare-widgets')
-.getElementsByTagName('*').length;
+    .getElementsByTagName('*').length;
 
 function pollBokehLoading() {
     let newNChildren = document.getElementById('compare-widgets')
-    .getElementsByTagName('*').length;
+        .getElementsByTagName('*').length;
 
-    if(newNChildren != nChildren) {
+    if (newNChildren != nChildren) {
         removeLoader();
     }
     else {
@@ -159,11 +159,11 @@ function updateRunMetadata(runId, prefix) {
 
     // If it is undefined, perform a search by name
     // (by iterating metadata)
-    if(!run) {
-        for(let [key, value] of Object.entries(metadata)) {
+    if (!run) {
+        for (let [key, value] of Object.entries(metadata)) {
 
-            if(!metadata.hasOwnProperty(key)) continue;
-            if(value.name == runId) {
+            if (!metadata.hasOwnProperty(key)) continue;
+            if (value.name == runId) {
                 run = value;
                 break;
             }
@@ -176,7 +176,7 @@ function updateRunMetadata(runId, prefix) {
     // Generate the commit link and host name
     let commit_link = "";
     let gitHost = "";
-    if(run.remote_url.indexOf("github.com") != -1) {
+    if (run.remote_url.indexOf("github.com") != -1) {
         commit_link = run.remote_url + "/commit/" + run.hash;
         gitHost = "GitHub";
     } else {
@@ -188,7 +188,7 @@ function updateRunMetadata(runId, prefix) {
     // Edit innerHTML with new metadata
     document.getElementById(prefix + "run-date").innerHTML = run.date;
 
-    if(run.is_git_commit) {
+    if (run.is_git_commit) {
         document.getElementById(prefix + "is-git-commit").style.display = "";
         document.getElementById(prefix + "not-git-commit").style.display = "none";
 
@@ -197,9 +197,9 @@ function updateRunMetadata(runId, prefix) {
         document.getElementById(prefix + "run-message").innerHTML = run.message;
 
         document.getElementById(prefix + "git-commit-link")
-        .setAttribute("href", commit_link);
+            .setAttribute("href", commit_link);
         document.getElementById(prefix + "git-commit-link")
-        .innerHTML = "View this commit on " + gitHost;
+            .innerHTML = "View this commit on " + gitHost;
 
     } else {
         document.getElementById(prefix + "is-git-commit").style.display = "none";

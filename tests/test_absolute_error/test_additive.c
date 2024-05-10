@@ -11,9 +11,9 @@
 // double.
 
 #define _Float128 long double
-#include "../../src/common/float_const.h"
-#include "../../src/common/float_struct.h"
-#include "../../src/common/float_utils.h"
+#include "interflop/common/float_const.h"
+#include "interflop/common/float_struct.h"
+#include "interflop/common/float_utils.h"
 
 #define DEBUG_MODE 0
 

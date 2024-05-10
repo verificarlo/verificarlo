@@ -13,7 +13,7 @@
  *  Copyright (c) 2018                                                       *\
  *     Universite de Versailles St-Quentin-en-Yvelines                       *\
  *                                                                           *\
- *  Copyright (c) 2019-2021                                                  *\
+ *  Copyright (c) 2019-2024                                                  *\
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/
@@ -79,21 +79,40 @@ static cl::opt<bool>
                              cl::desc("Instrument floating point comparisons"),
                              cl::value_desc("InstrumentFCMP"), cl::init(false));
 
+static cl::opt<bool>
+    VfclibInstInstrumentFMA("vfclibinst-inst-fma",
+                            cl::desc("Instrument floating point fma"),
+                            cl::value_desc("InstrumentFMA"), cl::init(false));
+
+static cl::opt<bool> VfclibInstInstrumentCast(
+    "vfclibinst-inst-cast",
+    cl::desc("Instrument floating point cast instructions"),
+    cl::value_desc("InstrumentCast"), cl::init(false));
+
 /* pointer that hold the vfcwrapper Module */
 static Module *vfcwrapperM = nullptr;
 
 namespace {
 // Define an enum type to classify the floating points operations
 // that are instrumented by verificarlo
-enum Fops { FOP_ADD, FOP_SUB, FOP_MUL, FOP_DIV, FOP_CMP, FOP_IGNORE };
+enum Fops {
+  FOP_ADD,
+  FOP_SUB,
+  FOP_MUL,
+  FOP_DIV,
+  FOP_CMP,
+  FOP_FMA,
+  FOP_CAST,
+  FOP_IGNORE
+};
 
 // Each instruction can be translated to a string representation
-const std::string Fops2str[] = {"add", "sub", "mul", "div", "cmp", "ignore"};
+const std::string Fops2str[] = {"add", "sub", "mul",  "div",
+                                "cmp", "fma", "cast", "ignore"};
 
 /* valid floating-point type to instrument */
 std::map<Type::TypeID, std::string> validTypesMap = {
-    std::pair<Type::TypeID, std::string>(Type::FloatTyID, "float"),
-    std::pair<Type::TypeID, std::string>(Type::DoubleTyID, "double")};
+    {Type::FloatTyID, "float"}, {Type::DoubleTyID, "double"}};
 
 /* valid vector sizes to instrument */
 const std::set<unsigned> validVectorSizes = {2, 4, 8, 16};
@@ -288,10 +307,11 @@ struct VfclibInst : public ModulePass {
   /* it is built as: */
   /*  _ <size>x<type><operation> for vector */
   /*   _<type><operation> for scalar */
-  std::string getMCAFunctionName(Type *opType, Fops opCode) {
+  std::string getMCAFunctionName(Instruction *I, Fops opCode) {
     std::string functionName;
     std::string size = "";
 
+    Type *opType = I->getOperand(0)->getType();
     Type *baseType = opType->getScalarType();
     if (VectorType *vecType = dyn_cast<VectorType>(opType)) {
 #if LLVM_VERSION_MAJOR >= 13
@@ -304,9 +324,19 @@ struct VfclibInst : public ModulePass {
       size = std::to_string(vecType->getNumElements()) + "x";
 #endif
     }
-    auto precision = validTypesMap[baseType->getTypeID()];
+
+    std::string precision;
+    if (opCode == FOP_CAST) {
+      auto srcTyName = validTypesMap[I->getOperand(0)->getType()->getTypeID()];
+      auto dstTyName = validTypesMap[I->getType()->getTypeID()];
+      precision = srcTyName + "to" + dstTyName;
+    } else {
+      precision = validTypesMap[baseType->getTypeID()];
+    }
+
     auto operation = Fops2str[opCode];
     functionName = "_" + size + precision + operation;
+
     return functionName;
   }
 
@@ -391,7 +421,7 @@ struct VfclibInst : public ModulePass {
     /* Check if operand and signature type match */
     if (opType != sigType) {
       if (CastInst::isBitCastable(opType, sigType)) {
-        /* Small vectors can be optimzed like <2xfloat> can be casted in double
+        /* Small vectors can be optimzed, .i.e <2xfloat> can be casted in double
          */
         operand = Builder.CreateBitCast(operand, sigType);
       } else if (arg->hasByValAttr() and sigType->isPointerTy()) {
@@ -435,6 +465,28 @@ struct VfclibInst : public ModulePass {
     return newInst;
   }
 
+  /* Replace fma arithmetic instructions with MCA */
+  Value *replaceArithmeticFMAWithMCACall(IRBuilder<> &Builder, Function *F,
+                                         Instruction *I) {
+
+    Value *op1 = I->getOperand(0);
+    Value *op2 = I->getOperand(1);
+    Value *op3 = I->getOperand(2);
+
+    Type *retType = I->getType();
+
+    op1 = updateOperand(Builder, F, op1, 0);
+    op2 = updateOperand(Builder, F, op2, 1);
+    op3 = updateOperand(Builder, F, op3, 2);
+
+    CallInst *newInst = Builder.CreateCall(F, {op1, op2, op3});
+    newInst->setAttributes(F->getAttributes());
+
+    newInst = dyn_cast<CallInst>(updateReturn(Builder, newInst, retType));
+
+    return newInst;
+  }
+
   /* Replace comparison instructions with MCA */
   Value *replaceComparisonWithMCACall(IRBuilder<> &Builder, Function *F,
                                       Instruction *I) {
@@ -465,9 +517,28 @@ struct VfclibInst : public ModulePass {
     return newInst;
   }
 
+  /* Replace cast instruction with MCA */
+  Value *replaceCastWithMCACall(IRBuilder<> &Builder, Function *F,
+                                Instruction *I) {
+
+    Type *srcType = I->getOperand(0)->getType();
+    Type *dstType = I->getType();
+
+    Value *op = I->getOperand(0);
+
+    op = updateOperand(Builder, F, op, 0);
+
+    CallInst *newInst = Builder.CreateCall(F, {op});
+    newInst->setAttributes(F->getAttributes());
+
+    newInst = dyn_cast<CallInst>(updateReturn(Builder, newInst, dstType));
+
+    return newInst;
+  }
+
   /* Returns the MCA function */
-  Function *getMCAFunction(Module &M, Type *opType, Fops opCode) {
-    const std::string mcaFunctionName = getMCAFunctionName(opType, opCode);
+  Function *getMCAFunction(Module &M, Instruction *I, Fops opCode) {
+    const std::string mcaFunctionName = getMCAFunctionName(I, opCode);
     Function *vfcwrapperF = vfcwrapperM->getFunction(mcaFunctionName);
 #if LLVM_VERSION_MAJOR < 9
     Constant *callee =
@@ -483,8 +554,8 @@ struct VfclibInst : public ModulePass {
     return newVfcWrapperF;
   }
 
-  // Returns true if the caller and the callee agree on how args will be passed
-  // Available in TargetTransformInfoImpl since llvm-8
+  // Returns true if the caller and the callee agree on how args will be
+  // passed Available in TargetTransformInfoImpl since llvm-8
   bool areFunctionArgsABICompatible(Function *caller, Function *callee) {
     return (callee->getFnAttribute("target-features") !=
             caller->getFnAttribute("target-features")) and
@@ -498,11 +569,10 @@ struct VfclibInst : public ModulePass {
     }
 
     IRBuilder<> Builder(I);
-    Type *opType = I->getOperand(0)->getType();
 
     Function *caller = I->getFunction();
     /* Get the mca function */
-    Function *mcaFunction = getMCAFunction(M, opType, opCode);
+    Function *mcaFunction = getMCAFunction(M, I, opCode);
 
     // If the caller and the callee (mcaFunction) have different ABI we set the
     // caller attributes to the callee ones.
@@ -518,10 +588,41 @@ struct VfclibInst : public ModulePass {
     Value *newInst;
     if (opCode == FOP_CMP) {
       newInst = replaceComparisonWithMCACall(Builder, mcaFunction, I);
+    } else if (opCode == FOP_FMA) {
+      newInst = replaceArithmeticFMAWithMCACall(Builder, mcaFunction, I);
+    } else if (opCode == FOP_CAST) {
+      newInst = replaceCastWithMCACall(Builder, mcaFunction, I);
     } else {
       newInst = replaceArithmeticWithMCACall(Builder, mcaFunction, I);
     }
     return newInst;
+  }
+
+  bool isFMAOperation(Instruction &I) {
+    CallInst *CI = static_cast<CallInst *>(&I);
+    const std::string &name = CI->getCalledFunction()->getName().str();
+    if (name == "llvm.fmuladd.f32")
+      return true;
+    if (name == "llvm.fmuladd.f64")
+      return true;
+    if (name == "llvm.fma.f32")
+      return true;
+    if (name == "llvm.fma.f64")
+      return true;
+    return false;
+  }
+
+  /* Check if the cast operation is valid */
+  /* for now, we only support a cast from double to float */
+  bool isValidCastOperation(Instruction &I) {
+    FPTruncInst *FPTrunc = static_cast<FPTruncInst *>(&I);
+    Type *srcType = FPTrunc->getSrcTy();
+    Type *dstType = FPTrunc->getDestTy();
+    if (srcType->isDoubleTy() and dstType->isFloatTy()) {
+      return true;
+    }
+
+    return false;
   }
 
   Fops mustReplace(Instruction &I) {
@@ -539,6 +640,20 @@ struct VfclibInst : public ModulePass {
       // Only instrument FCMP if the flag --inst-fcmp is passed
       if (VfclibInstInstrumentFCMP) {
         return FOP_CMP;
+      } else {
+        return FOP_IGNORE;
+      }
+    case Instruction::Call:
+      // Only instrument FMA if the flag --inst-fma is passed
+      if (VfclibInstInstrumentFMA and isFMAOperation(I)) {
+        return FOP_FMA;
+      } else {
+        return FOP_IGNORE;
+      }
+    case Instruction::FPTrunc:
+      // Only instrument cast if the flag --inst-cast is passed
+      if (VfclibInstInstrumentCast and isValidCastOperation(I)) {
+        return FOP_CAST;
       } else {
         return FOP_IGNORE;
       }
@@ -566,7 +681,11 @@ struct VfclibInst : public ModulePass {
       Value *value = replaceWithMCACall(M, I, opCode);
       if (value != nullptr) {
         BasicBlock::iterator ii(I);
+#if LLVM_VERSION_MAJOR >= 16
+        ReplaceInstWithValue(ii, value);
+#else
         ReplaceInstWithValue(B.getInstList(), ii, value);
+#endif
       }
       modified = true;
     }

@@ -1,49 +1,56 @@
 #!/bin/bash
 
+set -e
+
 if [[ $# == 1 ]]; then
-    usecase=$1
-    echo $usecase
+	usecase=$1
+	echo $usecase
 fi
 
 case $usecase in
-    fast)
-	RANGE_MIN=2
-	RANGE_STEP=4
-	PRECISION_MIN=3
-	PRECISION_STEP=20
-	N_SAMPLES=3
+fast)
+	range_min=2
+	range_step=4
+	precision_min=3
+	precision_step=20
+	n_samples=3
 	;;
-    small)
-	RANGE_MIN=2
-	RANGE_STEP=4
-	PRECISION_MIN=3
-	PRECISION_STEP=20
-	N_SAMPLES=3
+small)
+	range_min=2
+	range_step=4
+	precision_min=3
+	precision_step=20
+	n_samples=3
 	;;
-    medium)
-	RANGE_MIN=2
-	RANGE_STEP=2
-	PRECISION_MIN=3
-	PRECISION_STEP=10
-	N_SAMPLES=3
+medium)
+	range_min=2
+	range_step=2
+	precision_min=3
+	precision_step=10
+	n_samples=3
 	;;
-    full)
-	RANGE_MIN=2
-	RANGE_STEP=1
-	PRECISION_MIN=1
-	PRECISION_STEP=1
-	N_SAMPLES=3
+full)
+	range_min=2
+	range_step=1
+	precision_min=1
+	precision_step=1
+	n_samples=3
 	;;
-    cmp) ./comparison.sh $1 $2 $3; exit 0 ;;
-    *)
+cmp)
+	./comparison.sh $1 $2 $3
+	exit 0
+	;;
+*)
 	usecase=fast
-	RANGE_MIN=2
-	RANGE_STEP=3
-	PRECISION_MIN=3
-	PRECISION_STEP=10
-	N_SAMPLES=3
+	range_min=2
+	range_step=3
+	precision_min=3
+	precision_step=10
+	n_samples=3
+	;;
 esac
 
-./generic_test.sh ${usecase} ${RANGE_MIN} ${RANGE_STEP} ${PRECISION_MIN} ${PRECISION_STEP} ${N_SAMPLES}
+./compile.sh
+./generic_test.sh ${usecase} ${range_min} ${range_step} ${precision_min} ${precision_step} ${n_samples}
 
 exit $?

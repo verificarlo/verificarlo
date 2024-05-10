@@ -5,7 +5,9 @@ source ../paths.sh
 
 if [ -z "${FLANG_PATH}" ]; then
     echo "this test is not run when not using --with-flang"
-    exit 0
+    # Exit with 77 to mark the test skipped
+    # https://www.gnu.org/software/automake/manual/html_node/Scripts_002dbased-Testsuites.html
+    exit 77
 fi
 
 cd NPB3.0-SER
