@@ -178,6 +178,10 @@ There are two available backends:
   only supports default precision and relative error mode; some user options
   are therefore unavailable.
 
+Most of the time, users should prefer `libinterflop_mca_int.so` because the implementation is faster and more precise. Indeed, the MCA integer backend is our most precise implementation (for a detailed discussion, please see sections 5.4 and 6.3.3 in [tel-03831483](https://universite-paris-saclay.hal.science/LI-PARAD/tel-03831483)) for MCA RR mode (often called SR in the literature).
+
+`libinterflop_mca.so` should only be preferred when the user wants to explore different virtual precisions.
+
 ```bash
 VFC_BACKENDS="libinterflop_mca.so --help" ./test
 test: verificarlo loaded backend libinterflop_mca.so
