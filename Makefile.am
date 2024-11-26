@@ -28,9 +28,10 @@ CLEANFILES = verificarlo
 check:
 	@echo "Tests should be run after install with make installcheck"
 
-install-exec-hook:
+install-interflop-stdlib:
 	make -C src/interflop-stdlib install
 
+install-exec-hook: install-interflop-stdlib
 	$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS) . && \
 	echo "Run 'source $(setenvdir)/set-env' to set environment variables"
 

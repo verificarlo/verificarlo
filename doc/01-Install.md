@@ -24,6 +24,7 @@ Then run the following command inside verificarlo directory:
 ```bash
    $ ./autogen.sh
    $ ./configure --without-flang
+   $ sudo make install-interflop-stdlib
    $ make
    $ sudo make install
 ```
@@ -39,6 +40,7 @@ install procedure:
    $ cd verificarlo/
    $ ./autogen.sh
    $  CC=gcc-7 CXX=g++-7 ./configure --with-flang
+   $ sudo make install-interflop-stdlib
    $ make
    $ sudo make install
 ```

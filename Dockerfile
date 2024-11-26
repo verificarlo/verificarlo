@@ -61,7 +61,8 @@ RUN if [ "$WITH_FLANG" = "flang" ]; then \
     $FLANG_OPTION || { cat config.log; exit 1; }
 
 # Build verificarlo
-RUN make && make install 
+RUN make install-interflop-stdlib
+RUN make && make install
 
 # Setup working directory
 VOLUME /workdir
