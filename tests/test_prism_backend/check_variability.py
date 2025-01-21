@@ -9,16 +9,17 @@ import os
 import re
 import significantdigits as sd
 
+
 def read_file(filename):
     basename = os.path.basename(filename)
-    vecsize = re.search(r'\.x(\d+)', basename)
+    vecsize = re.search(r"\.x(\d+)", basename)
     if vecsize:
         vecsize = int(vecsize.group(1))
     else:
         vecsize = 1
 
-    conv = {i : float.fromhex for i in range(vecsize)}
-    return np.genfromtxt(filename, converters=conv, autostrip=True, encoding='utf-8')
+    conv = {i: float.fromhex for i in range(vecsize)}
+    return np.genfromtxt(filename, converters=conv, autostrip=True, encoding="utf-8")
 
 
 def compute_sig(x, verbose):
@@ -31,8 +32,8 @@ def compute_sig(x, verbose):
         print(f"Mean: {mean}")
         print(f"Min mean: ", mean_min.hex())
         print(f"Std: {std}")
-       print(f"Signficant digits: {sig}")
-       print(f"Min significant digits: {sig_min}")
+        print(f"Signficant digits: {sig}")
+        print(f"Min significant digits: {sig_min}")
     return sig_min, mean_min, std
     return mean_min, std
 
