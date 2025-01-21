@@ -260,7 +260,7 @@ public:
   }
 
   auto copyFunction(Module *M, Function *F,
-                    const std::string &functionName) -> Function * {
+                    const std::string &functionName) -> Value * {
     auto functionNameMangled = demangledShortNamesToMangled[functionName];
 
     return M->getOrInsertFunction(functionNameMangled, F->getFunctionType(),
