@@ -438,9 +438,9 @@ The following example shows the computation with single precision and the simula
 
 ### PRISM Backend
 
-The PRISM backend implements Stochastic Rounding [Fasi, 2020](https://ieeexplore.ieee.org/document/9387551) and Up & Down rounding [TBD].
+The PRISM backend implements Stochastic Rounding [Fasi, 2020](https://ieeexplore.ieee.org/document/9387551) and Up & Down rounding.
 
-It is built upon the [PRISM](https://yohanchatelain/prism.git) library and utilizes the [Highway](https://github.com/google/highway.git) library for vectorized operations.
+It is built upon the [PRISM](https://github.com/yohanchatelain/prism.git) library and utilizes the [Highway](https://github.com/google/highway.git) library for vectorized operations.
 
 Unlike other backends, the PRISM backend does not conform to the interflop interface or support dynamic loading. Instead, it must be specified during instrumentation using the `--prism-backend=MODE` option, where `MODE` can be:
 
