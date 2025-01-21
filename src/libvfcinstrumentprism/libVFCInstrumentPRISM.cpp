@@ -64,9 +64,14 @@
 #include "TargetFeatures.hpp"
 #include "libVFCInstrumentPRISMOptions.hpp"
 
+#if LLVM_VERSION_MAJOR < 9
+#define FUNCTION_CALLEE Value *
+#else
+#define FUNCTION_CALLEE FunctionCallee
+#endif
+
 #if LLVM_VERSION_MAJOR < 11
 #define VECTOR_TYPE VectorType
-#define FUNCTION_CALLEE Value *
 #define GET_VECTOR_TYPE(ty, size) VectorType::get(ty, size)
 #define CREATE_FMA_CALL(Builder, type, args)                                   \
   Builder.CreateIntrinsic(Intrinsic::fma, args)
@@ -74,7 +79,6 @@
 #define GET_VECTOR_ELEMENT_COUNT(vecType) vecType->getNumElements()
 #else
 #define VECTOR_TYPE FixedVectorType
-#define FUNCTION_CALLEE FunctionCallee
 #define GET_VECTOR_TYPE(ty, size) FixedVectorType::get(ty, size)
 #define CREATE_FMA_CALL(Builder, type, args)                                   \
   Builder.CreateIntrinsic(Intrinsic::fma, type, args)
