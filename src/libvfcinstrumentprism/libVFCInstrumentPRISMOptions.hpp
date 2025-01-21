@@ -28,7 +28,7 @@ public:
     }
   }
 
-  [[nodiscard]] auto get_namespace() const {
+  [[nodiscard]] auto get_namespace() const -> std::string {
     if (rounding_mode == PrismRoundingMode::UpDown) {
       return up_down_ns;
     }
