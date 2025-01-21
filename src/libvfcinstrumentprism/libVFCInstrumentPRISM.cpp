@@ -48,12 +48,8 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
-// #include <llvm/Target/TargetRegistry.h>
-#if LLVM_VERSION_MAJOR <= 11
+#if LLVM_VERSION_MAJOR >= 11
 #include <llvm/Support/TargetSelect.h>
-#elif LLVM_VERSION_MAJOR <= 14
-#undef PIC
-#include <llvm/MC/TargetRegistry.h>
 #else
 #include <llvm/Support/TargetRegistry.h>
 #endif
@@ -263,7 +259,8 @@ public:
     return libModule->getFunction(demangledShortNamesToMangled[name]);
   }
 
-  auto copyFunction(Module *M, Function *F, const std::string &functionName) {
+  auto copyFunction(Module *M, Function *F,
+                    const std::string &functionName) -> Function * {
     auto functionNameMangled = demangledShortNamesToMangled[functionName];
 
     return M->getOrInsertFunction(functionNameMangled, F->getFunctionType(),
@@ -367,7 +364,7 @@ private:
   IRModule staticLib;
   IRModule dynamicLib;
 
-  auto getFunction(StringRef name) {
+  auto getFunction(StringRef name) -> Function * {
     if (dispatch_mode.is_static()) {
       return staticLib.getFunction(name.str());
     }
@@ -375,14 +372,14 @@ private:
   }
 
   auto getCopyFunction(Module *M, Function *F,
-                       const std::string &functionName) {
+                       const std::string &functionName) -> Function * {
     if (dispatch_mode.is_static()) {
       return staticLib.copyFunction(M, F, functionName);
     }
     return dynamicLib.copyFunction(M, F, functionName);
   }
 
-  static auto getFloatingPointTypeName(Type *Ty) {
+  static auto getFloatingPointTypeName(Type *Ty) -> std::string {
     if (Ty->isVectorTy()) {
       auto *vecType = dyn_cast<VectorType>(Ty);
       auto *baseType = vecType->getScalarType();
@@ -393,7 +390,7 @@ private:
     return fops::getFpTypeName(Ty->getTypeID());
   }
 
-  auto getFunctionNameScalar(Instruction *I, FPOps opCode) {
+  auto getFunctionNameScalar(Instruction *I, FPOps opCode) -> std::string {
     const auto mode = rounding_mode.get_namespace();
     const auto dispatch = dispatch_mode.get_namespace();
     const auto opname = fops::getName(opCode);
@@ -403,8 +400,9 @@ private:
     return "prism::" + mode + "::scalar::" + dispatch + "::" + fname;
   }
 
-  auto getFunctionNameVector(Instruction *I, FPOps opCode,
-                             const PrismPassingMode &passing_style) {
+  auto
+  getFunctionNameVector(Instruction *I, FPOps opCode,
+                        const PrismPassingMode &passing_style) -> std::string {
     const auto mode = rounding_mode.get_namespace();
     const auto dispatch = dispatch_mode.get_namespace();
     const auto passing = PassingModeNamespace(passing_style);
@@ -417,7 +415,7 @@ private:
   }
 
   auto getFunctionName(Instruction *I, FPOps opCode,
-                       const PrismPassingMode &passing) {
+                       const PrismPassingMode &passing) -> std::string {
 
     if (opCode == FPOps::IGNORE) {
       prism_fatal_error("Unsupported opcode: " + fops::getName(opCode));
@@ -722,7 +720,7 @@ struct VfclibInst : public ModulePass {
 #endif
   }
 
-  static auto getFPTypeName(Type *Ty) {
+  static auto getFPTypeName(Type *Ty) -> std::string {
     if (Ty->isVectorTy()) {
       auto *vecType = dyn_cast<VectorType>(Ty);
       auto *baseType = vecType->getScalarType();
