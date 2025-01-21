@@ -59,7 +59,7 @@ public:
     }
   }
 
-  [[nodiscard]] auto get_namespace() const {
+  [[nodiscard]] auto get_namespace() const -> std::string {
     if (dispatch_mode == PrismDispatchMode::Static) {
       return static_mode + "_dispatch";
     }
