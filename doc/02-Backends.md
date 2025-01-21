@@ -185,6 +185,10 @@ There are two available backends:
 
 Most of the time, users should prefer `libinterflop_mca_int.so` because the implementation is faster and more precise. Indeed, the MCA integer backend is our most precise implementation (for a detailed discussion, please see sections 5.4 and 6.3.3 in [tel-03831483](https://universite-paris-saclay.hal.science/LI-PARAD/tel-03831483)) for MCA RR mode (often called SR in the literature).
 
+>[!NOTE]
+>MCA int is equivalent to [PRISM SR](#prism-backend) when the virtual precision matches the type's precision (t=24 for binary32, t=53 for binar64).
+
+
 `libinterflop_mca.so` should only be preferred when the user wants to explore different virtual precisions.
 
 ```bash
