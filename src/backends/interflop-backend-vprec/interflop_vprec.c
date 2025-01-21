@@ -394,10 +394,10 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
  *******************************************************************/
 
 #define PERFORM_FMA(A, B, C)                                                   \
-  _Generic(A, float                                                            \
-           : interflop_fma_binary32, double                                    \
-           : interflop_fma_binary64, _Float128                                 \
-           : interflop_fma_binary128)(A, B, C)
+  _Generic(A,                                                                  \
+      float: interflop_fma_binary32,                                           \
+      double: interflop_fma_binary64,                                          \
+      _Float128: interflop_fma_binary128)(A, B, C)
 
 /* perform_binary_op: applies the binary operator (op) to (a) and (b) */
 /* and stores the result in (res) */

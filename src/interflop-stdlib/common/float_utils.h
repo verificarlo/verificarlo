@@ -30,20 +30,20 @@
 
 /* Generic getters for float constants */
 #define GET_EXP_MAX(X)                                                         \
-  _Generic((X), float : FLOAT_EXP_MAX, double : DOUBLE_EXP_MAX)
+  _Generic((X), float: FLOAT_EXP_MAX, double: DOUBLE_EXP_MAX)
 #define GET_EXP_MIN(X)                                                         \
-  _Generic((X), float : FLOAT_EXP_MIN, double : DOUBLE_EXP_MIN)
+  _Generic((X), float: FLOAT_EXP_MIN, double: DOUBLE_EXP_MIN)
 #define GET_SIGN_SIZE(X)                                                       \
-  _Generic((X), float : FLOAT_SIGN_SIZE, double : DOUBLE_SIGN_SIZE)
+  _Generic((X), float: FLOAT_SIGN_SIZE, double: DOUBLE_SIGN_SIZE)
 #define GET_EXP_SIZE(X)                                                        \
-  _Generic((X), float : FLOAT_EXP_SIZE, double : DOUBLE_EXP_SIZE)
+  _Generic((X), float: FLOAT_EXP_SIZE, double: DOUBLE_EXP_SIZE)
 #define GET_PMAN_SIZE(X)                                                       \
-  _Generic((X), float : FLOAT_PMAN_SIZE, double : DOUBLE_PMAN_SIZE)
+  _Generic((X), float: FLOAT_PMAN_SIZE, double: DOUBLE_PMAN_SIZE)
 #define GET_EXP_COMP(X)                                                        \
-  _Generic((X), float : FLOAT_EXP_COMP, double : DOUBLE_EXP_COMP)
-#define GET_PREC(X) _Generic(X, float : FLOAT_PREC, double : DOUBLE_PREC)
+  _Generic((X), float: FLOAT_EXP_COMP, double: DOUBLE_EXP_COMP)
+#define GET_PREC(X) _Generic(X, float: FLOAT_PREC, double: DOUBLE_PREC)
 #define GET_MASK_ONE(X)                                                        \
-  _Generic(X, float : FLOAT_MASK_ONE, double : DOUBLE_MASK_ONE)
+  _Generic(X, float: FLOAT_MASK_ONE, double: DOUBLE_MASK_ONE)
 
 /* Unified fpclassify function for binary32, binary64 and binary128 */
 static inline int fpf(float x) {
@@ -100,18 +100,17 @@ int fpq(_Float128 x) {
 
 #if __clang__
 #define FPCLASSIFY(X)                                                          \
-  _Generic(X, float : fpf(X), double : fpd(X), _Float128 : fpq(X))
+  _Generic(X, float: fpf(X), double: fpd(X), _Float128: fpq(X))
 #elif __GNUC__
 #define FPCLASSIFY(X)                                                          \
-  _Generic(X, float                                                            \
-           : __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL,              \
+  _Generic(X,                                                                  \
+      float: __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL,              \
                                   FP_SUBNORMAL, FP_ZERO, X),                   \
-             double                                                            \
-           : __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL,              \
-                                  FP_SUBNORMAL, FP_ZERO, X),                   \
-             _Float128                                                         \
-           : __builtin_fpclassify(QUADFP_NAN, QUADFP_INFINITE, QUADFP_NORMAL,  \
-                                  QUADFP_SUBNORMAL, QUADFP_ZERO, X))
+      double: __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL,             \
+                                   FP_SUBNORMAL, FP_ZERO, X),                  \
+      _Float128: __builtin_fpclassify(QUADFP_NAN, QUADFP_INFINITE,             \
+                                      QUADFP_NORMAL, QUADFP_SUBNORMAL,         \
+                                      QUADFP_ZERO, X))
 #endif
 
 /* Denormals-Are-Zero */
@@ -179,10 +178,10 @@ static inline bool _is_representable_binary128(const _Float128 x,
 
 /* Generic call for _is_representable_TYPEOF(X) */
 #define _IS_REPRESENTABLE(X, VT)                                               \
-  _Generic(X, float                                                            \
-           : _is_representable_binary32, double                                \
-           : _is_representable_binary64, _Float128                             \
-           : _is_representable_binary128)(X, VT)
+  _Generic(X,                                                                  \
+      float: _is_representable_binary32,                                       \
+      double: _is_representable_binary64,                                      \
+      _Float128: _is_representable_binary128)(X, VT)
 
 /* Returns the unbiased exponent of the binary32 f */
 static inline int32_t _get_exponent_binary32(const float f) {
@@ -231,10 +230,10 @@ static inline _Float128 _fast_pow2_binary128(const int exp) {
 
 /* Generic call for get_exponent_TYPEOF(X) */
 #define GET_EXP_FLT(X)                                                         \
-  _Generic(X, float                                                            \
-           : _get_exponent_binary32, double                                    \
-           : _get_exponent_binary64, _Float128                                 \
-           : _get_exponent_binary128)(X)
+  _Generic(X,                                                                  \
+      float: _get_exponent_binary32,                                           \
+      double: _get_exponent_binary64,                                          \
+      _Float128: _get_exponent_binary128)(X)
 
 #endif /* __FLOAT_UTILS_H__ */
 

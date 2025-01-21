@@ -315,9 +315,8 @@ _Float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
-  _Generic(X, double                                                           \
-           : _noise_binary64, _Float128                                        \
-           : _noise_binary128)(EXP, RNG_STATE)
+  _Generic(X, double: _noise_binary64, _Float128: _noise_binary128)(EXP,       \
+                                                                    RNG_STATE)
 
 /* Fast version of _INEXACT macro that adds noise in relative error.
   Always adds noise even if X is exact or sparsity is enabled.
@@ -380,9 +379,9 @@ inline void _mcaquad_inexact_binary128(_Float128 *qa, void *context) {
 /* Generic functions that adds noise to A */
 /* The function is choosen depending on the type of X  */
 #define _INEXACT_BINARYN(X, A, CTX)                                            \
-  _Generic(X, double                                                           \
-           : _mcaquad_inexact_binary64, _Float128                              \
-           : _mcaquad_inexact_binary128)(A, CTX)
+  _Generic(X,                                                                  \
+      double: _mcaquad_inexact_binary64,                                       \
+      _Float128: _mcaquad_inexact_binary128)(A, CTX)
 
 /******************** MCA ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the MCA operation. Operands
@@ -392,10 +391,10 @@ inline void _mcaquad_inexact_binary128(_Float128 *qa, void *context) {
  *******************************************************************/
 
 #define PERFORM_FMA(A, B, C)                                                   \
-  _Generic(A, float                                                            \
-           : interflop_fma_binary32, double                                    \
-           : interflop_fma_binary64, _Float128                                 \
-           : interflop_fma_binary128)(A, B, C)
+  _Generic(A,                                                                  \
+      float: interflop_fma_binary32,                                           \
+      double: interflop_fma_binary64,                                          \
+      _Float128: interflop_fma_binary128)(A, B, C)
 
 /* perform_ternary_op: applies the ternary operator (op) to (a), (b)
  * and (c) */

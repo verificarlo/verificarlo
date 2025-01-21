@@ -46,15 +46,13 @@
 /* X         is used to determine the floating-point type */
 #define _set_precision(BACKEND, PRECISION, T, X)                               \
   {                                                                            \
-    const int PRECISION_MIN =                                                  \
-        _Generic(X, float                                                      \
-                 : BACKEND##_PRECISION_BINARY32_MIN, double                    \
-                 : BACKEND##_PRECISION_BINARY64_MIN);                          \
-    const int PRECISION_MAX =                                                  \
-        _Generic(X, float                                                      \
-                 : BACKEND##_PRECISION_BINARY32_MAX, double                    \
-                 : BACKEND##_PRECISION_BINARY64_MAX);                          \
-    char type[] = _Generic(X, float : "binary32", double : "binary64");        \
+    const int PRECISION_MIN = _Generic(X,                                      \
+        float: BACKEND##_PRECISION_BINARY32_MIN,                               \
+        double: BACKEND##_PRECISION_BINARY64_MIN);                             \
+    const int PRECISION_MAX = _Generic(X,                                      \
+        float: BACKEND##_PRECISION_BINARY32_MAX,                               \
+        double: BACKEND##_PRECISION_BINARY64_MAX);                             \
+    char type[] = _Generic(X, float: "binary32", double: "binary64");          \
     if (PRECISION < PRECISION_MIN) {                                           \
       logger_error("invalid precision for %s type. Must be greater than %d",   \
                    type, PRECISION_MIN);                                       \
