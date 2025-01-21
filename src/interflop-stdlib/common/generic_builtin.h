@@ -28,24 +28,24 @@
 
 /* Returns the first least 1-bit + 1 = position of the first trailing 0-bit */
 #define FFS(X)                                                                 \
-  _Generic(X, uint32_t : __builtin_ffs(X), uint64_t : __builtin_ffsl(X))
+  _Generic(X, uint32_t: __builtin_ffs(X), uint64_t: __builtin_ffsl(X))
 
 /* Returns the number of leading 0-bits in x,
    starting at the most significant bit position.
    If x is 0, the result is undefined. */
 #define CLZ(X)                                                                 \
-  _Generic(X, uint32_t : __builtin_clz(X), uint64_t : __builtin_clzl(X))
+  _Generic(X, uint32_t: __builtin_clz(X), uint64_t: __builtin_clzl(X))
 
 /* Variant of CLZ that takes two arguments */
 /* X is used for selecting the type */
 /* Y is the actual argument */
 #define CLZ2(X, Y)                                                             \
-  _Generic(X, uint32_t : __builtin_clz, uint64_t : __builtin_clzl)(Y)
+  _Generic(X, uint32_t: __builtin_clz, uint64_t: __builtin_clzl)(Y)
 
 /* Returns the number of trailing 0-bits in x,
    starting at the most significant bit position.
    If x is 0, the result is undefined. */
 #define CTZ(X)                                                                 \
-  _Generic(X, uint32_t : __builtin_ctz(X), uint64_t : __builtin_ctzl(X))
+  _Generic(X, uint32_t: __builtin_ctz(X), uint64_t: __builtin_ctzl(X))
 
 #endif /* __GENERIC_BUILTIN_H__ */

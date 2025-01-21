@@ -144,18 +144,18 @@ float interflop_ceilf(float x);
 double interflop_ceild(double x);
 
 #define interflop_fpclassify(x)                                                \
-  _Generic(x, float : interflop_fpclassifyf, double : interflop_fpclassifyd)(x)
+  _Generic(x, float: interflop_fpclassifyf, double: interflop_fpclassifyd)(x)
 
 #define interflop_isnan(x)                                                     \
-  _Generic(x, float : interflop_isnanf, double : interflop_isnand)(x)
+  _Generic(x, float: interflop_isnanf, double: interflop_isnand)(x)
 #define interflop_isinf(x)                                                     \
-  _Generic(x, float : interflop_isinff, double : interflop_isinfd)(x)
+  _Generic(x, float: interflop_isinff, double: interflop_isinfd)(x)
 
 #define interflop_floor(x)                                                     \
-  _Generic(x, float : interflop_floorf, double : interflop_floord)(x)
+  _Generic(x, float: interflop_floorf, double: interflop_floord)(x)
 
 #define interflop_ceil(x)                                                      \
-  _Generic(x, float : interflop_ceilf, double : interflop_ceild)(x)
+  _Generic(x, float: interflop_ceilf, double: interflop_ceild)(x)
 
 #if defined(__cplusplus)
 }

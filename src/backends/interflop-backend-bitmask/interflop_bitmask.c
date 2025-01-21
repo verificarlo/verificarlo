@@ -89,7 +89,7 @@ static const char *BITMASK_OPERATOR_STR[] = {[bitmask_operator_zero] = "zero",
                                              [bitmask_operator_rand] = "rand"};
 
 #define GET_BINARYN_T(X)                                                       \
-  _Generic(X, float : ctx->binary32_precision, double : ctx->binary64_precision)
+  _Generic(X, float: ctx->binary32_precision, double: ctx->binary64_precision)
 
 /* possible op values */
 typedef enum {
@@ -112,11 +112,11 @@ static uint32_t binary32_bitmask = FLOAT_MASK_ONE;
 static uint64_t binary64_bitmask = DOUBLE_MASK_ONE;
 
 #define GET_BITMASK(X)                                                         \
-  _Generic(X, \
-				float: binary32_bitmask,    \
-				double:binary64_bitmask,    \
-				float*:&binary32_bitmask,   \
-				double*:&binary64_bitmask)
+  _Generic(X,                                                                  \
+      float: binary32_bitmask,                                                 \
+      double: binary64_bitmask,                                                \
+      float *: &binary32_bitmask,                                              \
+      double *: &binary64_bitmask)
 
 /******************** BITMASK CONTROL FUNCTIONS *******************
  * The following functions are used to set virtual precision and
@@ -225,9 +225,9 @@ static uint64_t get_random_binary64_mask() {
 
 /* Returns a random mask depending on the type of X */
 #define GET_RANDOM_MASK(X, CTX)                                                \
-  _Generic(X, float                                                            \
-           : get_random_binary32_mask, double                                  \
-           : get_random_binary64_mask)(CTX)
+  _Generic(X,                                                                  \
+      float: get_random_binary32_mask,                                         \
+      double: get_random_binary64_mask)(CTX)
 
 /******************** BITMASK ARITHMETIC FUNCTIONS ********************
  * The following set of functions perform the BITMASK operation. Operands
@@ -235,10 +235,10 @@ static uint64_t get_random_binary64_mask() {
  *******************************************************************/
 
 #define PERFORM_FMA(A, B, C)                                                   \
-  _Generic(A, float                                                            \
-           : interflop_fma_binary32, double                                    \
-           : interflop_fma_binary64, _Float128                                 \
-           : interflop_fma_binary128)(A, B, C)
+  _Generic(A,                                                                  \
+      float: interflop_fma_binary32,                                           \
+      double: interflop_fma_binary64,                                          \
+      _Float128: interflop_fma_binary128)(A, B, C)
 
 /* perform_bin_op: applies the binary operator (op) to (a) and (b) */
 /* and stores the result in (res) */
@@ -347,7 +347,7 @@ static void _inexact_binary64(void *context, double *x) {
 }
 
 #define _INEXACT_BINARYN(CTX, X)                                               \
-  _Generic(X, float * : _inexact_binary32, double * : _inexact_binary64)(CTX, X)
+  _Generic(X, float *: _inexact_binary32, double *: _inexact_binary64)(CTX, X)
 
 #define _BITMASK_UNARY_OP(A, OP, CTX)                                          \
   {                                                                            \

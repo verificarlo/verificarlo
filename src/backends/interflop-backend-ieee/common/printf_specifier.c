@@ -34,11 +34,11 @@
 
 #define BYTE_U32 0xF0000000
 #define BYTE_U64 0xF000000000000000
-#define GET_BYTE_MASK(X) _Generic((X), uint32_t : BYTE_U32, uint64_t : BYTE_U64)
+#define GET_BYTE_MASK(X) _Generic((X), uint32_t: BYTE_U32, uint64_t: BYTE_U64)
 
 /* Returns the format string depending on the type of X */
 #define GET_BINARY_FMT(X)                                                      \
-  _Generic((X), float : "%c%c.%s x 2^%d", double : "%c%c.%s x 2^%ld")
+  _Generic((X), float: "%c%c.%s x 2^%d", double: "%c%c.%s x 2^%ld")
 
 /* Translates an hexadecimal value to the bit representation */
 const char *hex_to_bit[16] = {"0000", "0001", "0010", "0011", "0100", "0101",

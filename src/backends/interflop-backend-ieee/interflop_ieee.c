@@ -63,8 +63,8 @@ typedef enum {
 
 #define STRING_MAX 256
 
-#define FMT(X) _Generic(X, float : "b", double : "lb")
-#define FMT_SUBNORMAL_NORMALIZED(X) _Generic(X, float : "#b", double : "#lb")
+#define FMT(X) _Generic(X, float: "b", double: "lb")
+#define FMT_SUBNORMAL_NORMALIZED(X) _Generic(X, float: "#b", double: "#lb")
 
 static File *logger_stderr;
 
