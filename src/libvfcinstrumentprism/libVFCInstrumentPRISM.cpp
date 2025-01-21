@@ -19,19 +19,20 @@
  ****************************************************************************/
 #include "../../config.h"
 #include <cstdint>
-#include <llvm/ADT/StringRef.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/Value.h>
 #include <memory>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <llvm/ADT/APFloat.h>
+#include <llvm/ADT/StringRef.h>
 #include <llvm/Demangle/Demangle.h>
+#include <llvm/IR/Attributes.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/InlineAsm.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Linker/Linker.h>
@@ -39,18 +40,18 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/ErrorHandling.h>
 #include <llvm/Support/FileSystem.h>
-#include <llvm/Support/Path.h>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Transforms/Utils/BasicBlockUtils.h>
-// #include <llvm/Support/Alignment.h>
-#include <llvm/IR/Attributes.h>
 #include <llvm/Support/Host.h>
+#include <llvm/Support/Path.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
+#include <llvm/Transforms/Utils/BasicBlockUtils.h>
 // #include <llvm/Target/TargetRegistry.h>
-#if LLVM_VERSION_MAJOR >= 11
+#if LLVM_VERSION_MAJOR <= 11
+#include <llvm/Support/TargetSelect.h>
+#elif LLVM_VERSION_MAJOR <= 14
 #undef PIC
 #include <llvm/MC/TargetRegistry.h>
 #else
@@ -63,17 +64,6 @@
 #include <cxxabi.h>
 #include <fstream>
 #include <regex>
-#include <set>
-#include <utility>
-#include <vector>
-
-// #include "interflop/common/float_const.h"
-
-// used for backtrace
-#include <cstdio>
-#include <cstdlib>
-#include <execinfo.h>
-#include <sys/syscall.h>
 
 #include "TargetFeatures.hpp"
 #include "libVFCInstrumentPRISMOptions.hpp"
