@@ -1,5 +1,14 @@
 Verificarlo CHANGELOG
 
+# [v2.1.0] 2025/01/22
+
+## Added
+  * Separate make and make install by @pablooliveira in https://github.com/verificarlo/verificarlo/pull/349
+  * Add PRISM backend into Verificarlo by @yohanchatelain in https://github.com/verificarlo/verificarlo/pull/350
+
+## Changed
+  * Use bytecode (.bc) instead of plain text (.ll) for intermediate files used during instrumentation passes
+
 # [v2.0.0] 2024/05/10
 
 ## Added
