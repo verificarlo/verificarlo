@@ -286,6 +286,8 @@ def apply_mca_instrumentation_pass(
         extra_args += (
             f" -vfclibinst-prism-dynamic-ir-file {vfclibinst_prism_dynamic_ll} "
         )
+        if args.prism_backend_strict_abi:
+            extra_args += " -vfclibinst-strict-abi "
         if args.prism_backend_debug:
             extra_args += " -vfclibinst-debug "
             for debug in args.prism_backend_debug:
@@ -474,6 +476,11 @@ def parse_args():
         default=[],
         choices=["getoperands", "abi", "targetfeatures", ""],
         help="Enable prism backend instrumentation debug modes",
+    )
+    parser.add_argument(
+        "--prism-backend-strict-abi",
+        action="store_true",
+        help="Enforce strict ABI mode for PRISM backend. Will fail if vector instruction is not found in PRISM backend.",
     )
 
     args, other = parser.parse_known_args()

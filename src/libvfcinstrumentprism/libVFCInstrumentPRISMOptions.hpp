@@ -136,6 +136,11 @@ static cl::opt<bool> VfclibInstDebug("vfclibinst-debug",
                                      cl::desc("Activate debug mode"),
                                      cl::value_desc("Debug"), cl::init(false));
 
+static cl::opt<bool> VfclibInstStrictABI("vfclibinst-strict-abi",
+                                         cl::desc("Use strict ABI mode"),
+                                         cl::value_desc("StrictABI"),
+                                         cl::init(false));
+
 static cl::bits<debugOptions> VfclibInstDebugOptions(
     cl::desc("Debug options"),
     cl::values(

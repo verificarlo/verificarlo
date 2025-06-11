@@ -464,7 +464,12 @@ public:
     }
 
     if (function == nullptr) {
-      prism_fatal_error("Function not found: " + functionName);
+      if (VfclibInstStrictABI) {
+        prism_fatal_error("Function not found: " + functionName);
+      } else {
+        errs() << "Warning: Function not found: " << functionName << "\n";
+        return PrismFunction(nullptr, passing_style);
+      }
     }
 
 #if LLVM_VERSION_MAJOR < 9
