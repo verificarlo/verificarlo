@@ -719,11 +719,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     /* sparse perturbations */
     error = 0;
     sparsity = interflop_strtod(arg, &endptr, &error);
-    if (ctx->sparsity <= 0) {
+    if (ctx->sparsity <= 0 || ctx->sparsity > 1) {
       error = 1;
     }
     if (error != 0) {
-      logger_error("--%s invalid value provided, must be positive",
+      logger_error("--%s invalid value provided, must be in (0, 1]",
                    key_sparsity_str);
     }
     _set_mcaint_sparsity(sparsity, ctx);
