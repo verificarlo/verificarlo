@@ -612,19 +612,19 @@ static inline float _vprec_binary32_ternary_op(float a, float b, float c,
   vprec_context_t *ctx = (vprec_context_t *)context;
   float res = 0;
   if (ctx->mode == vprecmode_ib || ctx->mode == vprecmode_full) {
-    a = _vprec_round_binary32(a, 0, context, ctx->binary32_precision,
-                              ctx->binary32_range);
-    b = _vprec_round_binary32(b, 0, context, ctx->binary32_precision,
-                              ctx->binary32_range);
-    c = _vprec_round_binary32(c, 0, context, ctx->binary32_precision,
-                              ctx->binary32_range);
+    a = _vprec_round_binary32(a, 0, context, ctx->binary32_range,
+                              ctx->binary32_precision);
+    b = _vprec_round_binary32(b, 0, context, ctx->binary32_range,
+                              ctx->binary32_precision);
+    c = _vprec_round_binary32(c, 0, context, ctx->binary32_range,
+                              ctx->binary32_precision);
   }
 
   perform_ternary_op(op, res, a, b, c);
 
   if (ctx->mode == vprecmode_ob || ctx->mode == vprecmode_full) {
-    res = _vprec_round_binary32(res, 0, context, ctx->binary32_precision,
-                                ctx->binary32_range);
+    res = _vprec_round_binary32(res, 0, context, ctx->binary32_range,
+                                ctx->binary32_precision);
   }
 
   return res;
@@ -636,19 +636,19 @@ static inline double _vprec_binary64_ternary_op(double a, double b, double c,
   vprec_context_t *ctx = (vprec_context_t *)context;
   double res = 0;
   if (ctx->mode == vprecmode_ib || ctx->mode == vprecmode_full) {
-    a = _vprec_round_binary64(a, 0, context, ctx->binary64_precision,
-                              ctx->binary64_range);
-    b = _vprec_round_binary64(b, 0, context, ctx->binary64_precision,
-                              ctx->binary64_range);
-    c = _vprec_round_binary64(c, 0, context, ctx->binary64_precision,
-                              ctx->binary64_range);
+    a = _vprec_round_binary64(a, 0, context, ctx->binary64_range,
+                              ctx->binary64_precision);
+    b = _vprec_round_binary64(b, 0, context, ctx->binary64_range,
+                              ctx->binary64_precision);
+    c = _vprec_round_binary64(c, 0, context, ctx->binary64_range,
+                              ctx->binary64_precision);
   }
 
   perform_ternary_op(op, res, a, b, c);
 
   if (ctx->mode == vprecmode_ob || ctx->mode == vprecmode_full) {
-    res = _vprec_round_binary64(res, 0, context, ctx->binary64_precision,
-                                ctx->binary64_range);
+    res = _vprec_round_binary64(res, 0, context, ctx->binary64_range,
+                                ctx->binary64_precision);
   }
 
   return res;
