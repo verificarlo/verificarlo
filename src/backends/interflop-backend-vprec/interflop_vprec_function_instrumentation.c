@@ -20,7 +20,6 @@
 
 #include <argp.h>
 
-#include "common/vprec_tools.h"
 #include "interflop/hashmap/vfc_hashmap.h"
 #include "interflop/interflop.h"
 #include "interflop/interflop_stdlib.h"
@@ -36,10 +35,10 @@
  *************************************************************************/
 
 /* instrumentation modes' names */
-static const char *VPREC_INST_MODE_STR[] = {[vprecinst_arg] = "arguments",
-                                            [vprecinst_op] = "operations",
-                                            [vprecinst_all] = "all",
-                                            [vprecinst_none] = "none"};
+static const char *const VPREC_INST_MODE_STR[] = {[vprecinst_arg] = "arguments",
+                                                  [vprecinst_op] = "operations",
+                                                  [vprecinst_all] = "all",
+                                                  [vprecinst_none] = "none"};
 
 static const char key_instrument_str[] = "instrument";
 static const char key_input_file_str[] = "prec-input-file";
@@ -47,15 +46,16 @@ static const char key_output_file_str[] = "prec-output-file";
 static const char key_log_file_str[] = "prec-log-file";
 
 #define STRING_BUFF 256
+#define LINE_MAX_SIZE 2048
 
 #define INIT_STRING(A, N)                                                      \
-  for (int i = 0; i < N; i++)                                                  \
-    A[i] = (char *)interflop_malloc(sizeof(char) * STRING_BUFF);
+  for (int i = 0; i < (N); i++)                                                \
+    (A)[i] = (char *)interflop_malloc(sizeof(char) * STRING_BUFF);
 
 #define FREE_STRING(A, N)                                                      \
   for (int i = 0; i < N; i++)                                                  \
-    if (A[i])                                                                  \
-      interflop_free(A[i]);
+    if ((A)[i])                                                                \
+      interflop_free((A)[i]);
 
 const int elt_to_read_header = 12;
 const int elt_to_read_inputs = 7;
@@ -141,7 +141,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
-static struct argp_option options[] = {
+static const struct argp_option options[] = {
     {key_input_file_str, KEY_INPUT_FILE, "INPUT", 0,
      "input file with the precision configuration to use", 0},
     {key_output_file_str, KEY_OUTPUT_FILE, "OUTPUT", 0,
@@ -207,7 +207,7 @@ void _vfi_write_hasmap(FILE *fout, vprec_context_t *ctx) {
 /* otherwise call logger_error  */
 long _vfi_scan_int(char *token, const char *field) {
   int error = 0;
-  char *endptr;
+  char *endptr = NULL;
   long res = interflop_strtol(token, &endptr, &error);
   if (error != 0) {
     logger_error("Error while reading hashmap config file (field: %s)\n",
@@ -215,14 +215,13 @@ long _vfi_scan_int(char *token, const char *field) {
   }
   return res;
 }
-
 int _vfi_scan_line(FILE *fi, char **tokens) {
-  const int line_max_size = 2048;
-  char line[2048];
-  interflop_fgets(line, line_max_size, fi);
-  char *tabptr;
+  char line[LINE_MAX_SIZE];
+  interflop_fgets(line, LINE_MAX_SIZE, fi);
+  char *tabptr = NULL;
   char *token = interflop_strtok_r(line, "\t", &tabptr);
   int nb_token = 0;
+#pragma unroll
   while (token) {
     interflop_strcpy(tokens[nb_token], token);
     nb_token++;
@@ -239,20 +238,20 @@ int _vfi_scan_header(FILE *fi, _vfi_t *function_ptr) {
 
   interflop_strcpy(function_ptr->id, tokens_header[0]);
   function_ptr->isLibraryFunction =
-      _vfi_scan_int(tokens_header[1], "isLibraryFunction");
+      (char)_vfi_scan_int(tokens_header[1], "isLibraryFunction");
   function_ptr->isIntrinsicFunction =
-      _vfi_scan_int(tokens_header[2], "isIntrinsicFunction");
-  function_ptr->useFloat = _vfi_scan_int(tokens_header[3], "useFloat");
-  function_ptr->useDouble = _vfi_scan_int(tokens_header[4], "useDouble");
-  function_ptr->OpsPrec64 = _vfi_scan_int(tokens_header[5], "OpsPrec64");
-  function_ptr->OpsRange64 = _vfi_scan_int(tokens_header[6], "OpsRange64");
-  function_ptr->OpsPrec32 = _vfi_scan_int(tokens_header[7], "OpsPrec32");
-  function_ptr->OpsRange32 = _vfi_scan_int(tokens_header[8], "OpsRange32");
+      (char)_vfi_scan_int(tokens_header[2], "isIntrinsicFunction");
+  function_ptr->useFloat = (char)_vfi_scan_int(tokens_header[3], "useFloat");
+  function_ptr->useDouble = (char)_vfi_scan_int(tokens_header[4], "useDouble");
+  function_ptr->OpsPrec64 = (int)_vfi_scan_int(tokens_header[5], "OpsPrec64");
+  function_ptr->OpsRange64 = (int)_vfi_scan_int(tokens_header[6], "OpsRange64");
+  function_ptr->OpsPrec32 = (int)_vfi_scan_int(tokens_header[7], "OpsPrec32");
+  function_ptr->OpsRange32 = (int)_vfi_scan_int(tokens_header[8], "OpsRange32");
   function_ptr->nb_input_args =
-      _vfi_scan_int(tokens_header[9], "nb_input_args");
+      (int)_vfi_scan_int(tokens_header[9], "nb_input_args");
   function_ptr->nb_output_args =
-      _vfi_scan_int(tokens_header[10], "nb_output_args");
-  function_ptr->n_calls = _vfi_scan_int(tokens_header[11], "n_calls");
+      (int)_vfi_scan_int(tokens_header[10], "nb_output_args");
+  function_ptr->n_calls = (int)_vfi_scan_int(tokens_header[11], "n_calls");
 
   return nb_token;
 }
@@ -263,13 +262,13 @@ int _vfi_scan_input(FILE *fi, _vfi_t *function_ptr, int arg_pos) {
 
   // tokens[0] == "input:"
   interflop_strcpy(arg_data->arg_id, tokens_inputs[1]);
-  arg_data->data_type = _vfi_scan_int(tokens_inputs[2], "data_type");
+  arg_data->data_type = (short)_vfi_scan_int(tokens_inputs[2], "data_type");
   arg_data->mantissa_length =
-      _vfi_scan_int(tokens_inputs[3], "mantissa_length");
+      (int)_vfi_scan_int(tokens_inputs[3], "mantissa_length");
   arg_data->exponent_length =
-      _vfi_scan_int(tokens_inputs[4], "exponent_length");
-  arg_data->min_range = _vfi_scan_int(tokens_inputs[5], "min_range");
-  arg_data->max_range = _vfi_scan_int(tokens_inputs[6], "max_range");
+      (int)_vfi_scan_int(tokens_inputs[4], "exponent_length");
+  arg_data->min_range = (int)_vfi_scan_int(tokens_inputs[5], "min_range");
+  arg_data->max_range = (int)_vfi_scan_int(tokens_inputs[6], "max_range");
 
   return nb_token;
 }
@@ -280,13 +279,13 @@ int _vfi_scan_output(FILE *fi, _vfi_t *function_ptr, int arg_pos) {
 
   // tokens[0] == "output:"
   interflop_strcpy(arg_data->arg_id, tokens_outputs[1]);
-  arg_data->data_type = _vfi_scan_int(tokens_outputs[2], "data_type");
+  arg_data->data_type = (short)_vfi_scan_int(tokens_outputs[2], "data_type");
   arg_data->mantissa_length =
-      _vfi_scan_int(tokens_outputs[3], "mantissa_length");
+      (int)_vfi_scan_int(tokens_outputs[3], "mantissa_length");
   arg_data->exponent_length =
-      _vfi_scan_int(tokens_outputs[4], "exponent_length");
-  arg_data->min_range = _vfi_scan_int(tokens_outputs[5], "min_range");
-  arg_data->max_range = _vfi_scan_int(tokens_outputs[6], "max_range");
+      (int)_vfi_scan_int(tokens_outputs[4], "exponent_length");
+  arg_data->min_range = (int)_vfi_scan_int(tokens_outputs[5], "min_range");
+  arg_data->max_range = (int)_vfi_scan_int(tokens_outputs[6], "max_range");
 
   return nb_token;
 }
@@ -439,7 +438,10 @@ void _init_function_inst_arg(_vfi_argument_data_t *arg, char *arg_id,
 void _update_range_bounds(void *raw_value, _vfi_argument_data_t *arg,
                           int new_flag, enum FTYPES type) {
 
-  int isnan = 0, isinf = 0, floor = 0, ceil = 0;
+  int isnan = 0;
+  int isinf = 0;
+  int floor = 0;
+  int ceil = 0;
   if (type == FFLOAT || type == FFLOAT_PTR) {
     float *value = (float *)raw_value;
     isnan = interflop_isnan(*value);
@@ -708,8 +710,9 @@ void _vfi_exit_function(interflop_function_stack_t *stack, void *context,
   // decrement depth
   ctx->vfi->vprec_log_depth--;
 
-  if (function_info == NULL)
+  if (function_info == NULL) {
     logger_error("Call stack error \n");
+  }
 
   _vfi_t *function_inst = vfc_hashmap_get(
       ctx->vfi->map, vfc_hashmap_str_function(function_info->id));

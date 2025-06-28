@@ -26,13 +26,13 @@
 //
 
 #include <argp.h>
+#include <math.h>
 
 #include "common/vprec_tools.h"
 #include "interflop/common/float_const.h"
 #include "interflop/common/float_struct.h"
 #include "interflop/common/float_utils.h"
 #include "interflop/fma/interflop_fma.h"
-#include "interflop/hashmap/vfc_hashmap.h"
 #include "interflop/interflop.h"
 #include "interflop/interflop_stdlib.h"
 #include "interflop/iostream/logger.h"
@@ -56,27 +56,26 @@ static const char key_ftz_str[] = "ftz";
 /* variables that control precision, range and mode */
 
 /* Modes' names */
-static const char *VPREC_MODE_STR[] = {[vprecmode_ieee] = "ieee",
-                                       [vprecmode_full] = "full",
-                                       [vprecmode_ib] = "ib",
-                                       [vprecmode_ob] = "ob"};
+static const char *const VPREC_MODE_STR[] = {[vprecmode_ieee] = "ieee",
+                                             [vprecmode_full] = "full",
+                                             [vprecmode_ib] = "ib",
+                                             [vprecmode_ob] = "ob"};
 
-static const char *VPREC_ERR_MODE_STR[] = {[vprec_err_mode_rel] = "rel",
-                                           [vprec_err_mode_abs] = "abs",
-                                           [vprec_err_mode_all] = "all"};
+static const char *const VPREC_ERR_MODE_STR[] = {[vprec_err_mode_rel] = "rel",
+                                                 [vprec_err_mode_abs] = "abs",
+                                                 [vprec_err_mode_all] = "all"};
 
-static const char *VPREC_PRESET_STR[] = {[vprec_preset_binary16] = "binary16",
-                                         [vprec_preset_binary32] = "binary32",
-                                         [vprec_preset_bfloat16] = "bfloat16",
-                                         [vprec_preset_tensorfloat] =
-                                             "tensorfloat",
-                                         [vprec_preset_fp24] = "fp24",
-                                         [vprec_preset_PXR24] = "PXR24"};
+static const char *const VPREC_PRESET_STR[] = {
+    [vprec_preset_binary16] = "binary16",
+    [vprec_preset_binary32] = "binary32",
+    [vprec_preset_bfloat16] = "bfloat16",
+    [vprec_preset_tensorfloat] = "tensorfloat",
+    [vprec_preset_fp24] = "fp24",
+    [vprec_preset_PXR24] = "PXR24"};
 
-static float _vprec_binary32_binary_op(float a, float b,
-                                       const vprec_operation op, void *context);
-static double _vprec_binary64_binary_op(double a, double b,
-                                        const vprec_operation op,
+static float _vprec_binary32_binary_op(float a, float b, vprec_operation op,
+                                       void *context);
+static double _vprec_binary64_binary_op(double a, double b, vprec_operation op,
                                         void *context);
 
 /******************** VPREC CONTROL FUNCTIONS *******************
@@ -173,19 +172,20 @@ void _set_vprec_error_mode(vprec_err_mode mode, vprec_context_t *ctx) {
 }
 
 void _set_vprec_max_abs_err_exp(long exponent, vprec_context_t *ctx) {
-  ctx->absErr_exp = exponent;
+  ctx->absErr_exp = (int)exponent;
 }
 
 const char *_get_error_mode_str(vprec_context_t *ctx) {
   if (ctx->relErr && ctx->absErr) {
     return VPREC_ERR_MODE_STR[vprec_err_mode_all];
-  } else if (ctx->relErr && !ctx->absErr) {
-    return VPREC_ERR_MODE_STR[vprec_err_mode_rel];
-  } else if (!ctx->relErr && ctx->absErr) {
-    return VPREC_ERR_MODE_STR[vprec_err_mode_abs];
-  } else {
-    return NULL;
   }
+  if (ctx->relErr && !ctx->absErr) {
+    return VPREC_ERR_MODE_STR[vprec_err_mode_rel];
+  }
+  if (!ctx->relErr && ctx->absErr) {
+    return VPREC_ERR_MODE_STR[vprec_err_mode_abs];
+  }
+  return NULL;
 }
 
 static vprec_preset_precision _get_vprec_preset_precision(vprec_preset preset) {
@@ -235,9 +235,8 @@ static vprec_preset_range _get_vprec_preset_range(vprec_preset preset) {
 const char *get_vprec_mode_name(vprec_mode mode) {
   if (mode >= _vprecmode_end_) {
     return NULL;
-  } else {
-    return VPREC_MODE_STR[mode];
   }
+  return VPREC_MODE_STR[mode];
 }
 
 void _set_vprec_daz(bool daz, vprec_context_t *ctx) { ctx->daz = daz; }
@@ -260,32 +259,24 @@ inline int compute_absErr_vprec_binary32(bool isDenormal,
     /* denormal, or underflow case */
     if (currentContext->relErr == true) {
       /* vprec error mode all */
-      if (abs(currentContext->absErr_exp) < binary32_precision)
+      if (abs(currentContext->absErr_exp) < binary32_precision) {
         return currentContext->absErr_exp;
-      else
-        return binary32_precision;
-    } else {
-      /* vprec error mode abs */
-      return currentContext->absErr_exp;
-    }
-  } else {
-    /* normal case */
-    if (currentContext->relErr == true) {
-      /* vprec error mode all */
-      if (expDiff < binary32_precision)
-        return expDiff;
-      else {
-        return binary32_precision;
       }
-    } else {
-      /* vprec error mode abs */
-      if (expDiff < FLOAT_PMAN_SIZE) {
-        return expDiff;
-      } else {
-        return FLOAT_PMAN_SIZE;
-      }
+      return binary32_precision;
+    } /* vprec error mode abs */
+    return currentContext->absErr_exp;
+  } /* normal case */
+  if (currentContext->relErr == true) {
+    /* vprec error mode all */
+    if (expDiff < binary32_precision) {
+      return expDiff;
     }
+    return binary32_precision;
+  } /* vprec error mode abs */
+  if (expDiff < FLOAT_PMAN_SIZE) {
+    return expDiff;
   }
+  return FLOAT_PMAN_SIZE;
 }
 extern int compute_absErr_vprec_binary64(bool isDenormal,
                                          vprec_context_t *currentContext,
@@ -299,32 +290,26 @@ inline int compute_absErr_vprec_binary64(bool isDenormal,
     /* denormal, or underflow case */
     if (currentContext->relErr == true) {
       /* vprec error mode all */
-      if (abs(currentContext->absErr_exp) < binary64_precision)
+      if (abs(currentContext->absErr_exp) < binary64_precision) {
         return currentContext->absErr_exp;
-      else
-        return binary64_precision;
-    } else {
-      /* vprec error mode abs */
-      return currentContext->absErr_exp;
-    }
-  } else {
-    /* normal case */
-    if (currentContext->relErr == true) {
-      /* vprec error mode all */
-      if (expDiff < binary64_precision)
-        return expDiff;
-      else {
-        return binary64_precision;
       }
-    } else {
-      /* vprec error mode abs */
-      if (expDiff < DOUBLE_PMAN_SIZE) {
-        return expDiff;
-      } else {
-        return DOUBLE_PMAN_SIZE;
-      }
+      return binary64_precision;
+    } /* vprec error mode abs */
+    return currentContext->absErr_exp;
+
+  } /* normal case */
+  if (currentContext->relErr == true) {
+    /* vprec error mode all */
+    if (expDiff < binary64_precision) {
+      return expDiff;
     }
+    return binary64_precision;
+
+  } /* vprec error mode abs */
+  if (expDiff < DOUBLE_PMAN_SIZE) {
+    return expDiff;
   }
+  return DOUBLE_PMAN_SIZE;
 }
 
 extern float handle_binary32_normal_absErr(float a, int32_t aexp,
@@ -335,7 +320,7 @@ inline float handle_binary32_normal_absErr(float a, int32_t aexp,
                                            vprec_context_t *currentContext) {
   /* absolute error mode, or both absolute and relative error modes */
   int expDiff = aexp - currentContext->absErr_exp;
-  float retVal;
+  float retVal = NAN;
 
   if (expDiff < -1) {
     /* equivalent to underflow on the precision given by absolute error */
@@ -363,8 +348,8 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
                                             int binary64_precision,
                                             vprec_context_t *currentContext) {
   /* absolute error mode, or both absolute and relative error modes */
-  int expDiff = aexp - currentContext->absErr_exp;
-  double retVal;
+  int64_t expDiff = aexp - currentContext->absErr_exp;
+  double retVal = NAN;
 
   if (expDiff < -1) {
     /* equivalent to underflow on the precision given by absolute error */
@@ -378,7 +363,7 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
   } else {
     /* normal case for the absolute error mode */
     int binary64_precision_adjusted = compute_absErr_vprec_binary64(
-        false, currentContext, expDiff, binary64_precision);
+        false, currentContext, (int)expDiff, binary64_precision);
     retVal = round_binary64_normal(a, binary64_precision_adjusted);
   }
 
@@ -404,16 +389,16 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
 #define perform_binary_op(op, res, a, b)                                       \
   switch (op) {                                                                \
   case vprec_add:                                                              \
-    res = (a) + (b);                                                           \
+    (res) = (a) + (b);                                                         \
     break;                                                                     \
   case vprec_mul:                                                              \
-    res = (a) * (b);                                                           \
+    (res) = (a) * (b);                                                         \
     break;                                                                     \
   case vprec_sub:                                                              \
-    res = (a) - (b);                                                           \
+    (res) = (a) - (b);                                                         \
     break;                                                                     \
   case vprec_div:                                                              \
-    res = (a) / (b);                                                           \
+    (res) = (a) / (b);                                                         \
     break;                                                                     \
   default:                                                                     \
     logger_error("invalid operator %c", op);                                   \
@@ -424,7 +409,7 @@ inline double handle_binary64_normal_absErr(double a, int64_t aexp,
 #define perform_ternary_op(op, res, a, b, c)                                   \
   switch (op) {                                                                \
   case vprec_fma:                                                              \
-    res = PERFORM_FMA((a), (b), (c));                                          \
+    (res) = PERFORM_FMA((a), (b), (c));                                        \
     break;                                                                     \
   default:                                                                     \
     logger_error("invalid operator %c", op);                                   \
@@ -460,19 +445,20 @@ float _vprec_round_binary32(float a, char is_input, void *context,
     if ((currentContext->daz && is_input) ||
         (currentContext->ftz && !is_input)) {
       return a * 0; // preserve sign
-    } else if (FP_ZERO == fpclassify(a)) {
-      return a;
-    } else {
-      if (currentContext->absErr == true) {
-        /* absolute error mode, or both absolute and relative error modes */
-        int binary32_precision_adjusted = compute_absErr_vprec_binary32(
-            true, currentContext, 0, binary32_precision);
-        a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
-      } else {
-        /* relative error mode */
-        a = handle_binary32_denormal(a, emin, binary32_precision);
-      }
     }
+    if (FP_ZERO == fpclassify(a)) {
+      return a;
+    }
+    if (currentContext->absErr == true) {
+      /* absolute error mode, or both absolute and relative error modes */
+      int binary32_precision_adjusted = compute_absErr_vprec_binary32(
+          true, currentContext, 0, binary32_precision);
+      a = handle_binary32_denormal(a, emin, binary32_precision_adjusted);
+    } else {
+      /* relative error mode */
+      a = handle_binary32_denormal(a, emin, binary32_precision);
+    }
+
   } else {
     /* else, normal case: can be executed even if a
      previously rounded and truncated as denormal */
@@ -506,8 +492,8 @@ double _vprec_round_binary64(double a, char is_input, void *context,
   int emin = 1 - emax;
 
   binary64 aexp = {.f64 = a};
-  aexp.s64 =
-      ((DOUBLE_GET_EXP & aexp.u64) >> DOUBLE_PMAN_SIZE) - DOUBLE_EXP_COMP;
+  aexp.s64 = (int64_t)((DOUBLE_GET_EXP & aexp.u64) >> DOUBLE_PMAN_SIZE) -
+             DOUBLE_EXP_COMP;
 
   /* check for overflow in target range */
   if (aexp.s64 > emax) {
@@ -521,19 +507,20 @@ double _vprec_round_binary64(double a, char is_input, void *context,
     if ((currentContext->daz && is_input) ||
         (currentContext->ftz && !is_input)) {
       return a * 0; // preserve sign
-    } else if (FP_ZERO == fpclassify(a)) {
-      return a;
-    } else {
-      if (currentContext->absErr == true) {
-        /* absolute error mode, or both absolute and relative error modes */
-        int binary64_precision_adjusted = compute_absErr_vprec_binary64(
-            true, currentContext, 0, binary64_precision);
-        a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
-      } else {
-        /* relative error mode */
-        a = handle_binary64_denormal(a, emin, binary64_precision);
-      }
     }
+    if (FP_ZERO == fpclassify(a)) {
+      return a;
+    }
+    if (currentContext->absErr == true) {
+      /* absolute error mode, or both absolute and relative error modes */
+      int binary64_precision_adjusted = compute_absErr_vprec_binary64(
+          true, currentContext, 0, binary64_precision);
+      a = handle_binary64_denormal(a, emin, binary64_precision_adjusted);
+    } else {
+      /* relative error mode */
+      a = handle_binary64_denormal(a, emin, binary64_precision);
+    }
+
   } else {
     /* else, normal case: can be executed even if a
      previously rounded and truncated as denormal */
@@ -715,8 +702,8 @@ void INTERFLOP_VPREC_API(div_double)(double a, double b, double *c,
 void INTERFLOP_VPREC_API(cast_double_to_float)(double a, float *b,
                                                void *context) {
   vprec_context_t *ctx = (vprec_context_t *)context;
-  *b = _vprec_round_binary64(a, 0, context, ctx->binary32_precision,
-                             ctx->binary32_range);
+  *b = (float)_vprec_round_binary64(a, 0, context, ctx->binary32_precision,
+                                    ctx->binary32_range);
 }
 
 void INTERFLOP_VPREC_API(fma_float)(float a, float b, float c, float *res,
@@ -821,7 +808,7 @@ void INTERFLOP_VPREC_API(pre_init)(interflop_panic_t panic, File *stream,
   _vprec_init_context((vprec_context_t *)*context);
 }
 
-static struct argp_option options[] = {
+static const struct argp_option options[] = {
     /* --debug, sets the variable debug = true */
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
      "select precision for binary32 (PRECISION >= 0)", 0},
@@ -854,7 +841,7 @@ static struct argp_option options[] = {
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   vprec_context_t *ctx = (vprec_context_t *)state->input;
   state->child_inputs[0] = ctx;
-  char *endptr;
+  char *endptr = NULL;
   int val = -1;
   int precision = 0;
   int range = 0;
@@ -864,7 +851,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_PREC_B32:
     /* precision */
     error = 0;
-    val = interflop_strtol(arg, &endptr, &error);
+    val = (int)interflop_strtol(arg, &endptr, &error);
     if (error != 0 || val < VPREC_PRECISION_BINARY32_MIN) {
       logger_error("--%s invalid value provided, must be a "
                    "positive integer.",
@@ -880,7 +867,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_PREC_B64:
     /* precision */
     error = 0;
-    val = interflop_strtol(arg, &endptr, &error);
+    val = (int)interflop_strtol(arg, &endptr, &error);
     if (error != 0 || val < VPREC_PRECISION_BINARY64_MIN) {
       logger_error("--%s invalid value provided, must be a "
                    "positive integer.",
@@ -896,7 +883,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_RANGE_B32:
     /* precision */
     error = 0;
-    val = interflop_strtol(arg, &endptr, &error);
+    val = (int)interflop_strtol(arg, &endptr, &error);
     if (error != 0 || val < VPREC_RANGE_BINARY32_MIN) {
       logger_error("--%s invalid value provided, must be a "
                    "positive integer.",
@@ -912,7 +899,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_RANGE_B64:
     /* precision */
     error = 0;
-    val = interflop_strtol(arg, &endptr, &error);
+    val = (int)interflop_strtol(arg, &endptr, &error);
     if (error != 0 || val < VPREC_RANGE_BINARY64_MIN) {
       logger_error("--%s invalid value provided, must be a "
                    "positive integer.",
@@ -1045,10 +1032,10 @@ void INTERFLOP_VPREC_API(cli)(int argc, char **argv, void *context) {
 void INTERFLOP_VPREC_API(configure)(void *configure, void *context) {
   vprec_context_t *ctx = (vprec_context_t *)context;
   vprec_conf_t *conf = (vprec_conf_t *)configure;
-  int precision_binary32 = conf->precision_binary32;
-  int precision_binary64 = conf->precision_binary64;
-  int range_binary32 = conf->range_binary32;
-  int range_binary64 = conf->range_binary64;
+  int precision_binary32 = (int)conf->precision_binary32;
+  int precision_binary64 = (int)conf->precision_binary64;
+  int range_binary32 = (int)conf->range_binary32;
+  int range_binary64 = (int)conf->range_binary64;
   if (conf->preset != (unsigned int)(-1)) {
     precision_binary32 = _get_vprec_preset_precision(conf->preset);
     precision_binary64 = _get_vprec_preset_precision(conf->preset);
@@ -1080,8 +1067,9 @@ static void print_information_header(void *context) {
                          ? false
                          : true;
 
-  if (silent_load)
+  if (silent_load) {
     return;
+  }
 
   vprec_context_t *ctx = (vprec_context_t *)context;
 
@@ -1105,27 +1093,27 @@ struct interflop_backend_interface_t INTERFLOP_VPREC_API(init)(void *context) {
   /* initialize vprec function instrumentation context */
   _vfi_init(ctx);
 
-  print_information_header(ctx);
-
   struct interflop_backend_interface_t interflop_backend_vprec = {
-    interflop_add_float : INTERFLOP_VPREC_API(add_float),
-    interflop_sub_float : INTERFLOP_VPREC_API(sub_float),
-    interflop_mul_float : INTERFLOP_VPREC_API(mul_float),
-    interflop_div_float : INTERFLOP_VPREC_API(div_float),
-    interflop_cmp_float : NULL,
-    interflop_add_double : INTERFLOP_VPREC_API(add_double),
-    interflop_sub_double : INTERFLOP_VPREC_API(sub_double),
-    interflop_mul_double : INTERFLOP_VPREC_API(mul_double),
-    interflop_div_double : INTERFLOP_VPREC_API(div_double),
-    interflop_cmp_double : NULL,
-    interflop_cast_double_to_float : INTERFLOP_VPREC_API(cast_double_to_float),
-    interflop_fma_float : INTERFLOP_VPREC_API(fma_float),
-    interflop_fma_double : INTERFLOP_VPREC_API(fma_double),
-    interflop_enter_function : INTERFLOP_VPREC_API(enter_function),
-    interflop_exit_function : INTERFLOP_VPREC_API(exit_function),
-    interflop_user_call : INTERFLOP_VPREC_API(user_call),
-    interflop_finalize : INTERFLOP_VPREC_API(finalize)
-  };
+      .interflop_add_float = INTERFLOP_VPREC_API(add_float),
+      .interflop_sub_float = INTERFLOP_VPREC_API(sub_float),
+      .interflop_mul_float = INTERFLOP_VPREC_API(mul_float),
+      .interflop_div_float = INTERFLOP_VPREC_API(div_float),
+      .interflop_cmp_float = NULL,
+      .interflop_add_double = INTERFLOP_VPREC_API(add_double),
+      .interflop_sub_double = INTERFLOP_VPREC_API(sub_double),
+      .interflop_mul_double = INTERFLOP_VPREC_API(mul_double),
+      .interflop_div_double = INTERFLOP_VPREC_API(div_double),
+      .interflop_cmp_double = NULL,
+      .interflop_cast_double_to_float =
+          INTERFLOP_VPREC_API(cast_double_to_float),
+      .interflop_fma_float = INTERFLOP_VPREC_API(fma_float),
+      .interflop_fma_double = INTERFLOP_VPREC_API(fma_double),
+      .interflop_enter_function = INTERFLOP_VPREC_API(enter_function),
+      .interflop_exit_function = INTERFLOP_VPREC_API(exit_function),
+      .interflop_user_call = INTERFLOP_VPREC_API(user_call),
+      .interflop_finalize = INTERFLOP_VPREC_API(finalize)};
+
+  print_information_header(ctx);
 
   return interflop_backend_vprec;
 }

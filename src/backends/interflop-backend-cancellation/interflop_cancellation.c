@@ -27,7 +27,6 @@
 
 #include <argp.h>
 #include <err.h>
-#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -36,10 +35,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "interflop/common/float_const.h"
 #include "interflop/common/float_struct.h"
 #include "interflop/common/float_utils.h"
-#include "interflop/common/options.h"
 #include "interflop/fma/interflop_fma.h"
 #include "interflop/interflop.h"
 #include "interflop/interflop_stdlib.h"
@@ -124,7 +121,7 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
  * the magnitude of the cancelled bits. */
 #define cancell(X, Y, Z, CTX, RNG_STATE)                                       \
   {                                                                            \
-    cancellation_context_t *TMP_CTX = (cancellation_context_t *)CTX;           \
+    cancellation_context_t *TMP_CTX = (cancellation_context_t *)(CTX);         \
     const int32_t e_z = GET_EXP_FLT(*Z);                                       \
     /* computes the difference between the max of both operands and the        \
      * exponent of the result to find the size of the cancellation */          \
@@ -137,9 +134,9 @@ static inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
        * This particular version in the case of cancellations does not use     \
        * extended quad types */                                                \
       const int32_t e_n = e_z - (cancellation - 1);                            \
-      _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed, TMP_CTX->seed,  \
-                             false);                                           \
-      *Z += _noise_binary64(e_n, &RNG_STATE);                                  \
+      _init_rng_state_struct(&(RNG_STATE), TMP_CTX->choose_seed,               \
+                             TMP_CTX->seed, false);                            \
+      *Z += _noise_binary64(e_n, &(RNG_STATE));                                \
     }                                                                          \
   }
 
@@ -205,7 +202,7 @@ void INTERFLOP_CANCELLATION_API(cast_double_to_float)(double a, float *b,
 
 #undef _u_
 
-static struct argp_option options[] = {
+static const struct argp_option options[] = {
     {key_tolerance_str, KEY_TOLERANCE, "TOLERANCE", 0,
      "Select tolerance (TOLERANCE >= 0)", 0},
     {key_warning_str, KEY_WARNING, "WARNING", 0,
@@ -215,14 +212,14 @@ static struct argp_option options[] = {
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   cancellation_context_t *ctx = (cancellation_context_t *)state->input;
-  char *endptr;
+  char *endptr = NULL;
   int error = 0;
   uint64_t seed = -1;
   switch (key) {
   case KEY_TOLERANCE:
     /* tolerance */
     error = 0;
-    int val = interflop_strtol(arg, &endptr, &error);
+    int val = (int)interflop_strtol(arg, &endptr, &error);
     if (error != 0 || val < 0) {
       logger_error("--tolerance invalid value provided, must be a"
                    "positive integer.");
@@ -235,7 +232,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case KEY_SEED:
     error = 0;
-    seed = interflop_strtol(arg, &endptr, &error);
+    seed = (uint64_t)interflop_strtol(arg, &endptr, &error);
     if (error != 0) {
       logger_error("--seed invalid value provided, must be an integer");
     }
@@ -316,47 +313,49 @@ static void print_information_header(void *context) {
                          ? false
                          : true;
 
-  if (silent_load)
+  if (silent_load) {
     return;
+  }
 
   cancellation_context_t *ctx = (cancellation_context_t *)context;
   logger_info("load backend with:\n");
   logger_info("%s = %d\n", key_tolerance_str, ctx->tolerance);
   logger_info("%s = %s\n", key_warning_str, ctx->warning ? "true" : "false");
-  logger_info("%s = %lu\n", key_seed_str, ctx->seed);
+  logger_info("%s = %lu%s\n", key_seed_str, ctx->seed,
+              ctx->choose_seed ? " (fixed)" : "");
 }
 
 struct interflop_backend_interface_t
 INTERFLOP_CANCELLATION_API(init)(void *context) {
   cancellation_context_t *ctx = (cancellation_context_t *)context;
-  print_information_header(ctx);
 
   struct interflop_backend_interface_t interflop_backend_cancellation = {
-    interflop_add_float : INTERFLOP_CANCELLATION_API(add_float),
-    interflop_sub_float : INTERFLOP_CANCELLATION_API(sub_float),
-    interflop_mul_float : INTERFLOP_CANCELLATION_API(mul_float),
-    interflop_div_float : INTERFLOP_CANCELLATION_API(div_float),
-    interflop_cmp_float : NULL,
-    interflop_add_double : INTERFLOP_CANCELLATION_API(add_double),
-    interflop_sub_double : INTERFLOP_CANCELLATION_API(sub_double),
-    interflop_mul_double : INTERFLOP_CANCELLATION_API(mul_double),
-    interflop_div_double : INTERFLOP_CANCELLATION_API(div_double),
-    interflop_cmp_double : NULL,
-    interflop_cast_double_to_float :
-        INTERFLOP_CANCELLATION_API(cast_double_to_float),
-    interflop_fma_float : INTERFLOP_CANCELLATION_API(fma_float),
-    interflop_fma_double : INTERFLOP_CANCELLATION_API(fma_double),
-    interflop_enter_function : NULL,
-    interflop_exit_function : NULL,
-    interflop_user_call : NULL,
-    interflop_finalize : NULL
-  };
+      .interflop_add_float = INTERFLOP_CANCELLATION_API(add_float),
+      .interflop_sub_float = INTERFLOP_CANCELLATION_API(sub_float),
+      .interflop_mul_float = INTERFLOP_CANCELLATION_API(mul_float),
+      .interflop_div_float = INTERFLOP_CANCELLATION_API(div_float),
+      .interflop_cmp_float = NULL,
+      .interflop_add_double = INTERFLOP_CANCELLATION_API(add_double),
+      .interflop_sub_double = INTERFLOP_CANCELLATION_API(sub_double),
+      .interflop_mul_double = INTERFLOP_CANCELLATION_API(mul_double),
+      .interflop_div_double = INTERFLOP_CANCELLATION_API(div_double),
+      .interflop_cmp_double = NULL,
+      .interflop_cast_double_to_float =
+          INTERFLOP_CANCELLATION_API(cast_double_to_float),
+      .interflop_fma_float = INTERFLOP_CANCELLATION_API(fma_float),
+      .interflop_fma_double = INTERFLOP_CANCELLATION_API(fma_double),
+      .interflop_enter_function = NULL,
+      .interflop_exit_function = NULL,
+      .interflop_user_call = NULL,
+      .interflop_finalize = NULL};
 
   /* The seed for the RNG is initialized upon the first request for a random
-     number */
+  number */
 
   _init_rng_state_struct(&rng_state, ctx->choose_seed,
                          (unsigned long long int)(ctx->seed), false);
+
+  print_information_header(ctx);
 
   return interflop_backend_cancellation;
 }
