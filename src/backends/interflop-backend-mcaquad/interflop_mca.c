@@ -69,7 +69,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "interflop/common/float_const.h"
 #include "interflop/common/float_struct.h"
 #include "interflop/common/float_utils.h"
 #include "interflop/common/options.h"
@@ -111,14 +110,15 @@ static const char key_daz_str[] = "daz";
 static const char key_ftz_str[] = "ftz";
 static const char key_sparsity_str[] = "sparsity";
 
-static const char *MCAQUAD_MODE_STR[] = {[mcaquad_mode_ieee] = "ieee",
-                                         [mcaquad_mode_mca] = "mca",
-                                         [mcaquad_mode_pb] = "pb",
-                                         [mcaquad_mode_rr] = "rr"};
+static const char *const MCAQUAD_MODE_STR[] = {[mcaquad_mode_ieee] = "ieee",
+                                               [mcaquad_mode_mca] = "mca",
+                                               [mcaquad_mode_pb] = "pb",
+                                               [mcaquad_mode_rr] = "rr"};
 
-static const char *MCAQUAD_ERR_MODE_STR[] = {[mcaquad_err_mode_rel] = "rel",
-                                             [mcaquad_err_mode_abs] = "abs",
-                                             [mcaquad_err_mode_all] = "all"};
+static const char *const MCAQUAD_ERR_MODE_STR[] = {
+    [mcaquad_err_mode_rel] = "rel",
+    [mcaquad_err_mode_abs] = "abs",
+    [mcaquad_err_mode_all] = "all"};
 
 /* possible operations values */
 typedef enum {
@@ -186,7 +186,7 @@ static void _set_mcaquad_error_mode(mcaquad_err_mode mode,
 /* Set the maximal absolute error exponent */
 static void _set_mcaquad_max_abs_err_exp(long exponent,
                                          mcaquad_context_t *ctx) {
-  ctx->absErr_exp = exponent;
+  ctx->absErr_exp = (int)exponent;
 }
 
 /* Set Denormals-Are-Zero flag */
@@ -217,9 +217,8 @@ static void _set_mcaquad_seed(uint64_t seed, mcaquad_context_t *ctx) {
 const char *get_mcaquad_mode_name(mcaquad_mode mode) {
   if (mode >= _mcaquad_mode_end_) {
     return NULL;
-  } else {
-    return MCAQUAD_MODE_STR[mode];
   }
+  return MCAQUAD_MODE_STR[mode];
 }
 
 const char *INTERFLOP_MCAQUAD_API(get_backend_name)(void) {
@@ -272,7 +271,7 @@ static const char *_get_error_mode_str(mcaquad_context_t *ctx) {
 /* is comprised between: */
 /* 127+127 = 254 < DOUBLE_EXP_MAX (1023)  */
 /* -126-24+-126-24 = -300 > DOUBLE_EXP_MIN (-1022) */
-double _noise_binary64(const int exp, rng_state_t *rng_state);
+double _noise_binary64(int exp, rng_state_t *rng_state);
 inline double _noise_binary64(const int exp, rng_state_t *rng_state) {
   const double d_rand = get_rand_double01(rng_state, &mcaquad_global_tid) - 0.5;
   binary64 b64 = {.f64 = d_rand};
@@ -297,7 +296,7 @@ _Float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
 
 #define _IS_IEEE_MODE(CTX)                                                     \
   /* if mode ieee, do not introduce noise */                                   \
-  (CTX->mode == mcaquad_mode_ieee)
+  ((CTX)->mode == mcaquad_mode_ieee)
 
 #define _IS_NOT_NORMAL_OR_SUBNORMAL(X)                                         \
   /* Check that we are not in a special case */                                \
@@ -306,12 +305,12 @@ _Float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
 /* Macro function for checking if the value X must be noised */
 #define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION, CTX)                         \
   /* if mode ieee, do not introduce noise */                                   \
-  (CTX->mode == mcaquad_mode_ieee) ||					                                   \
+  ((CTX)->mode == mcaquad_mode_ieee) ||					                                   \
   /* Check that we are not in a special case */				                         \
   (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||	           \
   /* In RR if the number is representable in current virtual precision, */     \
   /* do not add any noise if */						                                     \
-  (CTX->mode == mcaquad_mode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
+  ((CTX)->mode == mcaquad_mode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
@@ -323,15 +322,15 @@ _Float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
  */
 #define _FAST_INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                    \
   {                                                                            \
-    mcaquad_context_t *TMP_CTX = (mcaquad_context_t *)CTX;                     \
-    if (_IS_IEEE_MODE(TMP_CTX) || _IS_NOT_NORMAL_OR_SUBNORMAL(*X)) {           \
+    mcaquad_context_t *TMP_CTX = (mcaquad_context_t *)(CTX);                   \
+    if (_IS_IEEE_MODE(TMP_CTX) || _IS_NOT_NORMAL_OR_SUBNORMAL(*(X))) {         \
       return;                                                                  \
     }                                                                          \
-    _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
+    _init_rng_state_struct(&(RNG_STATE), TMP_CTX->choose_seed,                 \
                            (unsigned long long)(TMP_CTX->seed), false);        \
-    const int32_t e_a = GET_EXP_FLT(*X);                                       \
-    const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                     \
-    const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, &RNG_STATE);              \
+    const int32_t e_a = GET_EXP_FLT(*(X));                                     \
+    const int32_t e_n_rel = e_a - ((VIRTUAL_PRECISION) - 1);                   \
+    const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, &(RNG_STATE));            \
     *X = *X + noise_rel;                                                       \
   }
 
@@ -339,26 +338,26 @@ _Float128 _noise_binary128(const int exp, rng_state_t *rng_state) {
    according to the virtual_precision VIRTUAL_PRECISION */
 #define _INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                         \
   {                                                                            \
-    mcaquad_context_t *TMP_CTX = (mcaquad_context_t *)CTX;                     \
-    _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
+    mcaquad_context_t *TMP_CTX = (mcaquad_context_t *)(CTX);                   \
+    _init_rng_state_struct(&(RNG_STATE), TMP_CTX->choose_seed,                 \
                            (unsigned long long)(TMP_CTX->seed), false);        \
     if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION, TMP_CTX)) {                 \
       return;                                                                  \
-    } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE),                 \
-                              &mcaquad_global_tid)) {                          \
+    }                                                                          \
+    if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE),                        \
+                       &mcaquad_global_tid)) {                                 \
       return;                                                                  \
-    } else {                                                                   \
-      if (TMP_CTX->relErr) {                                                   \
-        const int32_t e_a = GET_EXP_FLT(*X);                                   \
-        const int32_t e_n_rel = e_a - (VIRTUAL_PRECISION - 1);                 \
-        const typeof(*X) noise_rel = _NOISE(*X, e_n_rel, &(RNG_STATE));        \
-        *X += noise_rel;                                                       \
-      }                                                                        \
-      if (TMP_CTX->absErr) {                                                   \
-        const int32_t e_n_abs = TMP_CTX->absErr_exp;                           \
-        const typeof(*X) noise_abs = _NOISE(*X, e_n_abs, &(RNG_STATE));        \
-        *X += noise_abs;                                                       \
-      }                                                                        \
+    }                                                                          \
+    if (TMP_CTX->relErr) {                                                     \
+      const int32_t e_a = GET_EXP_FLT(*(X));                                   \
+      const int32_t e_n_rel = e_a - ((VIRTUAL_PRECISION) - 1);                 \
+      const typeof(*(X)) noise_rel = _NOISE(*(X), e_n_rel, &(RNG_STATE));      \
+      *(X) += noise_rel;                                                       \
+    }                                                                          \
+    if (TMP_CTX->absErr) {                                                     \
+      const int32_t e_n_abs = TMP_CTX->absErr_exp;                             \
+      const typeof(*(X)) noise_abs = _NOISE(*(X), e_n_abs, &(RNG_STATE));      \
+      *(X) += noise_abs;                                                       \
     }                                                                          \
   }
 
@@ -402,7 +401,7 @@ inline void _mcaquad_inexact_binary128(_Float128 *qa, void *context) {
 #define PERFORM_UNARY_OP(op, res, a)                                           \
   switch (op) {                                                                \
   case mcaquad_cast:                                                           \
-    res = (float)(a);                                                          \
+    (res) = (float)(a);                                                        \
     break;                                                                     \
   default:                                                                     \
     logger_error("invalid operator %c", op);                                   \
@@ -413,16 +412,16 @@ inline void _mcaquad_inexact_binary128(_Float128 *qa, void *context) {
 #define PERFORM_BIN_OP(OP, RES, A, B)                                          \
   switch (OP) {                                                                \
   case mcaquad_add:                                                            \
-    RES = (A) + (B);                                                           \
+    (RES) = (A) + (B);                                                         \
     break;                                                                     \
   case mcaquad_mul:                                                            \
-    RES = (A) * (B);                                                           \
+    (RES) = (A) * (B);                                                         \
     break;                                                                     \
   case mcaquad_sub:                                                            \
-    RES = (A) - (B);                                                           \
+    (RES) = (A) - (B);                                                         \
     break;                                                                     \
   case mcaquad_div:                                                            \
-    RES = (A) / (B);                                                           \
+    (RES) = (A) / (B);                                                         \
     break;                                                                     \
   default:                                                                     \
     logger_error("invalid operator %c", OP);                                   \
@@ -434,7 +433,7 @@ inline void _mcaquad_inexact_binary128(_Float128 *qa, void *context) {
 #define PERFORM_TERNARY_OP(op, res, a, b, c)                                   \
   switch (op) {                                                                \
   case mcaquad_fma:                                                            \
-    res = PERFORM_FMA(a, b, c);                                                \
+    (res) = PERFORM_FMA(a, b, c);                                              \
     break;                                                                     \
   default:                                                                     \
     logger_error("invalid operator %c", op);                                   \
@@ -446,7 +445,7 @@ inline void _mcaquad_inexact_binary128(_Float128 *qa, void *context) {
   do {                                                                         \
     typeof(X) _A = A;                                                          \
     typeof(X) _RES = 0;                                                        \
-    mcaquad_context_t *TMP_CTX = (mcaquad_context_t *)CTX;                     \
+    mcaquad_context_t *TMP_CTX = (mcaquad_context_t *)(CTX);                   \
     if (TMP_CTX->daz) {                                                        \
       _A = DAZ(A);                                                             \
     }                                                                          \
@@ -472,7 +471,7 @@ inline void _mcaquad_inexact_binary128(_Float128 *qa, void *context) {
     typeof(X) _A = A;                                                          \
     typeof(X) _B = B;                                                          \
     typeof(X) _RES = 0;                                                        \
-    mcaquad_context_t *TMP_CTX = (mcaquad_context_t *)CTX;                     \
+    mcaquad_context_t *TMP_CTX = (mcaquad_context_t *)(CTX);                   \
     if (TMP_CTX->daz) {                                                        \
       _A = DAZ(A);                                                             \
       _B = DAZ(B);                                                             \
@@ -501,7 +500,7 @@ inline void _mcaquad_inexact_binary128(_Float128 *qa, void *context) {
     typeof(X) _B = B;                                                          \
     typeof(X) _C = C;                                                          \
     typeof(X) _RES = 0;                                                        \
-    mcaquad_context_t *TMP_CTX = (mcaquad_context_t *)CTX;                     \
+    mcaquad_context_t *TMP_CTX = (mcaquad_context_t *)(CTX);                   \
     if (TMP_CTX->daz) {                                                        \
       _A = DAZ(A);                                                             \
       _B = DAZ(B);                                                             \
@@ -533,8 +532,8 @@ inline float _mcaquad_binary32_unary_op(const float a, const mca_operations dop,
 
 /* Performs mca(a dop b) where a and b are binary32 values */
 /* Intermediate computations are performed with binary64 */
-float _mcaquad_binary32_binary_op(const float a, const float b,
-                                  const mca_operations dop, void *context);
+float _mcaquad_binary32_binary_op(float a, float b, mca_operations dop,
+                                  void *context);
 inline float _mcaquad_binary32_binary_op(const float a, const float b,
                                          const mca_operations dop,
                                          void *context) {
@@ -544,8 +543,8 @@ inline float _mcaquad_binary32_binary_op(const float a, const float b,
 /* Performs mca(a dop b dop c) where a, b and c are binary32 values
  */
 /* Intermediate computations are performed with binary64 */
-float _mcaquad_binary32_ternary_op(const float a, const float b, const float c,
-                                   const mca_operations dop, void *context);
+float _mcaquad_binary32_ternary_op(float a, float b, float c,
+                                   mca_operations dop, void *context);
 inline float _mcaquad_binary32_ternary_op(const float a, const float b,
                                           const float c,
                                           const mca_operations dop,
@@ -555,8 +554,7 @@ inline float _mcaquad_binary32_ternary_op(const float a, const float b,
 
 /* Performs mca(qop a) where a is a binary64 value */
 /* Intermediate computations are performed with binary128 */
-double _mcaquad_binary64_unary_op(const double a, const mca_operations qop,
-                                  void *context);
+double _mcaquad_binary64_unary_op(double a, mca_operations qop, void *context);
 inline double _mcaquad_binary64_unary_op(const double a,
                                          const mca_operations qop,
                                          void *context) {
@@ -565,8 +563,8 @@ inline double _mcaquad_binary64_unary_op(const double a,
 
 /* Performs mca(a qop b) where a and b are binary64 values */
 /* Intermediate computations are performed with binary128 */
-double _mcaquad_binary64_binary_op(const double a, const double b,
-                                   const mca_operations qop, void *context);
+double _mcaquad_binary64_binary_op(double a, double b, mca_operations qop,
+                                   void *context);
 inline double _mcaquad_binary64_binary_op(const double a, const double b,
                                           const mca_operations qop,
                                           void *context) {
@@ -576,9 +574,8 @@ inline double _mcaquad_binary64_binary_op(const double a, const double b,
 /* Performs mca(a qop b qop c) where a, b and c are binary64 values
  */
 /* Intermediate computations are performed with binary128 */
-double _mcaquad_binary64_ternary_op(const double a, const double b,
-                                    const double c, const mca_operations qop,
-                                    void *context);
+double _mcaquad_binary64_ternary_op(double a, double b, double c,
+                                    mca_operations qop, void *context);
 
 inline double _mcaquad_binary64_ternary_op(const double a, const double b,
                                            const double c,
@@ -654,7 +651,8 @@ void _interflop_usercall_inexact(void *context, va_list ap) {
   _Float128 xq = 0;
   enum FTYPES ftype;
   void *value = NULL;
-  int precision = 0, t = 0;
+  int precision = 0;
+  int t = 0;
   ftype = va_arg(ap, enum FTYPES);
   value = va_arg(ap, void *);
   precision = va_arg(ap, int);
@@ -663,13 +661,13 @@ void _interflop_usercall_inexact(void *context, va_list ap) {
     xd = *((float *)value);
     t = (precision <= 0) ? (ctx->binary32_precision + precision) : precision;
     _FAST_INEXACT(&xd, t, context, rng_state);
-    *((float *)value) = xd;
+    *((float *)value) = (float)xd;
     break;
   case FDOUBLE:
     xq = *((double *)value);
     t = (precision <= 0) ? (ctx->binary64_precision + precision) : precision;
     _FAST_INEXACT(&xq, t, context, rng_state);
-    *((double *)value) = xq;
+    *((double *)value) = (double)xq;
     break;
   case FQUAD:
     xq = *((_Float128 *)value);
@@ -750,7 +748,7 @@ void INTERFLOP_MCAQUAD_API(pre_init)(interflop_panic_t panic, File *stream,
   _mcaquad_init_context((mcaquad_context_t *)*context);
 }
 
-static struct argp_option options[] = {
+static const struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
      "select precision for binary32 (PRECISION > 0)", 0},
     {key_prec_b64_str, KEY_PREC_B64, "PRECISION", 0,
@@ -774,7 +772,7 @@ static struct argp_option options[] = {
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   mcaquad_context_t *ctx = (mcaquad_context_t *)state->input;
-  char *endptr;
+  char *endptr = NULL;
   int val = -1;
   int error = 0;
   float sparsity = MCAQUAD_SPARSITY_DEFAULT;
@@ -784,7 +782,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_PREC_B32:
     /* precision for binary32 */
     error = 0;
-    val = interflop_strtol(arg, &endptr, &error);
+    val = (int)interflop_strtol(arg, &endptr, &error);
     if (error != 0 || val <= 0) {
       logger_error("--%s invalid value provided, must be a positive integer",
                    key_prec_b32_str);
@@ -795,7 +793,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_PREC_B64:
     /* precision for binary64 */
     error = 0;
-    val = interflop_strtol(arg, &endptr, &error);
+    val = (int)interflop_strtol(arg, &endptr, &error);
     if (error != 0 || val <= 0) {
       logger_error("--%s invalid value provided, must be a positive integer",
                    key_prec_b64_str);
@@ -870,7 +868,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_SPARSITY:
     /* sparse perturbations */
     error = 0;
-    sparsity = interflop_strtod(arg, &endptr, &error);
+    sparsity = (float)interflop_strtod(arg, &endptr, &error);
     if (sparsity <= 0) {
       error = 1;
     }
@@ -905,12 +903,12 @@ void INTERFLOP_MCAQUAD_API(configure)(void *configure, void *context) {
   mcaquad_conf_t *conf = (mcaquad_conf_t *)configure;
   _set_mcaquad_seed(conf->seed, ctx);
   _set_mcaquad_sparsity(conf->sparsity, ctx);
-  _set_mcaquad_precision_binary32(conf->precision_binary32, ctx);
-  _set_mcaquad_precision_binary64(conf->precision_binary64, ctx);
+  _set_mcaquad_precision_binary32((int)conf->precision_binary32, ctx);
+  _set_mcaquad_precision_binary64((int)conf->precision_binary64, ctx);
   _set_mcaquad_mode(conf->mode, ctx);
   _set_mcaquad_error_mode(conf->err_mode, ctx);
   if (conf->max_abs_err_exponent != (unsigned int)(-1)) {
-    _set_mcaquad_max_abs_err_exp(conf->max_abs_err_exponent, ctx);
+    _set_mcaquad_max_abs_err_exp((long)conf->max_abs_err_exponent, ctx);
   }
   _set_mcaquad_daz(conf->daz, ctx);
   _set_mcaquad_ftz(conf->ftz, ctx);
@@ -937,7 +935,8 @@ static void print_information_header(void *context) {
   logger_info("%s = %s\n", key_daz_str, ctx->daz ? "true" : "false");
   logger_info("%s = %s\n", key_ftz_str, ctx->ftz ? "true" : "false");
   logger_info("%s = %f\n", key_sparsity_str, ctx->sparsity);
-  logger_info("%s = %lu\n", key_seed_str, ctx->seed);
+  logger_info("%s = %lu%s\n", key_seed_str, ctx->seed,
+              ctx->choose_seed ? " (fixed)" : "");
 }
 
 struct interflop_backend_interface_t
@@ -945,32 +944,32 @@ INTERFLOP_MCAQUAD_API(init)(void *context) {
 
   mcaquad_context_t *ctx = (mcaquad_context_t *)context;
 
-  print_information_header(ctx);
-
   struct interflop_backend_interface_t interflop_backend_mcaquad = {
-    interflop_add_float : INTERFLOP_MCAQUAD_API(add_float),
-    interflop_sub_float : INTERFLOP_MCAQUAD_API(sub_float),
-    interflop_mul_float : INTERFLOP_MCAQUAD_API(mul_float),
-    interflop_div_float : INTERFLOP_MCAQUAD_API(div_float),
-    interflop_cmp_float : NULL,
-    interflop_add_double : INTERFLOP_MCAQUAD_API(add_double),
-    interflop_sub_double : INTERFLOP_MCAQUAD_API(sub_double),
-    interflop_mul_double : INTERFLOP_MCAQUAD_API(mul_double),
-    interflop_div_double : INTERFLOP_MCAQUAD_API(div_double),
-    interflop_cmp_double : NULL,
-    interflop_cast_double_to_float :
-        INTERFLOP_MCAQUAD_API(cast_double_to_float),
-    interflop_fma_float : INTERFLOP_MCAQUAD_API(fma_float),
-    interflop_fma_double : INTERFLOP_MCAQUAD_API(fma_double),
-    interflop_enter_function : NULL,
-    interflop_exit_function : NULL,
-    interflop_user_call : INTERFLOP_MCAQUAD_API(user_call),
-    interflop_finalize : NULL,
+      .interflop_add_float = INTERFLOP_MCAQUAD_API(add_float),
+      .interflop_sub_float = INTERFLOP_MCAQUAD_API(sub_float),
+      .interflop_mul_float = INTERFLOP_MCAQUAD_API(mul_float),
+      .interflop_div_float = INTERFLOP_MCAQUAD_API(div_float),
+      .interflop_cmp_float = NULL,
+      .interflop_add_double = INTERFLOP_MCAQUAD_API(add_double),
+      .interflop_sub_double = INTERFLOP_MCAQUAD_API(sub_double),
+      .interflop_mul_double = INTERFLOP_MCAQUAD_API(mul_double),
+      .interflop_div_double = INTERFLOP_MCAQUAD_API(div_double),
+      .interflop_cmp_double = NULL,
+      .interflop_cast_double_to_float =
+          INTERFLOP_MCAQUAD_API(cast_double_to_float),
+      .interflop_fma_float = INTERFLOP_MCAQUAD_API(fma_float),
+      .interflop_fma_double = INTERFLOP_MCAQUAD_API(fma_double),
+      .interflop_enter_function = NULL,
+      .interflop_exit_function = NULL,
+      .interflop_user_call = INTERFLOP_MCAQUAD_API(user_call),
+      .interflop_finalize = NULL,
   };
 
   /* The seed for the RNG is initialized upon the first request for a
-     random number */
+  random number */
   _init_rng_state_struct(&rng_state, ctx->choose_seed, ctx->seed, false);
+
+  print_information_header(ctx);
 
   return interflop_backend_mcaquad;
 }

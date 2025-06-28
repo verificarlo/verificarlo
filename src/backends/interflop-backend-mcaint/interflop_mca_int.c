@@ -76,14 +76,15 @@ static const char key_daz_str[] = "daz";
 static const char key_ftz_str[] = "ftz";
 static const char key_sparsity_str[] = "sparsity";
 
-static const char *MCAINT_MODE_STR[] = {[mcaint_mode_ieee] = "ieee",
-                                        [mcaint_mode_mca] = "mca",
-                                        [mcaint_mode_pb] = "pb",
-                                        [mcaint_mode_rr] = "rr"};
+static const char *const MCAINT_MODE_STR[] = {[mcaint_mode_ieee] = "ieee",
+                                              [mcaint_mode_mca] = "mca",
+                                              [mcaint_mode_pb] = "pb",
+                                              [mcaint_mode_rr] = "rr"};
 
-static const char *MCAINT_ERR_MODE_STR[] = {[mcaint_err_mode_rel] = "rel",
-                                            [mcaint_err_mode_abs] = "abs",
-                                            [mcaint_err_mode_all] = "all"};
+static const char *const MCAINT_ERR_MODE_STR[] = {[mcaint_err_mode_rel] = "rel",
+                                                  [mcaint_err_mode_abs] = "abs",
+                                                  [mcaint_err_mode_all] =
+                                                      "all"};
 
 /* possible operations values */
 typedef enum {
@@ -153,18 +154,19 @@ static void _set_mcaint_error_mode(mcaint_err_mode mode,
 static const char *_get_mcaint_error_mode_str(mcaint_context_t *ctx) {
   if (ctx->relErr && ctx->absErr) {
     return MCAINT_ERR_MODE_STR[mcaint_err_mode_all];
-  } else if (ctx->relErr && !ctx->absErr) {
-    return MCAINT_ERR_MODE_STR[mcaint_err_mode_rel];
-  } else if (!ctx->relErr && ctx->absErr) {
-    return MCAINT_ERR_MODE_STR[mcaint_err_mode_abs];
-  } else {
-    return NULL;
   }
+  if (ctx->relErr && !ctx->absErr) {
+    return MCAINT_ERR_MODE_STR[mcaint_err_mode_rel];
+  }
+  if (!ctx->relErr && ctx->absErr) {
+    return MCAINT_ERR_MODE_STR[mcaint_err_mode_abs];
+  }
+  return NULL;
 }
 
 /* Set the maximal absolute error exponent */
 static void _set_mcaint_max_abs_err_exp(long exponent, mcaint_context_t *ctx) {
-  ctx->absErr_exp = exponent;
+  ctx->absErr_exp = (int)exponent;
 }
 
 /* Set Denormals-Are-Zero flag */
@@ -191,9 +193,8 @@ static void _set_mcaint_seed(uint64_t seed, mcaint_context_t *ctx) {
 const char *get_mcaint_mode_name(mcaint_mode mode) {
   if (mode >= _mcaint_mode_end_) {
     return NULL;
-  } else {
-    return MCAINT_MODE_STR[mode];
   }
+  return MCAINT_MODE_STR[mode];
 }
 
 /******************** MCA RANDOM FUNCTIONS ********************
@@ -236,11 +237,11 @@ static inline void _noise_binary64(double *x, const int exp,
   const uint32_t shift = 1 + DOUBLE_EXP_SIZE - exp;
 
   // noise is a signed integer so the noise is centered around 0
-  int64_t noise = get_rand_uint64(rng_state, &mcaint_global_tid);
+  int64_t noise = (int64_t)get_rand_uint64(rng_state, &mcaint_global_tid);
 
   // right shift the noise to the correct magnitude, this is a arithmetic
   // shift and sign bit will be extended
-  noise >>= shift;
+  noise >>= shift; // clang-tidy NOLINT
 
   // Add the noise to the x value
   b64->s64 += noise;
@@ -278,34 +279,33 @@ static void _noise_binary128(_Float128 *x, const int exp,
 /* Macro function for checking if the value X must be noised */
 #define _MUST_NOT_BE_NOISED(X, VIRTUAL_PRECISION, CTX)                         \
   /* if mode ieee, do not introduce noise */                                   \
-  (CTX->mode == mcaint_mode_ieee) || \
+  ((CTX)->mode == mcaint_mode_ieee) || \
   /* Check that we are not in a special case */ \
   (FPCLASSIFY(X) != FP_NORMAL && FPCLASSIFY(X) != FP_SUBNORMAL) ||         \
   /* In RR if the number is representable in current virtual precision, */ \
   /* do not add any noise if */                                           \
-  (CTX->mode == mcaint_mode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
+  ((CTX)->mode == mcaint_mode_rr && _IS_REPRESENTABLE(X, VIRTUAL_PRECISION))
 
 /* Generic function for computing the mca noise */
 #define _NOISE(X, EXP, RNG_STATE)                                              \
-  _Generic(*X, double: _noise_binary64, _Float128: _noise_binary128)(          \
+  _Generic(*(X), double: _noise_binary64, _Float128: _noise_binary128)(        \
       X, EXP, RNG_STATE)
 
 /* Macro function that adds mca noise to X
    according to the virtual_precision VIRTUAL_PRECISION */
 #define _INEXACT(X, VIRTUAL_PRECISION, CTX, RNG_STATE)                         \
   {                                                                            \
-    mcaint_context_t *TMP_CTX = (mcaint_context_t *)CTX;                       \
-    _init_rng_state_struct(&RNG_STATE, TMP_CTX->choose_seed,                   \
+    mcaint_context_t *TMP_CTX = (mcaint_context_t *)(CTX);                     \
+    _init_rng_state_struct(&(RNG_STATE), TMP_CTX->choose_seed,                 \
                            (unsigned long long)(TMP_CTX->seed), false);        \
-    if (_MUST_NOT_BE_NOISED(*X, VIRTUAL_PRECISION, TMP_CTX)) {                 \
+    if (_MUST_NOT_BE_NOISED(*(X), VIRTUAL_PRECISION, TMP_CTX)) {               \
       return;                                                                  \
-    } else if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE),                 \
-                              &mcaint_global_tid)) {                           \
-      return;                                                                  \
-    } else {                                                                   \
-      const int32_t e_n_rel = -(VIRTUAL_PRECISION - 1);                        \
-      _NOISE(X, e_n_rel, &RNG_STATE);                                          \
     }                                                                          \
+    if (_mca_skip_eval(TMP_CTX->sparsity, &(RNG_STATE), &mcaint_global_tid)) { \
+      return;                                                                  \
+    }                                                                          \
+    const int32_t e_n_rel = -((VIRTUAL_PRECISION) - 1);                        \
+    _NOISE(X, e_n_rel, &(RNG_STATE));                                          \
   }
 
 /* Adds the mca noise to da */
@@ -345,7 +345,7 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
 #define PERFORM_UNARY_OP(op, res, a)                                           \
   switch (op) {                                                                \
   case mcaint_cast:                                                            \
-    res = (float)(a);                                                          \
+    (res) = (float)(a);                                                        \
     break;                                                                     \
   default:                                                                     \
     logger_error("invalid operator %c", op);                                   \
@@ -356,16 +356,16 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
 #define PERFORM_BIN_OP(OP, RES, A, B)                                          \
   switch (OP) {                                                                \
   case mcaint_add:                                                             \
-    RES = (A) + (B);                                                           \
+    (RES) = (A) + (B);                                                         \
     break;                                                                     \
   case mcaint_mul:                                                             \
-    RES = (A) * (B);                                                           \
+    (RES) = (A) * (B);                                                         \
     break;                                                                     \
   case mcaint_sub:                                                             \
-    RES = (A) - (B);                                                           \
+    (RES) = (A) - (B);                                                         \
     break;                                                                     \
   case mcaint_div:                                                             \
-    RES = (A) / (B);                                                           \
+    (RES) = (A) / (B);                                                         \
     break;                                                                     \
   default:                                                                     \
     logger_error("invalid operator %c", OP);                                   \
@@ -376,7 +376,7 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
 #define PERFORM_TERNARY_OP(op, res, a, b, c)                                   \
   switch (op) {                                                                \
   case mcaint_fma:                                                             \
-    res = PERFORM_FMA((a), (b), (c));                                          \
+    (res) = PERFORM_FMA((a), (b), (c));                                        \
     break;                                                                     \
   default:                                                                     \
     logger_error("invalid operator %c", op);                                   \
@@ -388,7 +388,7 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
   do {                                                                         \
     typeof(X) _A = A;                                                          \
     typeof(X) _RES = 0;                                                        \
-    mcaint_context_t *TMP_CTX = (mcaint_context_t *)CTX;                       \
+    mcaint_context_t *TMP_CTX = (mcaint_context_t *)(CTX);                     \
     if (TMP_CTX->daz) {                                                        \
       _A = DAZ(A);                                                             \
     }                                                                          \
@@ -412,7 +412,7 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
     typeof(X) _A = A;                                                          \
     typeof(X) _B = B;                                                          \
     typeof(X) _RES = 0;                                                        \
-    mcaint_context_t *TMP_CTX = (mcaint_context_t *)CTX;                       \
+    mcaint_context_t *TMP_CTX = (mcaint_context_t *)(CTX);                     \
     if (TMP_CTX->daz) {                                                        \
       _A = DAZ(A);                                                             \
       _B = DAZ(B);                                                             \
@@ -439,7 +439,7 @@ static void _mcaint_inexact_binary128(_Float128 *qa, void *context) {
     typeof(X) _B = B;                                                          \
     typeof(X) _C = C;                                                          \
     typeof(X) _RES = 0;                                                        \
-    mcaint_context_t *TMP_CTX = (mcaint_context_t *)CTX;                       \
+    mcaint_context_t *TMP_CTX = (mcaint_context_t *)(CTX);                     \
     if (TMP_CTX->daz) {                                                        \
       _A = DAZ(A);                                                             \
       _B = DAZ(B);                                                             \
@@ -572,7 +572,7 @@ void INTERFLOP_MCAINT_API(fma_double)(double a, double b, double c, double *res,
 
 void INTERFLOP_MCAINT_API(cast_double_to_float)(double a, float *res,
                                                 void *context) {
-  *res = _mcaint_binary64_unary_op(a, mcaint_cast, context);
+  *res = (float)_mcaint_binary64_unary_op(a, mcaint_cast, context);
 }
 
 const char *INTERFLOP_MCAINT_API(get_backend_name)(void) {
@@ -632,7 +632,7 @@ void INTERFLOP_MCAINT_API(pre_init)(interflop_panic_t panic, File *stream,
   _mcaint_init_context((mcaint_context_t *)*context);
 }
 
-static struct argp_option options[] = {
+static const struct argp_option options[] = {
     {key_prec_b32_str, KEY_PREC_B32, "PRECISION", 0,
      "select precision for binary32 (PRECISION > 0)", 0},
     {key_prec_b64_str, KEY_PREC_B64, "PRECISION", 0,
@@ -650,7 +650,7 @@ static struct argp_option options[] = {
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   mcaint_context_t *ctx = (mcaint_context_t *)state->input;
-  char *endptr;
+  char *endptr = NULL;
   int val = -1;
   int error = 0;
   float sparsity = -1;
@@ -659,7 +659,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_PREC_B32:
     /* precision for binary32 */
     error = 0;
-    val = interflop_strtol(arg, &endptr, &error);
+    val = (int)interflop_strtol(arg, &endptr, &error);
     if (error != 0 || val != MCAINT_PRECISION_BINARY32_DEFAULT) {
       logger_error("--%s invalid value provided, MCA integer does not support "
                    "custom precisions",
@@ -670,7 +670,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_PREC_B64:
     /* precision for binary64 */
     error = 0;
-    val = interflop_strtol(arg, &endptr, &error);
+    val = (int)interflop_strtol(arg, &endptr, &error);
     if (error != 0 || val != MCAINT_PRECISION_BINARY64_DEFAULT) {
       logger_error("--%s invalid value provided, MCA integer does not support "
                    "custom precisions",
@@ -718,8 +718,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case KEY_SPARSITY:
     /* sparse perturbations */
     error = 0;
-    sparsity = interflop_strtod(arg, &endptr, &error);
-    if (ctx->sparsity <= 0 || ctx->sparsity > 1) {
+    sparsity = (float)interflop_strtod(arg, &endptr, &error);
+    if (sparsity <= 0 || sparsity > 1) {
       error = 1;
     }
     if (error != 0) {
@@ -777,38 +777,38 @@ static void print_information_header(void *context) {
   logger_info("%s = %s\n", key_daz_str, ctx->daz ? "true" : "false");
   logger_info("%s = %s\n", key_ftz_str, ctx->ftz ? "true" : "false");
   logger_info("%s = %f\n", key_sparsity_str, ctx->sparsity);
-  logger_info("%s = %lu\n", key_seed_str, ctx->seed);
+  logger_info("%s = %lu%s\n", key_seed_str, ctx->seed,
+              ctx->choose_seed ? " (fixed)" : "");
 }
 
 struct interflop_backend_interface_t INTERFLOP_MCAINT_API(init)(void *context) {
 
   mcaint_context_t *ctx = (mcaint_context_t *)context;
 
-  print_information_header(ctx);
-
   struct interflop_backend_interface_t interflop_backend_mcaint = {
-    interflop_add_float : INTERFLOP_MCAINT_API(add_float),
-    interflop_sub_float : INTERFLOP_MCAINT_API(sub_float),
-    interflop_mul_float : INTERFLOP_MCAINT_API(mul_float),
-    interflop_div_float : INTERFLOP_MCAINT_API(div_float),
-    interflop_cmp_float : NULL,
-    interflop_add_double : INTERFLOP_MCAINT_API(add_double),
-    interflop_sub_double : INTERFLOP_MCAINT_API(sub_double),
-    interflop_mul_double : INTERFLOP_MCAINT_API(mul_double),
-    interflop_div_double : INTERFLOP_MCAINT_API(div_double),
-    interflop_cmp_double : NULL,
-    interflop_cast_double_to_float : INTERFLOP_MCAINT_API(cast_double_to_float),
-    interflop_fma_float : INTERFLOP_MCAINT_API(fma_float),
-    interflop_fma_double : INTERFLOP_MCAINT_API(fma_double),
-    interflop_enter_function : NULL,
-    interflop_exit_function : NULL,
-    interflop_user_call : NULL,
-    interflop_finalize : NULL
-  };
+      .interflop_add_float = INTERFLOP_MCAINT_API(add_float),
+      .interflop_sub_float = INTERFLOP_MCAINT_API(sub_float),
+      .interflop_mul_float = INTERFLOP_MCAINT_API(mul_float),
+      .interflop_div_float = INTERFLOP_MCAINT_API(div_float),
+      .interflop_cmp_float = NULL,
+      .interflop_add_double = INTERFLOP_MCAINT_API(add_double),
+      .interflop_sub_double = INTERFLOP_MCAINT_API(sub_double),
+      .interflop_mul_double = INTERFLOP_MCAINT_API(mul_double),
+      .interflop_div_double = INTERFLOP_MCAINT_API(div_double),
+      .interflop_cmp_double = NULL,
+      .interflop_cast_double_to_float =
+          INTERFLOP_MCAINT_API(cast_double_to_float),
+      .interflop_fma_float = INTERFLOP_MCAINT_API(fma_float),
+      .interflop_fma_double = INTERFLOP_MCAINT_API(fma_double),
+      .interflop_enter_function = NULL,
+      .interflop_exit_function = NULL,
+      .interflop_user_call = NULL,
+      .interflop_finalize = NULL};
 
   /* The seed for the RNG is initialized upon the first request for a random
      number */
   _init_rng_state_struct(&rng_state, ctx->choose_seed, ctx->seed, false);
+  print_information_header(ctx);
 
   return interflop_backend_mcaint;
 }

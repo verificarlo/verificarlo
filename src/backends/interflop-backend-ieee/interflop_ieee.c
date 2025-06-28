@@ -28,7 +28,6 @@
 #include <string.h>
 
 #include "common/printf_specifier.h"
-#include "interflop/common/float_const.h"
 #include "interflop/fma/interflop_fma.h"
 #include "interflop/interflop.h"
 #include "interflop/iostream/logger.h"
@@ -76,8 +75,9 @@ const char *INTERFLOP_IEEE_API(get_backend_version)(void) {
 
 /* inserts the string <str_to_add> at position i */
 /* increments i by the size of str_to_add */
-void insert_string(char *dst, char *str_to_add, int *i) {
+void insert_string(char *dst, const char *str_to_add, int *i) {
   int j = 0;
+#pragma unroll
   do {
     dst[*i] = str_to_add[j];
   } while ((*i)++, j++, str_to_add[j] != '\0');
@@ -101,7 +101,9 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
     debug_print_aux(context, fmt, ap);
   } else {
     char new_fmt[STRING_MAX] = "";
-    int i = 0, j = 0;
+    int i = 0;
+    int j = 0;
+#pragma unroll
     do {
       switch (fmt[i]) {
       case 'g':
@@ -127,7 +129,7 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
 /* (decimal or binary) depending on the context */
 #define DEBUG_PRINT(context, typeop, op, a, b, c, d)                           \
   {                                                                            \
-    ieee_context_t *ctx = (ieee_context_t *)context;                           \
+    ieee_context_t *ctx = (ieee_context_t *)(context);                         \
     bool debug = ctx->debug ? true : false;                                    \
     bool debug_binary = ctx->debug_binary ? true : false;                      \
     bool subnormal_normalized =                                                \
@@ -149,18 +151,18 @@ void debug_print(void *context, char *fmt_flt, char *fmt, ...) {
         else                                                                   \
           logger_info("%s", header);                                           \
       }                                                                        \
-      if (typeop == ARITHMETIC) {                                              \
+      if ((typeop) == ARITHMETIC) {                                            \
         debug_print(context, a_float_fmt, "%g %s ", a, op);                    \
         debug_print(context, b_float_fmt, "%g -> ", b);                        \
         debug_print(context, c_float_fmt, "%g\n", c);                          \
-      } else if (typeop == COMPARISON) {                                       \
+      } else if ((typeop) == COMPARISON) {                                     \
         debug_print(context, a_float_fmt, "%g [%s] ", a, op);                  \
         debug_print(context, b_float_fmt, "%g -> %s\n", b,                     \
-                    c ? "true" : "false");                                     \
-      } else if (typeop == CAST) {                                             \
+                    (c) ? "true" : "false");                                   \
+      } else if ((typeop) == CAST) {                                           \
         debug_print(context, a_float_fmt, "%g %s -> ", a, op);                 \
         debug_print(context, b_float_fmt, "%g\n", b);                          \
-      } else if (typeop == FMA) {                                              \
+      } else if ((typeop) == FMA) {                                            \
         debug_print(context, a_float_fmt, "%g * ", a);                         \
         debug_print(context, b_float_fmt, "%g + ", b);                         \
         debug_print(context, c_float_fmt, "%g -> ", c);                        \
@@ -212,68 +214,68 @@ static inline void debug_print_fma_double(void *context,
 #define SELECT_FLOAT_CMP(A, B, C, P, STR)                                      \
   switch (P) {                                                                 \
   case FCMP_FALSE:                                                             \
-    *C = false;                                                                \
-    STR = "FCMP_FALSE";                                                        \
+    *(C) = false;                                                              \
+    (STR) = "FCMP_FALSE";                                                      \
     break;                                                                     \
   case FCMP_OEQ:                                                               \
-    *C = ((A) == (B));                                                         \
-    STR = "FCMP_OEQ";                                                          \
+    *(C) = ((A) == (B));                                                       \
+    (STR) = "FCMP_OEQ";                                                        \
     break;                                                                     \
   case FCMP_OGT:                                                               \
-    *C = isgreater(A, B);                                                      \
-    STR = "FCMP_OGT";                                                          \
+    *(C) = isgreater(A, B);                                                    \
+    (STR) = "FCMP_OGT";                                                        \
     break;                                                                     \
   case FCMP_OGE:                                                               \
-    *C = isgreaterequal(A, B);                                                 \
-    STR = "FCMP_OGE";                                                          \
+    *(C) = isgreaterequal(A, B);                                               \
+    (STR) = "FCMP_OGE";                                                        \
     break;                                                                     \
   case FCMP_OLT:                                                               \
-    *C = isless(A, B);                                                         \
-    STR = "FCMP_OLT";                                                          \
+    *(C) = isless(A, B);                                                       \
+    (STR) = "FCMP_OLT";                                                        \
     break;                                                                     \
   case FCMP_OLE:                                                               \
-    *C = islessequal(A, B);                                                    \
-    STR = "FCMP_OLE";                                                          \
+    *(C) = islessequal(A, B);                                                  \
+    (STR) = "FCMP_OLE";                                                        \
     break;                                                                     \
   case FCMP_ONE:                                                               \
-    *C = islessgreater(A, B);                                                  \
-    STR = "FCMP_ONE";                                                          \
+    *(C) = islessgreater(A, B);                                                \
+    (STR) = "FCMP_ONE";                                                        \
     break;                                                                     \
   case FCMP_ORD:                                                               \
-    *C = !isunordered(A, B);                                                   \
-    STR = "FCMP_ORD";                                                          \
+    *(C) = !isunordered(A, B);                                                 \
+    (STR) = "FCMP_ORD";                                                        \
     break;                                                                     \
   case FCMP_UEQ:                                                               \
-    *C = isunordered(A, B);                                                    \
-    STR = "FCMP_UEQ";                                                          \
+    *(C) = isunordered(A, B);                                                  \
+    (STR) = "FCMP_UEQ";                                                        \
     break;                                                                     \
   case FCMP_UGT:                                                               \
-    *C = isunordered(A, B);                                                    \
-    STR = "FCMP_UGT";                                                          \
+    *(C) = isunordered(A, B);                                                  \
+    (STR) = "FCMP_UGT";                                                        \
     break;                                                                     \
   case FCMP_UGE:                                                               \
-    *C = isunordered(A, B);                                                    \
-    STR = "FCMP_UGE";                                                          \
+    *(C) = isunordered(A, B);                                                  \
+    (STR) = "FCMP_UGE";                                                        \
     break;                                                                     \
   case FCMP_ULT:                                                               \
-    *C = isunordered(A, B);                                                    \
-    str = "FCMP_ULT";                                                          \
+    *(C) = isunordered(A, B);                                                  \
+    (STR) = "FCMP_ULT";                                                        \
     break;                                                                     \
   case FCMP_ULE:                                                               \
-    *C = isunordered(A, B);                                                    \
-    STR = "FCMP_ULE";                                                          \
+    *(C) = isunordered(A, B);                                                  \
+    (STR) = "FCMP_ULE";                                                        \
     break;                                                                     \
   case FCMP_UNE:                                                               \
-    *C = isunordered(A, B);                                                    \
-    STR = "FCMP_UNE";                                                          \
+    *(C) = isunordered(A, B);                                                  \
+    (STR) = "FCMP_UNE";                                                        \
     break;                                                                     \
   case FCMP_UNO:                                                               \
-    *C = isunordered(A, B);                                                    \
-    str = "FCMP_UNO";                                                          \
+    *(C) = isunordered(A, B);                                                  \
+    (STR) = "FCMP_UNO";                                                        \
     break;                                                                     \
   case FCMP_TRUE:                                                              \
-    *c = true;                                                                 \
-    str = "FCMP_TRUE";                                                         \
+    *(C) = true;                                                               \
+    (STR) = "FCMP_TRUE";                                                       \
     break;                                                                     \
   }
 
@@ -281,8 +283,9 @@ void INTERFLOP_IEEE_API(add_float)(const float a, const float b, float *c,
                                    void *context) {
   ieee_context_t *my_context = (ieee_context_t *)context;
   *c = a + b;
-  if (my_context->count_op)
+  if (my_context->count_op) {
     __atomic_add_fetch(&my_context->add_count, 1, __ATOMIC_RELAXED);
+  }
   debug_print_float(context, ARITHMETIC, "+", a, b, *c);
 }
 
@@ -290,8 +293,9 @@ void INTERFLOP_IEEE_API(sub_float)(const float a, const float b, float *c,
                                    void *context) {
   ieee_context_t *my_context = (ieee_context_t *)context;
   *c = a - b;
-  if (my_context->count_op)
+  if (my_context->count_op) {
     __atomic_add_fetch(&my_context->sub_count, 1, __ATOMIC_RELAXED);
+  }
   debug_print_float(context, ARITHMETIC, "-", a, b, *c);
 }
 
@@ -299,8 +303,9 @@ void INTERFLOP_IEEE_API(mul_float)(const float a, const float b, float *c,
                                    void *context) {
   ieee_context_t *my_context = (ieee_context_t *)context;
   *c = a * b;
-  if (my_context->count_op)
+  if (my_context->count_op) {
     __atomic_add_fetch(&my_context->mul_count, 1, __ATOMIC_RELAXED);
+  }
   debug_print_float(context, ARITHMETIC, "*", a, b, *c);
 }
 
@@ -308,8 +313,9 @@ void INTERFLOP_IEEE_API(div_float)(const float a, const float b, float *c,
                                    void *context) {
   ieee_context_t *my_context = (ieee_context_t *)context;
   *c = a / b;
-  if (my_context->count_op)
+  if (my_context->count_op) {
     __atomic_add_fetch(&my_context->div_count, 1, __ATOMIC_RELAXED);
+  }
   debug_print_float(context, ARITHMETIC, "/", a, b, *c);
 }
 
@@ -324,8 +330,9 @@ void INTERFLOP_IEEE_API(add_double)(const double a, const double b, double *c,
                                     void *context) {
   ieee_context_t *my_context = (ieee_context_t *)context;
   *c = a + b;
-  if (my_context->count_op)
+  if (my_context->count_op) {
     __atomic_add_fetch(&my_context->add_count, 1, __ATOMIC_RELAXED);
+  }
   debug_print_double(context, ARITHMETIC, "+", a, b, *c);
 }
 
@@ -333,8 +340,9 @@ void INTERFLOP_IEEE_API(sub_double)(const double a, const double b, double *c,
                                     void *context) {
   ieee_context_t *my_context = (ieee_context_t *)context;
   *c = a - b;
-  if (my_context->count_op)
+  if (my_context->count_op) {
     __atomic_add_fetch(&my_context->sub_count, 1, __ATOMIC_RELAXED);
+  }
   debug_print_double(context, ARITHMETIC, "-", a, b, *c);
 }
 
@@ -342,8 +350,9 @@ void INTERFLOP_IEEE_API(mul_double)(const double a, const double b, double *c,
                                     void *context) {
   ieee_context_t *my_context = (ieee_context_t *)context;
   *c = a * b;
-  if (my_context->count_op)
+  if (my_context->count_op) {
     __atomic_add_fetch(&my_context->mul_count, 1, __ATOMIC_RELAXED);
+  }
   debug_print_double(context, ARITHMETIC, "*", a, b, *c);
 }
 
@@ -351,8 +360,9 @@ void INTERFLOP_IEEE_API(div_double)(const double a, const double b, double *c,
                                     void *context) {
   ieee_context_t *my_context = (ieee_context_t *)context;
   *c = a / b;
-  if (my_context->count_op)
+  if (my_context->count_op) {
     __atomic_add_fetch(&my_context->div_count, 1, __ATOMIC_RELAXED);
+  }
   debug_print_double(context, ARITHMETIC, "/", a, b, *c);
 }
 
@@ -373,8 +383,9 @@ void INTERFLOP_IEEE_API(fma_float)(float a, float b, float c, float *res,
                                    void *context) {
   ieee_context_t *my_context = (ieee_context_t *)context;
   *res = interflop_fma_binary32(a, b, c);
-  if (my_context->count_op)
+  if (my_context->count_op) {
     __atomic_add_fetch(&my_context->fma_count, 1, __ATOMIC_RELAXED);
+  }
   debug_print_fma_float(context, FMA, "fma", a, b, c, *res);
 }
 
@@ -382,8 +393,9 @@ void INTERFLOP_IEEE_API(fma_double)(double a, double b, double c, double *res,
                                     void *context) {
   ieee_context_t *my_context = (ieee_context_t *)context;
   *res = interflop_fma_binary64(a, b, c);
-  if (my_context->count_op)
+  if (my_context->count_op) {
     __atomic_add_fetch(&my_context->fma_count, 1, __ATOMIC_RELAXED);
+  }
   debug_print_fma_double(context, FMA, "fma", a, b, c, *res);
 }
 
@@ -446,11 +458,12 @@ void INTERFLOP_IEEE_API(pre_init)(interflop_panic_t panic, File *stream,
   _ieee_init_context((ieee_context_t *)*context);
 
   /* register %b format */
-  if (interflop_register_printf_specifier != Null)
+  if (interflop_register_printf_specifier != Null) {
     register_printf_bit();
+  }
 }
 
-static struct argp_option options[] = {
+static const struct argp_option options[] = {
     {key_debug_str, KEY_DEBUG, 0, 0, "enable debug output", 0},
     {key_debug_binary_str, KEY_DEBUG_BINARY, 0, 0, "enable binary debug output",
      0},
@@ -519,8 +532,9 @@ static void print_information_header(void *context) {
                          ? false
                          : true;
 
-  if (silent_load)
+  if (silent_load) {
     return;
+  }
 
   ieee_context_t *ctx = (ieee_context_t *)context;
   logger_info("load backend with:\n");
@@ -550,27 +564,28 @@ void INTERFLOP_IEEE_API(configure)(void *configure, void *context) {
 struct interflop_backend_interface_t INTERFLOP_IEEE_API(init)(void *context) {
 
   ieee_context_t *ctx = (ieee_context_t *)context;
-  print_information_header(ctx);
 
   struct interflop_backend_interface_t interflop_backend_ieee = {
-    interflop_add_float : INTERFLOP_IEEE_API(add_float),
-    interflop_sub_float : INTERFLOP_IEEE_API(sub_float),
-    interflop_mul_float : INTERFLOP_IEEE_API(mul_float),
-    interflop_div_float : INTERFLOP_IEEE_API(div_float),
-    interflop_cmp_float : INTERFLOP_IEEE_API(cmp_float),
-    interflop_add_double : INTERFLOP_IEEE_API(add_double),
-    interflop_sub_double : INTERFLOP_IEEE_API(sub_double),
-    interflop_mul_double : INTERFLOP_IEEE_API(mul_double),
-    interflop_div_double : INTERFLOP_IEEE_API(div_double),
-    interflop_cmp_double : INTERFLOP_IEEE_API(cmp_double),
-    interflop_cast_double_to_float : INTERFLOP_IEEE_API(cast_double_to_float),
-    interflop_fma_float : INTERFLOP_IEEE_API(fma_float),
-    interflop_fma_double : INTERFLOP_IEEE_API(fma_double),
-    interflop_enter_function : NULL,
-    interflop_exit_function : NULL,
-    interflop_user_call : NULL,
-    interflop_finalize : INTERFLOP_IEEE_API(finalize)
-  };
+      .interflop_add_float = INTERFLOP_IEEE_API(add_float),
+      .interflop_sub_float = INTERFLOP_IEEE_API(sub_float),
+      .interflop_mul_float = INTERFLOP_IEEE_API(mul_float),
+      .interflop_div_float = INTERFLOP_IEEE_API(div_float),
+      .interflop_cmp_float = INTERFLOP_IEEE_API(cmp_float),
+      .interflop_add_double = INTERFLOP_IEEE_API(add_double),
+      .interflop_sub_double = INTERFLOP_IEEE_API(sub_double),
+      .interflop_mul_double = INTERFLOP_IEEE_API(mul_double),
+      .interflop_div_double = INTERFLOP_IEEE_API(div_double),
+      .interflop_cmp_double = INTERFLOP_IEEE_API(cmp_double),
+      .interflop_cast_double_to_float =
+          INTERFLOP_IEEE_API(cast_double_to_float),
+      .interflop_fma_float = INTERFLOP_IEEE_API(fma_float),
+      .interflop_fma_double = INTERFLOP_IEEE_API(fma_double),
+      .interflop_enter_function = NULL,
+      .interflop_exit_function = NULL,
+      .interflop_user_call = NULL,
+      .interflop_finalize = INTERFLOP_IEEE_API(finalize)};
+
+  print_information_header(ctx);
 
   return interflop_backend_ieee;
 }
