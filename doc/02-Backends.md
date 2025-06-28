@@ -471,13 +471,15 @@ The PRISM backend provides several debug options:
 
 #### Architecture Support 
 
-Although it should support all architectures supported by [Highay](https://google.github.io/highway/en/master/README.html#targets), the PRISM backend has only been tested on :
+Although it should support all architectures supported by [Highway](https://google.github.io/highway/en/master/README.html#targets), the PRISM backend has only been tested on :
 - x86:
   - SSE2
   - SSE3
   - SSE4
   - AVX2
   - AVX3
+
+**Build Limitations**: On some platforms (particularly AArch64), the PRISM backend dependencies (Bazel/Highway) may fail to build. If you encounter build issues with the PRISM backend, you can disable it during configuration using `--without-prism`. This will build Verificarlo without PRISM backend support while preserving all other functionality.
 
 #### Usage Example
 

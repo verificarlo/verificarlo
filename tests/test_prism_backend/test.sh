@@ -1,5 +1,14 @@
 #!/bin/bash
 
+source "$(dirname "$0")/../paths.sh"
+
+if [ "${BUILD_PRISM}" = "no" ]; then
+    echo "this test is not run when using --without-prism"
+    # Exit with 77 to mark the test skipped
+    # https://www.gnu.org/software/automake/manual/html_node/Scripts_002dbased-Testsuites.html
+    exit 77
+fi
+
 function run() {
     local mode=$1
     local msg=$2
