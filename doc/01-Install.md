@@ -29,6 +29,13 @@ Then run the following command inside verificarlo directory:
    $ sudo make install
 ```
 
+### Platform-specific configuration options
+
+If you encounter build issues on certain platforms, you can use these configuration flags:
+
+* `--without-prism`: Disable the PRISM backend. This is useful on platforms like AArch64 where PRISM dependencies (Bazel/Highway) may fail to build.
+* `--without-flang`: Disable Fortran support if flang is not available or needed.
+
 ### Example on x86_64 Ubuntu 20.04 release with Fortran support
 
 For example on an x86_64 Ubuntu 20.04 release, you should use the following
@@ -40,6 +47,21 @@ install procedure:
    $ cd verificarlo/
    $ ./autogen.sh
    $  CC=gcc-7 CXX=g++-7 ./configure --with-flang
+   $ sudo make install-interflop-stdlib
+   $ make
+   $ sudo make install
+```
+
+### Example on AArch64 platforms
+
+On AArch64 platforms where PRISM backend dependencies may fail to build, use the `--without-prism` flag:
+
+```bash
+   $ sudo apt-get install libmpfr-dev clang llvm-dev parallel\
+       gcc autoconf automake libtool build-essential python3 python3-pip
+   $ cd verificarlo/
+   $ ./autogen.sh
+   $ ./configure --without-prism --without-flang
    $ sudo make install-interflop-stdlib
    $ make
    $ sudo make install

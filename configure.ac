@@ -70,6 +70,13 @@ AC_ARG_WITH([flang],
   [with_flang=yes])
 AM_CONDITIONAL([BUILD_FLANG], [test "x$with_flang" != "xno"])
 
+AC_ARG_WITH([prism],
+  AS_HELP_STRING([--with-prism@<:@=yes|no@:>@],
+    [enable or disable PRISM backend]),
+  [with_prism="$withval"],
+  [with_prism=yes])
+AM_CONDITIONAL([BUILD_PRISM], [test "x$with_prism" != "xno"])
+
 if test "x$with_flang" = "xno"; then
    AC_MSG_NOTICE([--with-flang=no was given. Disabling Fortran support.])
 else
@@ -99,6 +106,14 @@ else
 
    AC_SUBST(FC, $FLANG)
 fi
+
+if test "x$with_prism" = "xno"; then
+   AC_MSG_NOTICE([--without-prism was given. Disabling PRISM backend.])
+   BUILD_PRISM=no
+else
+   BUILD_PRISM=yes
+fi
+AC_SUBST(BUILD_PRISM, $BUILD_PRISM)
 
 # Check for addr2line (required by delta-debug DDEBUG)
 AC_PATH_PROGS([ADDR2LINE], [llvm-addr2line addr2line], "", $LLVM_BINDIR/ $PATH)
@@ -228,7 +243,9 @@ AC_DEFINE_UNQUOTED([PYTHON_INSTALL_FLAGS], ["$PYTHON_INSTALL_FLAGS"], [Python in
 AC_SUBST(PYTHON_INSTALL_FLAGS, $PYTHON_INSTALL_FLAGS)
 
 AC_CONFIG_SUBDIRS([src/interflop-stdlib])
-AC_CONFIG_SUBDIRS([src/backends/prism])
+if test "x$with_prism" != "xno"; then
+   AC_CONFIG_SUBDIRS([src/backends/prism])
+fi
 
 AX_WARNINGS()
 AX_LTO()
