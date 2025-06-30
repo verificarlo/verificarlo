@@ -21,7 +21,8 @@ run() {
     grep "Kahan =" $BIN.log | cut -d'=' -f 2
 }
 
-parallel --header : "verificarlo-c -lm -DDOUBLE --function sum_kahan {OPTIONS} kahan.c -o test_{#}" ::: OPTIONS "${OPTIONS_LIST[@]}"
+verificarlo-c -lm -DDOUBLE --function sum_kahan -O0 kahan.c -o test_1
+verificarlo-c -lm -DDOUBLE --function sum_kahan -O3 -ffast-math kahan.c -o test_2
 
 export VFC_BACKENDS="libinterflop_mca.so --precision-binary32 24"
 export VFC_BACKENDS_LOGGER="False"
