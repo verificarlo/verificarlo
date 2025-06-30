@@ -1,0 +1,6 @@
+logs
+binary32-*
+binary64-*
+sr-binary32
+sr-binary64
+test.log
