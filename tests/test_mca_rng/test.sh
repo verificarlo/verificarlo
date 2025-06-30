@@ -7,11 +7,10 @@ PREC_B64=50
 
 SEED=1
 
-parallel -j $(nproc) --header : "verificarlo-c {options}" ::: options \
-  "-fopenmp=libomp -D REAL=float -O0 test_openmp.c -o test_openmp_B32" \
-  "-fopenmp=libomp -D REAL=double -O0 test_openmp.c -o test_openmp_B64" \
-  "-D REAL=float -O0 test_pthread.c -o test_pthread_B32 -lpthread" \
-  "-D REAL=double -O0 test_pthread.c -o test_pthread_B64 -lpthread"
+verificarlo-c -fopenmp=libomp -D REAL=float -O0 test_openmp.c -o test_openmp_B32
+verificarlo-c -fopenmp=libomp -D REAL=double -O0 test_openmp.c -o test_openmp_B64
+verificarlo-c -D REAL=float -O0 test_pthread.c -o test_pthread_B32 -lpthread
+verificarlo-c -D REAL=double -O0 test_pthread.c -o test_pthread_B64 -lpthread
 
 #************************
 #test the OpenMP version of the test
