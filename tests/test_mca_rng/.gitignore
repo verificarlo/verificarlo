@@ -1,0 +1,7 @@
+log_run_*
+out_run_*
+test_openmp_*
+test_pthread_*
+test_log
+test.sh
+test.log

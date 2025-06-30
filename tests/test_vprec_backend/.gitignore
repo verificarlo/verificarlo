@@ -1,0 +1,6 @@
+compute_mpfr_rounding
+compute_vprec_rounding_float
+compute_vprec_rounding_double
+log.error
+run_parallel
+test.log
