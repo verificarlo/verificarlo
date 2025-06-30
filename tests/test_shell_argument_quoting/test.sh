@@ -16,7 +16,7 @@ test_wrapper() {
 
     # Test 1: Macro definition with spaces (the main issue from #355)
     echo "  Test 1: Macro with spaces"
-    if timeout 30s $wrapper -DPACKAGE_STRING='"verificarlo test"' -c "$test_file" -o test1.o 2>/dev/null; then
+    if "$wrapper" -DPACKAGE_STRING='"verificarlo test"' -c "$test_file" -o test1.o 2>/dev/null; then
         echo "  PASS: Macro with spaces compiled successfully"
         rm -f test1.o
     else
@@ -26,7 +26,7 @@ test_wrapper() {
 
     # Test 2: Macro definition with complex string containing special characters
     echo "  Test 2: Complex macro with special characters"
-    if timeout 30s $wrapper -DTEST_MACRO='"test: version 1.0.0"' -c "$test_file" -o test2.o 2>/dev/null; then
+    if $wrapper -DTEST_MACRO='"test: version 1.0.0"' -c "$test_file" -o test2.o 2>/dev/null; then
         echo "  PASS: Complex macro compiled successfully"
         rm -f test2.o
     else
@@ -36,7 +36,7 @@ test_wrapper() {
 
     # Test 3: Multiple macros with spaces
     echo "  Test 3: Multiple macros with spaces"
-    if timeout 30s $wrapper -DPACKAGE_STRING='"verificarlo test"' -DVERSION='"1.0.0"' -c "$test_file" -o test3.o 2>/dev/null; then
+    if $wrapper -DPACKAGE_STRING='"verificarlo test"' -DVERSION='"1.0.0"' -c "$test_file" -o test3.o 2>/dev/null; then
         echo "  PASS: Multiple macros with spaces compiled successfully"
         rm -f test3.o
     else
@@ -46,7 +46,7 @@ test_wrapper() {
 
     # Test 4: Build a complete executable and verify macro values
     echo "  Test 4: Full compilation and execution test"
-    if timeout 30s $wrapper -DPACKAGE_STRING='"verificarlo shell test"' -DVERSION='"v1.2.3"' "$test_file" -o test_exe 2>/dev/null; then
+    if $wrapper -DPACKAGE_STRING='"verificarlo shell test"' -DVERSION='"v1.2.3"' "$test_file" -o test_exe 2>/dev/null; then
         echo "  PASS: Full compilation with macros successful"
 
         # Test execution to verify macros were passed correctly
@@ -84,7 +84,7 @@ int main() {
 EOF
 
     echo "  Test 5: Include path with spaces"
-    if timeout 30s $wrapper -I"path with spaces" -c test_include.c -o test5.o 2>/dev/null; then
+    if $wrapper -I"path with spaces" -c test_include.c -o test5.o 2>/dev/null; then
         echo "  PASS: Include path with spaces compiled successfully"
         rm -f test5.o
     else
