@@ -1,5 +1,21 @@
 Verificarlo CHANGELOG
 
+# [v2.2.0] 2025/07/01
+
+## Added
+  * Add `--prism-backend-strict-abi` option to enforce strict ABI matching between IR and PRISM backend
+  * Add check for sparsity to be between (0,1]
+
+## Changed
+  * Refactor argument quoting in test wrapper script to improve clarity and consistency
+  * Update copyright year and apply clang-format
+
+## Fixed
+  * Fix clang-tidy warnings
+  * Fix Argument Quoting Problem in Verificarlo Wrapper Script #355
+  * Fix: Disable prism backend for Aarch64 platform #357
+  * Fix critical bug in vprec backend where range and precision arguments were swapped
+
 # [v2.1.0] 2025/01/22
 
 ## Added
@@ -72,7 +88,7 @@ Verificarlo CHANGELOG
     to add stochastic noise. This should offer a performance gain on most architectures.
   * Add VFC_BACKENDS_LOGFILE environment variable to redirect logger_info to a file
   * Add `interflop_call` function into interflop_backend_interface_t interface.
-  Allows user to directly call low-level backend functions
+    Allows user to directly call low-level backend functions
   * Add INTERFLOP_CALL_INEXACT allowing to directly perturb one fp value through `interflop_call` mechanism
   * Add test_usercall_inexact to test the INTERFLOP_CALL_INEXACT user call
 
