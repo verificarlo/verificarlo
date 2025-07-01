@@ -1,4 +1,4 @@
-## Verificarlo v2.1.0
+## Verificarlo v2.2.0
 
 A tool for debugging and assessing floating point precision and reproducibility.
 
@@ -12,7 +12,7 @@ A tool for debugging and assessing floating point precision and reproducibility.
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://releases.llvm.org/13.0.0/LICENSE.TXT)
 
 
-- [Verificarlo v2.1.0](#verificarlo-v210)
+- [Verificarlo v2.2.0](#verificarlo-v220)
 - [Installation](#installation)
 - [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
 - [Usage](#usage)
