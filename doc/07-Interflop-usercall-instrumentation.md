@@ -30,7 +30,7 @@ The `interflop_call_id` enumeration defines the signature for each user call id.
 Allows applying perturbation on one floating-point value.
 Signature: 
 ```C
-void interflop_call_id(interflop_call_id id, enum FTYPES type, void *value, int precision);
+void interflop_call(interflop_call_id id, enum FTYPES type, void *value, int precision);
 ```
 where:
 - `id`: must be set to `INTERFLOP_INEXACT_ID`
@@ -47,7 +47,7 @@ Allows changing the virtual precision used for floating-point operations in doub
 For the VPREC backend, allows changing the length of the pseudo-mantissa for floating-point operations in double precision.
 Signature: 
 ```C
-void interflop_call_id(interflop_call_id id, int precision);
+void interflop_call(interflop_call_id id, int precision);
 ```
 where:
 - `id`: must be set to `INTERFLOP_SET_PRECISION_BINARY64`
@@ -59,7 +59,7 @@ Allows changing the virtual precision used for floating-point operations in sing
 For the VPREC backend, allows changing the length of the pseudo-mantissa for floating-point operations in single precision.
 Signature: 
 ```C
-void interflop_call_id(interflop_call_id id, int precision);
+void interflop_call(interflop_call_id id, int precision);
 ```
 where:
 - `id`: must be set to `INTERFLOP_SET_PRECISION_BINARY32`
@@ -70,7 +70,7 @@ where:
 Allows changing the exponent bit length for floating-point operations in double precision.
 Signature: 
 ```C
-void interflop_call_id(interflop_call_id id, int range);
+void interflop_call(interflop_call_id id, int range);
 ```
 where:
 - `id`: must be set to `INTERFLOP_SET_RANGE_BINARY64`
@@ -81,7 +81,7 @@ where:
 Allows changing the exponent bit length for floating-point operations in single precision.
 Signature: 
 ```C
-void interflop_call_id(interflop_call_id id, int range);
+void interflop_call(interflop_call_id id, int range);
 ```
 where:
 - `id`: must be set to `INTERFLOP_SET_RANGE_BINARY32`
