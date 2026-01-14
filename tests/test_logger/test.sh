@@ -2,16 +2,20 @@
 
 OUTPUT_FILE=output
 ERROR_FILE=error
+VERIFICARLO=verificarlo-c
 
 show_env() {
     echo "VFC_BACKENDS_LOGGER=${VFC_BACKENDS_LOGGER}"
+    echo "VFC_BACKENDS_LOGGER_LEVEL=${VFC_BACKENDS_LOGGER_LEVEL}"
     echo "VFC_BACKENDS_SILENT_LOAD=${VFC_BACKENDS_SILENT_LOAD}"
     echo "VFC_BACKENDS_LOGFILE=${VFC_BACKENDS_LOGFILE}"
     echo "VFC_BACKENDS=${VFC_BACKENDS}"
+    echo "VERIFICARLO=${VERIFICARLO}"
 }
 
 reset_env() {
     unset VFC_BACKENDS_LOGGER
+    unset VFC_BACKENDS_LOGGER_LEVEL
     unset VFC_BACKENDS_SILENT_LOAD
     unset VFC_BACKENDS_LOGFILE
     export VFC_BACKENDS="libinterflop_mca.so"
@@ -59,8 +63,15 @@ check_backend_info() {
     )" "${2}"
 }
 
+check_logger_debug() {
+    check "$(
+        grep -q "Debug \[interflop-vprec\]" ${1}
+        echo $?
+    )" "${2}"
+}
+
 compile() {
-    verificarlo test.c -o test
+    ${VERIFICARLO} test.c -o test
     if [[ $? != 0 ]]; then
         echo "Compilation failed"
         exit 1
@@ -96,7 +107,18 @@ check_empty $ERROR_FILE "Error: logger_info displayed on stderr"
 check_logger_info test.log.* "Error: logger_info not displayed on test.log"
 check_backend_info test.log.* "Error: logger_info not displayed on test.log"
 
-echo "* Test 4: Check logger_error is displayed when an error occured and VFC_BACKENDS_LOGFILE is set"
+echo "* Test 4: Check logger_debug is displayed when debug level is set"
+reset_env
+export VFC_BACKENDS="libinterflop_vprec.so"
+export VFC_BACKENDS_LOGGER=True
+export VFC_BACKENDS_LOGGER_LEVEL=debug
+export VFC_BACKENDS_LOGFILE='test.log'
+run
+check_empty $OUTPUT_FILE "Error: logger_debug displayed on stdout"
+check_empty $ERROR_FILE "Error: logger_debug displayed on stderr"
+check_logger_debug test.log.* "Error: logger_debug not displayed on test.log"
+
+echo "* Test 5: Check logger_error is displayed when an error occured and VFC_BACKENDS_LOGFILE is set"
 reset_env
 export VFC_BACKENDS_LOGGER=True
 export VFC_BACKENDS=""
@@ -106,7 +128,7 @@ check_empty $OUTPUT_FILE "Error: logger_error displayed on stdout"
 check_empty test.log.* "Error: logger_error displayed on test.log"
 check_non_empty $ERROR_FILE "Error: logger_error not displayed on stderr"
 
-echo "* Test 5: Check logger_error is displayed when an error occured and VFC_BACKENDS_LOGGER=False"
+echo "* Test 6: Check logger_error is displayed when an error occured and VFC_BACKENDS_LOGGER=False"
 reset_env
 export VFC_BACKENDS_LOGGER=False
 export VFC_BACKENDS=""
