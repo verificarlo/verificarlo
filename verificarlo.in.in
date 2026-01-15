@@ -14,7 +14,7 @@
 #  Copyright (c) 2018                                                       #\
 #     Universite de Versailles St-Quentin-en-Yvelines                       #\
 #                                                                           #\
-#  Copyright (c) 2019-2024                                                  #\
+#  Copyright (c) 2019-2026                                                  #\
 #     Verificarlo Contributors                                              #\
 #                                                                           #\
 #############################################################################
@@ -257,6 +257,17 @@ def get_llvm_pass_manager():
     return ""
 
 
+def use_new_pass_manager():
+    return int(llvm_version) >= 17
+
+
+def get_opt_pass_args(pass_name, pass_lib):
+    if use_new_pass_manager():
+        return f"-load-pass-plugin {pass_lib} -passes={pass_name}"
+    enable_new_pm = get_llvm_pass_manager()
+    return f"{enable_new_pm} -load {pass_lib} -{pass_name}"
+
+
 def get_emit_format(args):
     """return the opt option to emit llvm ir bytecode or plain text"""
     return " -S " if args.save_temps else ""
@@ -264,10 +275,10 @@ def get_emit_format(args):
 
 # Apply function's instrumentation pass
 def apply_function_instrumentation_pass(ir, ins, args):
-    enable_new_pm = get_llvm_pass_manager()
     emit_format = get_emit_format(args)
+    pass_args = get_opt_pass_args("vfclibfunc", libvfcfuncinstrument)
     shell(
-        f"{opt} {emit_format} {enable_new_pm} -load {libvfcfuncinstrument} -vfclibfunc {ir.name} -o {ins.name}",
+        f"{opt} {emit_format} {pass_args} {ir.name} -o {ins.name}",
         verbose=args.show_cmd,
     )
 
@@ -297,12 +308,12 @@ def apply_mca_instrumentation_pass(
         libvfcinst = libvfcinstrument
         extra_args += f" -vfclibinst-vfcwrapper-file {vfcwrapper_ir.name} "
 
-    enable_new_pm = get_llvm_pass_manager()
     emit_format = get_emit_format(args)
+    pass_args = get_opt_pass_args("vfclibinst", libvfcinst)
     shell(
         (
-            f"{opt} {emit_format} {enable_new_pm}  -load {libvfcinst} "
-            f" -vfclibinst {extra_args} {selectfunction} "
+            f"{opt} {emit_format} {pass_args} "
+            f"{extra_args} {selectfunction} "
             f" {ir.name} -o {ins.name}"
         ),
         verbose=args.show_cmd,

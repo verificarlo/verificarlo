@@ -33,6 +33,14 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Module.h>
+#if LLVM_VERSION_MAJOR >= 17
+#ifdef PIC
+#undef PIC
+#endif
+#include <llvm/IR/PassManager.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Passes/PassPlugin.h>
+#endif
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
@@ -995,3 +1003,31 @@ struct VfclibInst : public ModulePass {
 char VfclibInst::ID = 0;
 static RegisterPass<VfclibInst> X("vfclibinst", "verificarlo instrument pass",
                                   false, false);
+
+#if LLVM_VERSION_MAJOR >= 17
+namespace {
+struct VfclibInstPass : public PassInfoMixin<VfclibInstPass> {
+  PreservedAnalyses run(Module &M, ModuleAnalysisManager &) {
+    VfclibInst legacy;
+    legacy.runOnModule(M);
+    return PreservedAnalyses::none();
+  }
+};
+} // namespace
+
+extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo
+llvmGetPassPluginInfo() {
+  return {LLVM_PLUGIN_API_VERSION, "vfclibinst", LLVM_VERSION_STRING,
+          [](PassBuilder &PB) {
+            PB.registerPipelineParsingCallback(
+                [](StringRef Name, ModulePassManager &MPM,
+                   ArrayRef<PassBuilder::PipelineElement>) {
+                  if (Name == "vfclibinst") {
+                    MPM.addPass(VfclibInstPass());
+                    return true;
+                  }
+                  return false;
+                });
+          }};
+}
+#endif
