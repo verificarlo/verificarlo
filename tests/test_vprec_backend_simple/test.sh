@@ -49,9 +49,56 @@ EOF
     ../compare.sh FULL 2 23 float x input.txt
 }
 
-export -f new_env
-export -f test1
-export -f test2
-export -f test3
+test4() {
+    new_env test4
+    ## Subnormal halfway: -0.375 is exactly between -0.25 and -0.5, ties to even.
+    cat >input.txt <<EOF
+-0x1.a65cfc73c8a8ep-1 0x1.2e9e4e7fa94eap-1
+EOF
+    ../compare.sh FULL 2 2 double x input.txt
+}
 
-parallel test{} ::: 1 2 3
+test5() {
+    new_env test5
+    ## Subnormal halfway: +0.1875 is exactly between +0.125 and +0.25, ties to even.
+    cat >input.txt <<EOF
+0x1.e6527affea0d8p-3 0x1.959edd6d29896p-1
+EOF
+    ../compare.sh FULL 2 3 double x input.txt
+}
+
+test6() {
+    new_env test6
+    ## Denormal tests for range 11, precision 2
+    cat >input.txt <<EOF
+-0x0.5c8e727e02168p-1022 -0x0.ffd401e0541ecp-1022
+EOF
+    ../compare.sh PB 11 2 double - input.txt
+}
+
+test7() {
+    new_env test7
+    ## Denormal tests for range 11, precision 2
+    cat >input.txt <<EOF
+-0x0.5c8e727e02168p-1022 -0x0.ffd401e0541ecp-1022
+EOF
+    ../compare.sh OB 11 2 double - input.txt
+}
+
+test8() {
+    new_env test8
+    ## Denormal tests for range 11, precision 2
+    cat >input.txt <<EOF
+-0x0.5c8e727e02168p-1022 -0x0.ffd401e0541ecp-1022
+EOF
+    ../compare.sh FULL 11 2 double - input.txt
+}
+
+
+export -f new_env
+for i in {1..8}; do
+    export -f test$i
+done
+
+
+parallel test{} ::: {1..8}

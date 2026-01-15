@@ -23,9 +23,9 @@ INPUT_FILE=input.txt
 
 set_env() {
     export VERIFICARLO_OP="$OP"
-    export VERIFICARLO_PRECISION=$PRECISION
-    export VERIFICARLO_VPREC_RANGE=$RANGE
-    export VERIFICARLO_VPREC_MODE=$MODE
+    export VERIFICARLO_PRECISION="$PRECISION"
+    export VERIFICARLO_VPREC_RANGE="$RANGE"
+    export VERIFICARLO_VPREC_MODE="$MODE"
 
     if [ "$TYPE" = "double" ]; then
         export VFC_BACKENDS="libinterflop_vprec.so --range-binary64=$RANGE --precision-binary64=$PRECISION --mode=$MODE"
@@ -67,10 +67,13 @@ vprec_rounding() {
 
 run() {
     set_env
+    printf "%s %s\n" "$a" "$b" >"$INPUT_FILE"
+    : >"$MPFR_FILE"
+    : >"$VPREC_FILE"
 
     echo '---'
 
-    get_info $RANGE $PRECISION
+    get_info "$RANGE" "$PRECISION"
 
     export VFC_BACKENDS_SILENT_LOAD=True
     export VFC_BACKENDS_LOGGER=True
@@ -91,35 +94,32 @@ run() {
 
 debug() {
     if [ "$DEBUG" = "True" ]; then
-        echo $@
+        echo "$@"
     fi
 }
 
 rm -f $INPUT_FILE $MPFR_FILE $VPREC_FILE
 
-nb_lines=$(wc -l "$ERROR_FILE" | cut -d' ' -f1)
-
-# Iterate over the lines of the log.error file 3 by 3
-for ((i = 3; i <= $nb_lines; i = i + 3)); do
-
-    # Set TYPE to double if the line contains "double"
-    if head -n$i "$ERROR_FILE" | tail -n3 | grep -q "double" "$1"; then
-        TYPE="double"
-    else
-        TYPE="float"
-    fi
-
-    # Iterate over the array and set the environment variables
-    variables="$(head -n$i "$ERROR_FILE" | tail -n3 | grep -o '[A-Za-z0-9_]*=[^[:space:]]*')"
-
-    for line in $variables; do
-        debug "line:" $line
-        IFS='=' read -r -a pair <<<"$line"
-        export ${pair[0]%:}=${pair[1]}
-        debug "Set variable ${pair[0]} to ${pair[1]}"
-    done
-
-    echo "${a} ${b}" >>$INPUT_FILE
-
+while IFS= read -r entry; do
+    eval "$entry"
     run
-done
+done < <(
+    awk '
+        /\* (float|double):/ {
+            if (match($0, /\* (float|double):/, m)) type=m[1];
+            if (match($0, /MODE=([^ ]+)/, m)) mode=m[1];
+            if (match($0, /RANGE=([^ ]+)/, m)) range=m[1];
+            if (match($0, /PRECISION=([^ ]+)/, m)) precision=m[1];
+            if (match($0, /OP=([^ ]+)/, m)) op=m[1];
+        }
+        /relative error too high:/ {
+            if (match($0, /a=([^ ]+)/, m)) a=m[1];
+            if (match($0, /b=([^ ]+)/, m)) b=m[1];
+            if (type && mode && range && precision && op && a && b) {
+                printf("TYPE=%s MODE=%s RANGE=%s PRECISION=%s OP=%s a=%s b=%s\n",
+                       type, mode, range, precision, op, a, b);
+                type=""; mode=""; range=""; precision=""; op=""; a=""; b="";
+            }
+        }
+    ' "$ERROR_FILE"
+)
