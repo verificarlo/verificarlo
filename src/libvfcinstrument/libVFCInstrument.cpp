@@ -723,8 +723,7 @@ struct VfclibInstPass : public PassInfoMixin<VfclibInstPass> {
 };
 } // namespace
 
-extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo
-llvmGetPassPluginInfo() {
+extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo llvmGetPassPluginInfo() {
   return {LLVM_PLUGIN_API_VERSION, "vfclibinst", LLVM_VERSION_STRING,
           [](PassBuilder &PB) {
             PB.registerPipelineParsingCallback(
