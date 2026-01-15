@@ -73,7 +73,7 @@ test6() {
     cat >input.txt <<EOF
 -0x0.5c8e727e02168p-1022 -0x0.ffd401e0541ecp-1022
 EOF
-    ../compare.sh PB 11 2 double - input.txt
+    ../compare.sh IB 11 2 double - input.txt
 }
 
 test7() {
