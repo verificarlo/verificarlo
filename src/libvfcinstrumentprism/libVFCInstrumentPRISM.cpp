@@ -60,13 +60,12 @@
 #endif
 #include <llvm/Support/Path.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
-#if LLVM_VERSION_MAJOR >= 11
-#include <llvm/Support/TargetSelect.h>
-#else
+#if LLVM_VERSION_MAJOR < 11
 #include <llvm/Support/TargetRegistry.h>
 #endif
 #include <llvm/IR/Mangler.h>
@@ -601,7 +600,7 @@ struct VfclibInst : public ModulePass {
       }
       std::pair<StringRef, StringRef> p = l.split(" ");
 
-      if (p.second.equals("")) {
+      if (p.second.empty()) {
         prism_fatal_error("Syntax error in exclusion/inclusion file " +
                           fileName + ":" + std::to_string(lineno));
       } else {
