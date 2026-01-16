@@ -6,6 +6,6 @@ else
 WARNING_FLAGS =
 endif
 
-libvfcfuncinstrument_la_CXXFLAGS = @LLVM_CPPFLAGS@ $(ENABLE_WARNINGS)
+libvfcfuncinstrument_la_CXXFLAGS = @LLVM_CPPFLAGS@ $(WARNING_FLAGS)
 libvfcfuncinstrument_la_LDFLAGS = @LLVM_LDFLAGS@
 libvfcfuncinstrument_la_SOURCES = libVFCFuncInstrument.cpp

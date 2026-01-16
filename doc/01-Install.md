@@ -2,7 +2,7 @@
 
 Please ensure that Verificarlo's dependencies are installed on your system:
 
-  * LLVM, clang and opt from 4.0 up to 18.0, http://clang.llvm.org/
+  * LLVM, clang and opt from 4.0 up to 19.0, http://clang.llvm.org/
   * gcc from 7
   * autotools (automake, autoconf)
   * libtool
