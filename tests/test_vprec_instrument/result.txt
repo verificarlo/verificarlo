@@ -531,11 +531,11 @@
 
 Functions Fdouble and Ffloat take real numbers from 1 to 102 and from -1 to -102 and subtract 10 
 
-input: test_range.c/main/Fdouble/21/13 -102 -1
-output: test_range.c/main/Fdouble/21/13 -112 -11
-input: test_range.c/main/Ffloat/18/10 -102 -1
-output: test_range.c/main/Ffloat/18/10 -112 -11
-input: test_range.c/main/Ffloat/17/9 1 102
-output: test_range.c/main/Ffloat/17/9 -9 92
-input: test_range.c/main/Fdouble/20/12 1 102
-output: test_range.c/main/Fdouble/20/12 -9 92
+input: test_range.c/main/Fdouble/21/5 -102 -1
+output: test_range.c/main/Fdouble/21/5 -112 -11
+input: test_range.c/main/Fdouble/20/4 1 102
+output: test_range.c/main/Fdouble/20/4 -9 92
+input: test_range.c/main/Ffloat/18/3 -102 -1
+output: test_range.c/main/Ffloat/18/3 -112 -11
+input: test_range.c/main/Ffloat/17/2 1 102
+output: test_range.c/main/Ffloat/17/2 -9 92

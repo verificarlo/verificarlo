@@ -9,7 +9,7 @@ endif
 
 libvfc_probes_la_CFLAGS = \
     -I@INTERFLOP_INCLUDEDIR@ \
-    $(ENABLE_WARNINGS)
+    $(WARNING_FLAGS)
 
 libvfc_probes_la_LIBADD = @INTERFLOP_LIBDIR@/libinterflop_hashmap.la 
 

@@ -62,6 +62,12 @@ typedef llvm::LibFunc::Func _LibFunc;
 typedef llvm::LibFunc _LibFunc;
 #endif
 
+#if LLVM_VERSION_MAJOR >= 18
+#define STARTS_WITH(str, prefix) str.starts_with(prefix)
+#else
+#define STARTS_WITH(str, prefix) str.startswith(prefix)
+#endif
+
 using namespace llvm;
 
 namespace {
@@ -395,6 +401,11 @@ void InstrumentFunction(std::vector<Value *> MetaData,
   }
 }
 
+bool isLLVMDebugFunction(Function &F) {
+  StringRef name = F.getName();
+  return STARTS_WITH(name, "llvm.dbg.") || STARTS_WITH(name, "llvm.lifetime.");
+}
+
 struct VfclibFunc : public ModulePass {
   static char ID;
   std::vector<Function *> OriginalFunctions;
@@ -419,10 +430,14 @@ struct VfclibFunc : public ModulePass {
     FloatPtrTy = Type::getFloatPtrTy(M.getContext());
     DoublePtrTy = Type::getDoublePtrTy(M.getContext());
     Int8PtrTy = Type::getInt8PtrTy(M.getContext());
-#else
+#elif LLVM_VERSION_MAJOR < 20
     FloatPtrTy = FloatTy->getPointerTo();
     DoublePtrTy = DoubleTy->getPointerTo();
     Int8PtrTy = Int8Ty->getPointerTo();
+#else
+    FloatPtrTy = PointerType::getUnqual(FloatTy);
+    DoublePtrTy = PointerType::getUnqual(DoubleTy);
+    Int8PtrTy = PointerType::getUnqual(Int8Ty);
 #endif
 
     Types2val[FFLOAT] = ConstantInt::get(Int32Ty, FFLOAT);
@@ -434,7 +449,7 @@ struct VfclibFunc : public ModulePass {
      *                  Get original functions's names                       *
      *************************************************************************/
     for (auto &F : M) {
-      if ((F.getName().str() != "main") && F.size() != 0) {
+      if (F.getName().str() != "main" && F.size() != 0) {
         OriginalFunctions.push_back(&F);
       }
     }
@@ -461,7 +476,7 @@ struct VfclibFunc : public ModulePass {
     /*************************************************************************
      *                             Main special case                         *
      *************************************************************************/
-    if (M.getFunction("main")) {
+    if (M.getFunction("main") != nullptr) {
       Function *Main = M.getFunction("main");
 
       ValueToValueMapTy VMap;
@@ -474,7 +489,8 @@ struct VfclibFunc : public ModulePass {
       std::string NewName = "vfc_" + File + "//" + Name + "/" + Line + "/" +
                             std::to_string(inst_cpt) + "_hook";
       std::string FunctionName =
-          File + "//" + Name + "/" + Line + "/" + std::to_string(++inst_cpt);
+          File + "//" + Name + "/" + Line + "/" + std::to_string(inst_cpt);
+      inst_cpt++;
 
       bool use_float, use_double;
 
@@ -512,7 +528,7 @@ struct VfclibFunc : public ModulePass {
      *                             Function calls                            *
      *************************************************************************/
     for (auto &F : OriginalFunctions) {
-      if (F->getSubprogram()) {
+      if (F->getSubprogram() != nullptr) {
         std::string Parent = F->getSubprogram()->getName().str();
         for (auto &B : (*F)) {
           IRBuilder<> Builder(&B);
@@ -523,6 +539,9 @@ struct VfclibFunc : public ModulePass {
             if (isa<CallInst>(pi)) {
               // collect metadata info //
               if (Function *f = cast<CallInst>(pi)->getCalledFunction()) {
+                if (isLLVMDebugFunction(*f)) {
+                  continue;
+                }
 
                 if (MDNode *N = pi->getMetadata("dbg")) {
                   DILocation *Loc = cast<DILocation>(N);
@@ -539,8 +558,8 @@ struct VfclibFunc : public ModulePass {
 
                   std::string FunctionName = File + "/" + Parent + "/" + Name +
                                              "/" + Line + "/" +
-                                             std::to_string(++inst_cpt);
-
+                                             std::to_string(inst_cpt);
+                  inst_cpt++;
                   // Test if f is a library function //
 #if LLVM_VERSION_MAJOR >= 10
                   const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
