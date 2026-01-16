@@ -24,6 +24,8 @@ Lines = f.readlines()
 CurrentFunction = ""
 FullFunction = ""
 
+to_print = {}
+
 for Line in Lines:
     Fields = Line.split()
 
@@ -34,10 +36,16 @@ for Line in Lines:
 
     elif len(Fields) == 7:
         if CurrentFunction in FunctionsList:
-            print(Fields[0], FullFunction, Fields[5], Fields[6])
+            io_fields = (Fields[0], FullFunction, Fields[5], Fields[6])
+            to_print.setdefault(CurrentFunction, []).append(io_fields)
 
     elif len(Fields) != 0:
         print("Wrong input file structure")
         sys.exit(0)
 
 f.close()
+
+# Ensure deterministic output order
+for _, io_fields in sorted(to_print.items()):
+    for fields in io_fields:
+        print(" ".join(fields))
