@@ -53,7 +53,7 @@ inline static int check_if_binary32_needs_rounding(binary32 b32x,
   const uint32_t halfway_point = one << (FLOAT_PMAN_SIZE - precision - 1);
 
   // If the trailing bits are greater than the halfway point, or exactly equal
-  // to it and the bit-to-rouind is 1 (for tie-breaking), round up by adding
+  // to it and the bit-to-round is 1 (for tie-breaking), round up by adding
   // half_ulp to x.
   return (trailing_bits > halfway_point) ||
          ((trailing_bits == halfway_point) && (bit_to_round == 1));
@@ -72,7 +72,7 @@ inline float round_binary32_normal(float x, int precision) {
   /* build 1/2 ulp and add it before truncation for rounding to nearest with
    * ties to even */
 
-  /* generate a mask to erase the last 52-VPRECLIB_PREC bits, in other
+  /* generate a mask to erase the last 23-VPRECLIB_PREC bits, in other
      words, there remain VPRECLIB_PREC bits in the mantissa */
   const uint32_t mask = 0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision);
 
@@ -108,7 +108,7 @@ inline static int check_if_binary64_needs_rounding(binary64 b64x,
   const uint64_t halfway_point = one << (DOUBLE_PMAN_SIZE - precision - 1);
 
   // If the trailing bits are greater than the halfway point, or exactly equal
-  // to it and the bit-to-rouind is 1 (for tie-breaking), round up by adding
+  // to it and the bit-to-round is 1 (for tie-breaking), round up by adding
   // half_ulp to x.
   return (trailing_bits > halfway_point) ||
          ((trailing_bits == halfway_point) && (bit_to_round == 1));
@@ -210,8 +210,13 @@ inline static double round_binary_denormal(double x, int emin, int precision) {
   const int32_t precision_loss =
       emin - (b128_x.ieee128.exponent - QUAD_EXP_COMP);
 
-  // if the precision loss is greater than or equal to the desired precision,
-  // handles the underflow case.
+  /*
+   * When precision_loss >= precision, the effective precision becomes <= 0, so
+   * the generic "round then truncate" path is no longer valid:
+   *   - check_if_binary128_needs_rounding() would be called with a non-positive
+   *     precision (undefined/incorrect shifts).
+   *   - the truncation mask would also require invalid shift amounts.
+   */
   if (precision_loss >= precision) {
     return round_binary128_underflow(b128_x, emin, precision).f128;
   }
