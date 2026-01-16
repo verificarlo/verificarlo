@@ -219,7 +219,7 @@ struct VfclibInst : public ModulePass {
       }
       std::pair<StringRef, StringRef> p = l.split(" ");
 
-      if (p.second.equals("")) {
+      if (p.second.empty()) {
         errs() << "Syntax error in exclusion/inclusion file " << fileName << ":"
                << lineno << "\n";
         report_fatal_error("libVFCInstrument fatal error");
