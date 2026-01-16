@@ -92,6 +92,9 @@ jobs:
           - os: ubuntu:24.04
             llvm: 19
             gcc: 9
+          - os: ubuntu:24.04
+            llvm: 20
+            gcc: 9
     runs-on: ubuntu-22.04
     env:
       TEST_TAG: verificarlo/verificarlo:test-llvm-${{ matrix.llvm }}
