@@ -140,7 +140,7 @@ static void _set_bitmask_operator(const bitmask_operator bitmask,
                  "{zero, one, rand}.",
                  key_operator_str);
   }
-  ctx->operator = bitmask;
+  ctx->operator= bitmask;
 }
 
 #define _set_bitmask_precision(precision, VIRTUAL_PRECISION, Y, X)             \
@@ -312,12 +312,12 @@ static uint64_t get_random_binary64_mask() {
         bitmask |= (mask_one << (pman_size - (leading_0 + binary_t)));         \
       }                                                                        \
     }                                                                          \
-    if (ctx->operator == bitmask_operator_rand) {                              \
+    if (ctx->operator== bitmask_operator_rand) {                               \
       const typeof((B).u) rand_mask = GET_RANDOM_MASK((B).type, TMP_CTX);      \
       (B).ieee.mantissa ^= ~bitmask & rand_mask;                               \
-    } else if (ctx->operator == bitmask_operator_one) {                        \
+    } else if (ctx->operator== bitmask_operator_one) {                         \
       (B).u |= ~bitmask;                                                       \
-    } else if (ctx->operator == bitmask_operator_zero) {                       \
+    } else if (ctx->operator== bitmask_operator_zero) {                        \
       (B).u &= bitmask;                                                        \
     } else {                                                                   \
       __builtin_unreachable();                                                 \
@@ -656,7 +656,7 @@ void _bitmask_alloc_context(void **context) {
 
 static void _bitmask_init_context(bitmask_context_t *ctx) {
   ctx->mode = BITMASK_MODE_DEFAULT;
-  ctx->operator = BITMASK_OPERATOR_DEFAULT;
+  ctx->operator= BITMASK_OPERATOR_DEFAULT;
   ctx->binary32_precision = BITMASK_PRECISION_BINARY32_DEFAULT;
   ctx->binary64_precision = BITMASK_PRECISION_BINARY64_DEFAULT;
   ctx->choose_seed = false;
