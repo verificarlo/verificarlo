@@ -45,7 +45,11 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Linker/Linker.h>
+#if LLVM_VERSION_MAJOR >= 17
+#include <llvm/TargetParser/SubtargetFeature.h>
+#else
 #include <llvm/MC/SubtargetFeature.h>
+#endif
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/ErrorHandling.h>
 #include <llvm/Support/FileSystem.h>
@@ -274,8 +278,8 @@ public:
     return libModule->getFunction(demangledShortNamesToMangled[name]);
   }
 
-  auto copyFunction(Module *M, Function *F,
-                    const std::string &functionName) -> FUNCTION_CALLEE {
+  auto copyFunction(Module *M, Function *F, const std::string &functionName)
+      -> FUNCTION_CALLEE {
     auto functionNameMangled = demangledShortNamesToMangled[functionName];
 
     return M->getOrInsertFunction(functionNameMangled, F->getFunctionType(),
@@ -386,8 +390,8 @@ private:
     return dynamicLib.getFunction(name.str());
   }
 
-  auto getCopyFunction(Module *M, Function *F,
-                       const std::string &functionName) -> FUNCTION_CALLEE {
+  auto getCopyFunction(Module *M, Function *F, const std::string &functionName)
+      -> FUNCTION_CALLEE {
     if (dispatch_mode.is_static()) {
       return staticLib.copyFunction(M, F, functionName);
     }
@@ -415,9 +419,9 @@ private:
     return "prism::" + mode + "::scalar::" + dispatch + "::" + fname;
   }
 
-  auto
-  getFunctionNameVector(Instruction *I, FPOps opCode,
-                        const PrismPassingMode &passing_style) -> std::string {
+  auto getFunctionNameVector(Instruction *I, FPOps opCode,
+                             const PrismPassingMode &passing_style)
+      -> std::string {
     const auto mode = rounding_mode.get_namespace();
     const auto dispatch = dispatch_mode.get_namespace();
     const auto passing = PassingModeNamespace(passing_style);
@@ -553,9 +557,9 @@ struct VfclibInst : public ModulePass {
   }
 
   // TODO(yohan): raise a clean error if the file is not well formatted
-  static auto
-  parseFunctionSetFile(Module &M,
-                       const cl::opt<std::string> &fileName) -> std::regex {
+  static auto parseFunctionSetFile(Module &M,
+                                   const cl::opt<std::string> &fileName)
+      -> std::regex {
     // Skip if empty fileName
     if (fileName.empty()) {
       return std::regex("");
@@ -769,8 +773,8 @@ struct VfclibInst : public ModulePass {
     return Builder.CreateBitCast(V, Builder.getDoubleTy());
   }
 
-  auto getAllocaForVec(Value *V, Function *parent,
-                       const uint32_t argIndex) -> Value * {
+  auto getAllocaForVec(Value *V, Function *parent, const uint32_t argIndex)
+      -> Value * {
     auto *type = V->getType();
 
     const auto key = prismAllocaKey(parent, type, argIndex);
@@ -854,8 +858,8 @@ struct VfclibInst : public ModulePass {
     return operand;
   }
 
-  auto getOperands(IRBuilder<> &Builder, Instruction *I,
-                   const PrismFunction &F) -> std::vector<Value *> {
+  auto getOperands(IRBuilder<> &Builder, Instruction *I, const PrismFunction &F)
+      -> std::vector<Value *> {
     if (debug_operands) {
       errs() << "Get operands for function: "
              << get_demangled_name(F.getName().str()) << "\n";
@@ -920,8 +924,8 @@ struct VfclibInst : public ModulePass {
   }
 
   /* Replace arithmetic instructions with PR */
-  auto replaceArithmeticWithPRCall(IRBuilder<> &Builder,
-                                   Instruction *I) -> Value * {
+  auto replaceArithmeticWithPRCall(IRBuilder<> &Builder, Instruction *I)
+      -> Value * {
     auto F = getPrismFunction(I);
     if (F.getFunction() == nullptr) {
       // Skip instrumentation if the function is missing
