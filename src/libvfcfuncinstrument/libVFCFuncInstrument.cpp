@@ -13,7 +13,7 @@
  *  Copyright (c) 2018                                                       *\
  *     Universite de Versailles St-Quentin-en-Yvelines                       *\
  *                                                                           *\
- *  Copyright (c) 2019-2024                                                  *\
+ *  Copyright (c) 2019-2026                                                  *\
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/
@@ -412,12 +412,18 @@ struct VfclibFunc : public ModulePass {
     TargetLibraryInfoWrapperPass TLIWP;
 
     FloatTy = Type::getFloatTy(M.getContext());
-    FloatPtrTy = Type::getFloatPtrTy(M.getContext());
     DoubleTy = Type::getDoubleTy(M.getContext());
-    DoublePtrTy = Type::getDoublePtrTy(M.getContext());
     Int8Ty = Type::getInt8Ty(M.getContext());
-    Int8PtrTy = Type::getInt8PtrTy(M.getContext());
     Int32Ty = Type::getInt32Ty(M.getContext());
+#if LLVM_VERSION_MAJOR < 17
+    FloatPtrTy = Type::getFloatPtrTy(M.getContext());
+    DoublePtrTy = Type::getDoublePtrTy(M.getContext());
+    Int8PtrTy = Type::getInt8PtrTy(M.getContext());
+#else
+    FloatPtrTy = FloatTy->getPointerTo();
+    DoublePtrTy = DoubleTy->getPointerTo();
+    Int8PtrTy = Int8Ty->getPointerTo();
+#endif
 
     Types2val[FFLOAT] = ConstantInt::get(Int32Ty, FFLOAT);
     Types2val[FDOUBLE] = ConstantInt::get(Int32Ty, FDOUBLE);

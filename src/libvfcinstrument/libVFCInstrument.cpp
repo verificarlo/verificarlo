@@ -13,7 +13,7 @@
  *  Copyright (c) 2018                                                       *\
  *     Universite de Versailles St-Quentin-en-Yvelines                       *\
  *                                                                           *\
- *  Copyright (c) 2019-2024                                                  *\
+ *  Copyright (c) 2019-2026                                                  *\
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/
@@ -53,6 +53,12 @@
 #define GET_VECTOR_TYPE(ty, size) VectorType::get(ty, size)
 #else
 #define GET_VECTOR_TYPE(ty, size) FixedVectorType::get(ty, size)
+#endif
+
+#if LLVM_VERSION_MAJOR >= 18
+#define STARTS_WITH(str, prefix) str.starts_with(prefix)
+#else
+#define STARTS_WITH(str, prefix) str.startswith(prefix)
 #endif
 
 using namespace llvm;
@@ -208,7 +214,7 @@ struct VfclibInst : public ModulePass {
       StringRef l = StringRef(line);
 
       // Ignore empty or commented lines
-      if (l.startswith("#") || l.trim() == "") {
+      if (STARTS_WITH(l, "#") || l.trim().empty()) {
         continue;
       }
       std::pair<StringRef, StringRef> p = l.split(" ");
