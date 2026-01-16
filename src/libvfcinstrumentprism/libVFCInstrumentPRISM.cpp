@@ -13,7 +13,7 @@
  *  Copyright (c) 2018                                                       *\
  *     Universite de Versailles St-Quentin-en-Yvelines                       *\
  *                                                                           *\
- *  Copyright (c) 2019-2025                                                  *\
+ *  Copyright (c) 2019-2026                                                  *\
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/
@@ -53,10 +53,13 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/ErrorHandling.h>
 #include <llvm/Support/FileSystem.h>
+#if LLVM_VERSION_MAJOR >= 18
+#include <llvm/TargetParser/Host.h>
+#else
 #include <llvm/Support/Host.h>
+#endif
 #include <llvm/Support/Path.h>
 #include <llvm/Support/SourceMgr.h>
-#include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
@@ -98,6 +101,12 @@
 #define CREATE_VECTOR_ELEMENT_COUNT(size) ElementCount::getFixed(size)
 #define GET_VECTOR_ELEMENT_COUNT(vecType)                                      \
   ((::llvm::FixedVectorType *)vecType)->getNumElements()
+#endif
+
+#if LLVM_VERSION_MAJOR >= 18
+#define STARTS_WITH(str, prefix) str.starts_with(prefix)
+#else
+#define STARTS_WITH(str, prefix) str.startswith(prefix)
 #endif
 
 using namespace llvm;
@@ -150,7 +159,7 @@ auto isFMA(const Instruction *I) -> bool {
     const auto *call = dyn_cast<CallInst>(I);
     if (call->getCalledFunction() != nullptr) {
       auto name = call->getCalledFunction()->getName();
-      return (name.empty()) ? false : name.startswith("llvm.fma");
+      return (name.empty()) ? false : STARTS_WITH(name, "llvm.fma");
     }
   }
   return false;
@@ -587,7 +596,7 @@ struct VfclibInst : public ModulePass {
       auto l = StringRef(line);
 
       // Ignore empty or commented lines
-      if (l.startswith("#") || l.trim() == "") {
+      if (STARTS_WITH(l, "#") || l.trim() == "") {
         continue;
       }
       std::pair<StringRef, StringRef> p = l.split(" ");
