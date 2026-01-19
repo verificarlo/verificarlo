@@ -1,5 +1,24 @@
 Verificarlo CHANGELOG
 
+# [v2.3.0] 2026/01/19
+
+## Added
+  * Support LLVM 17-20 #362
+  * Add new pass manager compatibility and tests for LLVM 17-20
+  * Add logger_debug check in test_logger
+
+## Changed
+  * Update PRISM version to v0.0.3
+  * Update GitHub CI workflows and templates
+  * Rename interflop_call_id to interflop_call in documentation #361
+
+## Fixed
+  * Fix PRISM instrumentation pass to support LLVM 17-20
+  * Fix VPREC subnormal handling at low range/precision
+  * Fix vprec mode used in test
+  * Fix clang-format issues
+  * Fix distribution of CI workflow templates #360
+
 # [v2.2.0] 2025/07/01
 
 ## Added
