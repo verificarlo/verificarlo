@@ -436,6 +436,8 @@ float _vprec_round_binary32(float a, char is_input, void *context,
   /* check for overflow in target range */
   if (aexp.s32 >= emax) {
     if (aexp.s32 == emax) {
+      /* For values close to MAX_FLOAT, overflow should be checked after
+       * rounding. */
       float b = round_binary32_normal(a, binary32_precision);
       binary32 bexp = {.f32 = b};
       bexp.s32 = (int32_t)((FLOAT_GET_EXP & bexp.u32) >> FLOAT_PMAN_SIZE) -
@@ -509,6 +511,8 @@ double _vprec_round_binary64(double a, char is_input, void *context,
   /* check for overflow in target range */
   if (aexp.s64 >= emax) {
     if (aexp.s64 == emax) {
+      /* For values close to MAX_FLOAT, overflow should be checked after
+       * rounding. */
       double b = round_binary64_normal(a, binary64_precision);
       binary64 bexp = {.f64 = b};
       bexp.s64 = (int64_t)((DOUBLE_GET_EXP & bexp.u64) >> DOUBLE_PMAN_SIZE) -

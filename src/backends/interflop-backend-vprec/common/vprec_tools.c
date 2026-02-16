@@ -83,6 +83,8 @@ inline float round_binary32_normal(float x, int precision) {
   half_ulp.ieee.exponent = exp_hulp;
   half_ulp.ieee.mantissa = 0;
 
+  /* Handle denormal half_ulps:
+   * Even if the input is normal, its 0.5 ULP can be subnormal. */
   if (exp_hulp < 1) {
     half_ulp.ieee.exponent = 0;
     half_ulp.ieee.mantissa = 1 << (FLOAT_PMAN_SIZE - 1 + exp_hulp);
@@ -142,6 +144,8 @@ inline double round_binary64_normal(double x, int precision) {
   int exp_hulp = b64x.ieee.exponent - precision - 1;
   binary64 half_ulp = {
       .ieee = {.sign = x < 0, .exponent = exp_hulp, .mantissa = 0}};
+  /* Handle denormal half_ulps:
+   * Even if the input is normal, its 0.5 ULP can be subnormal. */
   if (exp_hulp < 1) {
     int64_t one = 1;
     binary64 half_ulp_denorm = {
