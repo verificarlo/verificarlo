@@ -77,15 +77,15 @@ inline float round_binary32_normal(float x, int precision) {
   const uint32_t mask = 0xFFFFFFFF << (FLOAT_PMAN_SIZE - precision);
 
   binary32 b32x = {.f32 = x};
-  int exp_hulp=b32x.ieee.exponent - precision - 1;
+  int exp_hulp = b32x.ieee.exponent - precision - 1;
   binary32 half_ulp;
   half_ulp.ieee.sign = x < 0;
   half_ulp.ieee.exponent = exp_hulp;
   half_ulp.ieee.mantissa = 0;
 
-  if(exp_hulp < 1){
-     half_ulp.ieee.exponent =0;
-     half_ulp.ieee.mantissa= 1 << (FLOAT_PMAN_SIZE -1 +exp_hulp);
+  if (exp_hulp < 1) {
+    half_ulp.ieee.exponent = 0;
+    half_ulp.ieee.mantissa = 1 << (FLOAT_PMAN_SIZE - 1 + exp_hulp);
   }
 
   if (check_if_binary32_needs_rounding(b32x, precision)) {
@@ -139,16 +139,16 @@ inline double round_binary64_normal(double x, int precision) {
 
   binary64 b64x = {.f64 = x};
 
-  int exp_hulp=b64x.ieee.exponent - precision - 1;
-  binary64 half_ulp = {.ieee = {.sign = x < 0,
-        .exponent = exp_hulp,
-        .mantissa = 0}};
-  if(exp_hulp < 1){
-     int64_t one=1;
-     binary64 half_ulp_denorm = {.ieee = {.sign = x < 0,
-           .exponent = 0,
-           .mantissa = one <<  (DOUBLE_PMAN_SIZE -1 +exp_hulp)} };
-     half_ulp=half_ulp_denorm;
+  int exp_hulp = b64x.ieee.exponent - precision - 1;
+  binary64 half_ulp = {
+      .ieee = {.sign = x < 0, .exponent = exp_hulp, .mantissa = 0}};
+  if (exp_hulp < 1) {
+    int64_t one = 1;
+    binary64 half_ulp_denorm = {
+        .ieee = {.sign = x < 0,
+                 .exponent = 0,
+                 .mantissa = one << (DOUBLE_PMAN_SIZE - 1 + exp_hulp)}};
+    half_ulp = half_ulp_denorm;
   }
 
   if (check_if_binary64_needs_rounding(b64x, precision)) {

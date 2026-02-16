@@ -435,19 +435,19 @@ float _vprec_round_binary32(float a, char is_input, void *context,
 
   /* check for overflow in target range */
   if (aexp.s32 >= emax) {
-     if(aexp.s32 ==emax){
-        float b = round_binary32_normal(a, binary32_precision);
-        binary32 bexp = {.f32 = b};
-        bexp.s32 = (int32_t)((FLOAT_GET_EXP & bexp.u32) >> FLOAT_PMAN_SIZE) -
-           FLOAT_EXP_COMP;
-        if (bexp.s32 > emax) {
-           a = a * INFINITY;
-           return a;
-        }
-     }else{
+    if (aexp.s32 == emax) {
+      float b = round_binary32_normal(a, binary32_precision);
+      binary32 bexp = {.f32 = b};
+      bexp.s32 = (int32_t)((FLOAT_GET_EXP & bexp.u32) >> FLOAT_PMAN_SIZE) -
+                 FLOAT_EXP_COMP;
+      if (bexp.s32 > emax) {
         a = a * INFINITY;
         return a;
-     }
+      }
+    } else {
+      a = a * INFINITY;
+      return a;
+    }
   }
 
   /* check for underflow in target range */
@@ -508,19 +508,19 @@ double _vprec_round_binary64(double a, char is_input, void *context,
 
   /* check for overflow in target range */
   if (aexp.s64 >= emax) {
-     if(aexp.s64 ==emax){
-        double b = round_binary64_normal(a, binary64_precision);
-        binary64 bexp = {.f64 = b};
-        bexp.s64 = (int64_t)((DOUBLE_GET_EXP & bexp.u64) >> DOUBLE_PMAN_SIZE) -
-           DOUBLE_EXP_COMP;
-        if (bexp.s64 > emax) {
-           a = a * INFINITY;
-           return a;
-        }
-     }else{
+    if (aexp.s64 == emax) {
+      double b = round_binary64_normal(a, binary64_precision);
+      binary64 bexp = {.f64 = b};
+      bexp.s64 = (int64_t)((DOUBLE_GET_EXP & bexp.u64) >> DOUBLE_PMAN_SIZE) -
+                 DOUBLE_EXP_COMP;
+      if (bexp.s64 > emax) {
         a = a * INFINITY;
         return a;
-     }
+      }
+    } else {
+      a = a * INFINITY;
+      return a;
+    }
   }
 
   /* check for underflow in target range */
@@ -720,38 +720,37 @@ void INTERFLOP_VPREC_API(div_double)(double a, double b, double *c,
                                      void *context) {
   *c = _vprec_binary64_binary_op(a, b, vprec_div, context);
 }
-#define MACROMIN(a,b) ((a)< (b)?(a):(b))
+#define MACROMIN(a, b) ((a) < (b) ? (a) : (b))
 
 void INTERFLOP_VPREC_API(cast_double_to_float)(double a, float *b,
                                                void *context) {
   vprec_context_t *ctx = (vprec_context_t *)context;
   if ((ctx->mode == vprecmode_ieee)) {
-     *b=(float)a;
-     return;
+    *b = (float)a;
+    return;
   }
 
   if ((ctx->mode == vprecmode_ob)) {
-     *b=(float)_vprec_round_binary64(a, 0, context, ctx->binary32_range,
-                                     ctx->binary32_precision);
-     return;
+    *b = (float)_vprec_round_binary64(a, 0, context, ctx->binary32_range,
+                                      ctx->binary32_precision);
+    return;
   }
 
   if ((ctx->mode == vprecmode_full)) {
-     // double rounding is avoided
-     // daz is ignored (switch O to 1 does not solve the problem: denormal depends on ctx->binary64_*)
-     // hypothesis  ctx->binary32_* < ctx->binary64_*
-     *b=(float)_vprec_round_binary64(a, 0, context,
-                                     ctx->binary32_range,
-                                     ctx->binary32_precision);
-     return;
+    // double rounding is avoided
+    // daz is ignored (switch O to 1 does not solve the problem: denormal
+    // depends on ctx->binary64_*) hypothesis  ctx->binary32_* < ctx->binary64_*
+    *b = (float)_vprec_round_binary64(a, 0, context, ctx->binary32_range,
+                                      ctx->binary32_precision);
+    return;
   }
 
   if ((ctx->mode == vprecmode_ib)) {
-     //double rounding is avoided thanks to MACROMIN and float constant
-     *b=(float)_vprec_round_binary64(a, 1, context,
-                                     MACROMIN( ctx->binary64_range, VPREC_RANGE_BINARY32_MAX),
-                                     MACROMIN( ctx->binary64_precision, VPREC_PRECISION_BINARY32_MAX));
-     return;
+    // double rounding is avoided thanks to MACROMIN and float constant
+    *b = (float)_vprec_round_binary64(
+        a, 1, context, MACROMIN(ctx->binary64_range, VPREC_RANGE_BINARY32_MAX),
+        MACROMIN(ctx->binary64_precision, VPREC_PRECISION_BINARY32_MAX));
+    return;
   }
 }
 
