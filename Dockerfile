@@ -28,7 +28,7 @@ RUN export UBUNTU_VERSION=$(grep 'VERSION_ID' /etc/os-release | cut -d'=' -f2 | 
     fi && \
     apt-get -y install --no-install-recommends \
     bash ca-certificates make git libmpfr-dev \
-    autogen dh-autoreconf autoconf automake autotools-dev libedit-dev libtool libz-dev binutils \
+    autogen dh-autoreconf autoconf automake autotools-dev libedit-dev libtool libz-dev bzip2 binutils \
     clang-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev \
     libomp5-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev \
     ${LIBCLANG_RT} \

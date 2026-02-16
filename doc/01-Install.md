@@ -18,6 +18,7 @@ Please ensure that Verificarlo's dependencies are installed on your system:
     * bokeh
     * significantdigits (version 0.2.0 or above)
   * GNU parallel (only required for running the test suite)
+  * bzip2 (only required for running the test suite)
 
 Then run the following command inside verificarlo directory:
 
@@ -42,7 +43,7 @@ For example on an x86_64 Ubuntu 20.04 release, you should use the following
 install procedure:
 
 ```bash
-   $ sudo apt-get install libmpfr-dev clang-7 flang-7 llvm-7-dev parallel\
+   $ sudo apt-get install libmpfr-dev clang-7 flang-7 llvm-7-dev parallel bzip2\
        gcc-7 autoconf automake libtool build-essential python3 python3-pip
    $ cd verificarlo/
    $ ./autogen.sh
@@ -57,7 +58,7 @@ install procedure:
 On AArch64 platforms where PRISM backend dependencies may fail to build, use the `--without-prism` flag:
 
 ```bash
-   $ sudo apt-get install libmpfr-dev clang llvm-dev parallel\
+   $ sudo apt-get install libmpfr-dev clang llvm-dev parallel bzip2\
        gcc autoconf automake libtool build-essential python3 python3-pip
    $ cd verificarlo/
    $ ./autogen.sh
