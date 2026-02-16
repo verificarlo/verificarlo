@@ -1,6 +1,13 @@
 compute_mpfr_rounding
+check_output
 compute_vprec_rounding_float
 compute_vprec_rounding_double
+*.o
+.vfcwrapper*
+mpfr_reference/
+input_*.txt
+vprec_output_*.txt
+parallelInput
 log.error
 run_parallel
 test.log
