@@ -1,5 +1,13 @@
 Verificarlo CHANGELOG
 
+# [v2.4.0] 2026/02/18
+
+## Changed
+  * Update GitHub CI secrets #354
+
+## Fixed
+  * Fix VPREC backend issues: FMA, overflow detection and half-ulp calculation when close to denormal limit #366
+
 # [v2.3.1] 2026/01/23
 
 ## Changed
