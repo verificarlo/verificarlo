@@ -83,6 +83,8 @@ int vfc_dump_probes(vfc_probes *probes);
 
 // Fortran wrapper
 int vfc_probe_f(vfc_probes *probes, char *testName, char *varName, double *val);
+// Fortran init wrapper
+void vfc_init_probes_f(vfc_probes *probes);
 
 /******************************************************************************/
 
@@ -282,3 +284,6 @@ int vfc_probe_check_relative_f(vfc_probes *probes, char *testName,
   return vfc_probe_check_relative(probes, testName, varName, *val,
                                   *accuracyThreshold);
 }
+
+// Fortran-compatible init
+void vfc_init_probes_f(vfc_probes *probes) { *probes = vfc_init_probes(); }

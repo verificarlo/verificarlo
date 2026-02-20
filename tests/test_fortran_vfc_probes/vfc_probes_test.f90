@@ -7,9 +7,9 @@ program vfc_probes_test
   integer(C_INT) :: err
   real(kind=C_DOUBLE) :: var = 3.14
 
-  probes = vfc_init_probes()
+  call vfc_init_probes(probes)
 
-  err = vfc_probe(probes, "test", "var", var)
+  err = vfc_probe(probes, "test"//c_null_char, "var"//c_null_char, var)
   print *, "Num probes :", vfc_num_probes(probes)
 
   err = vfc_dump_probes(probes)

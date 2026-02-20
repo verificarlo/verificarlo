@@ -13,7 +13,7 @@ all: setparams
 # was compiled and linked
 
 setparams: setparams.c ../config/make.def
-	$(UCC) ${CONVERTFLAG} -o setparams setparams.c
+	$(UCC) ${CONVERTFLAG} -Wno-implicit-int -o setparams setparams.c
 
 
 clean: 

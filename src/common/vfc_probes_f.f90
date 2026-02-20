@@ -1,5 +1,5 @@
 module vfc_probes_f
-    use, intrinsic :: iso_c_binding
+    use, intrinsic :: iso_c_binding, only: C_PTR, C_DOUBLE, C_SIZE_T, C_INT, C_CHAR
 
     ! Structures
 
@@ -29,20 +29,20 @@ module vfc_probes_f
 
     interface
 
-        type(vfc_probes) function vfc_init_probes() bind(C, name = "vfc_init_probes")
-        import
-        end function vfc_init_probes
+        subroutine vfc_init_probes(probes) bind(C, name = "vfc_init_probes_f")
+            import :: vfc_probes
+            type(vfc_probes), intent(out) :: probes
+        end subroutine vfc_init_probes
 
         function vfc_free_probes(probes) bind(C, name = "vfc_free_probes")
-            use, intrinsic :: iso_c_binding
+            use, intrinsic :: iso_c_binding, only: C_PTR, C_DOUBLE, C_SIZE_T, C_INT, C_CHAR
             import :: vfc_probes
 
             type(vfc_probes) :: probes
         end function vfc_free_probes
 
         integer(C_INT) function vfc_probe(probes, testName, varName, val) bind(C, name = "vfc_probe_f")
-            use, intrinsic :: iso_c_binding
-            use ISO_C_BINDING
+            use, intrinsic :: iso_c_binding, only: C_PTR, C_DOUBLE, C_SIZE_T, C_INT, C_CHAR
             import :: vfc_probes
 
             type(vfc_probes) :: probes
@@ -52,14 +52,14 @@ module vfc_probes_f
         end function vfc_probe
 
         integer(C_SIZE_T) function vfc_num_probes(probes) bind(C, name = "vfc_num_probes")
-            use, intrinsic :: iso_c_binding
+            use, intrinsic :: iso_c_binding, only: C_PTR, C_DOUBLE, C_SIZE_T, C_INT, C_CHAR
             import :: vfc_probes
 
             type(vfc_probes) :: probes
         end function vfc_num_probes
 
         integer(C_INT) function vfc_dump_probes(probes) bind(C, name = "vfc_dump_probes")
-            use, intrinsic :: iso_c_binding
+            use, intrinsic :: iso_c_binding, only: C_PTR, C_DOUBLE, C_SIZE_T, C_INT, C_CHAR
             import :: vfc_probes
 
             type(vfc_probes) :: probes
