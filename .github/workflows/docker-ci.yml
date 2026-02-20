@@ -53,36 +53,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu:20.04
-            llvm: 7
-            gcc: 7
-          - os: ubuntu:20.04
-            llvm: 8
-            gcc: 7
-          - os: ubuntu:20.04
-            llvm: 9
-            gcc: 7
-          - os: ubuntu:20.04
-            llvm: 10
-            gcc: 7
-          - os: ubuntu:22.04
-            llvm: 11
-            gcc: 9
-          - os: ubuntu:22.04
-            llvm: 12
-            gcc: 9
-          - os: ubuntu:22.04
-            llvm: 13
-            gcc: 9
-          - os: ubuntu:22.04
-            llvm: 14
-            gcc: 9
-          - os: ubuntu:22.04
-            llvm: 15
-            gcc: 9
-          - os: ubuntu:24.04
-            llvm: 16
-            gcc: 9
           - os: ubuntu:24.04
             llvm: 17
             gcc: 9

@@ -32,14 +32,12 @@
 #include "llvm/IR/Mangler.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
-#if LLVM_VERSION_MAJOR >= 17
 #ifdef PIC
 #undef PIC
 #endif
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
-#endif
 #include "llvm/IR/Type.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
@@ -56,11 +54,7 @@
 #include <utility>
 #include <vector>
 
-#if LLVM_VERSION_MAJOR == 4
-typedef llvm::LibFunc::Func _LibFunc;
-#else
 typedef llvm::LibFunc _LibFunc;
-#endif
 
 #if LLVM_VERSION_MAJOR >= 18
 #define STARTS_WITH(str, prefix) str.starts_with(prefix)
@@ -426,11 +420,7 @@ struct VfclibFunc : public ModulePass {
     DoubleTy = Type::getDoubleTy(M.getContext());
     Int8Ty = Type::getInt8Ty(M.getContext());
     Int32Ty = Type::getInt32Ty(M.getContext());
-#if LLVM_VERSION_MAJOR < 17
-    FloatPtrTy = Type::getFloatPtrTy(M.getContext());
-    DoublePtrTy = Type::getDoublePtrTy(M.getContext());
-    Int8PtrTy = Type::getInt8PtrTy(M.getContext());
-#elif LLVM_VERSION_MAJOR < 20
+#if LLVM_VERSION_MAJOR < 20
     FloatPtrTy = FloatTy->getPointerTo();
     DoublePtrTy = DoubleTy->getPointerTo();
     Int8PtrTy = Int8Ty->getPointerTo();
@@ -561,11 +551,7 @@ struct VfclibFunc : public ModulePass {
                                              std::to_string(inst_cpt);
                   inst_cpt++;
                   // Test if f is a library function //
-#if LLVM_VERSION_MAJOR >= 10
                   const TargetLibraryInfo &TLI = TLIWP.getTLI(*f);
-#else
-                  const TargetLibraryInfo &TLI = TLIWP.getTLI();
-#endif
 
                   _LibFunc libfunc;
 
@@ -644,7 +630,6 @@ char VfclibFunc::ID = 0;
 static RegisterPass<VfclibFunc>
     X("vfclibfunc", "verificarlo function instrumentation pass", false, false);
 
-#if LLVM_VERSION_MAJOR >= 17
 namespace {
 struct VfclibFuncPass : public PassInfoMixin<VfclibFuncPass> {
   PreservedAnalyses run(Module &M, ModuleAnalysisManager &) {
@@ -669,4 +654,3 @@ extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo llvmGetPassPluginInfo() {
                 });
           }};
 }
-#endif

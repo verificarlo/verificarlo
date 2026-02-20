@@ -23,14 +23,12 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#if LLVM_VERSION_MAJOR >= 17
 #ifdef PIC
 #undef PIC
 #endif
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
-#endif
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FileSystem.h"
@@ -49,11 +47,7 @@
 #include <sstream>
 #include <utility>
 
-#if LLVM_VERSION_MAJOR < 11
-#define GET_VECTOR_TYPE(ty, size) VectorType::get(ty, size)
-#else
 #define GET_VECTOR_TYPE(ty, size) FixedVectorType::get(ty, size)
-#endif
 
 #if LLVM_VERSION_MAJOR >= 18
 #define STARTS_WITH(str, prefix) str.starts_with(prefix)
@@ -328,15 +322,11 @@ struct VfclibInst : public ModulePass {
     Type *opType = I->getOperand(0)->getType();
     Type *baseType = opType->getScalarType();
     if (VectorType *vecType = dyn_cast<VectorType>(opType)) {
-#if LLVM_VERSION_MAJOR >= 13
       if (isa<ScalableVectorType>(vecType))
         report_fatal_error("Scalable vector type are not supported");
       size = std::to_string(
                  ((::llvm::FixedVectorType *)vecType)->getNumElements()) +
              "x";
-#else
-      size = std::to_string(vecType->getNumElements()) + "x";
-#endif
     }
 
     std::string precision;
@@ -368,13 +358,9 @@ struct VfclibInst : public ModulePass {
   bool isValidVectorInstruction(Type *opType) {
     VectorType *vecType = static_cast<VectorType *>(opType);
     auto baseType = vecType->getScalarType();
-#if LLVM_VERSION_MAJOR >= 13
     if (isa<ScalableVectorType>(vecType))
       report_fatal_error("Scalable vector type are not supported");
     auto size = ((::llvm::FixedVectorType *)vecType)->getNumElements();
-#else
-    auto size = vecType->getNumElements();
-#endif
     bool isValidSize = validVectorSizes.find(size) != validVectorSizes.end();
     if (not isValidSize) {
       errs() << "Unsuported vector size: " << size << "\n";
@@ -409,17 +395,7 @@ struct VfclibInst : public ModulePass {
 
   Argument *getArgNo(Function *F, int argNo) {
     Argument *arg = nullptr;
-#if LLVM_VERSION_MAJOR < 10
-    int i = 0;
-    for (auto &a : F->args()) {
-      if (i++ == argNo) {
-        arg = &a;
-        break;
-      }
-    }
-#else
     arg = F->getArg(argNo);
-#endif
     return arg;
   }
 
@@ -516,13 +492,9 @@ struct VfclibInst : public ModulePass {
     FCmpInst *FCI = static_cast<FCmpInst *>(I);
     Type *res = Builder.getInt32Ty();
     if (VectorType *vTy = dyn_cast<VectorType>(opType)) {
-#if LLVM_VERSION_MAJOR >= 13
       if (isa<ScalableVectorType>(vTy))
         report_fatal_error("Scalable vector type are not supported");
       auto size = ((::llvm::FixedVectorType *)vTy)->getNumElements();
-#else
-      auto size = vTy->getNumElements();
-#endif
       res = GET_VECTOR_TYPE(res, size);
     }
     Value *newInst = Builder.CreateCall(
@@ -554,17 +526,10 @@ struct VfclibInst : public ModulePass {
   Function *getMCAFunction(Module &M, Instruction *I, FPOps opCode) {
     const std::string mcaFunctionName = getMCAFunctionName(I, opCode);
     Function *vfcwrapperF = vfcwrapperM->getFunction(mcaFunctionName);
-#if LLVM_VERSION_MAJOR < 9
-    Constant *callee =
-        M.getOrInsertFunction(mcaFunctionName, vfcwrapperF->getFunctionType(),
-                              vfcwrapperF->getAttributes());
-    Function *newVfcWrapperF = dyn_cast<Function>(callee);
-#else
     FunctionCallee callee =
         M.getOrInsertFunction(mcaFunctionName, vfcwrapperF->getFunctionType(),
                               vfcwrapperF->getAttributes());
     Function *newVfcWrapperF = dyn_cast<Function>(callee.getCallee());
-#endif
     return newVfcWrapperF;
   }
 
@@ -700,11 +665,7 @@ struct VfclibInst : public ModulePass {
       Value *value = replaceWithMCACall(M, I, opCode);
       if (value != nullptr) {
         BasicBlock::iterator ii(I);
-#if LLVM_VERSION_MAJOR >= 16
         ReplaceInstWithValue(ii, value);
-#else
-        ReplaceInstWithValue(B.getInstList(), ii, value);
-#endif
       }
       modified = true;
     }
@@ -718,7 +679,6 @@ char VfclibInst::ID = 0;
 static RegisterPass<VfclibInst> X("vfclibinst", "verificarlo instrument pass",
                                   false, false);
 
-#if LLVM_VERSION_MAJOR >= 17
 namespace {
 struct VfclibInstPass : public PassInfoMixin<VfclibInstPass> {
   PreservedAnalyses run(Module &M, ModuleAnalysisManager &) {
@@ -743,4 +703,3 @@ extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo llvmGetPassPluginInfo() {
                 });
           }};
 }
-#endif

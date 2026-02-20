@@ -33,23 +33,17 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/Module.h>
-#if LLVM_VERSION_MAJOR >= 17
 #ifdef PIC
 #undef PIC
 #endif
 #include <llvm/IR/PassManager.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Passes/PassPlugin.h>
-#endif
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Linker/Linker.h>
-#if LLVM_VERSION_MAJOR >= 17
 #include <llvm/TargetParser/SubtargetFeature.h>
-#else
-#include <llvm/MC/SubtargetFeature.h>
-#endif
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/ErrorHandling.h>
 #include <llvm/Support/FileSystem.h>
@@ -65,9 +59,7 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/Transforms/Utils/BasicBlockUtils.h>
-#if LLVM_VERSION_MAJOR < 11
-#include <llvm/Support/TargetRegistry.h>
-#endif
+
 #include <llvm/IR/Mangler.h>
 #pragma GCC diagnostic pop
 
@@ -79,20 +71,8 @@
 #include "TargetFeatures.hpp"
 #include "libVFCInstrumentPRISMOptions.hpp"
 
-#if LLVM_VERSION_MAJOR < 9
-#define FUNCTION_CALLEE Value *
-#else
 #define FUNCTION_CALLEE FunctionCallee
-#endif
 
-#if LLVM_VERSION_MAJOR < 11
-#define VECTOR_TYPE VectorType
-#define GET_VECTOR_TYPE(ty, size) VectorType::get(ty, size)
-#define CREATE_FMA_CALL(Builder, type, args)                                   \
-  Builder.CreateIntrinsic(Intrinsic::fma, args)
-#define CREATE_VECTOR_ELEMENT_COUNT(size) size
-#define GET_VECTOR_ELEMENT_COUNT(vecType) vecType->getNumElements()
-#else
 #define VECTOR_TYPE FixedVectorType
 #define GET_VECTOR_TYPE(ty, size) FixedVectorType::get(ty, size)
 #define CREATE_FMA_CALL(Builder, type, args)                                   \
@@ -100,7 +80,6 @@
 #define CREATE_VECTOR_ELEMENT_COUNT(size) ElementCount::getFixed(size)
 #define GET_VECTOR_ELEMENT_COUNT(vecType)                                      \
   ((::llvm::FixedVectorType *)vecType)->getNumElements()
-#endif
 
 #if LLVM_VERSION_MAJOR >= 18
 #define STARTS_WITH(str, prefix) str.starts_with(prefix)
@@ -493,13 +472,8 @@ public:
       }
     }
 
-#if LLVM_VERSION_MAJOR < 9
-    auto *F = getCopyFunction(I->getModule(), function, functionName);
-    auto *prism_wrapper_function = dyn_cast<Function>(F);
-#else
     auto F = getCopyFunction(I->getModule(), function, functionName);
     auto *prism_wrapper_function = dyn_cast<Function>(F.getCallee());
-#endif
     return PrismFunction(prism_wrapper_function, passing_style);
   }
 };
@@ -705,13 +679,9 @@ struct VfclibInst : public ModulePass {
     auto *vecType = dyn_cast<VectorType>(opType);
     auto *baseType = vecType->getScalarType();
 
-#if LLVM_VERSION_MAJOR >= 13
     if (isa<ScalableVectorType>(vecType))
       prism_fatal_error("Scalable vector type are not supported");
     auto size = ((::llvm::FixedVectorType *)vecType)->getNumElements();
-#else
-    auto size = vecType->getNumElements();
-#endif
     bool isValidSize = fops::isValidVectorSize(size);
     if (not isValidSize) {
       errs() << "Unsuported vector size: " << size << "\n";
@@ -745,11 +715,7 @@ struct VfclibInst : public ModulePass {
 
   static auto createFunction(FunctionType *functionType, Module &M,
                              const std::string &name) -> Function * {
-#if LLVM_VERSION_MAJOR < 9
-    return Function::Create(functionType, Function::ExternalLinkage, name, &M);
-#else
     return Function::Create(functionType, Function::ExternalLinkage, name, M);
-#endif
   }
 
   static auto getFPTypeName(Type *Ty) -> std::string {
@@ -999,11 +965,7 @@ struct VfclibInst : public ModulePass {
           errs() << "Instrumenting" << *I << '\n';
         }
         BasicBlock::iterator ii(I);
-#if LLVM_VERSION_MAJOR >= 16
         ReplaceInstWithValue(ii, value);
-#else
-        ReplaceInstWithValue(B.getInstList(), ii, value);
-#endif
       }
     }
 
@@ -1016,7 +978,6 @@ char VfclibInst::ID = 0;
 static RegisterPass<VfclibInst> X("vfclibinst", "verificarlo instrument pass",
                                   false, false);
 
-#if LLVM_VERSION_MAJOR >= 17
 namespace {
 struct VfclibInstPass : public PassInfoMixin<VfclibInstPass> {
   PreservedAnalyses run(Module &M, ModuleAnalysisManager &) {
@@ -1041,4 +1002,3 @@ extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo llvmGetPassPluginInfo() {
                 });
           }};
 }
-#endif
