@@ -514,7 +514,8 @@ def main():
 
     output = "-o " + args.o if args.o else ""
 
-    llvm_options += " -Wno-unused-command-line-argument "
+    if not args.linker == "flang":
+        llvm_options += " -Wno-unused-command-line-argument "
 
     if args.E:
         llvm_options += " -E "

@@ -1,15 +1,15 @@
 #
 # Dockerfile for Verificarlo (github.com/verificarlo/verificarlo)
-# This image includes support for Fortran and uses llvm-7 and gcc-7
+# This image is based on Ubuntu 24.04 and uses llvm-20 and gcc-13
 #
 
-ARG UBUNTU_VERSION=ubuntu:20.04
+ARG UBUNTU_VERSION=ubuntu:24.04
 FROM ${UBUNTU_VERSION}
 LABEL maintainer="verificarlo contributors <verificarlo@googlegroups.com>"
 
-ARG PYTHON_VERSION=3.8
-ARG LLVM_VERSION=7
-ARG GCC_VERSION=7
+ARG PYTHON_VERSION=3.12
+ARG LLVM_VERSION=20
+ARG GCC_VERSION=13
 ARG WITH_FLANG=flang
 # ARG GCC_PATH=/usr/lib/gcc/x86_64-linux-gnu/${GCC_VERSION}
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
@@ -33,7 +33,7 @@ RUN export UBUNTU_VERSION=$(grep 'VERSION_ID' /etc/os-release | cut -d'=' -f2 | 
     libomp5-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev \
     ${LIBCLANG_RT} \
     gcc-${GCC_VERSION} g++-${GCC_VERSION} \
-    gfortran-${GCC_VERSION} libgfortran-${GCC_VERSION}-dev ${WITH_FLANG} \
+    flang-${LLVM_VERSION} \
     python3 python3-pip python3-dev cython3 parallel npm && \
     rm -rf /var/lib/apt/lists/*
 
@@ -41,9 +41,9 @@ WORKDIR /build/
 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 30 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} 30 && \
-    update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-${GCC_VERSION} 30 && \
     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${LLVM_VERSION} 30 && \
     update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 30 && \
+    update-alternatives --install /usr/bin/flang flang /usr/bin/flang-${LLVM_VERSION} 30 && \
     update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-${LLVM_VERSION} 30
 
 ENV LIBRARY_PATH ${GCC_PATH}:$LIBRARY_PATH
@@ -57,7 +57,7 @@ WORKDIR /build/verificarlo
 
 
 RUN if [ "$WITH_FLANG" = "flang" ]; then \
-    export FLANG_OPTION="--with-flang"; \
+    export FLANG_OPTION="--with-flang=/usr/lib/llvm-${LLVM_VERSION}/bin/flang"; \
     else \
     export FLANG_OPTION="--without-flang"; \
     fi && \

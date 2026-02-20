@@ -70,8 +70,19 @@ test_wrapper() {
 
     # Test 5: Include path with spaces (create the directory structure)
     mkdir -p "path with spaces"
-    echo '#define INCLUDED_HEADER "found"' >"path with spaces/header.h"
-    cat >test_include.c <<'EOF'
+
+    if [[ "$wrapper" == *"verificarlo-f"* ]]; then
+        echo 'integer :: INCLUDED_HEADER = 1' >"path with spaces/header.h"
+        cat >test_include.f90 <<'EOF'
+program test_inc
+    include "header.h"
+    print *, "Testing include path with spaces"
+end program test_inc
+EOF
+        test_inc_file="test_include.f90"
+    else
+        echo '#define INCLUDED_HEADER "found"' >"path with spaces/header.h"
+        cat >test_include.c <<'EOF'
 #include "header.h"
 #include <stdio.h>
 int main() {
@@ -82,9 +93,11 @@ int main() {
     return 0;
 }
 EOF
+        test_inc_file="test_include.c"
+    fi
 
     echo "  Test 5: Include path with spaces"
-    if $wrapper -I"path with spaces" -c test_include.c -o test5.o 2>/dev/null; then
+    if $wrapper -I"path with spaces" -c "$test_inc_file" -o test5.o 2>/dev/null; then
         echo "  PASS: Include path with spaces compiled successfully"
         rm -f test5.o
     else
@@ -93,7 +106,7 @@ EOF
     fi
 
     # Clean up test files
-    rm -f test*.c test*.o test_exe output.txt ${test_file}
+    rm -f test*.c test*.cpp test*.f90 test*.o test_exe output.txt ${test_file}
     rm -rf "path with spaces"
 }
 

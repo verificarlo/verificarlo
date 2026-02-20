@@ -80,13 +80,12 @@ AM_CONDITIONAL([BUILD_PRISM], [test "x$with_prism" != "xno"])
 if test "x$with_flang" = "xno"; then
    AC_MSG_NOTICE([--with-flang=no was given. Disabling Fortran support.])
 else
-
    if test "x$with_flang" = "xyes"; then
       with_flang_path="$PATH"
    else
       with_flang_path="$with_flang"
    fi
-   AC_PATH_PROG([FLANG], [flang flang-"$LLVM_VERSION_MAJOR"], [], [$with_flang_path])
+   AC_PATH_PROG([FLANG], [flang-"$LLVM_VERSION_MAJOR" flang], [], [$LLVM_BINDIR/ $with_flang_path])
    if test -z "$FLANG"; then
       AC_MSG_ERROR([`flang` cannot be found in $with_flang_path])
    fi
