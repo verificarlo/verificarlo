@@ -15,7 +15,7 @@ jobs:
     env:
       TEST_TAG: verificarlo/verificarlo:test
       LATEST_TAG: ${{ github.repository }}:latest
-      RELEASE_TAG: ${{ github.repository }}:${{ github.ref }}
+      RELEASE_TAG: ${{ github.repository }}:${{ github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
