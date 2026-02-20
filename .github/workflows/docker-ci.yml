@@ -10,7 +10,7 @@ on:
     types: [published]
 
 jobs:
-  docker-flang:
+  docker-default:
     runs-on: ubuntu-22.04
     env:
       TEST_TAG: verificarlo/verificarlo:test
@@ -55,16 +55,16 @@ jobs:
         include:
           - os: ubuntu:24.04
             llvm: 17
-            gcc: 9
+            gcc: 13
           - os: ubuntu:24.04
             llvm: 18
-            gcc: 9
+            gcc: 13
           - os: ubuntu:24.04
             llvm: 19
-            gcc: 9
+            gcc: 13
           - os: ubuntu:24.04
             llvm: 20
-            gcc: 9
+            gcc: 13
     runs-on: ubuntu-22.04
     env:
       TEST_TAG: verificarlo/verificarlo:test-llvm-${{ matrix.llvm }}
@@ -83,7 +83,6 @@ jobs:
             UBUNTU_VERSION=${{ matrix.os }}
             LLVM_VERSION=${{ matrix.llvm }}
             GCC_VERSION=${{ matrix.gcc }}
-            WITH_FLANG=
       - name: Test
         run: |
           docker run --rm ${{ env.TEST_TAG }} /bin/bash -c "make -C /build/verificarlo installcheck"

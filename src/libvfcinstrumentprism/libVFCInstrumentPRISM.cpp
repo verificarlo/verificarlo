@@ -37,16 +37,16 @@
 #undef PIC
 #endif
 #include <llvm/IR/PassManager.h>
-#include <llvm/Passes/PassBuilder.h>
-#include <llvm/Passes/PassPlugin.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Linker/Linker.h>
-#include <llvm/TargetParser/SubtargetFeature.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Passes/PassPlugin.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/ErrorHandling.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/TargetParser/SubtargetFeature.h>
 #if LLVM_VERSION_MAJOR >= 18
 #include <llvm/TargetParser/Host.h>
 #else

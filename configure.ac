@@ -85,9 +85,9 @@ else
    else
       with_flang_path="$with_flang"
    fi
-   AC_PATH_PROG([FLANG], [flang-"$LLVM_VERSION_MAJOR" flang], [], [$LLVM_BINDIR/ $with_flang_path])
+   AC_PATH_PROGS([FLANG], [flang-"$LLVM_VERSION_MAJOR" flang-new-"$LLVM_VERSION_MAJOR" flang flang-new], [], [$LLVM_BINDIR/ $with_flang_path])
    if test -z "$FLANG"; then
-      AC_MSG_ERROR([`flang` cannot be found in $with_flang_path])
+      AC_MSG_ERROR([Could not find flang or flang-new in $with_flang_path])
    fi
    dnl Check that flang version matches the llvm one
    FLANG_VERSION=`$FLANG --version 2>&1 | grep -Po '\d+.\d+.\d+' | head -n1`

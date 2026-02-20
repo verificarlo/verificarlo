@@ -43,7 +43,11 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 3
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} 30 && \
     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${LLVM_VERSION} 30 && \
     update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 30 && \
-    update-alternatives --install /usr/bin/flang flang /usr/bin/flang-${LLVM_VERSION} 30 && \
+    if [ -f /usr/bin/flang-${LLVM_VERSION} ]; then \
+    update-alternatives --install /usr/bin/flang flang /usr/bin/flang-${LLVM_VERSION} 30; \
+    elif [ -f /usr/bin/flang-new-${LLVM_VERSION} ]; then \
+    update-alternatives --install /usr/bin/flang flang /usr/bin/flang-new-${LLVM_VERSION} 30; \
+    fi && \
     update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-${LLVM_VERSION} 30
 
 ENV LIBRARY_PATH ${GCC_PATH}:$LIBRARY_PATH
@@ -57,7 +61,11 @@ WORKDIR /build/verificarlo
 
 
 RUN if [ "$WITH_FLANG" = "flang" ]; then \
+    if [ -f "/usr/lib/llvm-${LLVM_VERSION}/bin/flang" ]; then \
     export FLANG_OPTION="--with-flang=/usr/lib/llvm-${LLVM_VERSION}/bin/flang"; \
+    elif [ -f "/usr/lib/llvm-${LLVM_VERSION}/bin/flang-new" ]; then \
+    export FLANG_OPTION="--with-flang=/usr/lib/llvm-${LLVM_VERSION}/bin/flang-new"; \
+    fi; \
     else \
     export FLANG_OPTION="--without-flang"; \
     fi && \
