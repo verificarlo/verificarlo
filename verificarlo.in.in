@@ -514,7 +514,8 @@ def main():
 
     output = "-o " + args.o if args.o else ""
 
-    if not args.linker == "flang":
+    # flang does not accept this clang-only diagnostic flag (LLVM 21+).
+    if args.linker != "flang":
         llvm_options += " -Wno-unused-command-line-argument "
 
     if args.E:
