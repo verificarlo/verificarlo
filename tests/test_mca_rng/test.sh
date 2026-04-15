@@ -2,6 +2,22 @@
 ##uncomment to stop on error
 set -e
 
+source "$(dirname "$0")/../paths.sh"
+LLVM_OMP_DIR=""
+for _cand in "${LLVM_LIBDIR}/aarch64-unknown-linux-gnu" "${LLVM_LIBDIR}/x86_64-unknown-linux-gnu" "${LLVM_LIBDIR}"; do
+  if ls "${_cand}"/libomp.so* >/dev/null 2>&1; then
+    LLVM_OMP_DIR="${_cand}"
+    break
+  fi
+done
+if [ -z "$LLVM_OMP_DIR" ]; then
+  _omp=$(find "${LLVM_LIBDIR}" \( -name 'libomp.so' -o -name 'libomp.so.*' \) -print -quit 2>/dev/null)
+  if [ -n "$_omp" ]; then
+    LLVM_OMP_DIR=$(dirname "$_omp")
+  fi
+fi
+export LD_LIBRARY_PATH="${LLVM_OMP_DIR:+${LLVM_OMP_DIR}:}${LLVM_LIBDIR}:${INTERFLOP_LIBDIR}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
 PREC_B32=20
 PREC_B64=50
 
