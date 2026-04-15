@@ -127,4 +127,5 @@ llvm::Module *M = new llvm::Module("test", context);]])],
   fi
 
   AC_SUBST(LLVM_BINDIR)
+  AC_SUBST(LLVM_LIBDIR)
 ])
