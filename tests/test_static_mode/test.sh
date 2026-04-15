@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Fully static executables have no RUNPATH; dlopen() needs the install lib dir.
+. "$(dirname "$0")/../paths.sh"
+export LD_LIBRARY_PATH="${INTERFLOP_LIBDIR}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
 # Mark this test as expected to fail (exit 88)
 # static mode fails with
 # * libinterflop_ieee.so
