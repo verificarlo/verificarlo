@@ -3,6 +3,11 @@
 set -e
 
 source "$(dirname "$0")/../paths.sh"
+if [ -z "${LLVM_LIBDIR:-}" ] || [ ! -d "${LLVM_LIBDIR}" ]; then
+  echo "Error: LLVM_LIBDIR is not set to an existing directory: '${LLVM_LIBDIR:-}'" >&2
+  exit 1
+fi
+
 LLVM_OMP_DIR=""
 for _cand in "${LLVM_LIBDIR}/aarch64-unknown-linux-gnu" "${LLVM_LIBDIR}/x86_64-unknown-linux-gnu" "${LLVM_LIBDIR}"; do
   if ls "${_cand}"/libomp.so* >/dev/null 2>&1; then
@@ -15,6 +20,10 @@ if [ -z "$LLVM_OMP_DIR" ]; then
   if [ -n "$_omp" ]; then
     LLVM_OMP_DIR=$(dirname "$_omp")
   fi
+fi
+if [ -z "$LLVM_OMP_DIR" ]; then
+  echo "Error: could not find libomp under LLVM_LIBDIR: '${LLVM_LIBDIR}'" >&2
+  exit 1
 fi
 export LD_LIBRARY_PATH="${LLVM_OMP_DIR:+${LLVM_OMP_DIR}:}${LLVM_LIBDIR}:${INTERFLOP_LIBDIR}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
