@@ -173,6 +173,7 @@ If you use Verificarlo in your research, please cite one of the following papers
 - Verificarlo: http://dx.doi.org/10.1109/ARITH.2016.31, preprint available [here](https://hal.archives-ouvertes.fr/hal-01192668/file/verificarlo-preprint.pdf).
 - VPREC Backend: https://hal.archives-ouvertes.fr/hal-02564972
 - VPREC Function Instrumentation and exploration: http://dx.doi.org/10.1109/TETC.2021.3070422
+- PRISM Backend: https://openreview.net/forum?id=0ogq232VGP
 
 Thanks! :sparkles:
 
