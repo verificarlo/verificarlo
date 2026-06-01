@@ -1,5 +1,22 @@
 Verificarlo CHANGELOG
 
+# [v2.5.0] 2026/06/01
+
+## Added
+  * Add virtual precision support to the PRISM backend by @yohanchatelain and @pablooliveira
+  * Add test_prism_backend_integration and test_prism_virtual_precision test suites by @yohanchatelain
+  * Add Fortran support via new-flang binary by @yohanchatelain and @pablooliveira
+
+## Changed
+  * Update LLVM version requirement to 21.1.2 for Phytium S5000C-E ARM64 platform and fix build issues by @duqi-hnu
+  * Drop support for LLVM < 17; minimum LLVM version is now 17.0
+  * Standardize virtual precision to significand bits across VPREC and Bitmask backends
+  * Update Dockerfile to Ubuntu 24.04 with LLVM 20 and GCC 13
+
+## Fixed
+  * Fix Fortran test issues and NAS benchmark compatibility with new-flang
+  * Fix Zenodo badge in README
+
 # [v2.4.0] 2026/02/18
 
 ## Changed

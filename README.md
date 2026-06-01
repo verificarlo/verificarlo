@@ -1,4 +1,4 @@
-## Verificarlo v2.4.0
+## Verificarlo v2.5.0
 
 A tool for debugging and assessing floating point precision and reproducibility.
 
@@ -12,7 +12,7 @@ A tool for debugging and assessing floating point precision and reproducibility.
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://releases.llvm.org/13.0.0/LICENSE.TXT)
 
 
-- [Verificarlo v2.4.0](#verificarlo-v240)
+- [Verificarlo v2.5.0](#verificarlo-v250)
 - [Installation](#installation)
 - [Using Verificarlo through its Docker image](#using-verificarlo-through-its-docker-image)
 - [Usage](#usage)
@@ -133,11 +133,11 @@ A [tutorial](https://github.com/verificarlo/verificarlo/wiki/Tutorials) is avail
 Verificarlo includes different numerical backends. Please refer to the [backends' documentation](doc/02-Backends.md).
 
   * [IEEE Backend (libinterflop_ieee.so)](doc/02-Backends.md#ieee-backend-libinterflop_ieeeso)
-  * [MCA Backends (libinterflop_mca.so and lib_interflop_mca_int.so)](doc/02-Backends.md#mca-backends)
-  * [Bitmask Backend (libinterflop_bitmask.so)](doc/02-Backends.md#bitmask-backend-libinterflop_bitmaskso)
-  * [Cancellation Backend (libinterflop_cancellation.so)](doc/02-Backends.md#cancellation-backend-libinterflop_cancellationso)
-  * [VPREC Backend (libinterflop_vprec.so)](doc/02-Backends.md#vprec-backend-libinterflop_vprecso)
   * [PRISM Backend](doc/02-Backends.md#prism-backend)
+  * [VPREC Backend (libinterflop_vprec.so)](doc/02-Backends.md#vprec-backend-libinterflop_vprecso)
+  * [Cancellation Backend (libinterflop_cancellation.so)](doc/02-Backends.md#cancellation-backend-libinterflop_cancellationso)
+  * [Bitmask Backend (libinterflop_bitmask.so)](doc/02-Backends.md#bitmask-backend-libinterflop_bitmaskso)
+  * [MCA Backends (legacy)](doc/02-Backends.md#mca-backends-legacy)
 
 ## Inclusion/exclusion options
 To include only certain parts of the code in the analysis or exclude parts of

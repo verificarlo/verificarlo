@@ -442,7 +442,7 @@ The MCA backends implement Montecarlo Arithmetic.
 
 Note: these backends are deprecated and the more efficient [PRISM
 backend](#prism-backend) is recommended instead for stochastic rounding.  MCA
-backends is only recommended when you need the mca or ib modes, or for
+backends are only recommended when you need the mca or ib modes, or for
 architectures which do not support PRISM.
 
 There are two available backends:
