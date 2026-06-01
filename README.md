@@ -39,10 +39,9 @@ To install Verificarlo please refer to the [installation documentation](doc/01-I
 
 A docker image is available at https://hub.docker.com/r/verificarlo/verificarlo/.
 This image uses the latest release version of Verificarlo and includes
-support for Fortran. It uses llvm-7 and gcc-7.
+support for Fortran.
 
-Example of usage with Monte Carlo arithmetic:
-
+Example of usage with Stochastic Rounding and the PRISM backend:
 ```bash
 $ cat > test.c <<HERE
 #include <stdio.h>
@@ -56,13 +55,15 @@ HERE
 
 $ docker pull verificarlo/verificarlo
 $ docker run -v "$PWD":/workdir verificarlo/verificarlo \
-   verificarlo-c test.c -o test
-$ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
-   verificarlo/verificarlo ./test
-999.99999999999795364
-$ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_mca.so" \
-   verificarlo/verificarlo ./test
-999.99999999999761258
+   verificarlo-c --prism-backend=sr test.c -o test
+$ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_prism.so" verificarlo/verificarlo ./test
+Info [verificarlo]: loaded backend libinterflop_prism.so
+Info [interflop-prism]: seed = 1186517949 (random)
+999.99999999999590727
+$ docker run -v "$PWD":/workdir -e VFC_BACKENDS="libinterflop_prism.so" verificarlo/verificarlo ./test
+Info [verificarlo]: loaded backend libinterflop_prism.so
+Info [interflop-prism]: seed = 1130387574 (random)
+1000.00000000000591172
 ```
 
 ## Usage

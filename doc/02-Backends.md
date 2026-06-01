@@ -3,15 +3,16 @@
 - [Backends](#backends)
   - [Logger](#logger)
   - [IEEE Backend (libinterflop\_ieee.so)](#ieee-backend-libinterflop_ieeeso)
-  - [MCA Backends](#mca-backends)
-  - [Bitmask Backend (libinterflop\_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
-  - [Cancellation Backend (libinterflop\_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
-  - [VPREC Backend (libinterflop\_vprec.so)](#vprec-backend-libinterflop_vprecso)
   - [PRISM Backend](#prism-backend)
     - [Dispatching Modes](#dispatching-modes)
+    - [Backend Options](#backend-options)
     - [Debug Options](#debug-options)
     - [Architecture Support](#architecture-support)
-    - [Usage Example](#usage-example)
+    - [Usage Examples](#usage-examples)
+  - [VPREC Backend (libinterflop\_vprec.so)](#vprec-backend-libinterflop_vprecso)
+  - [Cancellation Backend (libinterflop\_cancellation.so)](#cancellation-backend-libinterflop_cancellationso)
+  - [Bitmask Backend (libinterflop\_bitmask.so)](#bitmask-backend-libinterflop_bitmaskso)
+  - [MCA Backends (legacy)](#mca-backends-legacy)
 
 Once your program is compiled with Verificarlo, it can be instrumented with
 different floating-point backends.
@@ -169,9 +170,280 @@ operations count:
 
 ```
 
-### MCA Backends
 
-The MCA backends implement Montecarlo Arithmetic.
+
+### PRISM Backend
+
+The PRISM backend implements [Stochastic Rounding](https://ieeexplore.ieee.org/document/9387551) and Up & Down rounding.
+
+It is built upon the [PRISM](https://github.com/yohanchatelain/prism.git) library and utilizes the [Highway](https://github.com/google/highway.git) library for vectorized operations.
+
+Unlike other backends, PRISM instruments floating-point operations at the IR level during compilation rather than intercepting them at runtime. The rounding mode must be selected at compile time using the `--prism-backend=MODE` option, where `MODE` can be:
+
+* `up-down`: Implements Up & Down rounding.
+* `sr`: Implements Stochastic Rounding.
+
+Runtime parameters (virtual precision and seed) are controlled through the standard `VFC_BACKENDS` mechanism via `libinterflop_prism.so`.
+
+The PRISM backend fully instruments vector instructions without serializing them, enabling better performance. However, challenges may arise when user code and backend code are compiled with differing architecture flags (e.g., `--march=native`). To address this, the backend provides two dispatching modes:
+
+#### Dispatching Modes
+
+1. **Static Dispatch (`--prism-backend-dispatch=static`)**:
+   - Passes vector registers by value.
+   - User code and the PRISM backend must be compiled with identical architecture flags for proper functionality.
+   - Vector instructions are not instrumented if architecture mismatches occur.
+
+2. **Dynamic Dispatch (`--prism-backend-dispatch=dynamic`)**:
+   - Passes vectors by pointer, offering better flexibility.
+   - Leverages Highway’s dynamic dispatching to select the best implementation based on the architecture (e.g., AVX, AVX2, AVX-512).
+   - While dynamic dispatch incurs overhead from pointer passing, it mitigates this with vectorized implementations.
+
+#### Backend Options
+
+```
+VFC_BACKENDS="libinterflop_prism.so --help" ./test
+test: verificarlo loaded backend libinterflop_prism.so
+Usage: libinterflop_prism.so [OPTION...]
+
+      --precision-binary32=N   Virtual precision for binary32 (default: 24)
+      --precision-binary64=N   Virtual precision for binary64 (default: 53)
+  -s, --seed=SEED              Fix the random generator seed (default: random)
+  -?, --help                   Give this help list
+      --usage                  Give a short usage message
+```
+
+The option `--precision-binary32=N` (respectively `--precision-binary64=N`) sets
+the virtual precision for single (respectively double) precision operations.
+It accepts an integer between 1 and 24 for binary32 (1 and 53 for binary64),
+representing the number of significand bits retained after rounding. The default
+value matches IEEE 754 hardware precision (24 for binary32, 53 for binary64).
+
+The option `--seed=SEED` fixes the random generator seed, which is useful for
+reproducing a particular stochastic rounding trace. Without this option, a
+random seed is chosen at startup (equivalent to setting the `PRISM_SEED`
+environment variable).
+
+#### Debug Options
+
+The PRISM backend provides several debug options:
+
+* `getoperands`: Outputs the operands involved in vectorized operations.
+* `abi`: Prints ABI compatibility checks between the caller and callee, ensuring proper functioning.
+* `targetfeatures`: Displays the features of the target architecture.
+
+#### Architecture Support
+
+Although it should support all architectures supported by [Highway](https://google.github.io/highway/en/master/README.html#targets), the PRISM backend has only been tested on :
+- x86:
+  - SSE2
+  - SSE3
+  - SSE4
+  - AVX2
+  - AVX3
+
+**Build Limitations**: On some platforms (particularly AArch64), the PRISM backend dependencies (Bazel/Highway) may fail to build. If you encounter build issues with the PRISM backend, you can disable it during configuration using `--without-prism`. This will build Verificarlo without PRISM backend support while preserving all other functionality.
+
+#### Usage Examples
+
+Compile with stochastic rounding and dynamic dispatch, then run at reduced precision
+with a fixed seed:
+
+```bash
+$ verificarlo-c --prism-backend=sr --prism-backend-dispatch=dynamic test.c -o test
+$ VFC_BACKENDS="libinterflop_prism.so --precision-binary64 10 --seed 42" ./test
+```
+
+Compile with up & down rounding and static dispatch, then run at default (IEEE)
+precision:
+
+```bash
+$ verificarlo-c --prism-backend=up-down --prism-backend-dispatch=static test.c -o test
+$ VFC_BACKENDS="libinterflop_prism.so" ./test
+```
+
+
+
+### VPREC Backend (libinterflop_vprec.so)
+
+The VPREC backend simulates any floating-point formats that can fit into
+the IEEE-754 double precision format with a faithful rounding.
+The backend allows modifying the bit length of the exponent (range) and the
+pseudo-mantissa (precision).
+
+```bash
+Usage: libinterflop_vprec.so [OPTION...]
+
+  -m, --mode=MODE            select VPREC mode among {ieee, full, ib, ob}
+      --precision-binary32=PRECISION
+                             select precision for binary32 (PRECISION >= 0)
+      --precision-binary64=PRECISION
+                             select precision for binary64 (PRECISION >= 0)
+      --range-binary32=RANGE select range for binary32 (0 < RANGE && RANGE <=
+                             8)
+      --range-binary64=RANGE select range for binary64 (0 < RANGE && RANGE <=
+                             11)
+      --error-mode=ERR_MODE  select error mode among (rel, abs, all)
+      --max-abs-error-exponent=ERR_EXPONENT
+                             select the magnitude of the maximum allowed
+                             absolute error (this option is only used when
+                             error-mode={abs, all})
+  -d, --daz                  denormals-are-zero: sets denormals inputs to zero
+  -f, --ftz                  flush-to-zero: sets denormal output to zero
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+```
+
+Three options control the behavior of the VPREC backend.
+
+The option `--mode=MODE` controls the arithmetic error mode. It accepts the following case insensitive values:
+
+ * `ieee`: the program uses standard IEEE arithmetic, no rounding are introduced
+ * `ib`: InBound precision only
+ * `ob`: OutBound precision only (*default mode*)
+ * `full`: Inbound and outbound mode combined
+
+The option `--precision-binary64=PRECISION` controls the significand bit length of
+the new tested format for floating-point operations in double precision
+(respectively for single precision with --precision-binary32).
+It accepts a positive integer representing the number of significand bits
+(including the implicit leading bit). The maximum is 53 for binary64 and 24
+for binary32 (which correspond to full hardware precision, no rounding).
+
+The option `--range-binary64=PRECISION` controls the exponent bit length of
+the new tested format for floating-point operations in double precision
+(respectively for single precision with --range-binary32).
+It accepts an integer value that represents the magnitude of the numbers.
+
+The option `--error-mode=ERR_MODE` controls the way in which the error is
+interpreted. It accepts the following modes:
+
+ * `rel`: (default mode) the error is specified relative to the magnitude of
+ the floating-point number
+ * `abs`: the error threshold is specified as an absolute value, independent of
+the value of the floating-point number, to be interpreted as 2<sup>ERR_EXPONENT</sup>
+ * `all`: both relative and absolute modes are active simultaneously
+
+The option `--max-abs-error-exponent=ERR_EXPONENT` is used only when the option
+`--error-mode=ERR_MODE` is active and controls the magnitude of the error
+threshold, when in absolute error mode or all mode. The error thershold is set
+to 2<sup>ERR_EXPONENT</sup>.
+
+A detailed description of the backend is given [here](https://hal.archives-ouvertes.fr/hal-02564972/document).
+
+The following example shows the computation with single precision and the simulation of the `bfloat16` format with VPREC:
+
+```bash
+   $ VFC_BACKENDS="libinterflop_vprec.so --precision-binary32=24 --range-binary32=8" ./a.out
+   (2.903225*2.903225)*16384.000000 = 138096.062500
+   $ VFC_BACKENDS="libinterflop_vprec.so --precision-binary32=11 --range-binary32=5" ./a.out
+   (2.903225*2.903225)*16384.000000 = inf
+```
+
+### Cancellation Backend (libinterflop_cancellation.so)
+
+The Cancellation backend implements an automatic cancellation detector at
+runtime. It is founded on difference in exponents to detect cancellation faster
+than in other backend. If a cancellation is detected then the backend applies
+noise on the cancelled part with the model of noise from the MCA backend. The
+backend additional cost of runtime time is constant and predetermined for each
+operation performed.
+
+```
+Info [verificarlo]: loaded backend libinterflop_cancellation.so
+Usage: libinterflop_cancellation.so [OPTION...]
+
+  -s, --seed=SEED            Fix the random generator seed
+  -t, --tolerance=TOLERANCE  Select tolerance (TOLERANCE >= 0)
+  -w, --warning=WARNING      Enable warning for cancellations
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+
+```
+
+Three options control the behavior of the Cancellation backend.
+
+The option `--tolerance` sets the tolerance within the backend will trigger a
+cancellation. By default tolerance is set to 1.
+
+The option `--warning` warns on the standard output stream when a cancellation is
+triggered by the backend.
+
+The option `--seed` fixes the random generator seed. It should not generally be
+used except if one to reproduce a particular MCA trace.
+
+Finally the user should know that this backend is still experimental and in
+developpement.
+
+### Bitmask Backend (libinterflop_bitmask.so)
+
+The Bitmask backend implements a fast first order model of noise. It
+relies on bitmask operations to achieve low overhead. Unlike MCA backends,
+the introduced noise is biased, which means that the expected value of the noise
+is not equal to 0 as explained in [Chatelain's thesis, section 2.3.2](https://tel.archives-ouvertes.fr/tel-02473301/document).
+
+```
+VFC_BACKENDS="libinterflop_bitmask.so --help" ./test
+test: verificarlo loaded backend libinterflop_bitmask.so
+Usage: libinterflop_bitmask.so [OPTION...]
+
+  -m, --mode=MODE            select BITMASK mode among {ieee, full, ib, ob}
+  -o, --operator=OPERATOR    select BITMASK operator among {zero, one, rand}
+      --precision-binary32=PRECISION
+                             select precision for binary32 (PRECISION > 0)
+      --precision-binary64=PRECISION
+                             select precision for binary64 (PRECISION > 0)
+  -d, --daz                  denormals-are-zero: sets denormals inputs to zero
+  -f, --ftz                  flush-to-zero: sets denormal output to zero
+  -s, --seed=SEED            fix the random generator seed
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+```
+
+Three options control the behavior of the Bitmask backend.
+
+The option `--mode=MODE` controls the arithmetic error mode. It
+accepts the following case insensitive values:
+
+* `ieee`: the program uses the standard IEEE arithmetic, no errors are introduced
+* `ib`: InBound precision errors only
+* `ob`: OutBound precision errors only (*default mode*)
+* `full`: InBound and OutBound modes combined
+
+The option `--operator=OPERATOR` controls the bitmask operator to
+apply. It accepts the following case insensitive values:
+
+* `zero`: sets the last `t` bits of the mantissa to 0
+* `one`: sets the last `t` bits of the mantissa to 1
+* `rand`: applies a XOR of random bits to the last `t` bits of the mantissa (default mode)
+
+Modes `zero` and `one` are deterministic and require only one
+execution.  The `rand` mode is random and must be used like `mca`
+backends.
+
+The option `--precision-binary64=PRECISION` controls the virtual
+precision used for the floating point operations in double precision
+(respectively for single precision with --precision-binary32) It
+accepts an integer value that represents the virtual precision (in
+significand bits, including the implicit leading 1) at which operations
+are performed. Its default value is 53 for binary64 and 24 for
+binary32 (full hardware precision). For the Bitmask backend, the
+virtual precision corresponds to the number of preserved significand
+bits.
+
+The option `--seed` fixes the random generator seed. It should not
+generally be used except to reproduce a particular Bitmask
+trace.
+
+
+### MCA Backends (legacy)
+
+The MCA backends implement Montecarlo Arithmetic. 
+
+Note: these backends are deprecated and the more efficient [PRISM
+backend](#prism-backend) is recommended instead for stochastic rounding.  MCA
+backends is only recommended when you need the mca or ib modes, or for
+architectures which do not support PRISM.
 
 There are two available backends:
 
@@ -266,266 +538,4 @@ The `--ftz` (**Flush-To-Zero**) flushes subnormal output to 0.
 
 The option `--seed` fixes the random generator seed. It should not generally be used
 except if one to reproduce a particular MCA trace.
-
-
-### Bitmask Backend (libinterflop_bitmask.so)
-
-The Bitmask backend implements a fast first order model of noise. It
-relies on bitmask operations to achieve low overhead. Unlike MCA backends,
-the introduced noise is biased, which means that the expected value of the noise
-is not equal to 0 as explained in [Chatelain's thesis, section 2.3.2](https://tel.archives-ouvertes.fr/tel-02473301/document).
-
-```
-VFC_BACKENDS="libinterflop_bitmask.so --help" ./test
-test: verificarlo loaded backend libinterflop_bitmask.so
-Usage: libinterflop_bitmask.so [OPTION...]
-
-  -m, --mode=MODE            select BITMASK mode among {ieee, full, ib, ob}
-  -o, --operator=OPERATOR    select BITMASK operator among {zero, one, rand}
-      --precision-binary32=PRECISION
-                             select precision for binary32 (PRECISION > 0)
-      --precision-binary64=PRECISION
-                             select precision for binary64 (PRECISION > 0)
-  -d, --daz                  denormals-are-zero: sets denormals inputs to zero
-  -f, --ftz                  flush-to-zero: sets denormal output to zero
-  -s, --seed=SEED            fix the random generator seed
-  -?, --help                 Give this help list
-      --usage                Give a short usage message
-```
-
-Three options control the behavior of the Bitmask backend.
-
-The option `--mode=MODE` controls the arithmetic error mode. It
-accepts the following case insensitive values:
-
-* `ieee`: the program uses the standard IEEE arithmetic, no errors are introduced
-* `ib`: InBound precision errors only
-* `ob`: OutBound precision errors only (*default mode*)
-* `full`: InBound and OutBound modes combined
-
-The option `--operator=OPERATOR` controls the bitmask operator to
-apply. It accepts the following case insensitive values:
-
-* `zero`: sets the last `t` bits of the mantissa to 0
-* `one`: sets the last `t` bits of the mantissa to 1
-* `rand`: applies a XOR of random bits to the last `t` bits of the mantissa (default mode)
-
-Modes `zero` and `one` are deterministic and require only one
-execution.  The `rand` mode is random and must be used like `mca`
-backends.
-
-The option `--precision-binary64=PRECISION` controls the virtual
-precision used for the floating point operations in double precision
-(respectively for single precision with --precision-binary32) It
-accepts an integer value that represents the virtual precision (in
-significand bits, including the implicit leading 1) at which operations
-are performed. Its default value is 53 for binary64 and 24 for
-binary32 (full hardware precision). For the Bitmask backend, the
-virtual precision corresponds to the number of preserved significand
-bits.
-
-The option `--seed` fixes the random generator seed. It should not
-generally be used except to reproduce a particular Bitmask
-trace.
-
-### Cancellation Backend (libinterflop_cancellation.so)
-
-The Cancellation backend implements an automatic cancellation detector at
-runtime. It is founded on difference in exponents to detect cancellation faster
-than in other backend. If a cancellation is detected then the backend applies
-noise on the cancelled part with the model of noise from the MCA backend. The
-backend additional cost of runtime time is constant and predetermined for each
-operation performed.
-
-```
-Info [verificarlo]: loaded backend libinterflop_cancellation.so
-Usage: libinterflop_cancellation.so [OPTION...]
-
-  -s, --seed=SEED            Fix the random generator seed
-  -t, --tolerance=TOLERANCE  Select tolerance (TOLERANCE >= 0)
-  -w, --warning=WARNING      Enable warning for cancellations
-  -?, --help                 Give this help list
-      --usage                Give a short usage message
-
-```
-
-Three options control the behavior of the Cancellation backend.
-
-The option `--tolerance` sets the tolerance within the backend will trigger a
-cancellation. By default tolerance is set to 1.
-
-The option `--warning` warns on the standard output stream when a cancellation is
-triggered by the backend.
-
-The option `--seed` fixes the random generator seed. It should not generally be
-used except if one to reproduce a particular MCA trace.
-
-Finally the user should know that this backend is still experimental and in
-developpement.
-
-### VPREC Backend (libinterflop_vprec.so)
-
-The VPREC backend simulates any floating-point formats that can fit into
-the IEEE-754 double precision format with a faithful rounding.
-The backend allows modifying the bit length of the exponent (range) and the
-pseudo-mantissa (precision).
-
-```bash
-Usage: libinterflop_vprec.so [OPTION...]
-
-  -m, --mode=MODE            select VPREC mode among {ieee, full, ib, ob}
-      --precision-binary32=PRECISION
-                             select precision for binary32 (PRECISION >= 0)
-      --precision-binary64=PRECISION
-                             select precision for binary64 (PRECISION >= 0)
-      --range-binary32=RANGE select range for binary32 (0 < RANGE && RANGE <=
-                             8)
-      --range-binary64=RANGE select range for binary64 (0 < RANGE && RANGE <=
-                             11)
-      --error-mode=ERR_MODE  select error mode among (rel, abs, all)
-      --max-abs-error-exponent=ERR_EXPONENT
-                             select the magnitude of the maximum allowed
-                             absolute error (this option is only used when
-                             error-mode={abs, all})
-  -d, --daz                  denormals-are-zero: sets denormals inputs to zero
-  -f, --ftz                  flush-to-zero: sets denormal output to zero
-  -?, --help                 Give this help list
-      --usage                Give a short usage message
-```
-
-Three options control the behavior of the VPREC backend.
-
-The option `--mode=MODE` controls the arithmetic error mode. It accepts the following case insensitive values:
-
- * `ieee`: the program uses standard IEEE arithmetic, no rounding are introduced
- * `ib`: InBound precision only
- * `ob`: OutBound precision only (*default mode*)
- * `full`: Inbound and outbound mode combined
-
-The option `--precision-binary64=PRECISION` controls the significand bit length of
-the new tested format for floating-point operations in double precision
-(respectively for single precision with --precision-binary32).
-It accepts a positive integer representing the number of significand bits
-(including the implicit leading bit). The maximum is 53 for binary64 and 24
-for binary32 (which correspond to full hardware precision, no rounding).
-
-The option `--range-binary64=PRECISION` controls the exponent bit length of
-the new tested format for floating-point operations in double precision
-(respectively for single precision with --range-binary32).
-It accepts an integer value that represents the magnitude of the numbers.
-
-The option `--error-mode=ERR_MODE` controls the way in which the error is
-interpreted. It accepts the following modes:
-
- * `rel`: (default mode) the error is specified relative to the magnitude of
- the floating-point number
- * `abs`: the error threshold is specified as an absolute value, independent of
-the value of the floating-point number, to be interpreted as 2<sup>ERR_EXPONENT</sup>
- * `all`: both relative and absolute modes are active simultaneously
-
-The option `--max-abs-error-exponent=ERR_EXPONENT` is used only when the option
-`--error-mode=ERR_MODE` is active and controls the magnitude of the error
-threshold, when in absolute error mode or all mode. The error thershold is set
-to 2<sup>ERR_EXPONENT</sup>.
-
-A detailed description of the backend is given [here](https://hal.archives-ouvertes.fr/hal-02564972/document).
-
-The following example shows the computation with single precision and the simulation of the `bfloat16` format with VPREC:
-
-```bash
-   $ VFC_BACKENDS="libinterflop_vprec.so --precision-binary32=24 --range-binary32=8" ./a.out
-   (2.903225*2.903225)*16384.000000 = 138096.062500
-   $ VFC_BACKENDS="libinterflop_vprec.so --precision-binary32=11 --range-binary32=5" ./a.out
-   (2.903225*2.903225)*16384.000000 = inf
-```
-
-### PRISM Backend
-
-The PRISM backend implements Stochastic Rounding [Fasi, 2020](https://ieeexplore.ieee.org/document/9387551) and Up & Down rounding.
-
-It is built upon the [PRISM](https://github.com/yohanchatelain/prism.git) library and utilizes the [Highway](https://github.com/google/highway.git) library for vectorized operations.
-
-Unlike other backends, PRISM instruments floating-point operations at the IR level during compilation rather than intercepting them at runtime. The rounding mode must be selected at compile time using the `--prism-backend=MODE` option, where `MODE` can be:
-
-* `up-down`: Implements Up & Down rounding.
-* `sr`: Implements Stochastic Rounding.
-
-Runtime parameters (virtual precision and seed) are controlled through the standard `VFC_BACKENDS` mechanism via `libinterflop_prism.so`.
-
-The PRISM backend fully instruments vector instructions without serializing them, enabling better performance. However, challenges may arise when user code and backend code are compiled with differing architecture flags (e.g., `--march=native`). To address this, the backend provides two dispatching modes:
-
-#### Dispatching Modes
-
-1. **Static Dispatch (`--prism-backend-dispatch=static`)**:
-   - Passes vector registers by value.
-   - User code and the PRISM backend must be compiled with identical architecture flags for proper functionality.
-   - Vector instructions are not instrumented if architecture mismatches occur.
-
-2. **Dynamic Dispatch (`--prism-backend-dispatch=dynamic`)**:
-   - Passes vectors by pointer, offering better flexibility.
-   - Leverages Highway’s dynamic dispatching to select the best implementation based on the architecture (e.g., AVX, AVX2, AVX-512).
-   - While dynamic dispatch incurs overhead from pointer passing, it mitigates this with vectorized implementations.
-
-#### Backend Options
-
-```
-VFC_BACKENDS="libinterflop_prism.so --help" ./test
-test: verificarlo loaded backend libinterflop_prism.so
-Usage: libinterflop_prism.so [OPTION...]
-
-      --precision-binary32=N   Virtual precision for binary32 (default: 24)
-      --precision-binary64=N   Virtual precision for binary64 (default: 53)
-  -s, --seed=SEED              Fix the random generator seed (default: random)
-  -?, --help                   Give this help list
-      --usage                  Give a short usage message
-```
-
-The option `--precision-binary32=N` (respectively `--precision-binary64=N`) sets
-the virtual precision for single (respectively double) precision operations.
-It accepts an integer between 1 and 24 for binary32 (1 and 53 for binary64),
-representing the number of significand bits retained after rounding. The default
-value matches IEEE 754 hardware precision (24 for binary32, 53 for binary64).
-
-The option `--seed=SEED` fixes the random generator seed, which is useful for
-reproducing a particular stochastic rounding trace. Without this option, a
-random seed is chosen at startup (equivalent to setting the `PRISM_SEED`
-environment variable).
-
-#### Debug Options
-
-The PRISM backend provides several debug options:
-
-* `getoperands`: Outputs the operands involved in vectorized operations.
-* `abi`: Prints ABI compatibility checks between the caller and callee, ensuring proper functioning.
-* `targetfeatures`: Displays the features of the target architecture.
-
-#### Architecture Support 
-
-Although it should support all architectures supported by [Highway](https://google.github.io/highway/en/master/README.html#targets), the PRISM backend has only been tested on :
-- x86:
-  - SSE2
-  - SSE3
-  - SSE4
-  - AVX2
-  - AVX3
-
-**Build Limitations**: On some platforms (particularly AArch64), the PRISM backend dependencies (Bazel/Highway) may fail to build. If you encounter build issues with the PRISM backend, you can disable it during configuration using `--without-prism`. This will build Verificarlo without PRISM backend support while preserving all other functionality.
-
-#### Usage Examples
-
-Compile with stochastic rounding and dynamic dispatch, then run at reduced precision
-with a fixed seed:
-
-```bash
-$ verificarlo-c --prism-backend=sr --prism-backend-dispatch=dynamic test.c -o test
-$ VFC_BACKENDS="libinterflop_prism.so --precision-binary64 10 --seed 42" ./test
-```
-
-Compile with up & down rounding and static dispatch, then run at default (IEEE)
-precision:
-
-```bash
-$ verificarlo-c --prism-backend=up-down --prism-backend-dispatch=static test.c -o test
-$ VFC_BACKENDS="libinterflop_prism.so" ./test
-```
 
