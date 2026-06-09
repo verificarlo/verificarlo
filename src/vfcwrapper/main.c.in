@@ -261,18 +261,25 @@ static void vfc_read_filter_file(const char *dd_filter_path,
 /* 2- VFC_BACKENDS_FROM_FILE */
 /* Set the backends read in vfc_backends */
 /* Set the name of the environment variable read in vfc_backends_env */
-void parse_vfc_backends_env(char **vfc_backends, char **vfc_backends_env) {
+void parse_vfc_backends_env(char **vfc_backends, const char **vfc_backends_env) {
 
   /* Parse VFC_BACKENDS */
-  *vfc_backends_env = (char *)malloc(sizeof(char) * 256);
-  *vfc_backends = (char *)malloc(sizeof(char) * 256);
-
-  sprintf(*vfc_backends_env, "VFC_BACKENDS");
-  *vfc_backends = getenv(*vfc_backends_env);
+  *vfc_backends_env = "VFC_BACKENDS";
+  char *env_val = getenv(*vfc_backends_env);
+  if (env_val != NULL) {
+    size_t env_len = strlen(env_val);
+    *vfc_backends = (char *)malloc(env_len + 1);
+    if (*vfc_backends == NULL) {
+      logger_error("Memory allocation failed for %s", *vfc_backends_env);
+    }
+    strcpy(*vfc_backends, env_val);
+  } else {
+    *vfc_backends = NULL;
+  }
 
   /* Parse VFC_BACKENDS_FROM_FILE if VFC_BACKENDS is empty*/
   if (*vfc_backends == NULL) {
-    sprintf(*vfc_backends_env, "VFC_BACKENDS_FROM_FILE");
+    *vfc_backends_env = "VFC_BACKENDS_FROM_FILE";
     char *vfc_backends_fromfile_file = getenv(*vfc_backends_env);
     if (vfc_backends_fromfile_file != NULL) {
       FILE *fi = fopen(vfc_backends_fromfile_file, "r");
@@ -434,7 +441,8 @@ __attribute__((constructor(0))) static void vfc_init(void) {
   vfc_init_func_inst();
 #endif
 
-  char *vfc_backends = NULL, *vfc_backends_env = NULL;
+  char *vfc_backends = NULL;
+  const char *vfc_backends_env = NULL;
   parse_vfc_backends_env(&vfc_backends, &vfc_backends_env);
   bool prism_backend_loaded = false;
 
@@ -569,6 +577,10 @@ __attribute__((constructor(0))) static void vfc_init(void) {
                 vfc_hashmap_num_items(dd_mustnot_instrument));
   }
 #endif
+
+  if (vfc_backends != NULL) {
+    free(vfc_backends);
+  }
 }
 
 /* Arithmetic wrappers */
