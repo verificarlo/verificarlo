@@ -7,8 +7,7 @@ A tool for debugging and assessing floating point precision and reproducibility.
 ![GitHub Release](https://img.shields.io/github/v/release/verificarlo/verificarlo)
 ![Build Status](https://github.com/verificarlo/verificarlo/actions/workflows/docker-ci.yml/badge.svg?branch=master)
 [![Docker Pulls](https://img.shields.io/docker/pulls/verificarlo/verificarlo)](https://hub.docker.com/r/verificarlo/verificarlo)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18709807.svg)](https://doi.org/10.5281/zenodo.18709807)
-[![Coverity](https://scan.coverity.com/projects/19956/badge.svg)](https://scan.coverity.com/projects/verificarlo-verificarlo)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20493183.svg)](https://doi.org/10.5281/zenodo.20493183)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://releases.llvm.org/13.0.0/LICENSE.TXT)
 
 

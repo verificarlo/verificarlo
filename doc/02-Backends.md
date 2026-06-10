@@ -440,10 +440,10 @@ trace.
 
 The MCA backends implement Montecarlo Arithmetic. 
 
-Note: these backends are deprecated and the more efficient [PRISM
-backend](#prism-backend) is recommended instead for stochastic rounding.  MCA
-backends are only recommended when you need the mca or ib modes, or for
-architectures which do not support PRISM.
+>[!NOTE]
+>These backends are deprecated and the more efficient [PRISM backend](#prism-backend)
+>is prefered. MCA backends are only recommended when
+>you need the mca or ib modes, or for architectures which do not support PRISM.
 
 There are two available backends:
 
@@ -453,15 +453,13 @@ There are two available backends:
 - `libinterflop_mca_int.so`: uses integer types to represent stochastic noise.
   In most architectures, this backend should be faster. The MCA integer backend 
   only supports default precision and relative error mode; some user options
-  are therefore unavailable.
+  are therefore unavailable. MCA int is equivalent to [PRISM SR](#prism-backend)
+  when the virtual precision matches the type's precision
+  (t=24 for binary32, t=53 for binar64).
 
-Most of the time, users should prefer `libinterflop_mca_int.so` because the implementation is faster and more precise. Indeed, the MCA integer backend is our most precise implementation (for a detailed discussion, please see sections 5.4 and 6.3.3 in [tel-03831483](https://universite-paris-saclay.hal.science/LI-PARAD/tel-03831483)) for MCA RR mode (often called SR in the literature).
-
->[!NOTE]
->MCA int is equivalent to [PRISM SR](#prism-backend) when the virtual precision matches the type's precision (t=24 for binary32, t=53 for binar64).
-
-
-`libinterflop_mca.so` should only be preferred when the user wants to explore different virtual precisions.
+For a detailed discussion of the implementation choices made in the MCA and MCA
+int backends, please see sections 5.4 and 6.3.3 in
+[tel-03831483](https://universite-paris-saclay.hal.science/LI-PARAD/tel-03831483)).
 
 ```bash
 VFC_BACKENDS="libinterflop_mca.so --help" ./test
@@ -538,4 +536,3 @@ The `--ftz` (**Flush-To-Zero**) flushes subnormal output to 0.
 
 The option `--seed` fixes the random generator seed. It should not generally be used
 except if one to reproduce a particular MCA trace.
-
