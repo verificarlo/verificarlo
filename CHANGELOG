@@ -1,5 +1,14 @@
 Verificarlo CHANGELOG
 
+# [v2.5.1] 2026/06/10
+
+## Changed
+  * Update backends' documentation
+  * Update PRISM to v0.0.6
+
+## Fixed
+  * Ensure VFC_BACKENDS is not altered in sub-processes
+
 # [v2.5.0] 2026/06/01
 
 ## Added
