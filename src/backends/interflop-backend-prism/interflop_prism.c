@@ -18,9 +18,10 @@
  *
  *   - CLI arguments --precision-binary32 and --precision-binary64 so that
  *     users can set the virtual precision via VFC_BACKENDS.
- *   - interflop_user_call handling for INTERFLOP_SET_PRECISION_BINARY32 and
- *     INTERFLOP_SET_PRECISION_BINARY64 so that instrumented code can change
- *     precision at runtime via interflop_call().
+ *   - interflop_user_call handling for INTERFLOP_SET_PRECISION_BINARY32,
+ *     INTERFLOP_SET_PRECISION_BINARY64 and INTERFLOP_SET_ROUNDING_MODE so that
+ *     instrumented code can change precision or rounding mode at runtime via
+ *     interflop_call().
  */
 
 #include <argp.h>
@@ -44,6 +45,7 @@ typedef struct {
   uint64_t seed;
   int32_t precision_binary32;
   int32_t precision_binary64;
+  int32_t mode;
   IBool choose_seed;
 } prism_context_t;
 
@@ -60,6 +62,7 @@ typedef enum {
   KEY_PRECISION_BINARY32 = 'f',
   KEY_PRECISION_BINARY64 = 'd',
   KEY_SEED = 's',
+  KEY_MODE = 'm',
 } key_args;
 
 static const struct argp_option options[] = {
@@ -69,6 +72,8 @@ static const struct argp_option options[] = {
      "Virtual precision for binary64 (default: 53)", 0},
     {"seed", KEY_SEED, "SEED", 0,
      "Fix the random generator seed (default: random)", 0},
+    {"mode", KEY_MODE, "MODE", 0,
+     "select PRISM rounding mode among {sr, rn} (default: sr)", 0},
     {0, 0, 0, 0, 0, 0}};
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -109,6 +114,16 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     ctx->choose_seed = true;
     break;
   }
+  case KEY_MODE: {
+    if (interflop_strcasecmp(arg, "sr") == 0) {
+      ctx->mode = INTERFLOP_PRISM_SR;
+    } else if (interflop_strcasecmp(arg, "rn") == 0) {
+      ctx->mode = INTERFLOP_PRISM_RN;
+    } else {
+      logger_error("--mode invalid value provided, must be one of: {sr, rn}");
+    }
+    break;
+  }
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -132,6 +147,11 @@ static void prism_user_call(void *context, interflop_call_id id, va_list ap) {
     interflop_prism_set_default_virtual_precision_binary64(prec);
     break;
   }
+  case INTERFLOP_SET_ROUNDING_MODE: {
+    int32_t mode = va_arg(ap, int);
+    interflop_prism_set_rounding_mode(mode);
+    break;
+  }
   default:
     break;
   }
@@ -147,6 +167,7 @@ void interflop_pre_init(interflop_panic_t panic, File *stream, void **context) {
       (prism_context_t *)interflop_malloc(sizeof(prism_context_t));
   ctx->precision_binary32 = DEFAULT_PRECISION_BINARY32;
   ctx->precision_binary64 = DEFAULT_PRECISION_BINARY64;
+  ctx->mode = INTERFLOP_PRISM_SR;
   ctx->seed = 0ULL;
   ctx->choose_seed = false;
   *context = ctx;
@@ -170,12 +191,14 @@ struct interflop_backend_interface_t interflop_init(void *context) {
       ctx->precision_binary32);
   interflop_prism_set_default_virtual_precision_binary64(
       ctx->precision_binary64);
+  interflop_prism_set_rounding_mode(ctx->mode);
 
   if (ctx->choose_seed) {
     interflop_prism_set_seed(ctx->seed);
   }
   logger_info("seed = %lu%s\n", interflop_prism_get_seed(),
               ctx->choose_seed ? " (fixed)" : " (random)");
+  logger_info("mode = %s\n", ctx->mode == INTERFLOP_PRISM_RN ? "rn" : "sr");
 
   struct interflop_backend_interface_t iface = {
       .interflop_add_float = NULL,
