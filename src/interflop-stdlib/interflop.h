@@ -56,6 +56,9 @@ enum FTYPES {
 };
 
 typedef enum {
+  /* Allows changing rounding mode */
+  /* signature: void set_rounding_mode(int mode) */
+  INTERFLOP_SET_ROUNDING_MODE = 6,
   /* Allows changing current virtual precision range */
   /* signature: void set_range_binary64(int precision) */
   INTERFLOP_SET_RANGE_BINARY64 = 5,

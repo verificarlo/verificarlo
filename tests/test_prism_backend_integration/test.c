@@ -46,19 +46,26 @@ int main(int argc, char **argv) {
 
   if (test_case == 0) {
     /* Report the precision set at startup via VFC_BACKENDS */
+    get_prec_t get_round_mode = lookup_getter("interflop_prism_get_rounding_mode");
     printf("precision_binary32=%d\n", get_f32());
     printf("precision_binary64=%d\n", get_f64());
+    printf("mode=%d\n", get_round_mode());
 
   } else if (test_case == 1) {
     /* Test that interflop_call changes virtual precision at runtime */
+    get_prec_t get_round_mode = lookup_getter("interflop_prism_get_rounding_mode");
+
     int32_t before_f32 = get_f32();
     int32_t before_f64 = get_f64();
+    int32_t before_mode = get_round_mode();
 
     interflop_call(INTERFLOP_SET_PRECISION_BINARY32, 5);
     interflop_call(INTERFLOP_SET_PRECISION_BINARY64, 10);
+    interflop_call(INTERFLOP_SET_ROUNDING_MODE, 1);
 
     printf("before_f32=%d after_f32=%d\n", before_f32, get_f32());
     printf("before_f64=%d after_f64=%d\n", before_f64, get_f64());
+    printf("before_mode=%d after_mode=%d\n", before_mode, get_round_mode());
 
   } else {
     fprintf(stderr, "Unknown test case %d\n", test_case);

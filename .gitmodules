@@ -1,3 +1,4 @@
 [submodule "src/backends/prism"]
 	path = src/backends/prism
-	url = https://github.com/yohanchatelain/prism.git
+	url = https://github.com/verificarlo/prism.git
+	branch = main
