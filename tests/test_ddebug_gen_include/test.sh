@@ -2,7 +2,27 @@
 set -e
 verificarlo-c --ddebug -g -O0 test.c -o test
 
-VFC_BACKENDS="libinterflop_ieee.so --debug" VFC_DDEBUG_GEN="inclusion.txt" ./test
+run_with_timeout() {
+  local timeout_s="$1"
+  shift
+  "$@" &
+  local pid=$!
+  local waited=0
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$waited" -ge "$timeout_s" ]; then
+      kill "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+      echo "command timed out after ${timeout_s}s: $*"
+      exit 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  wait "$pid"
+}
+
+run_with_timeout 15 env DEBUGINFOD_URLS="https://example.invalid" \
+  VFC_BACKENDS="libinterflop_ieee.so --debug" VFC_DDEBUG_GEN="inclusion.txt" ./test
 
 # Keep only first four operations (in the inclusion file; does not match the execution order)
 NOP=4
@@ -18,5 +38,4 @@ else
   echo "problem with generation and filtering, expected $NOP operations only after filtering"
   exit 1
 fi
-
 
