@@ -68,7 +68,26 @@ On AArch64 platforms where PRISM backend dependencies may fail to build, use the
    $ sudo make install
 ```
 
-### Installing Verificarlo in an virtual Python environment (venv)
+### Installing Verificarlo using `uv` (Recommended)
+
+`uv` is an extremely fast Python package and environment manager. You can use `uv` to manage virtual environments and install dependencies efficiently:
+
+1. Create a virtual environment with `uv`:
+   ```bash
+   $ uv venv .venv
+   ```
+
+2. Activate the virtual environment:
+   ```bash
+   $ source .venv/bin/activate
+   ```
+
+3. Install Verificarlo and dependencies:
+   ```bash
+   $ uv pip install .
+   ```
+
+### Installing Verificarlo in a standard Python virtual environment (venv)
 
 If you want to isolate your Python environment for Verificarlo, you can use
 `venv`, which is a module that comes with Python 3. It creates a virtual
