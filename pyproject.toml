@@ -35,6 +35,7 @@ path = "VERSION"
 include = [
     "src/tools/ddebug/*.py",
     "src/tools/ci/*.py",
+    "src/tools/optimize/*.py",
     "src/tools/ci/vfc_ci_report/*.py",
     "src/tools/ci/vfc_ci_report/templates/index.html",
     "src/tools/ci/vfc_ci_report/static/index.js",
@@ -46,18 +47,20 @@ include = [
 "src/tools" = "verificarlo"
 "src/tools/ddebug" = "verificarlo/"
 "src/tools/ci" = "verificarlo/ci"
+"src/tools/optimize" = "verificarlo/optimize"
 "src/tools/ci/vfc_ci_report" = "verificarlo/ci/vfc_ci_report"
 "src/tools/ci/workflow_templates" = "verificarlo/ci/workflow_templates"
 "src/tools/ci/vfc_ci_report/static" = "verificarlo/ci/vfc_ci_report/static"
 
 
 [tool.hatch.build.targets.verificarlo]
-packages = ["src/tools/ddebug", "src/tools/ci"]
+packages = ["src/tools/ddebug", "src/tools/ci", "src/tools/optimize"]
 
 [project.scripts]
 vfc_ddebug = "verificarlo.ddebug.main:main"
 vfc_ci = "verificarlo.ci.__main__:main"
 vfc_precexp = "verificarlo.optimize.precexp:main"
+vfc_piecewise = "verificarlo.optimize.piecewise:main"
 vfc_report = "verificarlo.optimize.report:main"
 vfc_vtk = "verificarlo.vtk.__main__:main"
 
