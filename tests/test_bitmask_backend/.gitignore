@@ -5,3 +5,4 @@ test_double
 test_float
 test.log
 check_status.py
+tmp.*
