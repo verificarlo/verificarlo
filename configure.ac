@@ -237,6 +237,7 @@ AX_COMPARE_VERSION([$PYTHON_VERSION],[ge],['3.11.0'],
   [PYTHON_INSTALL_FLAGS="--break-system-packages"],  # If Python version >= 3.11
   [PYTHON_INSTALL_FLAGS=""]                          # If Python version < 3.11
 )
+AC_SUBST(PYTHON_INSTALL_FLAGS, $PYTHON_INSTALL_FLAGS)
 
 # Check for uv package manager
 AC_PATH_PROG([UV], [uv], [])

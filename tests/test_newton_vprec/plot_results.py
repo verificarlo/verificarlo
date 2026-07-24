@@ -6,15 +6,11 @@ Dynamically reads experiment log files and schedule files to produce:
 2. Animation 2: plot_piecewise_animation.gif (Convergence process animation)
 """
 import sys
-import math
 import os
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-
-PI = 3.141592653589793238462643383279502884
-TARGET_INVERSE_PI = 1.0 / PI
 
 def read_results_file(filename):
     iters, x_vals, rel_errs, s10s, s2s = [], [], [], [], []
