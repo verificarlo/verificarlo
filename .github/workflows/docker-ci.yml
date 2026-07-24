@@ -36,6 +36,21 @@ jobs:
       - name: Test
         run: |
           docker run --rm ${{ env.TEST_TAG }} /bin/bash -c "make -C /build/verificarlo installcheck"
+      - name: Verify uv is used for the Python install when available
+        run: |
+          docker run -d --name uv-check ${{ env.TEST_TAG }} sleep infinity
+          docker exec uv-check pip install --break-system-packages uv
+          docker exec uv-check bash -c "command -v uv"
+          # Re-run configure so AC_PATH_PROG([UV], ...) picks up the uv we
+          # just installed (--recheck only refreshes config.status; a plain
+          # config.status run is still needed to regenerate the Makefile).
+          docker exec -w /build/verificarlo uv-check bash -c "./config.status --recheck && ./config.status"
+          docker exec -w /build/verificarlo uv-check bash -c "grep -qE '^UV = .+uv$' Makefile"
+          docker exec -w /build/verificarlo uv-check bash -c "set -o pipefail; make install-exec-hook 2>&1 | tee /tmp/install.log"
+          docker exec uv-check bash -c "grep -qE 'uv pip install( --system.*)? \.' /tmp/install.log"
+      - name: Clean up uv-check container
+        if: always()
+        run: docker rm -f uv-check || true
       - name: Build and push
         if: github.event_name == 'release'
         uses: docker/build-push-action@v5

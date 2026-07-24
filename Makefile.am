@@ -33,7 +33,11 @@ install-interflop-stdlib:
 
 install-exec-hook: install-interflop-stdlib
 	if test -n "$(UV)"; then \
-		$(UV) pip install . ; \
+		if test -n "$$VIRTUAL_ENV"; then \
+			$(UV) pip install . ; \
+		else \
+			$(UV) pip install --system $(PYTHON_INSTALL_FLAGS) . ; \
+		fi ; \
 	else \
 		$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS) . ; \
 	fi && \
