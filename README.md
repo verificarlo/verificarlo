@@ -156,6 +156,7 @@ the function granularity level. Please refer to the [VPREC Function Instrumentat
 Verificarlo includes a set of [postprocessing tools](doc/06-Postprocessing.md) to help analyze Verificarlo results and produce high-level reports.
 
   * [Find Optimal precision with vfc_precexp and vfc_report](doc/06-Postprocessing.md#find-optimal-precision-with-vfc_precexp-and-vfc_report)
+  * [Find a piecewise virtual precision schedule with vfc_piecewise](doc/06-Postprocessing.md#find-a-piecewise-virtual-precision-schedule-with-vfc_piecewise)
   * [Unstable branch detection](doc/06-Postprocessing.md#unstable-branch-detection)
   * [VFC-VTK](doc/06-Postprocessing.md#vfc-vtk)
   * [Verificarlo CI](doc/06-Postprocessing.md#verificarlo-ci)
