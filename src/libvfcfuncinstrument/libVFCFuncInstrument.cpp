@@ -181,6 +181,202 @@ unsigned int getSizeOf(Value *V, const Function *F) {
   return 0;
 }
 
+// Unwrap array and vector types down to their element type
+Type *getElementTypeOf(Type *Ty) {
+  while (Ty != NULL && (Ty->isArrayTy() || Ty->isVectorTy())) {
+    Ty = Ty->isArrayTy() ? Ty->getArrayElementType()
+                         : cast<VectorType>(Ty)->getElementType();
+  }
+  return Ty;
+}
+
+// Recover the type V points to, or NULL when it cannot be determined.
+//
+// Pointers have been opaque since LLVM 15: `ptr` carries no pointee type, so
+// FloatPtrTy, DoublePtrTy and a plain char* are all the very same LLVM type.
+// Comparing an argument's type against DoublePtrTy therefore matches *every*
+// pointer, which is how string literals ended up being reported to the
+// backends as arrays of floating-point values. The pointee has to be recovered
+// instead, here by walking back to the allocation the pointer comes from.
+Type *getPointeeType(Value *V, unsigned int depth = 0) {
+  const unsigned int max_depth = 8;
+
+  if (V == NULL || depth > max_depth) {
+    return NULL;
+  }
+
+  if (AllocaInst *Alloca = dyn_cast<AllocaInst>(V)) {
+    // A variable-length array is a scalar alloca carrying a count operand, so
+    // its allocated type is already the element type; a fixed-size array is an
+    // array type and needs unwrapping.
+    return getElementTypeOf(Alloca->getAllocatedType());
+  }
+
+  if (GlobalVariable *Global = dyn_cast<GlobalVariable>(V)) {
+    return getElementTypeOf(Global->getValueType());
+  }
+
+  if (GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(V)) {
+    Type *Source = getElementTypeOf(GEP->getSourceElementType());
+    if (Source == FloatTy || Source == DoubleTy) {
+      return Source;
+    }
+    return getPointeeType(GEP->getPointerOperand(), depth + 1);
+  }
+
+  if (CastInst *Cast = dyn_cast<CastInst>(V)) {
+    return getPointeeType(Cast->getOperand(0), depth + 1);
+  }
+
+  if (LoadInst *Load = dyn_cast<LoadInst>(V)) {
+    // Look through the stack slot clang gives every parameter at -O0:
+    //   %f.addr = alloca ptr / store ptr %f, ptr %f.addr / load ptr, %f.addr
+    // Only a slot written exactly once tells us anything.
+    AllocaInst *Slot = dyn_cast<AllocaInst>(Load->getPointerOperand());
+    if (Slot == NULL || !Slot->getAllocatedType()->isPointerTy()) {
+      return NULL;
+    }
+
+    StoreInst *Stored = NULL;
+    for (const auto &U : Slot->users()) {
+      if (StoreInst *Store = dyn_cast<StoreInst>(U)) {
+        if (Stored != NULL) {
+          return NULL;
+        }
+        Stored = Store;
+      }
+    }
+
+    if (Stored == NULL) {
+      return NULL;
+    }
+    return getPointeeType(Stored->getValueOperand(), depth + 1);
+  }
+
+  if (Argument *Arg = dyn_cast<Argument>(V)) {
+    // The pointer was handed to us by our own callers; ask them.
+    Function *Parent = Arg->getParent();
+    for (const auto &U : Parent->users()) {
+      if (CallInst *Call = dyn_cast<CallInst>(U)) {
+        if (Call->getCalledFunction() == Parent &&
+            Arg->getArgNo() < Call->arg_size()) {
+          Type *Pointee =
+              getPointeeType(Call->getArgOperand(Arg->getArgNo()), depth + 1);
+          if (Pointee != NULL) {
+            return Pointee;
+          }
+        }
+      }
+    }
+    return NULL;
+  }
+
+  return NULL;
+}
+
+// Recover the type parameter `argNo` of F points to by looking at how F uses
+// it. Complements getPointeeType: at -O0 clang copies every parameter into a
+// stack slot, so the pointer handed to a call is usually a load whose origin
+// cannot be traced, but the callee's own body indexes it with a typed GEP.
+// Returns NULL for a declaration, which is the honest answer for a function
+// whose body this module cannot see.
+Type *getParamPointeeTypeFromBody(Function *F, unsigned int argNo) {
+  if (F == NULL || F->isDeclaration() || argNo >= F->arg_size()) {
+    return NULL;
+  }
+
+  const Argument *Arg = F->getArg(argNo);
+
+  for (const auto &U : Arg->users()) {
+    if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(U)) {
+      if (GEP->getPointerOperand() == Arg) {
+        Type *Source = getElementTypeOf(GEP->getSourceElementType());
+        if (Source == FloatTy || Source == DoubleTy) {
+          return Source;
+        }
+      }
+    } else if (const LoadInst *Load = dyn_cast<LoadInst>(U)) {
+      if (Load->getPointerOperand() == Arg &&
+          (Load->getType() == FloatTy || Load->getType() == DoubleTy)) {
+        return Load->getType();
+      }
+    } else if (const StoreInst *Store = dyn_cast<StoreInst>(U)) {
+      Type *StoredTy = Store->getValueOperand()->getType();
+      if (Store->getPointerOperand() == Arg &&
+          (StoredTy == FloatTy || StoredTy == DoubleTy)) {
+        return StoredTy;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+// Recover the type the value returned by F points to, or NULL
+Type *getReturnPointeeType(Function *F) {
+  if (F == NULL || F->isDeclaration()) {
+    return NULL;
+  }
+
+  for (auto &BB : (*F)) {
+    if (ReturnInst *Ret = dyn_cast<ReturnInst>(BB.getTerminator())) {
+      Type *Pointee = getPointeeType(Ret->getReturnValue());
+      if (Pointee != NULL) {
+        return Pointee;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+FTYPES ftypesFromPointeeType(Type *Pointee) {
+  if (Pointee == FloatTy)
+    return FFLOAT_PTR;
+  if (Pointee == DoubleTy)
+    return FDOUBLE_PTR;
+  return FTYPES_END;
+}
+
+// Classify parameter `argNo` of the hook function.
+//
+// Scalars are read straight off the type. Pointers cannot be: opaque pointers
+// make every pointer the same type, so the pointee is recovered from the
+// callee's body first, then from where the pointer was allocated. A pointer
+// whose pointee cannot be established is reported as FTYPES_END and left out
+// of the instrumentation entirely -- passing it to the backends as a
+// floating-point buffer would have them read, and round, memory that holds
+// something else.
+FTYPES classifyHookArg(Type *argTy, unsigned int argNo,
+                       Function *HookedFunction, const CallInst *call) {
+  if (argTy == FloatTy)
+    return FFLOAT;
+  if (argTy == DoubleTy)
+    return FDOUBLE;
+  if (not argTy->isPointerTy() or call == NULL)
+    return FTYPES_END;
+
+  Type *Pointee = getParamPointeeTypeFromBody(HookedFunction, argNo);
+  if (Pointee == NULL) {
+    Pointee = getPointeeType(call->getArgOperand(argNo));
+  }
+
+  return ftypesFromPointeeType(Pointee);
+}
+
+// Same, for the value returned by the hooked function
+FTYPES classifyHookReturn(Type *retTy, Function *HookedFunction,
+                          const CallInst *call) {
+  if (retTy == FloatTy)
+    return FFLOAT;
+  if (retTy == DoubleTy)
+    return FDOUBLE;
+  if (not retTy->isPointerTy() or call == NULL)
+    return FTYPES_END;
+
+  return ftypesFromPointeeType(getReturnPointeeType(HookedFunction));
+}
+
 // Get the Name of the given argument V
 std::string getArgName(Function *F, unsigned int i) {
   for (auto &BB : (*F)) {
@@ -212,37 +408,32 @@ void allocateMemoryForPointers(Function *CurrentFunction,
                                size_t &input_cpt, size_t &output_cpt,
                                const CallInst *call) {
 
+  // The counts computed here must match, one for one, the arguments pushed by
+  // initializeInputArgs and initializeOutputArgs: they are the element counts
+  // of the variadic lists passed to vfc_enter_function and vfc_exit_function.
+  // Both go through classifyHookArg / classifyHookReturn for that reason.
   Type *RetTy = HookedFunction->getReturnType();
-  if (RetTy == DoubleTy or RetTy == FloatTy) {
+  FTYPES retType = classifyHookReturn(RetTy, HookedFunction, call);
+  if (retType == FFLOAT or retType == FDOUBLE) {
     OutputAlloca.push_back(Builder.CreateAlloca(RetTy, nullptr));
     output_cpt++;
-  } else if ((RetTy == FloatPtrTy or RetTy == DoublePtrTy) and call) {
+  } else if (retType != FTYPES_END) {
     output_cpt++;
   }
 
   for (auto &args : CurrentFunction->args()) {
     Type *argTy = args.getType();
-    if (argTy == DoubleTy or argTy == FloatTy) {
+    FTYPES type =
+        classifyHookArg(argTy, args.getArgNo(), HookedFunction, call);
+    if (type == FFLOAT or type == FDOUBLE) {
       InputAlloca.push_back(Builder.CreateAlloca(argTy, nullptr));
       input_cpt++;
-    } else if ((argTy == FloatPtrTy or argTy == DoublePtrTy) and call) {
+    } else if (type != FTYPES_END) {
       input_cpt++;
       output_cpt++;
     }
   }
 };
-
-FTYPES ftypesFromType(Type *Ty) {
-  if (Ty == FloatTy)
-    return FFLOAT;
-  if (Ty == DoubleTy)
-    return FDOUBLE;
-  if (Ty == FloatPtrTy)
-    return FFLOAT_PTR;
-  if (Ty == DoublePtrTy)
-    return FDOUBLE_PTR;
-  return FTYPES_END;
-}
 
 void initializeInputArgs(std::vector<Value *> &EnterArgs,
                          Function *CurrentFunction, Function *HookedFunction,
@@ -251,19 +442,22 @@ void initializeInputArgs(std::vector<Value *> &EnterArgs,
   size_t input_index = 0;
   for (auto &args : CurrentFunction->args()) {
     Type *argTy = args.getType();
-    FTYPES type = ftypesFromType(argTy);
+    FTYPES type =
+        classifyHookArg(argTy, args.getArgNo(), HookedFunction, call);
 
-    if (type != FTYPES_END) {
-      std::string arg_name = getArgName(HookedFunction, args.getArgNo());
-      EnterArgs.push_back(Types2val[type]);
-      EnterArgs.push_back(Builder.CreateGlobalStringPtr(arg_name));
+    if (type == FTYPES_END) {
+      continue;
     }
 
-    if (argTy == DoubleTy or argTy == FloatTy) {
+    std::string arg_name = getArgName(HookedFunction, args.getArgNo());
+    EnterArgs.push_back(Types2val[type]);
+    EnterArgs.push_back(Builder.CreateGlobalStringPtr(arg_name));
+
+    if (type == FFLOAT or type == FDOUBLE) {
       EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
       EnterArgs.push_back(InputAlloca[input_index]);
       Builder.CreateStore(&args, InputAlloca[input_index++]);
-    } else if ((argTy == FloatPtrTy or argTy == DoublePtrTy) and call) {
+    } else {
       unsigned int size = getSizeOf(call->getOperand(args.getArgNo()),
                                     call->getParent()->getParent());
       EnterArgs.push_back(ConstantInt::get(Int32Ty, size));
@@ -279,28 +473,27 @@ void initializeOutputArgs(std::vector<Value *> &ExitArgs,
                           std::vector<Value *> &OutputAlloca) {
 
   Type *retTy = ret->getType();
-  FTYPES type = ftypesFromType(retTy);
+  FTYPES type = classifyHookReturn(retTy, HookedFunction, call);
 
   if (type != FTYPES_END) {
     ExitArgs.push_back(Types2val[type]);
     ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
-  }
 
-  if (retTy == FloatTy or retTy == DoubleTy) {
-    ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
-    ExitArgs.push_back(OutputAlloca[0]);
-    Builder.CreateStore(ret, OutputAlloca[0]);
-  } else if ((retTy == FloatPtrTy or retTy == DoublePtrTy) and
-             call != nullptr) {
-    unsigned int size = getSizeOf(ret, call->getParent()->getParent());
-    ExitArgs.push_back(ConstantInt::get(Int32Ty, size));
-    ExitArgs.push_back(ret);
+    if (type == FFLOAT or type == FDOUBLE) {
+      ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
+      ExitArgs.push_back(OutputAlloca[0]);
+      Builder.CreateStore(ret, OutputAlloca[0]);
+    } else {
+      unsigned int size = getSizeOf(ret, call->getParent()->getParent());
+      ExitArgs.push_back(ConstantInt::get(Int32Ty, size));
+      ExitArgs.push_back(ret);
+    }
   }
 
   for (auto &args : CurrentFunction->args()) {
     Type *argTy = args.getType();
-    type = ftypesFromType(argTy);
-    if ((argTy == FloatPtrTy or argTy == DoublePtrTy) and call != nullptr) {
+    type = classifyHookArg(argTy, args.getArgNo(), HookedFunction, call);
+    if (type == FFLOAT_PTR or type == FDOUBLE_PTR) {
       std::string arg_name = getArgName(HookedFunction, args.getArgNo());
       ExitArgs.push_back(Types2val[type]);
       ExitArgs.push_back(Builder.CreateGlobalStringPtr(arg_name));
