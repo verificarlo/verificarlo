@@ -122,11 +122,20 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
       }
     }
   } else if (call != NULL) {
+    // Since LLVM 15 pointers are opaque: FloatPtrTy and DoublePtrTy are both
+    // the type-less `ptr`, so a pointer operand tells us nothing about the
+    // pointee. For intrinsics that guess is not merely imprecise, it is
+    // harmful: it marks pointer-only intrinsics such as llvm.stackrestore or
+    // llvm.va_start as floating-point ones, which lets them be moved into a
+    // hook function. Only genuine float/double operands count for intrinsics.
+    const bool is_intrinsic = (f != NULL && f->isIntrinsic());
+
     // Loop over arguments types
     for (auto it = call->op_begin(); it < call->op_end() - 1; it++) {
-      if ((*it)->getType() == FloatTy || (*it)->getType() == FloatPtrTy)
+      Type *opType = (*it)->getType();
+      if (opType == FloatTy || (!is_intrinsic && opType == FloatPtrTy))
         (*use_float) = true;
-      if ((*it)->getType() == DoubleTy || (*it)->getType() == DoublePtrTy)
+      if (opType == DoubleTy || (!is_intrinsic && opType == DoublePtrTy))
         (*use_double) = true;
     }
   }
@@ -389,6 +398,51 @@ bool isLLVMDebugFunction(Function &F) {
   return STARTS_WITH(name, "llvm.dbg.") || STARTS_WITH(name, "llvm.lifetime.");
 }
 
+// Intrinsics whose meaning depends on the frame that executes them.
+//
+// Instrumenting a call moves it into an out-of-line hook function; for these
+// intrinsics that move changes the semantics of the program. llvm.stackrestore
+// is the worst case: run from the hook it rewinds the stack pointer past the
+// hook's own frame, so the hook returns through a destroyed return address.
+// That is what made any function declaring a variable-length array segfault
+// under --inst-func, since clang brackets a VLA with a llvm.stacksave /
+// llvm.stackrestore pair.
+//
+// Matching on the name rather than on Intrinsic::* keeps this working across
+// the LLVM versions we support, and tolerates the type suffixes recent
+// releases append (llvm.stackrestore.p0, llvm.va_start.p0, ...).
+bool mustStayInCallingFrame(Function &F) {
+  if (!F.isIntrinsic()) {
+    return false;
+  }
+
+  static const char *const Prefixes[] = {
+      // stack pointer save/restore, as emitted around VLAs
+      "llvm.stacksave", "llvm.stackrestore",
+      // variadic argument handling
+      "llvm.va_start", "llvm.va_end", "llvm.va_copy",
+      // frame and return address introspection
+      "llvm.frameaddress", "llvm.returnaddress", "llvm.addressofreturnaddress",
+      "llvm.sponentry",
+      // frame-local escape/recover, must stay in the defining function
+      "llvm.localescape", "llvm.localrecover",
+      // stack protector support
+      "llvm.stackguard", "llvm.stackprotector",
+      // exception handling and coroutines
+      "llvm.eh.", "llvm.seh.", "llvm.coro.",
+      // garbage collection roots are frame slots
+      "llvm.gcroot", "llvm.experimental.stackmap",
+      "llvm.experimental.patchpoint"};
+
+  StringRef name = F.getName();
+  for (const char *Prefix : Prefixes) {
+    if (STARTS_WITH(name, Prefix)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 struct VfclibFunc : public ModulePass {
   static char ID;
   std::vector<Function *> OriginalFunctions;
@@ -518,7 +572,7 @@ struct VfclibFunc : public ModulePass {
             if (isa<CallInst>(pi)) {
               // collect metadata info //
               if (Function *f = cast<CallInst>(pi)->getCalledFunction()) {
-                if (isLLVMDebugFunction(*f)) {
+                if (isLLVMDebugFunction(*f) || mustStayInCallingFrame(*f)) {
                   continue;
                 }
 
