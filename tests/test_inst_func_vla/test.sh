@@ -56,5 +56,35 @@ if ! grep -q "vfc_.*llvm\.fma\.f64.*_hook" "${instrumented}"; then
 	exit 1
 fi
 
+# 4. Opaque pointers make every pointer the same LLVM type, so the pass has to
+# recover the pointee. A string must not be handed to the backends as an array
+# of floating-point values, and the VLA must still be handed over as one.
+VFC_BACKENDS="libinterflop_vprec.so --prec-output-file=args.prof" ./test 100 >/dev/null
+
+# Argument type codes, from enum FTYPES: 3 is FFLOAT_PTR, 4 is FDOUBLE_PTR.
+if ! awk -F'\t' '
+	/^(input|output):/ {
+		if (fn ~ /\/(printf|atoi)\// && ($3 == 3 || $3 == 4)) {
+			print "string argument of " fn " profiled as a floating-point pointer"
+			bad = 1
+		}
+		if ($3 == 4) {
+			seen_double_ptr = 1
+		}
+		next
+	}
+	{ fn = $1 }
+	END {
+		if (!seen_double_ptr) {
+			print "the variable-length array was not profiled as a binary64 pointer"
+			bad = 1
+		}
+		exit bad + 0
+	}
+' args.prof; then
+	cat args.prof
+	exit 1
+fi
+
 echo "test passed"
 exit 0
