@@ -180,6 +180,19 @@ Thanks! :sparkles:
 
 For questions, feedback, or discussions about Verificarlo, you can use the [Discussions section](https://github.com/verificarlo/verificarlo/discussions) on our GitHub project page.
 
+## Development
+
+Enable the repository's pre-commit hooks once per clone:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+The hook requires clang-format 20 and checks the staged tree with the same
+LLVM style and source exclusions as the GitHub Actions clang-format lint.
+Set `CLANG_FORMAT` to the clang-format 20 executable when it is not available
+as `clang-format-20` or `clang-format`.
+
 ## License
 This file is part of the Verificarlo project,                        
 under the Apache License v2.0 with LLVM Exceptions.                 
