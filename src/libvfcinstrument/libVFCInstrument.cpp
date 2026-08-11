@@ -34,8 +34,8 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/TargetParser/Triple.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
 #pragma GCC diagnostic pop
 
@@ -72,11 +72,6 @@ static cl::opt<std::string> VfclibInstExcludeFile(
     cl::desc("Do not instrument modules / functions in file ExcludeNameFile "),
     cl::value_desc("ExcludeNameFile"), cl::init(""));
 
-static cl::opt<std::string>
-    VfclibInstVfcwrapper("vfclibinst-vfcwrapper-file",
-                         cl::desc("Name of the vfcwrapper IR file "),
-                         cl::value_desc("VfcwrapperIRFile"), cl::init(""));
-
 static cl::opt<bool> VfclibInstVerbose("vfclibinst-verbose",
                                        cl::desc("Activate verbose mode"),
                                        cl::value_desc("Verbose"),
@@ -96,9 +91,6 @@ static cl::opt<bool> VfclibInstInstrumentCast(
     "vfclibinst-inst-cast",
     cl::desc("Instrument floating point cast instructions"),
     cl::value_desc("InstrumentCast"), cl::init(false));
-
-/* pointer that hold the vfcwrapper Module */
-static Module *vfcwrapperM = nullptr;
 
 namespace {
 // Define an enum type to classify the floating points operations
@@ -249,22 +241,8 @@ struct VfclibInst : public ModulePass {
     return std::regex(moduleRegex);
   }
 
-  /* Load vfcwrapper.ll Module */
-  void loadVfcwrapperIR(Module &M) {
-    SMDiagnostic err;
-    std::unique_ptr<Module> _M =
-        parseIRFile(VfclibInstVfcwrapper, err, M.getContext());
-    if (_M.get() == nullptr) {
-      err.print(VfclibInstVfcwrapper.c_str(), errs());
-      report_fatal_error("libVFCInstrument fatal error");
-    }
-    vfcwrapperM = _M.release();
-  }
-
   bool runOnModule(Module &M) {
     bool modified = false;
-
-    loadVfcwrapperIR(M);
 
     // Parse both included and excluded function set
     std::regex includeFunctionRgx =
@@ -450,9 +428,7 @@ struct VfclibInst : public ModulePass {
     CallInst *newInst = Builder.CreateCall(F, {op1, op2});
     newInst->setAttributes(F->getAttributes());
 
-    newInst = dyn_cast<CallInst>(updateReturn(Builder, newInst, retType));
-
-    return newInst;
+    return updateReturn(Builder, newInst, retType);
   }
 
   /* Replace fma arithmetic instructions with MCA */
@@ -472,9 +448,7 @@ struct VfclibInst : public ModulePass {
     CallInst *newInst = Builder.CreateCall(F, {op1, op2, op3});
     newInst->setAttributes(F->getAttributes());
 
-    newInst = dyn_cast<CallInst>(updateReturn(Builder, newInst, retType));
-
-    return newInst;
+    return updateReturn(Builder, newInst, retType);
   }
 
   /* Replace comparison instructions with MCA */
@@ -499,47 +473,290 @@ struct VfclibInst : public ModulePass {
     }
     Value *newInst = Builder.CreateCall(
         F, {Builder.getInt32(FCI->getPredicate()), op1, op2});
-    newInst = Builder.CreateIntCast(newInst, retType, true);
-    return newInst;
+    if (newInst->getType() != res) {
+      if (CastInst::isBitCastable(newInst->getType(), res)) {
+        newInst = Builder.CreateBitCast(newInst, res);
+      }
+    }
+    if (newInst->getType() == retType) {
+      return newInst;
+    }
+    return Builder.CreateIntCast(newInst, retType, true);
   }
 
   /* Replace cast instruction with MCA */
   Value *replaceCastWithMCACall(IRBuilder<> &Builder, Function *F,
                                 Instruction *I) {
-
-    Type *srcType = I->getOperand(0)->getType();
     Type *dstType = I->getType();
-
     Value *op = I->getOperand(0);
-
     op = updateOperand(Builder, F, op, 0);
-
     CallInst *newInst = Builder.CreateCall(F, {op});
     newInst->setAttributes(F->getAttributes());
-
-    newInst = dyn_cast<CallInst>(updateReturn(Builder, newInst, dstType));
-
-    return newInst;
+    return updateReturn(Builder, newInst, dstType);
   }
 
-  /* Returns the MCA function */
+  /* Returns the MCA function declaration.
+   *
+   * For vector operations the pass selects an ISA-specific symbol
+   * (e.g. "_4xfloatadd_avx2") from the caller target-features and synthesizes
+   * the ABI-correct LLVM declaration directly.
+   *
+   * Scalar operations always use the generic scalar dispatch wrapper.
+   */
   Function *getMCAFunction(Module &M, Instruction *I, FPOps opCode) {
-    const std::string mcaFunctionName = getMCAFunctionName(I, opCode);
-    Function *vfcwrapperF = vfcwrapperM->getFunction(mcaFunctionName);
-    FunctionCallee callee =
-        M.getOrInsertFunction(mcaFunctionName, vfcwrapperF->getFunctionType(),
-                              vfcwrapperF->getAttributes());
-    Function *newVfcWrapperF = dyn_cast<Function>(callee.getCallee());
-    return newVfcWrapperF;
+    std::string name = getMCAFunctionName(I, opCode);
+    std::string isaSuffix;
+
+    // For vector operations attempt an ISA-specific lookup first
+    bool isVector = I->getOperand(0)->getType()->isVectorTy();
+    if (isVector and opCode != FOP_CAST) {
+      isaSuffix = getISASuffix(I->getFunction());
+      unsigned maxDirectWidth = getMaxDirectVectorWidth(M, isaSuffix);
+      if (maxDirectWidth != 0) {
+        Type *resultType = opCode == FOP_CMP ? getComparisonResultType(I, M)
+                                             : getABIType(I->getType(), M);
+        if (auto *vecTy = dyn_cast<FixedVectorType>(resultType)) {
+          if (vecTy->getPrimitiveSizeInBits().getFixedValue() >
+              maxDirectWidth) {
+            return nullptr;
+          }
+        }
+      }
+      if (not isaSuffix.empty()) {
+        name += isaSuffix;
+      }
+    }
+    return createMCAFunctionDeclaration(M, name, I, opCode, isaSuffix);
   }
 
-  // Returns true if the caller and the callee agree on how args will be
-  // passed Available in TargetTransformInfoImpl since llvm-8
+  // Returns true if the caller and the callee do NOT agree on how args will be
+  // passed. Available in TargetTransformInfoImpl since llvm-8
   bool areFunctionArgsABICompatible(Function *caller, Function *callee) {
-    return (callee->getFnAttribute("target-features") !=
-            caller->getFnAttribute("target-features")) and
-           (callee->getFnAttribute("target-cpu") !=
-            caller->getFnAttribute("target-cpu"));
+    if (callee->getReturnType() != caller->getReturnType()) {
+      return true;
+    }
+    if (callee->getFunctionType()->getNumParams() == 0 ||
+        caller->getFunctionType()->getNumParams() == 0) {
+      return false;
+    }
+    return callee->getFunctionType()->getParamType(0) !=
+           caller->getFunctionType()->getParamType(0);
+  }
+
+  /* Returns the ISA suffix for the caller's target-features.
+   *
+   * Checking order follows hardware capability hierarchy so the most capable
+   * level wins.
+   *
+   * x86:  +avx512f → "_avx512"  |  +avx2 → "_avx2"  |  +avx → "_avx"
+   *       otherwise x86-64 defaults to "_sse2"
+   * ARM:  +sve2 → "_sve2"  |  +sve → "_sve"  |  +neon → "_neon"
+   */
+  std::string getISASuffix(Function *caller) {
+    Triple triple(caller->getParent()->getTargetTriple());
+
+    Attribute targetFeatures = caller->getFnAttribute("target-features");
+    StringRef features = targetFeatures.isStringAttribute()
+                             ? targetFeatures.getValueAsString()
+                             : StringRef();
+
+    // x86 — ordered from most to least capable
+    if (triple.isX86()) {
+      if (features.find("+avx512f") != StringRef::npos)
+        return "_avx512";
+      if (features.find("+avx2") != StringRef::npos)
+        return "_avx2";
+      if (features.find("+avx") != StringRef::npos)
+        return "_avx";
+      return "_sse2";
+    }
+
+    // ARM AArch64 — ordered from most to least capable
+    if (!triple.isAArch64())
+      return "";
+    if (features.find("+sve2") != StringRef::npos)
+      return "_sve2";
+    if (features.find("+sve") != StringRef::npos)
+      return "_sve";
+    if (features.find("+neon") != StringRef::npos)
+      return "_neon";
+
+    return "";
+  }
+
+  unsigned getMaxDirectVectorWidth(Module &M, StringRef isaSuffix) {
+    Triple triple(M.getTargetTriple());
+    if (triple.isX86()) {
+      if (isaSuffix == "_avx512")
+        return 512;
+      if (isaSuffix == "_avx2" || isaSuffix == "_avx")
+        return 256;
+      return 128;
+    }
+
+    if (triple.isAArch64()) {
+      if (isaSuffix == "_sve2" || isaSuffix == "_sve")
+        return 0;
+      return 128;
+    }
+
+    return 0;
+  }
+
+  bool shouldPassIndirectly(Type *Ty, Module &M, StringRef isaSuffix) {
+    auto *vecTy = dyn_cast<FixedVectorType>(Ty);
+    if (vecTy == nullptr)
+      return false;
+
+    unsigned maxDirectWidth = getMaxDirectVectorWidth(M, isaSuffix);
+    if (maxDirectWidth == 0)
+      return false;
+
+    return vecTy->getPrimitiveSizeInBits().getFixedValue() > maxDirectWidth;
+  }
+
+  Type *getABIType(Type *Ty, Module &M) {
+    auto *vecTy = dyn_cast<FixedVectorType>(Ty);
+    if (vecTy == nullptr)
+      return Ty;
+
+    Triple triple(M.getTargetTriple());
+    if (!triple.isX86())
+      return Ty;
+
+    auto bits = vecTy->getPrimitiveSizeInBits().getFixedValue();
+    if (bits == 64) {
+      return Type::getDoubleTy(M.getContext());
+    }
+    return Ty;
+  }
+
+  void addParameter(Type *sourceType, std::vector<Type *> &paramTypes,
+                    std::vector<std::pair<unsigned, Type *>> &byValParams,
+                    Module &M, StringRef isaSuffix) {
+    if (shouldPassIndirectly(sourceType, M, isaSuffix)) {
+      unsigned index = paramTypes.size();
+      paramTypes.push_back(PointerType::getUnqual(M.getContext()));
+      byValParams.push_back({index, sourceType});
+      return;
+    }
+    paramTypes.push_back(getABIType(sourceType, M));
+  }
+
+  void addTargetAttributes(Function *F, StringRef isaSuffix) {
+    if (isaSuffix.empty())
+      return;
+
+    if (isaSuffix == "_avx512") {
+      F->addFnAttr("target-features", "+avx512f");
+    } else if (isaSuffix == "_avx2") {
+      F->addFnAttr("target-features", "+avx,+avx2");
+    } else if (isaSuffix == "_avx") {
+      F->addFnAttr("target-features", "+avx");
+    } else if (isaSuffix == "_sse2") {
+      F->addFnAttr("target-features", "+sse2");
+    } else if (isaSuffix == "_sve2") {
+      F->addFnAttr("target-features", "+sve2");
+    } else if (isaSuffix == "_sve") {
+      F->addFnAttr("target-features", "+sve");
+    } else if (isaSuffix == "_neon") {
+      F->addFnAttr("target-features", "+neon");
+    }
+  }
+
+  Type *getComparisonResultType(Instruction *I, Module &M) {
+    Type *opType = I->getOperand(0)->getType();
+    Type *resultType = Type::getInt32Ty(M.getContext());
+
+    if (VectorType *vTy = dyn_cast<VectorType>(opType)) {
+      if (isa<ScalableVectorType>(vTy))
+        report_fatal_error("Scalable vector type are not supported");
+      auto size = cast<FixedVectorType>(vTy)->getNumElements();
+      resultType = GET_VECTOR_TYPE(resultType, size);
+    }
+
+    return getABIType(resultType, M);
+  }
+
+  bool hasExpectedByValABI(
+      Function *F, const std::vector<std::pair<unsigned, Type *>> &byValParams,
+      Module &M) {
+    for (auto &[index, byValType] : byValParams) {
+      Attribute byValAttr =
+          F->getParamAttribute(index, Attribute::AttrKind::ByVal);
+      if (!byValAttr.isValid() || byValAttr.getValueAsType() != byValType)
+        return false;
+
+      Attribute alignAttr =
+          F->getParamAttribute(index, Attribute::AttrKind::Alignment);
+      Align expectedAlign = M.getDataLayout().getABITypeAlign(byValType);
+      if (!alignAttr.isValid() ||
+          alignAttr.getValueAsInt() != expectedAlign.value())
+        return false;
+    }
+    return true;
+  }
+
+  Function *createMCAFunctionDeclaration(Module &M, const std::string &name,
+                                         Instruction *I, FPOps opCode,
+                                         StringRef isaSuffix) {
+    std::vector<Type *> paramTypes;
+    std::vector<std::pair<unsigned, Type *>> byValParams;
+
+    if (opCode == FOP_CMP) {
+      paramTypes.push_back(Type::getInt32Ty(M.getContext()));
+      addParameter(I->getOperand(0)->getType(), paramTypes, byValParams, M,
+                   isaSuffix);
+      addParameter(I->getOperand(1)->getType(), paramTypes, byValParams, M,
+                   isaSuffix);
+    } else if (opCode == FOP_FMA) {
+      addParameter(I->getOperand(0)->getType(), paramTypes, byValParams, M,
+                   isaSuffix);
+      addParameter(I->getOperand(1)->getType(), paramTypes, byValParams, M,
+                   isaSuffix);
+      addParameter(I->getOperand(2)->getType(), paramTypes, byValParams, M,
+                   isaSuffix);
+    } else if (opCode == FOP_CAST) {
+      addParameter(I->getOperand(0)->getType(), paramTypes, byValParams, M,
+                   isaSuffix);
+    } else {
+      addParameter(I->getOperand(0)->getType(), paramTypes, byValParams, M,
+                   isaSuffix);
+      addParameter(I->getOperand(1)->getType(), paramTypes, byValParams, M,
+                   isaSuffix);
+    }
+
+    Type *returnType = opCode == FOP_CMP ? getComparisonResultType(I, M)
+                                         : getABIType(I->getType(), M);
+    FunctionType *functionType =
+        FunctionType::get(returnType, paramTypes, false);
+
+    if (Function *F = M.getFunction(name)) {
+      if (F->getFunctionType() == functionType &&
+          hasExpectedByValABI(F, byValParams, M)) {
+        addTargetAttributes(F, isaSuffix);
+        return F;
+      }
+      if (!F->isDeclaration()) {
+        errs() << "Conflicting MCA helper definition for " << name << "\n";
+        report_fatal_error("libVFCInstrument fatal error");
+      }
+      F->eraseFromParent();
+    }
+
+    auto callee = M.getOrInsertFunction(name, functionType);
+    auto *F = cast<Function>(callee.getCallee());
+
+    for (auto &[index, byValType] : byValParams) {
+      F->addParamAttr(index,
+                      Attribute::getWithByValType(M.getContext(), byValType));
+      F->addParamAttr(index, Attribute::getWithAlignment(
+                                 M.getContext(),
+                                 M.getDataLayout().getABITypeAlign(byValType)));
+    }
+
+    addTargetAttributes(F, isaSuffix);
+    return F;
   }
 
   Value *replaceWithMCACall(Module &M, Instruction *I, FPOps opCode) {
@@ -552,14 +769,21 @@ struct VfclibInst : public ModulePass {
     Function *caller = I->getFunction();
     /* Get the mca function */
     Function *mcaFunction = getMCAFunction(M, I, opCode);
+    if (mcaFunction == nullptr)
+      return nullptr;
 
     // If the caller and the callee (mcaFunction) have different ABI we set the
     // caller attributes to the callee ones.
+    // Guard with isValid(): getFnAttribute returns a null Attribute when the
+    // attribute is absent, and addFnAttr on an invalid Attribute corrupts the
+    // IR and crashes the LLVM verifier.
     if (areFunctionArgsABICompatible(caller, mcaFunction)) {
       auto target_features = mcaFunction->getFnAttribute("target-features");
       auto target_cpu = mcaFunction->getFnAttribute("target-cpu");
-      caller->addFnAttr(target_features);
-      caller->addFnAttr(target_cpu);
+      if (target_features.isValid())
+        caller->addFnAttr(target_features);
+      if (target_cpu.isValid())
+        caller->addFnAttr(target_cpu);
     }
 
     // We call directly a hardcoded helper function

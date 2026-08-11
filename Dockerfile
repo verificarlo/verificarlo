@@ -20,7 +20,7 @@ ENV PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages/:${PYTHONPAT
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Retrieve dependencies
-RUN apt-get -y update && apt-get -y --no-install-recommends install tzdata
+RUN apt-get -y update && apt-get -y --fix-missing --no-install-recommends install tzdata
 
 RUN export UBUNTU_VERSION=$(grep 'VERSION_ID' /etc/os-release | cut -d'=' -f2 | tr -d '"' ) && \
     if [ "$UBUNTU_VERSION" = "24.04" ]; then \
@@ -50,7 +50,7 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 3
     fi && \
     update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-${LLVM_VERSION} 30
 
-ENV LIBRARY_PATH ${GCC_PATH}:$LIBRARY_PATH
+ENV LIBRARY_PATH=${GCC_PATH}:$LIBRARY_PATH
 
 # install bazelisk for prism
 RUN npm install -g @bazel/bazelisk

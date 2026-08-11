@@ -21,14 +21,12 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "llvm/Analysis/CallGraphSCCPass.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Mangler.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
@@ -40,19 +38,11 @@
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/Casting.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #pragma GCC diagnostic pop
-#include <fstream>
-#include <iostream>
-#include <set>
 #include <stdio.h>
 #include <string>
-#include <utility>
-#include <vector>
 
 typedef llvm::LibFunc _LibFunc;
 
@@ -211,7 +201,7 @@ void allocateMemoryForPointers(Function *CurrentFunction,
                                std::vector<Value *> &InputAlloca,
                                std::vector<Value *> &OutputAlloca,
                                size_t &input_cpt, size_t &output_cpt,
-                               const CallInst *call, Module &M) {
+                               const CallInst *call) {
 
   Type *RetTy = HookedFunction->getReturnType();
   if (RetTy == DoubleTy or RetTy == FloatTy) {
@@ -246,7 +236,6 @@ FTYPES ftypesFromType(Type *Ty) {
 }
 
 void initializeInputArgs(std::vector<Value *> &EnterArgs,
-                         std::vector<Value *> &InputMetaData,
                          Function *CurrentFunction, Function *HookedFunction,
                          const CallInst *call, IRBuilder<> &Builder,
                          std::vector<Value *> &InputAlloca) {
@@ -278,7 +267,7 @@ void initializeOutputArgs(std::vector<Value *> &ExitArgs,
                           Function *CurrentFunction, Function *HookedFunction,
                           Value *ret, const CallInst *call,
                           IRBuilder<> &Builder,
-                          std::vector<Value *> &OutputAlloca, Module &M) {
+                          std::vector<Value *> &OutputAlloca) {
 
   Type *retTy = ret->getType();
   FTYPES type = ftypesFromType(retTy);
@@ -316,7 +305,7 @@ void initializeOutputArgs(std::vector<Value *> &ExitArgs,
 
 void InstrumentFunction(std::vector<Value *> MetaData,
                         Function *CurrentFunction, Function *HookedFunction,
-                        const CallInst *call, BasicBlock *B, Module &M) {
+                        const CallInst *call, BasicBlock *B) {
   IRBuilder<> Builder(B);
 
   // Step 1: add space on the heap for pointers
@@ -325,7 +314,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
 
   allocateMemoryForPointers(CurrentFunction, HookedFunction, Builder,
                             InputAlloca, OutputAlloca, input_cpt, output_cpt,
-                            call, M);
+                            call);
 
   std::vector<Value *> InputMetaData = MetaData;
   InputMetaData.push_back(ConstantInt::get(Builder.getInt32Ty(), input_cpt));
@@ -336,8 +325,8 @@ void InstrumentFunction(std::vector<Value *> MetaData,
   // Step 2: for each function input (arguments), add its type, size, name and
   // address to the list of parameters sent to vfc_enter for processing.
   std::vector<Value *> EnterArgs = InputMetaData;
-  initializeInputArgs(EnterArgs, InputMetaData, CurrentFunction, HookedFunction,
-                      call, Builder, InputAlloca);
+  initializeInputArgs(EnterArgs, CurrentFunction, HookedFunction, call, Builder,
+                      InputAlloca);
 
   // Step 3: call vfc_enter
   Builder.CreateCall(func_enter, EnterArgs);
@@ -375,7 +364,7 @@ void InstrumentFunction(std::vector<Value *> MetaData,
   // vfc_exit for processing.
   std::vector<Value *> ExitArgs = OutputMetaData;
   initializeOutputArgs(ExitArgs, CurrentFunction, HookedFunction, ret, call,
-                       Builder, OutputAlloca, M);
+                       Builder, OutputAlloca);
 
   // Step 7: call vfc_exit
   Builder.CreateCall(func_exit, ExitArgs);
@@ -509,7 +498,7 @@ struct VfclibFunc : public ModulePass {
 
       Clone->setName(NewName);
 
-      InstrumentFunction(MetaData, Main, Clone, NULL, block, M);
+      InstrumentFunction(MetaData, Main, Clone, NULL, block);
 
       OriginalFunctions.push_back(Clone);
     }
@@ -609,7 +598,7 @@ struct VfclibFunc : public ModulePass {
 
                   // Instrument the original function call
                   InstrumentFunction(MetaData, hook_func, f, cast<CallInst>(pi),
-                                     block, M);
+                                     block);
                   // Replace the call to the original function by a call to the
                   // hook function
                   cast<CallInst>(pi)->setCalledFunction(hook_func);
