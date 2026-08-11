@@ -16,7 +16,7 @@ else
   exit 1
 fi
 
-version=$($clang_format --version 2>&1) || {
+version=$("$clang_format" --version 2>&1) || {
   echo "Unable to run clang-format using '$clang_format'." >&2
   exit 1
 }

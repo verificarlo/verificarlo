@@ -26,8 +26,8 @@ const auto target_features_debug_abi =
 
 // Taken from
 // https://www.fluentcpp.com/2017/04/21/how-to-split-a-string-in-c/
-static auto split(const std::string &s,
-                  char delimiter) -> std::vector<std::string> {
+static auto split(const std::string &s, char delimiter)
+    -> std::vector<std::string> {
   std::vector<std::string> tokens;
   std::string token;
   std::istringstream tokenStream(s);
@@ -109,8 +109,8 @@ public:
     return (name == rhs.name) and (enabled == rhs.enabled);
   }
 
-  friend auto operator<<(llvm::raw_ostream &OS,
-                         const TargetFeature &TF) -> llvm::raw_ostream & {
+  friend auto operator<<(llvm::raw_ostream &OS, const TargetFeature &TF)
+      -> llvm::raw_ostream & {
     OS << TF.getAsString();
     return OS;
   }
@@ -263,8 +263,8 @@ public:
     return result;
   }
 
-  friend auto operator<<(llvm::raw_ostream &OS,
-                         const TargetFeatures &TF) -> llvm::raw_ostream & {
+  friend auto operator<<(llvm::raw_ostream &OS, const TargetFeatures &TF)
+      -> llvm::raw_ostream & {
     OS << TF.getAsString();
     return OS;
   }
@@ -273,8 +273,8 @@ private:
   std::set<TargetFeature> features;
 };
 
-inline auto
-getHighestSupportedISA_X86_64(const TargetFeatures &features) -> X86_64_ISA {
+inline auto getHighestSupportedISA_X86_64(const TargetFeatures &features)
+    -> X86_64_ISA {
   if (features.hasAttribute("avx512f")) {
     return x86_64_AVX512F;
   }
@@ -299,8 +299,8 @@ getHighestSupportedISA_X86_64(const TargetFeatures &features) -> X86_64_ISA {
   return x86_64_NONE;
 }
 
-inline auto hasFeatures_X86_64(const Attribute &src,
-                               const Attribute &target) -> bool {
+inline auto hasFeatures_X86_64(const Attribute &src, const Attribute &target)
+    -> bool {
   std::vector<std::string> features = {"avx512f", "avx2", "avx", "sse4.2",
                                        "sse3",    "sse2", "sse"};
   for (const auto &feature : features) {
