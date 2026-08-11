@@ -11,6 +11,7 @@ edit_script = $(SED) -e 's,%LIBDIR%,$(libdir),' -e 's,%INCLUDEDIR%,$(includedir)
 verificarlo: verificarlo.in Makefile
 	$(AM_V_GEN)rm -f $@ $@.tmp && \
 	$(edit_script) $< >$@.tmp && \
+	chmod a+x $@.tmp && \
 	chmod a-w $@.tmp && \
 	mv $@.tmp $@
 

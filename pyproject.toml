@@ -39,7 +39,8 @@ include = [
     "src/tools/ci/vfc_ci_report/templates/index.html",
     "src/tools/ci/vfc_ci_report/static/index.js",
     "src/tools/ci/workflow_templates/*.md",
-    "src/tools/ci/workflow_templates/*.yml"
+    "src/tools/ci/workflow_templates/*.yml",
+    "src/tools/usercall/*.py"
 ]
 
 [tool.hatch.build.sources]
@@ -49,10 +50,11 @@ include = [
 "src/tools/ci/vfc_ci_report" = "verificarlo/ci/vfc_ci_report"
 "src/tools/ci/workflow_templates" = "verificarlo/ci/workflow_templates"
 "src/tools/ci/vfc_ci_report/static" = "verificarlo/ci/vfc_ci_report/static"
+"src/tools/usercall" = "verificarlo/usercall"
 
 
 [tool.hatch.build.targets.verificarlo]
-packages = ["src/tools/ddebug", "src/tools/ci"]
+packages = ["src/tools/ddebug", "src/tools/ci", "src/tools/usercall"]
 
 [project.scripts]
 vfc_ddebug = "verificarlo.ddebug.main:main"
