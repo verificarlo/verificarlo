@@ -11,7 +11,7 @@ import sys
 
 from verificarlo.usercall.interflop_call import (
     FType,
-    InterflowCallId,
+    InterflopCallId,
     inexact_double,
     inexact_float,
     interflop_call,
@@ -40,13 +40,14 @@ def fail(msg):
 def test_unit():
     """Verify enum values and module-level helpers without a live backend."""
 
-    # InterflowCallId values must match the C enum in interflop.h
-    assert InterflowCallId.INTERFLOP_CUSTOM_ID == -1, "CUSTOM_ID should be -1"
-    assert InterflowCallId.INTERFLOP_INEXACT_ID == 1, "INEXACT_ID should be 1"
-    assert InterflowCallId.INTERFLOP_SET_PRECISION_BINARY32 == 2
-    assert InterflowCallId.INTERFLOP_SET_PRECISION_BINARY64 == 3
-    assert InterflowCallId.INTERFLOP_SET_RANGE_BINARY32 == 4
-    assert InterflowCallId.INTERFLOP_SET_RANGE_BINARY64 == 5
+    # InterflopCallId values must match the C enum in interflop.h
+    assert InterflopCallId.INTERFLOP_CUSTOM_ID == -1, "CUSTOM_ID should be -1"
+    assert InterflopCallId.INTERFLOP_INEXACT_ID == 1, "INEXACT_ID should be 1"
+    assert InterflopCallId.INTERFLOP_SET_PRECISION_BINARY32 == 2
+    assert InterflopCallId.INTERFLOP_SET_PRECISION_BINARY64 == 3
+    assert InterflopCallId.INTERFLOP_SET_RANGE_BINARY32 == 4
+    assert InterflopCallId.INTERFLOP_SET_RANGE_BINARY64 == 5
+    assert InterflopCallId.INTERFLOP_SET_ROUNDING_MODE == 6
 
     # FType values must match the C enum in interflop.h
     assert FType.FFLOAT == 0
@@ -166,9 +167,9 @@ def test_mca(lib_path):
     # ------------------------------------------------------------------
     # Calling with INTERFLOP_SET_PRECISION_BINARY32 via the low-level API
     # should produce the same effect as set_precision_binary32.
-    interflop_call(InterflowCallId.INTERFLOP_SET_PRECISION_BINARY32, ctypes.c_int(23))
+    interflop_call(InterflopCallId.INTERFLOP_SET_PRECISION_BINARY32, ctypes.c_int(24))
     result_via_lowlevel = lib.compute_float()
-    interflop_call(InterflowCallId.INTERFLOP_SET_PRECISION_BINARY32, ctypes.c_int(10))
+    interflop_call(InterflopCallId.INTERFLOP_SET_PRECISION_BINARY32, ctypes.c_int(10))
     result_via_helper = lib.compute_float()
     if result_via_lowlevel == result_via_helper:
         fail(
@@ -182,7 +183,7 @@ def test_mca(lib_path):
     reset()
     # After reset, a new call should re-resolve interflop_call from the
     # already-loaded process symbols and succeed without error.
-    set_precision_binary32(23)
+    set_precision_binary32(24)
 
     print("mca tests passed")
 

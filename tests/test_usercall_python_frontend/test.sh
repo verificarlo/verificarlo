@@ -45,8 +45,8 @@ check_status
 #    Full precision to start with; tests reduce the range mid-execution.
 # -----------------------------------------------------------------------
 VFC_BACKENDS="libinterflop_vprec.so \
-    --precision-binary32=23 --range-binary32=8 \
-    --precision-binary64=52 --range-binary64=11" \
+    --precision-binary32=24 --range-binary32=8 \
+    --precision-binary64=53 --range-binary64=11" \
     python3 test.py vprec ./libcompute.so
 check_status
 

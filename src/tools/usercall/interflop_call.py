@@ -31,6 +31,7 @@ Supported call IDs and their variadic arguments:
     INTERFLOP_SET_PRECISION_BINARY64(int precision)
     INTERFLOP_SET_RANGE_BINARY32(int range)
     INTERFLOP_SET_RANGE_BINARY64(int range)
+    INTERFLOP_SET_ROUNDING_MODE(int mode)
     INTERFLOP_INEXACT_ID(enum FTYPES type, void *value, int precision)
     INTERFLOP_CUSTOM_ID(...)  -- backend-specific
 """
@@ -42,7 +43,7 @@ from contextlib import contextmanager
 from typing import Union
 
 
-class InterflowCallId(enum.IntEnum):
+class InterflopCallId(enum.IntEnum):
     """Identifiers for interflop_call operations.
 
     Mirrors the interflop_call_id C enum from interflop.h.
@@ -54,6 +55,7 @@ class InterflowCallId(enum.IntEnum):
     INTERFLOP_SET_PRECISION_BINARY64 = 3
     INTERFLOP_SET_RANGE_BINARY32 = 4
     INTERFLOP_SET_RANGE_BINARY64 = 5
+    INTERFLOP_SET_ROUNDING_MODE = 6
 
 
 class FType(enum.IntEnum):
@@ -79,8 +81,8 @@ def _get_interflop_call():
 
     Search order:
     1. RTLD_DEFAULT (symbols already loaded in the current process), which
-       covers programs that link directly against libvfcwrapper.so.
-    2. An explicit dlopen of libvfcwrapper.so as a fallback.
+       covers programs that link directly against libinterflop_vfcwrapper.so.
+    2. An explicit dlopen of libinterflop_vfcwrapper.so as a fallback.
 
     Raises:
         RuntimeError: If interflop_call cannot be found.
@@ -114,7 +116,8 @@ def _get_interflop_call():
     raise RuntimeError(
         "interflop_call not found. "
         "Load a verificarlo-instrumented shared library before calling "
-        "these functions, or make sure libinterflop_vfcwrapper.so is on LD_LIBRARY_PATH."
+        "these functions, or make sure libinterflop_vfcwrapper.so is on "
+        "LD_LIBRARY_PATH."
     )
 
 
@@ -133,33 +136,31 @@ def reset() -> None:
 
 
 def set_precision_binary32(precision: int) -> None:
-    """Set the virtual mantissa precision for binary32 (float) operations.
+    """Set the virtual significand precision for binary32 (float) operations.
 
     Forwards to INTERFLOP_SET_PRECISION_BINARY32.
 
     Args:
-        precision: Number of mantissa bits.  For IEEE 754 single precision
-            the maximum is 23 (plus the implicit leading 1 = 24 significant
-            bits total).
+        precision: Number of significand bits, including the implicit leading
+            bit. For IEEE 754 single precision the valid range is 1--24.
     """
     _get_interflop_call()(
-        ctypes.c_int(InterflowCallId.INTERFLOP_SET_PRECISION_BINARY32),
+        ctypes.c_int(InterflopCallId.INTERFLOP_SET_PRECISION_BINARY32),
         ctypes.c_int(precision),
     )
 
 
 def set_precision_binary64(precision: int) -> None:
-    """Set the virtual mantissa precision for binary64 (double) operations.
+    """Set the virtual significand precision for binary64 (double) operations.
 
     Forwards to INTERFLOP_SET_PRECISION_BINARY64.
 
     Args:
-        precision: Number of mantissa bits.  For IEEE 754 double precision
-            the maximum is 52 (plus the implicit leading 1 = 53 significant
-            bits total).
+        precision: Number of significand bits, including the implicit leading
+            bit. For IEEE 754 double precision the valid range is 1--53.
     """
     _get_interflop_call()(
-        ctypes.c_int(InterflowCallId.INTERFLOP_SET_PRECISION_BINARY64),
+        ctypes.c_int(InterflopCallId.INTERFLOP_SET_PRECISION_BINARY64),
         ctypes.c_int(precision),
     )
 
@@ -174,7 +175,7 @@ def set_range_binary32(range_val: int) -> None:
             the maximum is 8.
     """
     _get_interflop_call()(
-        ctypes.c_int(InterflowCallId.INTERFLOP_SET_RANGE_BINARY32),
+        ctypes.c_int(InterflopCallId.INTERFLOP_SET_RANGE_BINARY32),
         ctypes.c_int(range_val),
     )
 
@@ -189,7 +190,7 @@ def set_range_binary64(range_val: int) -> None:
             the maximum is 11.
     """
     _get_interflop_call()(
-        ctypes.c_int(InterflowCallId.INTERFLOP_SET_RANGE_BINARY64),
+        ctypes.c_int(InterflopCallId.INTERFLOP_SET_RANGE_BINARY64),
         ctypes.c_int(range_val),
     )
 
@@ -213,7 +214,7 @@ def inexact_float(value: float, precision: int) -> float:
     """
     c_val = ctypes.c_float(value)
     _get_interflop_call()(
-        ctypes.c_int(InterflowCallId.INTERFLOP_INEXACT_ID),
+        ctypes.c_int(InterflopCallId.INTERFLOP_INEXACT_ID),
         ctypes.c_int(FType.FFLOAT),
         ctypes.byref(c_val),
         ctypes.c_int(precision),
@@ -237,7 +238,7 @@ def inexact_double(value: float, precision: int) -> float:
     """
     c_val = ctypes.c_double(value)
     _get_interflop_call()(
-        ctypes.c_int(InterflowCallId.INTERFLOP_INEXACT_ID),
+        ctypes.c_int(InterflopCallId.INTERFLOP_INEXACT_ID),
         ctypes.c_int(FType.FDOUBLE),
         ctypes.byref(c_val),
         ctypes.c_int(precision),
@@ -245,7 +246,7 @@ def inexact_double(value: float, precision: int) -> float:
     return c_val.value
 
 
-def interflop_call(call_id: Union[InterflowCallId, int], *args) -> None:
+def interflop_call(call_id: Union[InterflopCallId, int], *args) -> None:
     """Low-level wrapper around the C interflop_call function.
 
     Use this for backend-specific (INTERFLOP_CUSTOM_ID) calls or when the
@@ -259,9 +260,9 @@ def interflop_call(call_id: Union[InterflowCallId, int], *args) -> None:
 
         import ctypes
         from verificarlo.usercall.interflop_call import (
-            interflop_call, InterflowCallId
+            interflop_call, InterflopCallId
         )
-        interflop_call(InterflowCallId.INTERFLOP_CUSTOM_ID,
+        interflop_call(InterflopCallId.INTERFLOP_CUSTOM_ID,
                        ctypes.c_int(42), ctypes.c_double(3.14))
 
     Args:
@@ -283,8 +284,7 @@ def precision_binary32(precision: int):
 
     The previous precision is **not** automatically restored on exit because
     the wrapper does not expose a getter for the current precision.  Instead,
-    the caller is responsible for passing the restore value explicitly via
-    the *restore* parameter, or simply re-setting precision after the block.
+    the caller is responsible for re-setting precision after the block.
 
     This helper is intentionally simple: it sets the precision on entry and
     yields.  No restoration is attempted — use it when you know the desired
@@ -296,7 +296,7 @@ def precision_binary32(precision: int):
             result = lib.low_precision_kernel()
 
     Args:
-        precision: Desired mantissa bit-width inside the block.
+        precision: Desired significand bit-width inside the block.
     """
     set_precision_binary32(precision)
     yield
@@ -309,7 +309,7 @@ def precision_binary64(precision: int):
     See :func:`precision_binary32` for usage notes.
 
     Args:
-        precision: Desired mantissa bit-width inside the block.
+        precision: Desired significand bit-width inside the block.
     """
     set_precision_binary64(precision)
     yield

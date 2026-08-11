@@ -14,6 +14,14 @@ WARNING_FLAGS =
 endif
 
 libinterflop_vfcwrapper_la_SOURCES = main.c backends.c funcinstr.c
+noinst_HEADERS = \
+    backends.h \
+    funcinstr.h \
+    operation_amd.h \
+    operation_arm.h \
+    operation_x86.h \
+    operator.h \
+    vector_ext.h
 
 libinterflop_vfcwrapper_la_CFLAGS = \
     -I@INTERFLOP_INCLUDEDIR@ \

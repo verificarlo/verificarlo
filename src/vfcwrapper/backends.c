@@ -23,6 +23,7 @@
 
 #include "interflop/hashmap/vfc_hashmap.h"
 #include "interflop/interflop.h"
+#include "interflop/iostream/logger.h"
 
 #include "backends.h"
 #include "vector_ext.h"
@@ -42,6 +43,16 @@
 struct interflop_backend_interface_t backends[MAX_BACKENDS];
 void *contexts[MAX_BACKENDS] = {NULL};
 unsigned char loaded_backends = 0;
+
+void vfc_require_backend_implements(unsigned char implemented,
+                                    const char *precision,
+                                    const char *operation) {
+  if (!implemented) {
+    logger_error("No backend instruments %s for %s.\n"
+                 "Include one backend in VFC_BACKENDS that provides it",
+                 operation, precision);
+  }
+}
 
 /* --- Delta-debug state --------------------------------------------------- */
 
@@ -115,21 +126,27 @@ define_arithmetic_wrapper(double, div, (a / b));
 
 int _floatcmp(enum FCMP_PREDICATE p, float a, float b) {
   int c = 0;
+  unsigned char implemented = 0;
   for (unsigned int i = 0; i < loaded_backends; i++) {
     if (backends[i].interflop_cmp_float) {
+      implemented = 1;
       backends[i].interflop_cmp_float(p, a, b, &c, contexts[i]);
     }
   }
+  require_backend_implements(implemented, float, cmp);
   return c;
 }
 
 int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
   int c = 0;
+  unsigned char implemented = 0;
   for (unsigned int i = 0; i < loaded_backends; i++) {
     if (backends[i].interflop_cmp_double) {
+      implemented = 1;
       backends[i].interflop_cmp_double(p, a, b, &c, contexts[i]);
     }
   }
+  require_backend_implements(implemented, double, cmp);
   return c;
 }
 
@@ -138,12 +155,15 @@ int _doublecmp(enum FCMP_PREDICATE p, double a, double b) {
 #define define_arithmetic_fma_wrapper(precision)                               \
   precision _##precision##fma(precision a, precision b, precision c) {         \
     precision d = NAN;                                                         \
+    unsigned char implemented = 0;                                             \
     ddebug(((a * b) + c));                                                     \
     for (unsigned char i = 0; i < loaded_backends; i++) {                      \
       if (backends[i].interflop_fma_##precision) {                             \
+        implemented = 1;                                                       \
         backends[i].interflop_fma_##precision(a, b, c, &d, contexts[i]);       \
       }                                                                        \
     }                                                                          \
+    require_backend_implements(implemented, precision, fma);                   \
     return d;                                                                  \
   }
 
@@ -154,11 +174,14 @@ define_arithmetic_fma_wrapper(double);
 
 float _doubletofloatcast(double a) {
   float b = NAN;
+  unsigned char implemented = 0;
   for (unsigned int i = 0; i < loaded_backends; i++) {
     if (backends[i].interflop_cast_double_to_float) {
+      implemented = 1;
       backends[i].interflop_cast_double_to_float(a, &b, contexts[i]);
     }
   }
+  require_backend_implements(implemented, double, cast);
   return b;
 }
 
@@ -239,14 +262,17 @@ define_vectorized_arithmetic_wrapper(double, div, 16);
     } fvec;                                                                    \
     fvec au = {.v = a}, bu = {.v = b};                                         \
     ivec cu;                                                                   \
+    unsigned char implemented = 0;                                             \
     for (int i = 0; i < loaded_backends; i++) {                                \
       if (backends[i].interflop_cmp_##precision) {                             \
+        implemented = 1;                                                       \
         UNROLL(size) for (int j = 0; j < (size); j++) {                        \
           backends[i].interflop_cmp_##precision(p, au.a[j], bu.a[j],           \
                                                 &(cu.a[j]), contexts[i]);      \
         }                                                                      \
       }                                                                        \
     }                                                                          \
+    require_backend_implements(implemented, precision, cmp);                   \
     return cu.v;                                                               \
   }
 
@@ -273,8 +299,10 @@ define_vectorized_comparison_wrapper(double, 16);
       precision a[size];                                                       \
     } fvec;                                                                    \
     fvec au = {.v = a}, bu = {.v = b}, cu = {.v = c}, du;                      \
+    unsigned char implemented = 0;                                             \
     for (int i = 0; i < loaded_backends; i++) {                                \
       if (backends[i].interflop_fma_##precision) {                             \
+        implemented = 1;                                                       \
         UNROLL(size)                                                           \
         for (int j = 0; j < (size); j++) {                                     \
           backends[i].interflop_fma_##precision(au.a[j], bu.a[j], cu.a[j],     \
@@ -282,6 +310,7 @@ define_vectorized_comparison_wrapper(double, 16);
         }                                                                      \
       }                                                                        \
     }                                                                          \
+    require_backend_implements(implemented, precision, fma);                   \
     return du.v;                                                               \
   }
 
@@ -302,6 +331,4 @@ define_vectorized_fma_wrapper(double, 16);
 #include "operation_x86.h"
 #elif defined(__aarch64__)
 #include "operation_arm.h"
-#elif defined(__amd64__)
-#include "operation_amd.h"
 #endif

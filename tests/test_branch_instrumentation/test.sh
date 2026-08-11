@@ -59,7 +59,7 @@ test3() {
     VFC_BACKENDS="libinterflop_ieee.so --debug" ./run | sort -n 2>vector.log
 
     if diff scalar.log vector.log; then
-        echo "[TEST 3 | PASS] Test successed"
+        echo "[TEST 3 | PASS] Test succeeded"
         exit 0
     else
         echo "[TEST 3 | FAIL] Test failed"

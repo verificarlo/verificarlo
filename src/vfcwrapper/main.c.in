@@ -455,39 +455,38 @@ void vfc_init(const vfc_options_t *options) {
     check_backends_implements(double, sub);
     check_backends_implements(double, mul);
     check_backends_implements(double, div);
-    if (options->inst_fcmp) {
-      check_backends_implements(float, cmp);
-      check_backends_implements(double, cmp);
-    }
-    if (options->inst_fma) {
-      check_backends_implements(float, fma);
-      check_backends_implements(double, fma);
-    }
+    /* Optional comparison, FMA, and cast callbacks are validated lazily by
+     * their wrappers. A shared wrapper cannot infer compile-time flags from
+     * the executable, while a wrapper call precisely identifies emitted
+     * instrumentation that is actually executed. */
   }
 
-#ifdef DDEBUG
-  /* Initialize ddebug */
-  dd_must_instrument = vfc_hashmap_create();
-  dd_mustnot_instrument = vfc_hashmap_create();
-  dd_exclude_path = getenv("VFC_DDEBUG_EXCLUDE");
-  dd_include_path = getenv("VFC_DDEBUG_INCLUDE");
-  dd_generate_path = getenv("VFC_DDEBUG_GEN");
-  if (dd_include_path && dd_generate_path) {
-    logger_error(
-        "VFC_DDEBUG_INCLUDE and VFC_DDEBUG_GEN should not be both defined "
-        "at the same time");
+  /* Delta-debugging is selected at runtime through VFC_DDEBUG_* variables.
+   * The wrapper is now a shared library, so this support cannot be compiled
+   * into a per-invocation wrapper object anymore. */
+  ddebug_enabled = options->ddebug;
+  if (ddebug_enabled) {
+    dd_must_instrument = vfc_hashmap_create();
+    dd_mustnot_instrument = vfc_hashmap_create();
+    dd_exclude_path = getenv("VFC_DDEBUG_EXCLUDE");
+    dd_include_path = getenv("VFC_DDEBUG_INCLUDE");
+    dd_generate_path = getenv("VFC_DDEBUG_GEN");
+    if (dd_include_path && dd_generate_path) {
+      logger_error(
+          "VFC_DDEBUG_INCLUDE and VFC_DDEBUG_GEN should not be both defined "
+          "at the same time");
+    }
+    if (dd_include_path) {
+      vfc_read_filter_file(dd_include_path, dd_must_instrument);
+      logger_info("ddebug: only %zu addresses will be instrumented\n",
+                  vfc_hashmap_num_items(dd_must_instrument));
+    }
+    if (dd_exclude_path) {
+      vfc_read_filter_file(dd_exclude_path, dd_mustnot_instrument);
+      logger_info("ddebug: %zu addresses will not be instrumented\n",
+                  vfc_hashmap_num_items(dd_mustnot_instrument));
+    }
   }
-  if (dd_include_path) {
-    vfc_read_filter_file(dd_include_path, dd_must_instrument);
-    logger_info("ddebug: only %zu addresses will be instrumented\n",
-                vfc_hashmap_num_items(dd_must_instrument));
-  }
-  if (dd_exclude_path) {
-    vfc_read_filter_file(dd_exclude_path, dd_mustnot_instrument);
-    logger_info("ddebug: %zu addresses will not be instrumented\n",
-                vfc_hashmap_num_items(dd_mustnot_instrument));
-  }
-#endif
 
   if (vfc_backends != NULL) {
     free(vfc_backends);
@@ -495,7 +494,7 @@ void vfc_init(const vfc_options_t *options) {
 }
 
 static vfc_options_t _vfc_options = {
-    .inst_fcmp = 1, .ddebug = 0, .inst_func = 0, .inst_fma = 1, .inst_cast = 1};
+    .inst_fcmp = 0, .ddebug = 0, .inst_func = 1, .inst_fma = 0, .inst_cast = 0};
 
 static void _exit_wrapper(void) { vfc_atexit(&_vfc_options); }
 
