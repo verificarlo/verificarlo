@@ -168,32 +168,32 @@ All high-level helpers are importable from `verificarlo.usercall.interflop_call`
 
 #### `set_precision_binary32(precision: int) -> None`
 
-Sets the virtual mantissa precision for `float` (binary32) operations.
+Sets the virtual significand precision for `float` (binary32) operations.
 
-- `precision`: number of mantissa bits (maximum 23 for IEEE 754 single
-  precision).
+- `precision`: number of significand bits including the implicit leading bit
+  (1--24 for IEEE 754 single precision).
 
 ```python
 from verificarlo.usercall.interflop_call import set_precision_binary32
 
-set_precision_binary32(10)   # reduce to 10 mantissa bits
+set_precision_binary32(10)   # reduce to 10 significand bits
 result = lib.compute_float()
-set_precision_binary32(23)   # restore full float precision
+set_precision_binary32(24)   # restore full float precision
 ```
 
 #### `set_precision_binary64(precision: int) -> None`
 
-Sets the virtual mantissa precision for `double` (binary64) operations.
+Sets the virtual significand precision for `double` (binary64) operations.
 
-- `precision`: number of mantissa bits (maximum 52 for IEEE 754 double
-  precision).
+- `precision`: number of significand bits including the implicit leading bit
+  (1--53 for IEEE 754 double precision).
 
 ```python
 from verificarlo.usercall.interflop_call import set_precision_binary64
 
 set_precision_binary64(24)   # roughly single-precision accuracy
 result = lib.compute_double()
-set_precision_binary64(52)   # restore full double precision
+set_precision_binary64(53)   # restore full double precision
 ```
 
 #### `set_range_binary32(range_val: int) -> None`
@@ -290,17 +290,17 @@ marshalled automatically.
 
 ```python
 import ctypes
-from verificarlo.usercall.interflop_call import interflop_call, InterflowCallId
+from verificarlo.usercall.interflop_call import interflop_call, InterflopCallId
 
-# Equivalent to set_precision_binary32(23)
+# Equivalent to set_precision_binary32(24)
 interflop_call(
-    InterflowCallId.INTERFLOP_SET_PRECISION_BINARY32,
-    ctypes.c_int(23),
+    InterflopCallId.INTERFLOP_SET_PRECISION_BINARY32,
+    ctypes.c_int(24),
 )
 
 # Backend-specific call
 interflop_call(
-    InterflowCallId.INTERFLOP_CUSTOM_ID,
+    InterflopCallId.INTERFLOP_CUSTOM_ID,
     ctypes.c_int(42),
     ctypes.c_double(3.14),
 )
@@ -320,7 +320,7 @@ reset()
 
 ### Enumerations
 
-#### `InterflowCallId`
+#### `InterflopCallId`
 
 Python mirror of the `interflop_call_id` C enum.
 
@@ -332,6 +332,7 @@ Python mirror of the `interflop_call_id` C enum.
 | `INTERFLOP_SET_PRECISION_BINARY64` | 3 |
 | `INTERFLOP_SET_RANGE_BINARY32` | 4 |
 | `INTERFLOP_SET_RANGE_BINARY64` | 5 |
+| `INTERFLOP_SET_ROUNDING_MODE` | 6 |
 
 #### `FType`
 

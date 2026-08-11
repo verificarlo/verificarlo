@@ -511,17 +511,6 @@ struct VfclibInst : public ModulePass {
     bool isVector = I->getOperand(0)->getType()->isVectorTy();
     if (isVector and opCode != FOP_CAST) {
       isaSuffix = getISASuffix(I->getFunction());
-      unsigned maxDirectWidth = getMaxDirectVectorWidth(M, isaSuffix);
-      if (maxDirectWidth != 0) {
-        Type *resultType = opCode == FOP_CMP ? getComparisonResultType(I, M)
-                                             : getABIType(I->getType(), M);
-        if (auto *vecTy = dyn_cast<FixedVectorType>(resultType)) {
-          if (vecTy->getPrimitiveSizeInBits().getFixedValue() >
-              maxDirectWidth) {
-            return nullptr;
-          }
-        }
-      }
       if (not isaSuffix.empty()) {
         name += isaSuffix;
       }
@@ -678,6 +667,74 @@ struct VfclibInst : public ModulePass {
     return getABIType(resultType, M);
   }
 
+  bool shouldScalarizeVectorReturn(Module &M, Instruction *I, FPOps opCode) {
+    if (opCode == FOP_CAST || !I->getOperand(0)->getType()->isVectorTy())
+      return false;
+
+    std::string isaSuffix = getISASuffix(I->getFunction());
+    unsigned maxDirectWidth = getMaxDirectVectorWidth(M, isaSuffix);
+    if (maxDirectWidth == 0)
+      return false;
+
+    Type *resultType = opCode == FOP_CMP ? getComparisonResultType(I, M)
+                                         : getABIType(I->getType(), M);
+    auto *vecTy = dyn_cast<FixedVectorType>(resultType);
+    return vecTy != nullptr &&
+           vecTy->getPrimitiveSizeInBits().getFixedValue() > maxDirectWidth;
+  }
+
+  Value *replaceWithScalarizedMCACalls(Module &M, IRBuilder<> &Builder,
+                                       Instruction *I, FPOps opCode) {
+    auto *vectorType = cast<FixedVectorType>(I->getOperand(0)->getType());
+    Type *scalarType = vectorType->getElementType();
+    unsigned lanes = vectorType->getNumElements();
+
+    std::vector<Type *> parameterTypes;
+    if (opCode == FOP_CMP)
+      parameterTypes.push_back(Type::getInt32Ty(M.getContext()));
+    parameterTypes.push_back(scalarType);
+    parameterTypes.push_back(scalarType);
+    if (opCode == FOP_FMA)
+      parameterTypes.push_back(scalarType);
+
+    Type *scalarResultType =
+        opCode == FOP_CMP ? Type::getInt32Ty(M.getContext()) : scalarType;
+    std::string scalarName =
+        "_" + validTypesMap[scalarType->getTypeID()] + Fops2str[opCode];
+    FunctionType *functionType =
+        FunctionType::get(scalarResultType, parameterTypes, false);
+    FunctionCallee scalarFunction =
+        M.getOrInsertFunction(scalarName, functionType);
+
+    Type *resultType = opCode == FOP_CMP
+                           ? FixedVectorType::get(scalarResultType, lanes)
+                           : I->getType();
+    Value *result = UndefValue::get(resultType);
+    for (unsigned lane = 0; lane < lanes; lane++) {
+      Value *laneIndex = Builder.getInt32(lane);
+      std::vector<Value *> arguments;
+      if (opCode == FOP_CMP) {
+        auto *comparison = cast<FCmpInst>(I);
+        arguments.push_back(Builder.getInt32(comparison->getPredicate()));
+      }
+      arguments.push_back(
+          Builder.CreateExtractElement(I->getOperand(0), laneIndex));
+      arguments.push_back(
+          Builder.CreateExtractElement(I->getOperand(1), laneIndex));
+      if (opCode == FOP_FMA) {
+        arguments.push_back(
+            Builder.CreateExtractElement(I->getOperand(2), laneIndex));
+      }
+
+      Value *laneResult = Builder.CreateCall(scalarFunction, arguments);
+      result = Builder.CreateInsertElement(result, laneResult, laneIndex);
+    }
+
+    if (opCode == FOP_CMP && result->getType() != I->getType())
+      return Builder.CreateIntCast(result, I->getType(), true);
+    return result;
+  }
+
   bool hasExpectedByValABI(
       Function *F, const std::vector<std::pair<unsigned, Type *>> &byValParams,
       Module &M) {
@@ -765,6 +822,9 @@ struct VfclibInst : public ModulePass {
     }
 
     IRBuilder<> Builder(I);
+
+    if (shouldScalarizeVectorReturn(M, I, opCode))
+      return replaceWithScalarizedMCACalls(M, Builder, I, opCode);
 
     Function *caller = I->getFunction();
     /* Get the mca function */

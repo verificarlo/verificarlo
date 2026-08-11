@@ -124,8 +124,10 @@
     } fvec;                                                                    \
     fvec au = {.v = a}, bu = {.v = b};                                         \
     ivec cu;                                                                   \
+    unsigned char implemented = 0;                                             \
     for (int i = 0; i < loaded_backends; i++) {                                \
       if (backends[i].interflop_cmp_##precision) {                             \
+        implemented = 1;                                                       \
         UNROLL(size)                                                           \
         for (int j = 0; j < (size); j++) {                                     \
           backends[i].interflop_cmp_##precision(p, au.a[j], bu.a[j],           \
@@ -133,6 +135,7 @@
         }                                                                      \
       }                                                                        \
     }                                                                          \
+    require_backend_implements(implemented, precision, cmp);                   \
     return cu.v;                                                               \
   }
 
@@ -160,8 +163,10 @@
     fvec bu = {.v = b};                                                        \
     fvec cu = {.v = c};                                                        \
     fvec du;                                                                   \
+    unsigned char implemented = 0;                                             \
     for (int i = 0; i < loaded_backends; i++) {                                \
       if (backends[i].interflop_fma_##precision) {                             \
+        implemented = 1;                                                       \
         UNROLL(size)                                                           \
         for (int j = 0; j < (size); j++) {                                     \
           backends[i].interflop_fma_##precision(au.a[j], bu.a[j], cu.a[j],     \
@@ -169,6 +174,7 @@
         }                                                                      \
       }                                                                        \
     }                                                                          \
+    require_backend_implements(implemented, precision, fma);                   \
     return du.v;                                                               \
   }
 

@@ -9,12 +9,19 @@
 
 #define MAX_BACKENDS 16
 
+#define require_backend_implements(implemented, precision, operation)          \
+  vfc_require_backend_implements((implemented), #precision, #operation)
+
 typedef struct interflop_backend_interface_t (*interflop_init_t)(void *context);
 
 /* --- Global backend state ------------------------------------------------ */
 extern struct interflop_backend_interface_t backends[MAX_BACKENDS];
 extern void *contexts[MAX_BACKENDS];
 extern unsigned char loaded_backends;
+
+void vfc_require_backend_implements(unsigned char implemented,
+                                    const char *precision,
+                                    const char *operation);
 
 /* --- Delta-debug state --------------------------------------------------- */
 extern unsigned char ddebug_enabled;

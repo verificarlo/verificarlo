@@ -34,7 +34,6 @@ PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 libinterflop_stdlib = "@INTERFLOP_PREFIX@"
 libinterflop_stdlib_include = "@INTERFLOP_INCLUDEDIR@"
 libinterflop_stdlib_lib = "@INTERFLOP_LIBDIR@"
-libvfcwrapper = LIBDIR + "/libvfcwrapper.so"
 libvfcinstrument = LIBDIR + "/libvfcinstrument.so"
 libvfcfuncinstrument = LIBDIR + "/libvfcfuncinstrument.so"
 libvfcinstrumentprism = LIBDIR + "/libvfcinstrumentprism.so"
@@ -380,7 +379,7 @@ def compiler_mode(sources, options, output, args):
         else:
             # Produce a bc file
             shell(
-                f"cp {ins.name} {output if output else basename + '.' + ir_ext}",
+                f"cp {ins.name} {args.o if args.o else basename + '.' + ir_ext}",
                 verbose=args.show_cmd,
             )
 

@@ -30,25 +30,7 @@
 
 #include "backends.h"
 #include "interflop/interflop.h"
-
-/* =========================================================================
- * Vector type definitions
- * ========================================================================= */
-
-typedef float float2 __attribute__((vector_size(2 * sizeof(float))));
-typedef float float4 __attribute__((vector_size(4 * sizeof(float))));
-typedef float float8 __attribute__((vector_size(8 * sizeof(float))));
-typedef float float16 __attribute__((vector_size(16 * sizeof(float))));
-
-typedef double double2 __attribute__((vector_size(2 * sizeof(double))));
-typedef double double4 __attribute__((vector_size(4 * sizeof(double))));
-typedef double double8 __attribute__((vector_size(8 * sizeof(double))));
-typedef double double16 __attribute__((vector_size(16 * sizeof(double))));
-
-typedef int32_t int2 __attribute__((vector_size(2 * sizeof(int32_t))));
-typedef int32_t int4 __attribute__((vector_size(4 * sizeof(int32_t))));
-typedef int32_t int8 __attribute__((vector_size(8 * sizeof(int32_t))));
-typedef int32_t int16 __attribute__((vector_size(16 * sizeof(int32_t))));
+#include "vector_ext.h"
 
 /* =========================================================================
  * ISA target attribute macros
@@ -98,13 +80,21 @@ typedef int32_t int16 __attribute__((vector_size(16 * sizeof(int32_t))));
   TARGET_ATTR                                                                  \
   precision##size _##size##x##precision##operation##_##TARGET_SUFFIX(          \
       const precision##size a, const precision##size b) {                      \
-    precision##size c;                                                         \
-    UNROLL(size)                                                               \
-    for (int i = 0; i < (size); i++) {                                         \
-      c[i] = backends[i].interflop_##precision##operation(a[i], b[i],          \
-                                                          contexts[i]);        \
+    typedef union {                                                            \
+      precision##size v;                                                       \
+      precision a[size];                                                       \
+    } fvec;                                                                    \
+    fvec au = {.v = a}, bu = {.v = b}, cu;                                     \
+    for (int i = 0; i < loaded_backends; i++) {                                \
+      if (backends[i].interflop_##operation##_##precision) {                   \
+        UNROLL(size)                                                           \
+        for (int j = 0; j < (size); j++) {                                     \
+          backends[i].interflop_##operation##_##precision(                     \
+              au.a[j], bu.a[j], &(cu.a[j]), contexts[i]);                      \
+        }                                                                      \
+      }                                                                        \
     }                                                                          \
-    return c;                                                                  \
+    return cu.v;                                                               \
   }
 
 #define define_arm_vector_wrapper_all_targets(precision, operation, size)      \
@@ -125,13 +115,29 @@ typedef int32_t int16 __attribute__((vector_size(16 * sizeof(int32_t))));
   TARGET_ATTR                                                                  \
   int##size _##size##x##precision##cmp##_##TARGET_SUFFIX(                      \
       enum FCMP_PREDICATE p, precision##size a, precision##size b) {           \
-    int##size c;                                                               \
-    UNROLL(size)                                                               \
-    for (int i = 0; i < (size); i++) {                                         \
-      c[i] =                                                                   \
-          backends[i].interflop_##precision##cmp(p, a[i], b[i], contexts[i]);  \
+    typedef union {                                                            \
+      int##size v;                                                             \
+      int a[size];                                                             \
+    } ivec;                                                                    \
+    typedef union {                                                            \
+      precision##size v;                                                       \
+      precision a[size];                                                       \
+    } fvec;                                                                    \
+    fvec au = {.v = a}, bu = {.v = b};                                         \
+    ivec cu;                                                                   \
+    unsigned char implemented = 0;                                             \
+    for (int i = 0; i < loaded_backends; i++) {                                \
+      if (backends[i].interflop_cmp_##precision) {                             \
+        implemented = 1;                                                       \
+        UNROLL(size)                                                           \
+        for (int j = 0; j < (size); j++) {                                     \
+          backends[i].interflop_cmp_##precision(p, au.a[j], bu.a[j],           \
+                                                &(cu.a[j]), contexts[i]);      \
+        }                                                                      \
+      }                                                                        \
     }                                                                          \
-    return c;                                                                  \
+    require_backend_implements(implemented, precision, cmp);                   \
+    return cu.v;                                                               \
   }
 
 #define define_arm_vector_cmp_all_targets(precision, size)                     \
@@ -149,13 +155,24 @@ typedef int32_t int16 __attribute__((vector_size(16 * sizeof(int32_t))));
   precision##size _##size##x##precision##fma##_##TARGET_SUFFIX(                \
       const precision##size a, const precision##size b,                        \
       const precision##size c) {                                               \
-    precision##size d;                                                         \
-    UNROLL(size)                                                               \
-    for (int i = 0; i < (size); i++) {                                         \
-      d[i] = backends[i].interflop_##precision##fma(a[i], b[i], c[i],          \
-                                                    contexts[i]);              \
+    typedef union {                                                            \
+      precision##size v;                                                       \
+      precision a[size];                                                       \
+    } fvec;                                                                    \
+    fvec au = {.v = a}, bu = {.v = b}, cu = {.v = c}, du;                      \
+    unsigned char implemented = 0;                                             \
+    for (int i = 0; i < loaded_backends; i++) {                                \
+      if (backends[i].interflop_fma_##precision) {                             \
+        implemented = 1;                                                       \
+        UNROLL(size)                                                           \
+        for (int j = 0; j < (size); j++) {                                     \
+          backends[i].interflop_fma_##precision(au.a[j], bu.a[j], cu.a[j],     \
+                                                &(du.a[j]), contexts[i]);      \
+        }                                                                      \
+      }                                                                        \
     }                                                                          \
-    return d;                                                                  \
+    require_backend_implements(implemented, precision, fma);                   \
+    return du.v;                                                               \
   }
 
 #define define_arm_vector_fma_all_targets(precision, size)                     \

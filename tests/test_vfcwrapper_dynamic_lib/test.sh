@@ -3,8 +3,9 @@ set -e
 
 source ../paths.sh
 
-make clean
-make
+bash clean.sh
+verificarlo-c test.c -o test
+${CC:-cc} test_dlopen.c -o test_dlopen -ldl
 
 export VFC_BACKENDS="libinterflop_ieee.so"
 export VFC_BACKENDS_LOGGER=False
