@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -eu
+
+hook_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+staged_tree=$(mktemp -d "${TMPDIR:-/tmp}/verificarlo-staged-tree.XXXXXX")
+trap 'rm -rf "$staged_tree"' EXIT HUP INT TERM
+
+# Check the exact tree that will be committed, including the index version of
+# partially staged files.
+git checkout-index --all --prefix="$staged_tree/"
+"$hook_dir/../scripts/clang-format-lint" "$staged_tree"

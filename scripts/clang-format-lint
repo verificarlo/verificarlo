@@ -1,0 +1,49 @@
+#!/bin/sh
+
+set -eu
+
+required_major=20
+source_root=${1:-$(git rev-parse --show-toplevel)}
+
+if [ -n "${CLANG_FORMAT:-}" ]; then
+  clang_format=$CLANG_FORMAT
+elif command -v "clang-format-${required_major}" >/dev/null 2>&1; then
+  clang_format="clang-format-${required_major}"
+elif command -v clang-format >/dev/null 2>&1; then
+  clang_format=clang-format
+else
+  echo "clang-format ${required_major} is required to run the clang-format lint." >&2
+  exit 1
+fi
+
+version=$("$clang_format" --version 2>&1) || {
+  echo "Unable to run clang-format using '$clang_format'." >&2
+  exit 1
+}
+
+case $version in
+  *"version ${required_major}."*) ;;
+  *)
+    echo "clang-format ${required_major} is required to match the GitHub Actions lint." >&2
+    echo "Found: $version" >&2
+    echo "Set CLANG_FORMAT to the clang-format ${required_major} executable if needed." >&2
+    exit 1
+    ;;
+esac
+
+files=$(mktemp "${TMPDIR:-/tmp}/verificarlo-clang-format-files.XXXXXX")
+trap 'rm -f "$files"' EXIT HUP INT TERM
+
+find "$source_root" \
+  \( -path "$source_root/.git" -o -path "$source_root/tests" \) -prune -o \
+  -type f \
+  \( -name '*.c' -o -name '*.h' -o -name '*.C' -o -name '*.H' \
+     -o -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' -o -name '*.hh' \
+     -o -name '*.c++' -o -name '*.h++' -o -name '*.cxx' -o -name '*.hxx' \) \
+  -print0 >"$files"
+
+if [ ! -s "$files" ]; then
+  exit 0
+fi
+
+xargs -0 "$clang_format" --dry-run --Werror --style=LLVM <"$files"

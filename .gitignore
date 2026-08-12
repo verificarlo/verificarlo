@@ -10,6 +10,8 @@
 **/*.lo
 **/*.dwo
 **/.*
+!/.githooks/
+!/.githooks/pre-commit
 **/*~
 **/#*
 **/.DS_Store
