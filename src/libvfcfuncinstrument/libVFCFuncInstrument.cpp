@@ -423,8 +423,7 @@ void allocateMemoryForPointers(Function *CurrentFunction,
 
   for (auto &args : CurrentFunction->args()) {
     Type *argTy = args.getType();
-    FTYPES type =
-        classifyHookArg(argTy, args.getArgNo(), HookedFunction, call);
+    FTYPES type = classifyHookArg(argTy, args.getArgNo(), HookedFunction, call);
     if (type == FFLOAT or type == FDOUBLE) {
       InputAlloca.push_back(Builder.CreateAlloca(argTy, nullptr));
       input_cpt++;
@@ -442,8 +441,7 @@ void initializeInputArgs(std::vector<Value *> &EnterArgs,
   size_t input_index = 0;
   for (auto &args : CurrentFunction->args()) {
     Type *argTy = args.getType();
-    FTYPES type =
-        classifyHookArg(argTy, args.getArgNo(), HookedFunction, call);
+    FTYPES type = classifyHookArg(argTy, args.getArgNo(), HookedFunction, call);
 
     if (type == FTYPES_END) {
       continue;
