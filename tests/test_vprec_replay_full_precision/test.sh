@@ -4,7 +4,7 @@
 # program: the result has to match the IEEE baseline in every instrumentation
 # mode. See test.c for the mechanism.
 
-set -e
+set -eo pipefail
 
 export VFC_BACKENDS_LOGGER=False
 
@@ -25,6 +25,25 @@ fi
 if ! grep -q "double_ptr\|	4	" full.prof; then
 	echo "no binary64 pointer argument was profiled"
 	cat full.prof
+	exit 1
+fi
+
+# Profile precision is expressed in significand bits and must stay within the
+# supported range. Reject malformed profiles before the value reaches a shift
+# in the rounding primitive.
+awk -F'\t' '
+	BEGIN { OFS = FS }
+	/^(input|output):/ && !changed {
+		$4 = 0
+		changed = 1
+	}
+	{ print }
+	END { exit !changed }
+' full.prof >invalid.prof
+
+if VFC_BACKENDS="libinterflop_vprec.so --prec-input-file=invalid.prof --instrument=arguments --mode=ib" \
+	./test 64 >/dev/null 2>&1; then
+	echo "invalid zero-bit profile precision was accepted"
 	exit 1
 fi
 

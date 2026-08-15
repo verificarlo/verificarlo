@@ -190,6 +190,29 @@ Type *getElementTypeOf(Type *Ty) {
   return Ty;
 }
 
+// Opaque pointers sometimes provide several possible pointee types. Use void
+// as an internal ambiguity marker: it cannot be a concrete pointee classified
+// by function instrumentation, and therefore cannot be confused with a valid
+// floating-point element type.
+Type *getAmbiguousPointeeType() {
+  return Type::getVoidTy(FloatTy->getContext());
+}
+
+Type *mergePointeeTypes(Type *Current, Type *Candidate) {
+  Type *Ambiguous = getAmbiguousPointeeType();
+
+  if (Current == Ambiguous || Candidate == Ambiguous) {
+    return Ambiguous;
+  }
+  if (Candidate == NULL) {
+    return Current;
+  }
+  if (Current == NULL || Current == Candidate) {
+    return Candidate;
+  }
+  return Ambiguous;
+}
+
 // Recover the type V points to, or NULL when it cannot be determined.
 //
 // Pointers have been opaque since LLVM 15: `ptr` carries no pointee type, so
@@ -254,21 +277,24 @@ Type *getPointeeType(Value *V, unsigned int depth = 0) {
   }
 
   if (Argument *Arg = dyn_cast<Argument>(V)) {
-    // The pointer was handed to us by our own callers; ask them.
+    // The pointer was handed to us by our own callers; ask them. Only return a
+    // concrete type when every call site for which it can be recovered agrees.
     Function *Parent = Arg->getParent();
+    Type *Pointee = NULL;
     for (const auto &U : Parent->users()) {
-      if (CallInst *Call = dyn_cast<CallInst>(U)) {
+      if (CallBase *Call = dyn_cast<CallBase>(U)) {
         if (Call->getCalledFunction() == Parent &&
             Arg->getArgNo() < Call->arg_size()) {
-          Type *Pointee =
+          Type *Candidate =
               getPointeeType(Call->getArgOperand(Arg->getArgNo()), depth + 1);
-          if (Pointee != NULL) {
+          Pointee = mergePointeeTypes(Pointee, Candidate);
+          if (Pointee == getAmbiguousPointeeType()) {
             return Pointee;
           }
         }
       }
     }
-    return NULL;
+    return Pointee;
   }
 
   return NULL;
@@ -286,30 +312,38 @@ Type *getParamPointeeTypeFromBody(Function *F, unsigned int argNo) {
   }
 
   const Argument *Arg = F->getArg(argNo);
+  Type *Pointee = NULL;
 
   for (const auto &U : Arg->users()) {
+    Type *Candidate = NULL;
+
     if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(U)) {
       if (GEP->getPointerOperand() == Arg) {
         Type *Source = getElementTypeOf(GEP->getSourceElementType());
         if (Source == FloatTy || Source == DoubleTy) {
-          return Source;
+          Candidate = Source;
         }
       }
     } else if (const LoadInst *Load = dyn_cast<LoadInst>(U)) {
       if (Load->getPointerOperand() == Arg &&
           (Load->getType() == FloatTy || Load->getType() == DoubleTy)) {
-        return Load->getType();
+        Candidate = Load->getType();
       }
     } else if (const StoreInst *Store = dyn_cast<StoreInst>(U)) {
       Type *StoredTy = Store->getValueOperand()->getType();
       if (Store->getPointerOperand() == Arg &&
           (StoredTy == FloatTy || StoredTy == DoubleTy)) {
-        return StoredTy;
+        Candidate = StoredTy;
       }
+    }
+
+    Pointee = mergePointeeTypes(Pointee, Candidate);
+    if (Pointee == getAmbiguousPointeeType()) {
+      return Pointee;
     }
   }
 
-  return NULL;
+  return Pointee;
 }
 
 // Recover the type the value returned by F points to, or NULL
@@ -318,16 +352,18 @@ Type *getReturnPointeeType(Function *F) {
     return NULL;
   }
 
+  Type *Pointee = NULL;
   for (auto &BB : (*F)) {
     if (ReturnInst *Ret = dyn_cast<ReturnInst>(BB.getTerminator())) {
-      Type *Pointee = getPointeeType(Ret->getReturnValue());
-      if (Pointee != NULL) {
+      Type *Candidate = getPointeeType(Ret->getReturnValue());
+      Pointee = mergePointeeTypes(Pointee, Candidate);
+      if (Pointee == getAmbiguousPointeeType()) {
         return Pointee;
       }
     }
   }
 
-  return NULL;
+  return Pointee;
 }
 
 FTYPES ftypesFromPointeeType(Type *Pointee) {
@@ -357,7 +393,9 @@ FTYPES classifyHookArg(Type *argTy, unsigned int argNo,
     return FTYPES_END;
 
   Type *Pointee = getParamPointeeTypeFromBody(HookedFunction, argNo);
-  if (Pointee == NULL) {
+  if (Pointee == NULL || Pointee == getAmbiguousPointeeType()) {
+    // When a generic parameter is used with several element types, the
+    // per-call operand is the only safe way to disambiguate it.
     Pointee = getPointeeType(call->getArgOperand(argNo));
   }
 
@@ -602,6 +640,22 @@ bool isLLVMDebugFunction(Function &F) {
 // Matching on the name rather than on Intrinsic::* keeps this working across
 // the LLVM versions we support, and tolerates the type suffixes recent
 // releases append (llvm.stackrestore.p0, llvm.va_start.p0, ...).
+bool hasImmediateArguments(Function &F) {
+  if (!F.isIntrinsic()) {
+    return false;
+  }
+
+  // Wrapping an intrinsic turns each call operand into a hook parameter.
+  // Immediate operands would consequently stop being compile-time constants
+  // and make the generated IR invalid (for example llvm.is.fpclass's mask).
+  for (unsigned int i = 0; i < F.arg_size(); i++) {
+    if (F.hasParamAttribute(i, Attribute::ImmArg)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool mustStayInCallingFrame(Function &F) {
   if (!F.isIntrinsic()) {
     return false;
@@ -763,7 +817,8 @@ struct VfclibFunc : public ModulePass {
             if (isa<CallInst>(pi)) {
               // collect metadata info //
               if (Function *f = cast<CallInst>(pi)->getCalledFunction()) {
-                if (isLLVMDebugFunction(*f) || mustStayInCallingFrame(*f)) {
+                if (isLLVMDebugFunction(*f) || hasImmediateArguments(*f) ||
+                    mustStayInCallingFrame(*f)) {
                   continue;
                 }
 
