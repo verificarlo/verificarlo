@@ -60,7 +60,10 @@ To use it, your program must:
 
 `vfc_piecewise` then repeatedly rewrites that schedule file, re-runs your
 program through the ``--run-cmd`` you give it, and keeps lowering precisions
-that still pass:
+that still pass. It tests the bounded precision range exhaustively because a
+program-level correctness check is not necessarily monotone in floating-point
+precision. If no precision in the requested range passes, the command exits
+with an error instead of writing an unverified schedule:
 
 ```
 vfc_piecewise -n 10 -o vfc_schedule.txt -r "./my_program"
@@ -77,8 +80,7 @@ Three search strategies are available through ``-s``/``--strategy``:
 
   - ``piecewise`` (default): recursively bisects the ``N`` steps into
     sub-ranges, searching the minimal *uniform* precision for each sub-range
-    before splitting it further. This is the fastest strategy and produces a
-    piecewise-constant schedule.
+    before splitting it further, producing a piecewise-constant schedule.
   - ``forward``: searches steps ``0..N-1`` in order, finding the minimal
     precision for each step independently while all others are fixed.
   - ``backward``: same as ``forward`` but searches steps ``N-1..0``.

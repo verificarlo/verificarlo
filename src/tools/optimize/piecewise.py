@@ -14,6 +14,10 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+class NoFeasibleScheduleError(RuntimeError):
+    """Raised when no precision in the requested range passes evaluation."""
+
+
 class PiecewiseSearchOptimizer:
     def __init__(self, size=10, min_prec=1, max_prec=53, strategy="piecewise",
                  eval_fn=None, output_file="vfc_schedule.txt",
@@ -43,32 +47,32 @@ class PiecewiseSearchOptimizer:
             return passed
         return False
 
-    def dich_search_domain(self, sched, start, end, p_min=None, p_max=None):
+    def search_domain(self, sched, start, end, p_min=None, p_max=None):
         if p_min is None:
             p_min = self.min_prec
         if p_max is None:
             p_max = self.max_prec
 
-        best_p = p_max
-        low = p_min
-        high = p_max
-        while low <= high:
-            mid = (low + high) // 2
+        # A program-level correctness predicate is not necessarily monotone in
+        # floating-point precision. Search the bounded range exhaustively so a
+        # passing lower precision is not discarded after a higher one fails.
+        for candidate_p in range(p_min, p_max + 1):
             test_sched = list(sched)
             for i in range(start, end):
-                test_sched[i] = mid
-            if self.evaluate(test_sched, start, end, mid):
-                best_p = mid
-                high = mid - 1
-            else:
-                low = mid + 1
-        return best_p
+                test_sched[i] = candidate_p
+            if self.evaluate(test_sched, start, end, candidate_p):
+                return candidate_p
+
+        raise NoFeasibleScheduleError(
+            f"No passing precision in [{p_min}, {p_max}] "
+            f"for domain [{start}, {end})"
+        )
 
     def search_piecewise(self):
         schedule = [self.max_prec] * self.size
 
         # Step 0: Find minimal uniform precision across all domains
-        p_init = self.dich_search_domain(schedule, 0, self.size, self.min_prec, self.max_prec)
+        p_init = self.search_domain(schedule, 0, self.size, self.min_prec, self.max_prec)
         for i in range(self.size):
             schedule[i] = p_init
 
@@ -80,16 +84,16 @@ class PiecewiseSearchOptimizer:
             for _ in range(level_size):
                 start, end = queue.pop(0)
                 if end - start <= 1:
-                    p_opt = self.dich_search_domain(schedule, start, end, self.min_prec, schedule[start])
+                    p_opt = self.search_domain(schedule, start, end, self.min_prec, schedule[start])
                     schedule[start] = p_opt
                     continue
 
                 mid = (start + end) // 2
-                p_left = self.dich_search_domain(schedule, start, mid, self.min_prec, schedule[start])
+                p_left = self.search_domain(schedule, start, mid, self.min_prec, schedule[start])
                 for i in range(start, mid):
                     schedule[i] = p_left
 
-                p_right = self.dich_search_domain(schedule, mid, end, self.min_prec, schedule[mid])
+                p_right = self.search_domain(schedule, mid, end, self.min_prec, schedule[mid])
                 for i in range(mid, end):
                     schedule[i] = p_right
 
@@ -103,25 +107,17 @@ class PiecewiseSearchOptimizer:
     def search_forward(self):
         schedule = [self.max_prec] * self.size
         for k in range(self.size):
-            best_p = schedule[k]
-            for p in range(self.min_prec, self.max_prec + 1):
-                schedule[k] = p
-                if self.evaluate(schedule, k, k + 1, p):
-                    best_p = p
-                    break
-            schedule[k] = best_p
+            schedule[k] = self.search_domain(
+                schedule, k, k + 1, self.min_prec, self.max_prec
+            )
         return schedule
 
     def search_backward(self):
         schedule = [self.max_prec] * self.size
         for k in reversed(range(self.size)):
-            best_p = schedule[k]
-            for p in range(self.min_prec, self.max_prec + 1):
-                schedule[k] = p
-                if self.evaluate(schedule, k, k + 1, p):
-                    best_p = p
-                    break
-            schedule[k] = best_p
+            schedule[k] = self.search_domain(
+                schedule, k, k + 1, self.min_prec, self.max_prec
+            )
         return schedule
 
     def save(self, schedule):
@@ -223,7 +219,7 @@ def main():
     parser.add_argument("--min-precision", type=int, default=1, help="Minimum significand precision (default: 1)")
     parser.add_argument("--max-precision", type=int, default=53, help="Maximum significand precision (default: 53)")
     parser.add_argument("-o", "--output-file", type=str, default="vfc_schedule.txt", help="Output file path for saving configuration")
-    parser.add_argument("-r", "--run-cmd", type=str, help="Shell command to run target program under VPREC backend")
+    parser.add_argument("-r", "--run-cmd", type=str, required=True, help="Shell command to run target program under VPREC backend")
     parser.add_argument("-c", "--cmp-cmd", type=str, help="Shell command to validate output (exit 0 = success)")
     parser.add_argument("--animate", action="store_true", help="Generate animation of search precision process")
     parser.add_argument("--animation-file", type=str, default="piecewise_search.gif", help="Output animation file (.gif or .html)")
@@ -263,7 +259,10 @@ def main():
         fps=args.fps
     )
 
-    result_schedule = opt.run()
+    try:
+        result_schedule = opt.run()
+    except NoFeasibleScheduleError as exc:
+        parser.exit(1, f"vfc_piecewise: error: {exc}\n")
     print(f"Optimal precision schedule ({args.strategy}):", result_schedule)
 
 if __name__ == "__main__":
