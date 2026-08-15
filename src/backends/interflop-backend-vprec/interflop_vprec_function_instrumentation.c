@@ -479,10 +479,22 @@ void _vprec_round_binary(char is_input, void *raw_value, int exponent_length,
      * round_binary{32,64}_normal then built its mask with a negative shift:
      * full-precision arguments came back with an all-zero mantissa. */
     if (type == FFLOAT || type == FFLOAT_PTR) {
+      if (mantissa_length < VPREC_PRECISION_BINARY32_MIN ||
+          mantissa_length > VPREC_PRECISION_BINARY32_MAX) {
+        logger_error("Invalid binary32 precision in VPREC profile: %d\n",
+                     mantissa_length);
+        return;
+      }
       float *value = (float *)raw_value;
       *value = _vprec_round_binary32(*value, is_input, context, exponent_length,
                                      mantissa_length - 1);
     } else if (type == FDOUBLE || type == FDOUBLE_PTR) {
+      if (mantissa_length < VPREC_PRECISION_BINARY64_MIN ||
+          mantissa_length > VPREC_PRECISION_BINARY64_MAX) {
+        logger_error("Invalid binary64 precision in VPREC profile: %d\n",
+                     mantissa_length);
+        return;
+      }
       double *value = (double *)raw_value;
       *value = _vprec_round_binary64(*value, is_input, context, exponent_length,
                                      mantissa_length - 1);

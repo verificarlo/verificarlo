@@ -3,7 +3,7 @@
 # Regression test for the --inst-func crash on functions declaring a
 # variable-length array. See test.c for the mechanism.
 
-set -e
+set -eo pipefail
 
 export VFC_BACKENDS_LOGGER=False
 
@@ -56,6 +56,14 @@ if ! grep -q "vfc_.*llvm\.fma\.f64.*_hook" "${instrumented}"; then
 	exit 1
 fi
 
+# Intrinsics with immediate operands cannot be moved into a generic hook:
+# replacing an immediate with a hook parameter produces invalid IR.
+if grep -q "llvm\.is\.fpclass" "${instrumented}" &&
+	grep -q "vfc_.*llvm\.is\.fpclass.*_hook" "${instrumented}"; then
+	echo "llvm.is.fpclass with an immediate operand was moved into a hook"
+	exit 1
+fi
+
 # 4. Opaque pointers make every pointer the same LLVM type, so the pass has to
 # recover the pointee. A string must not be handed to the backends as an array
 # of floating-point values, and the VLA must still be handed over as one.
@@ -83,6 +91,28 @@ if ! awk -F'\t' '
 	}
 ' args.prof; then
 	cat args.prof
+	exit 1
+fi
+
+# A generic pointer used as both float* and double* is ambiguous in the callee.
+# The pass must fall back to the concrete type at each call site instead of
+# choosing whichever body use LLVM happens to enumerate first.
+VFC_BACKENDS="libinterflop_vprec.so --prec-output-file=args-o2.prof" ./test-O2 100 >/dev/null
+if ! awk -F'\t' '
+	/^(input|output):/ {
+		if (fn ~ /\/read_mixed\// && $3 == 3) {
+			seen_float_ptr = 1
+		}
+		if (fn ~ /\/read_mixed\// && $3 == 4) {
+			seen_double_ptr = 1
+		}
+		next
+	}
+	{ fn = $1 }
+	END { exit !(seen_float_ptr && seen_double_ptr) }
+' args-o2.prof; then
+	echo "ambiguous generic pointer was not resolved per call site"
+	cat args-o2.prof
 	exit 1
 fi
 
