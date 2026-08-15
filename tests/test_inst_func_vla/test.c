@@ -12,6 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
 __attribute__((noinline)) double sum(const double f[], int n) {
   double s = 0.0;
   for (int i = 0; i < n; i++) {
@@ -39,6 +43,21 @@ __attribute__((noinline)) double fmatest(double a, double b, double c) {
   return fma(a, b, c);
 }
 
+/* A void pointer with conflicting uses must be classified from each call site,
+ * not from the first use found while walking the callee body. */
+__attribute__((noinline)) double read_mixed(const void *p, int as_double) {
+  if (as_double) {
+    return *(const double *)p;
+  }
+  return (double)*(const float *)p;
+}
+
+#if __has_builtin(__builtin_isfpclass)
+__attribute__((noinline)) int fpclasstest(double x) {
+  return __builtin_isfpclass(x, 1 << 8);
+}
+#endif
+
 int main(int argc, char **argv) {
   int n = (argc > 1) ? atoi(argv[1]) : 100;
 
@@ -50,5 +69,14 @@ int main(int argc, char **argv) {
   printf("%.16e\n", sum(f, n));
   printf("%.16e\n", vsum(3, 1.0, 2.0, 3.0));
   printf("%.16e\n", fmatest(2.0, 3.0, 4.0));
+
+  double mixed_d = 2.5;
+  float mixed_f = 1.25F;
+  printf("%.16e\n", read_mixed(&mixed_d, 1));
+  printf("%.16e\n", read_mixed(&mixed_f, 0));
+
+#if __has_builtin(__builtin_isfpclass)
+  printf("%d\n", fpclasstest(sum(f, n)));
+#endif
   return 0;
 }
