@@ -87,74 +87,8 @@ On AArch64 platforms where PRISM backend dependencies may fail to build, use the
    $ uv pip install .
    ```
 
-### Installing Verificarlo in a standard Python virtual environment (venv)
-
-If you want to isolate your Python environment for Verificarlo, you can use
-`venv`, which is a module that comes with Python 3. It creates a virtual
-environment that has its own installation directories and doesn't share
-libraries with other virtual environments.
-
-Here's how you can create and activate a virtual environment:
-
-1. First, navigate to the directory where you want to create the virtual
-   environment. Then, run the following command to create a new virtual
-   environment. Replace `env` with the name you want to give to your virtual
-   environment:
-
-   ```bash
-   $ python3 -m venv env
-   ```
-
-   This command creates a new directory named `env` (or whatever name you gave)
-   which contains the directories for your virtual environment.
-
-2. To activate the virtual environment, run the following command:
-
-      ```bash
-      $ source env/bin/activate
-      ```
-
-   When the virtual environment is activated, the name of your virtual
-   environment will appear on the left of the prompt to let you know that it’s
-   active. From now on, any package that you install using pip will be placed in
-   the `env` folder, isolated from the global Python installation.
-
-3. If you want to deactivate the virtual environment and use your original
-   Python environment, simply run:
-
-   ```bash
-   $ deactivate
-   ```
-
-You can install Verificarlo in this isolated environment. This ensures that the
-Verificarlo installation doesn't interfere with your global Python environment.
-
-To install Verificarlo in the virtual environment, you need to use the
-`--prefix` option with the `./configure` command. The `--prefix` option should
-point to the path of your virtual environment. You can use the `VIRTUAL_ENV`
-environment variable, which is set when you activate the virtual environment, to
-get this path.
-
-Here's how you can install Verificarlo in the virtual environment:
-
-```bash
-$ source env/bin/activate  # Activate the virtual environment
-$ cd verificarlo/
-$ ./autogen.sh
-$ CC=gcc-7 CXX=g++-7 ./configure --with-flang --prefix=$VIRTUAL_ENV
-$ make
-$ make install
-```
-
-In this example, `--prefix=$VIRTUAL_ENV` tells `./configure` to install
-Verificarlo in the `env` directory (or whatever name you gave to your virtual
-environment). This means that the Verificarlo binaries will be placed in the
-`bin` directory of your virtual environment, and the libraries will be placed in
-the `lib` directory of your virtual environment.
-
-Remember to activate the virtual environment before you run these commands. This
-ensures that you are using the Python interpreter and libraries in the virtual
-environment, and keeps your global environment clean and isolated.
+> [!NOTE]
+> Verificarlo also supports virtual environments created using Python's standard `venv` module (`python3 -m venv env && source env/bin/activate`).
 
 ### Checking installation
 
