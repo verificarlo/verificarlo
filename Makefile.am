@@ -33,7 +33,15 @@ install-interflop-stdlib:
 	make -C src/interflop-stdlib install
 
 install-exec-hook: install-interflop-stdlib
-	$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS) . && \
+	if test -n "$(UV)"; then \
+		if test -n "$$VIRTUAL_ENV"; then \
+			$(UV) pip install . ; \
+		else \
+			$(UV) pip install --system $(PYTHON_INSTALL_FLAGS) . ; \
+		fi ; \
+	else \
+		$(PYTHON) -m pip install $(PYTHON_INSTALL_FLAGS) . ; \
+	fi && \
 	echo "Run 'source $(setenvdir)/set-env' to set environment variables"
 
 installcheck:

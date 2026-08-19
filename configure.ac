@@ -237,9 +237,14 @@ AX_COMPARE_VERSION([$PYTHON_VERSION],[ge],['3.11.0'],
   [PYTHON_INSTALL_FLAGS="--break-system-packages"],  # If Python version >= 3.11
   [PYTHON_INSTALL_FLAGS=""]                          # If Python version < 3.11
 )
-
-AC_DEFINE_UNQUOTED([PYTHON_INSTALL_FLAGS], ["$PYTHON_INSTALL_FLAGS"], [Python install flags])
 AC_SUBST(PYTHON_INSTALL_FLAGS, $PYTHON_INSTALL_FLAGS)
+
+# Check for uv package manager
+AC_PATH_PROG([UV], [uv], [])
+if test -n "$UV"; then
+  AC_MSG_NOTICE([Found uv package manager: $UV])
+fi
+AC_SUBST([UV], [$UV])
 
 AC_CONFIG_SUBDIRS([src/interflop-stdlib])
 if test "x$with_prism" != "xno"; then

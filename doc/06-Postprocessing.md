@@ -37,6 +37,85 @@ and ``AllOpsResults.csv`` for arguments and internal operations.
 You can produce an html report with the ``vfc_report`` script, this will produce a
 ``vfc_precexp_report.html`` in the ``vfc_exp_data`` directory.
 
+## Find a piecewise virtual precision schedule with vfc_piecewise
+
+The ``vfc_piecewise`` script searches for the lowest VPREC virtual precision
+that can be used at each step of an iterative program (e.g. each loop
+iteration) while still passing a correctness check you provide. Unlike
+``vfc_precexp``, which finds one precision per function/variable, ``vfc_piecewise``
+finds a *schedule*: a sequence of ``N`` precisions, one per step, and lets the
+step's own precision vary independently of the others.
+
+To use it, your program must:
+
+  - Be compiled with Verificarlo and run under the VPREC backend
+    (see [Backends documentation](02-Backends.md)).
+  - Call `interflop_call(INTERFLOP_SET_PRECISION_BINARY64, p)` at the start of
+    each of the ``N`` steps you want to search over, using the precision `p`
+    for that step (see [Interflop user call instrumentation](07-Interflop-usercall-instrumentation.md)).
+  - Read the schedule to apply from the file pointed to by the
+    ``VFC_SCHEDULE_FILE`` environment variable (one integer precision per
+    line), and exit with a non-zero status when the run should be considered
+    a failure (e.g. the result did not converge to the desired tolerance).
+
+`vfc_piecewise` then repeatedly rewrites that schedule file, re-runs your
+program through the ``--run-cmd`` you give it, and keeps lowering precisions
+that still pass. It tests the bounded precision range exhaustively because a
+program-level correctness check is not necessarily monotone in floating-point
+precision. If no precision in the requested range passes, the command exits
+with an error instead of writing an unverified schedule:
+
+```
+vfc_piecewise -n 10 -o vfc_schedule.txt -r "./my_program"
+```
+
+An optional ``--cmp-cmd`` can be used instead of (or in addition to) relying
+on ``--run-cmd``'s exit status, for example to compare the program's output
+against a reference with a script as described for
+[delta-debug](#pinpointing-errors-with-delta-debug). A run is only considered
+passing when ``--run-cmd`` exits with status 0 and, if given, ``--cmp-cmd``
+also exits with status 0.
+
+Three search strategies are available through ``-s``/``--strategy``:
+
+  - ``piecewise`` (default): recursively bisects the ``N`` steps into
+    sub-ranges, searching the minimal *uniform* precision for each sub-range
+    before splitting it further, producing a piecewise-constant schedule.
+  - ``forward``: searches steps ``0..N-1`` in order, finding the minimal
+    precision for each step independently while all others are fixed.
+  - ``backward``: same as ``forward`` but searches steps ``N-1..0``.
+
+Other useful flags:
+
+  - ``--min-precision``/``--max-precision``: bounds of the search (default
+    1 to 53, i.e. the full binary64 significand range).
+  - ``--animate``: renders a GIF (or HTML with ``--animation-file out.html``)
+    of the search process itself, one frame per precision tested.
+
+For the full list of options: `vfc_piecewise --help`.
+
+The [`tests/test_newton_vprec/`](https://github.com/verificarlo/verificarlo/tree/master/tests/test_newton_vprec/)
+test demonstrates a complete pipeline: a Newton-Raphson C program instrumented
+with `interflop_call`, a `piecewise_search.py` script that drives all three
+strategies through the `PiecewiseSearchOptimizer` Python API directly (useful
+if you need more control than the CLI provides), and a `plot_results.py`
+script that plots the resulting schedules against the achieved convergence.
+
+### Note on Iteration Budgets and Convergence
+
+In iterative algorithms (such as Newton-Raphson or Krylov solvers), running with
+lower virtual precision can introduce numerical perturbations that slow down the
+convergence rate, requiring additional iterations to reach the target residual
+or stopping condition.
+
+Because `vfc_piecewise` searches over a fixed schedule size `N`, allowing extra
+iterations is controlled by your program and test oracle:
+  - Configure the program's stopping condition or loop bound to accept an
+    extra iteration budget beyond the IEEE baseline.
+  - Set `-n` to match this expanded iteration budget so that `vfc_piecewise`
+    can explore lower precision schedules that converge within the allowed
+    extra steps.
+
 ## Unstable branch detection
 
 It is possible to use Verificarlo to detect branches that are unstable due to
