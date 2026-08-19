@@ -101,6 +101,21 @@ strategies through the `PiecewiseSearchOptimizer` Python API directly (useful
 if you need more control than the CLI provides), and a `plot_results.py`
 script that plots the resulting schedules against the achieved convergence.
 
+### Note on Iteration Budgets and Convergence
+
+In iterative algorithms (such as Newton-Raphson or Krylov solvers), running with
+lower virtual precision can introduce numerical perturbations that slow down the
+convergence rate, requiring additional iterations to reach the target residual
+or stopping condition.
+
+Because `vfc_piecewise` searches over a fixed schedule size `N`, allowing extra
+iterations is controlled by your program and test oracle:
+  - Configure the program's stopping condition or loop bound to accept an
+    extra iteration budget beyond the IEEE baseline.
+  - Set `-n` to match this expanded iteration budget so that `vfc_piecewise`
+    can explore lower precision schedules that converge within the allowed
+    extra steps.
+
 ## Unstable branch detection
 
 It is possible to use Verificarlo to detect branches that are unstable due to

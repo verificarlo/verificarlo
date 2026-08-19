@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+import os
 import sys
 
 try:
@@ -7,7 +7,10 @@ try:
         PiecewiseSearchOptimizer,
     )
 except ImportError:
-    sys.path.insert(0, "../../src/tools")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    tools_dir = os.path.abspath(os.path.join(script_dir, "../../src/tools"))
+    if tools_dir not in sys.path:
+        sys.path.insert(0, tools_dir)
     from optimize.piecewise import (
         NoFeasibleScheduleError,
         PiecewiseSearchOptimizer,
@@ -36,5 +39,19 @@ for strategy in ("piecewise", "forward", "backward"):
         pass
     else:
         raise AssertionError(f"{strategy} accepted a schedule that never passed")
+
+try:
+    PiecewiseSearchOptimizer(size=0)
+except ValueError:
+    pass
+else:
+    raise AssertionError("PiecewiseSearchOptimizer accepted size <= 0")
+
+try:
+    PiecewiseSearchOptimizer(min_prec=50, max_prec=20)
+except ValueError:
+    pass
+else:
+    raise AssertionError("PiecewiseSearchOptimizer accepted min_prec > max_prec")
 
 print("Piecewise search regression checks passed")

@@ -9,10 +9,6 @@ import argparse
 import sys
 import subprocess
 import os
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 
 class NoFeasibleScheduleError(RuntimeError):
     """Raised when no precision in the requested range passes evaluation."""
@@ -22,6 +18,11 @@ class PiecewiseSearchOptimizer:
     def __init__(self, size=10, min_prec=1, max_prec=53, strategy="piecewise",
                  eval_fn=None, output_file="vfc_schedule.txt",
                  animate=False, animation_file="piecewise_search.gif", fps=2):
+        if size <= 0:
+            raise ValueError(f"size must be a positive integer, got {size}")
+        if min_prec > max_prec:
+            raise ValueError(f"min_prec ({min_prec}) cannot exceed max_prec ({max_prec})")
+
         self.size = size
         self.min_prec = min_prec
         self.max_prec = max_prec
@@ -132,6 +133,12 @@ class PiecewiseSearchOptimizer:
             print("No trace available for animation.")
             return
 
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        import matplotlib.animation as animation
+        import matplotlib.ticker as ticker
+
         fig, ax = plt.subplots(figsize=(7, 4.5))
 
         def update(frame_idx):
@@ -147,8 +154,11 @@ class PiecewiseSearchOptimizer:
 
             # Strictly fix X and Y bounds on every frame to prevent scale shifts
             ax.set_xlim(-0.5, self.size - 0.5)
-            ax.set_ylim(0, 58)
-            ax.set_xticks(range(self.size))
+            ax.set_ylim(0, max(58, self.max_prec + 5))
+            if self.size <= 20:
+                ax.set_xticks(range(self.size))
+            else:
+                ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
             # Sleek indigo domain highlight with subtle boundary lines
             ax.axvspan(start - 0.5, end - 0.5, color='#6366f1', alpha=0.15, zorder=1, label="Active domain")
@@ -247,21 +257,20 @@ def main():
             return cmp_res.returncode == 0
         return True
 
-    opt = PiecewiseSearchOptimizer(
-        size=args.size,
-        min_prec=args.min_precision,
-        max_prec=args.max_precision,
-        strategy=args.strategy,
-        eval_fn=command_eval_fn,
-        output_file=args.output_file,
-        animate=args.animate,
-        animation_file=args.animation_file,
-        fps=args.fps
-    )
-
     try:
+        opt = PiecewiseSearchOptimizer(
+            size=args.size,
+            min_prec=args.min_precision,
+            max_prec=args.max_precision,
+            strategy=args.strategy,
+            eval_fn=command_eval_fn,
+            output_file=args.output_file,
+            animate=args.animate,
+            animation_file=args.animation_file,
+            fps=args.fps
+        )
         result_schedule = opt.run()
-    except NoFeasibleScheduleError as exc:
+    except (NoFeasibleScheduleError, ValueError) as exc:
         parser.exit(1, f"vfc_piecewise: error: {exc}\n")
     print(f"Optimal precision schedule ({args.strategy}):", result_schedule)
 

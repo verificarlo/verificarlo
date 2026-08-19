@@ -6,7 +6,10 @@ import subprocess
 try:
     from verificarlo.optimize.piecewise import PiecewiseSearchOptimizer
 except ImportError:
-    sys.path.insert(0, "../../src/tools")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    tools_dir = os.path.abspath(os.path.join(script_dir, "../../src/tools"))
+    if tools_dir not in sys.path:
+        sys.path.insert(0, tools_dir)
     from optimize.piecewise import PiecewiseSearchOptimizer
 
 N_ITERS = 10
