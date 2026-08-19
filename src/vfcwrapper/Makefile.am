@@ -17,7 +17,6 @@ libinterflop_vfcwrapper_la_SOURCES = main.c backends.c funcinstr.c
 noinst_HEADERS = \
     backends.h \
     funcinstr.h \
-    operation_amd.h \
     operation_arm.h \
     operation_x86.h \
     operator.h \

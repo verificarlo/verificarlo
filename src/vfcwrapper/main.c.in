@@ -433,14 +433,6 @@ void vfc_init(const vfc_options_t *options) {
       logger_error("%s syntax error: at least one backend should be provided",
                    vfc_backends_env);
     }
-
-    /* parse next backend token */
-    token = strtok_r(NULL, ";", &semicolonptr);
-  }
-
-  if (loaded_backends == 0) {
-    logger_error("%s syntax error: at least one backend should be provided",
-                 vfc_backends_env);
   }
 
   /* Check that at least one backend implements each required operation.
