@@ -1,0 +1,6 @@
+test
+test-O2
+test.log
+*.ll
+*.o
+*.prof
