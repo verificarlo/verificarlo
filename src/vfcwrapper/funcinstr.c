@@ -17,6 +17,16 @@
  *     Verificarlo Contributors                                              *\
  *                                                                           *\
  ****************************************************************************/
+
+#include <stdio.h>
+
+#include "interflop/hashmap/vfc_hashmap.h"
+#include "interflop/interflop_stdlib.h"
+#include "interflop/iostream/logger.h"
+
+#include "backends.h"
+#include "funcinstr.h"
+
 #define _VFC_CALL_STACK_MAXSIZE 4096
 
 /************************************************************

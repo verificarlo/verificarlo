@@ -17,9 +17,9 @@ test1() {
     verificarlo-c -c test.c -emit-llvm --save-temps
 
     if grep "fcmp ogt" test.*.2.ll || grep "fcmp ole" test.*.2.ll; then
-        echo "comparison operations not instrumented"
+        echo "[TEST 1 | PASS] comparison operations not instrumented"
     else
-        echo "comparison operations INSTRUMENTED without --inst-fcmp"
+        echo "[TEST 1 | FAIL] comparison operations INSTRUMENTED without --inst-fcmp"
         exit 1
     fi
 }
@@ -31,18 +31,18 @@ test2() {
     verificarlo-c --inst-fcmp -c test.c -emit-llvm --save-temps
 
     if grep "fcmp ogt" test.*.2.ll || grep "fcmp ole" test.*.2.ll; then
-        echo "comparison operations NOT instrumented with --inst-fcmp"
+        echo "[TEST 2 | FAIL] comparison operations NOT instrumented with --inst-fcmp"
         exit 1
     else
-        echo "comparison operations instrumented"
+        echo "[TEST 2 | PASS] comparison operations instrumented"
     fi
 
     # Only test vector comparisons in x86_64
     if [[ $(arch) == "x86_64" ]]; then
         if grep "_4xdoublecmp" test.*.2.ll; then
-            echo "vector comparison instrumented"
+            echo "[TEST 2 | PASS] vector comparison instrumented"
         else
-            echo "vector comparison NOT instrumented with --inst-fcmp"
+            echo "[TEST 2 | FAIL] vector comparison NOT instrumented with --inst-fcmp"
             exit 1
         fi
     fi
@@ -59,10 +59,10 @@ test3() {
     VFC_BACKENDS="libinterflop_ieee.so --debug" ./run | sort -n 2>vector.log
 
     if diff scalar.log vector.log; then
-        echo "Test successed"
+        echo "[TEST 3 | PASS] Test succeeded"
         exit 0
     else
-        echo "Test failed"
+        echo "[TEST 3 | FAIL] Test failed"
         exit 1
     fi
 }

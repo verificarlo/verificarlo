@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 source ../paths.sh
 
 # ${LLVM_BINDIR}/clang -Wall -Wextra  -O3 -march=native print.c operation.c test.c -g -o test-clang -I.
@@ -27,12 +29,11 @@ export VFC_BACKENDS="libinterflop_ieee.so"
 ./test-2 2>clang.log
 ./test-3 2>mca.log
 
-diff3 gcc.log clang.log mca.log >diff
-if [[ -z $diff ]]; then
-    echo "Test successed"
+if diff3 gcc.log clang.log mca.log > "diff.log"; then
+    echo "Test succeeded"
     exit 0
 else
     echo "Test failed"
-    cat diff
+    cat diff.log
     exit 1
 fi
