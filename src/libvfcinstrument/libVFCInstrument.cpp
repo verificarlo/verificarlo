@@ -22,6 +22,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/Module.h"
 #ifdef PIC
 #undef PIC
@@ -861,23 +862,25 @@ struct VfclibInst : public ModulePass {
     return newInst;
   }
 
+  /* Matches llvm.fma and llvm.fmuladd on float and double, scalar or
+   * fixed-width vector. Vector forms appear once the loop or SLP vectorizer
+   * has run (e.g. llvm.fma.v8f32 at -O3). Scalable vectors are not supported
+   * by the wrappers and are left untouched. */
   bool isFMAOperation(Instruction &I) {
-    CallInst *CI = static_cast<CallInst *>(&I);
-    if (CI->getCalledFunction() == nullptr)
+    CallInst *CI = dyn_cast<CallInst>(&I);
+    if (CI == nullptr)
       return false;
 
-    const auto name = CI->getCalledFunction()->getName();
-    if (name.empty())
+    Intrinsic::ID id = CI->getIntrinsicID();
+    if (id != Intrinsic::fma and id != Intrinsic::fmuladd)
       return false;
-    if (name == "llvm.fmuladd.f32")
-      return true;
-    if (name == "llvm.fmuladd.f64")
-      return true;
-    if (name == "llvm.fma.f32")
-      return true;
-    if (name == "llvm.fma.f64")
-      return true;
-    return false;
+
+    Type *type = CI->getType();
+    if (isa<ScalableVectorType>(type))
+      return false;
+
+    Type *scalarType = type->getScalarType();
+    return scalarType->isFloatTy() or scalarType->isDoubleTy();
   }
 
   /* Check if the cast operation is valid */

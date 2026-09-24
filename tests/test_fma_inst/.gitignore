@@ -3,3 +3,5 @@ out
 test_double
 test_float
 test.log
+test_vector_double
+test_vector_float
