@@ -1,5 +1,27 @@
 Verificarlo CHANGELOG
 
+# [v2.6.0] 2026/09/29
+
+## Added
+  * Build vfcwrapper as a dynamic library (libinterflop_vfcwrapper) initialized by an automatic constructor, with ISA-specific vector wrappers (SSE2, AVX, AVX2, AVX-512, ARM) by @yohanchatelain
+  * Add a Python frontend for interflop_call user calls and document user call instrumentation by @yohanchatelain
+  * Add the vfc_piecewise precision search tool from the VPREC paper by @yohanchatelain
+  * Add uv package manager support, with a pip fallback, by @yohanchatelain
+  * Support PRISM set_rounding_mode through interflop_call by @pablooliveira
+  * Add test_prism_runtime_precision to check that runtime precision changes reach instrumented arithmetic by @yohanchatelain
+  * Add a clang-format pre-commit hook by @yohanchatelain
+
+## Changed
+  * Update PRISM to v0.0.8 (fixed-width operations batched with Highway capped tags, rounding configuration snapshotted per operation, untied-RN mode for SR)
+  * Remove unused operation_amd.h from vfcwrapper and clean up backend option parsing
+
+## Fixed
+  * Instrument vectorized FMA intrinsics (llvm.fma.v*/llvm.fmuladd.v*) with --inst-fma; they were left native at -O3
+  * PRISM: propagate precision and rounding-mode changes to running threads
+  * PRISM: avoid spurious FP exceptions in fixed-width padding lanes
+  * PRISM: fix thread ID generation in Docker containers and multi-threaded environments
+  * ddebug: disable debuginfod in addr2line to avoid hangs during inclusion generation
+
 # [v2.5.1] 2026/06/10
 
 ## Changed
