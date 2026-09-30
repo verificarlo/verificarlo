@@ -11,6 +11,9 @@ ARG PYTHON_VERSION=3.12
 ARG LLVM_VERSION=20
 ARG GCC_VERSION=13
 ARG WITH_FLANG=flang
+# -march for PRISM's static kernels (./configure --with-arch), e.g. x86-64-v3.
+# The default, native, targets the build machine's CPU.
+ARG PRISM_ARCH=native
 # ARG GCC_PATH=/usr/lib/gcc/x86_64-linux-gnu/${GCC_VERSION}
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV PATH=/usr/local/bin:$PATH
@@ -73,7 +76,7 @@ RUN if [ "$WITH_FLANG" = "flang" ]; then \
     ./autogen.sh && \
     ./configure \
     --with-llvm=$(llvm-config-${LLVM_VERSION} --prefix) \
-    $FLANG_OPTION || { cat config.log; exit 1; }
+    $FLANG_OPTION --with-arch=${PRISM_ARCH} || { cat config.log; exit 1; }
 
 # Build verificarlo
 RUN make install-interflop-stdlib
