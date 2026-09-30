@@ -21,6 +21,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/DataLayout.h"
@@ -42,6 +43,8 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #pragma GCC diagnostic pop
+#include <algorithm>
+#include <climits>
 #include <stdio.h>
 #include <string>
 
@@ -199,8 +202,16 @@ static const Value *unwrapStackSlot(const Value *V) {
   return Stored ? Stored->getValueOperand() : NULL;
 }
 
-// Search the size of the Value V which is a pointer (in number of elements)
-unsigned int getSizeOf(const Value *V, unsigned int depth = 0) {
+// Size of a pointer argument that only flows back into itself (a recursive
+// call forwarding it unchanged): it adds no constraint of its own.
+static const unsigned int UnboundedSize = UINT_MAX;
+
+// Search the size of the Value V which is a pointer (in number of elements).
+// The backend reads and rounds that many elements whichever path the pointer
+// came from, so the size must be a lower bound over every possible origin;
+// 0 means unknown and makes the backend skip the argument.
+static unsigned int getSizeOf(const Value *V, unsigned int depth,
+                              SmallPtrSetImpl<const Argument *> &Visiting) {
   const unsigned int max_depth = 8;
   if (V == NULL || depth > max_depth) {
     return 0;
@@ -211,7 +222,7 @@ unsigned int getSizeOf(const Value *V, unsigned int depth = 0) {
 
   // Look through stack slot if V was loaded from an alloca (e.g. at -O0)
   if (const Value *Stored = unwrapStackSlot(V)) {
-    return getSizeOf(Stored, depth + 1);
+    return getSizeOf(Stored, depth + 1, Visiting);
   }
 
   // Search for the AllocaInst or GlobalVariable at the origin of V
@@ -237,26 +248,45 @@ unsigned int getSizeOf(const Value *V, unsigned int depth = 0) {
     }
   }
 
-  // If V is an argument, search the size of V in the callers of its parent
-  // function
+  // If V is an argument, its size is the smallest one passed by the callers of
+  // its parent function. Any caller we cannot size, or cannot see because the
+  // function's address is taken, makes it unknown.
   if (const Argument *Arg = dyn_cast<Argument>(V)) {
+    if (Visiting.count(Arg)) {
+      return UnboundedSize;
+    }
+
     const Function *Parent = Arg->getParent();
+    if (Parent->hasAddressTaken()) {
+      return 0;
+    }
+
+    Visiting.insert(Arg);
+    unsigned int size = UnboundedSize;
     for (const auto &U : Parent->users()) {
-      if (const CallBase *Call = dyn_cast<CallBase>(U)) {
-        if (Call->getCalledFunction() == Parent &&
-            Arg->getArgNo() < Call->arg_size()) {
-          const Value *to_search = Call->getArgOperand(Arg->getArgNo());
-          unsigned int size = getSizeOf(to_search, depth + 1);
-          if (size != 0) {
-            return size;
-          }
-        }
+      const CallBase *Call = dyn_cast<CallBase>(U);
+      if (Call == NULL || Call->getCalledFunction() != Parent ||
+          Arg->getArgNo() >= Call->arg_size()) {
+        size = 0;
+        break;
+      }
+      const Value *to_search = Call->getArgOperand(Arg->getArgNo());
+      size = std::min(size, getSizeOf(to_search, depth + 1, Visiting));
+      if (size == 0) {
+        break;
       }
     }
-    return 0;
+    Visiting.erase(Arg);
+    // No caller outside a recursive cycle: the pointer comes from elsewhere
+    return size == UnboundedSize ? 0 : size;
   }
 
   return 0;
+}
+
+unsigned int getSizeOf(const Value *V) {
+  SmallPtrSet<const Argument *, 8> Visiting;
+  return getSizeOf(V, 0, Visiting);
 }
 
 // Unwrap array and vector types down to their element type

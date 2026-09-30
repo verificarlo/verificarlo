@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -Rf *~ test test.log out.txt *.o *.ll *.prof .vfcwrapper* .test*
+rm -Rf *~ test sizes test.log out.txt sizes-O*.txt *.o *.ll *.prof .vfcwrapper* .test*

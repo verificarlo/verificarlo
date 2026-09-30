@@ -4,3 +4,5 @@ out.txt
 *.ll
 *.o
 *.prof
+sizes
+sizes-O*.txt
