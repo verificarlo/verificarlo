@@ -22,6 +22,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "llvm/Analysis/TargetLibraryInfo.h"
+#include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DebugLoc.h"
@@ -81,6 +82,11 @@ Value *Types2val[] = {
     [FFLOAT_PTR] = NULL, [FDOUBLE_PTR] = NULL, [FQUAD_PTR] = NULL,
     [FTYPES_END] = NULL};
 
+Type *getPointeeType(Value *V, unsigned int depth = 0);
+Type *getParamPointeeTypeFromBody(Function *F, unsigned int argNo);
+Type *getReturnPointeeType(Function *F);
+Type *getAmbiguousPointeeType();
+
 // Fill use_double and use_float with true if the call_inst pi use at least
 // of the managed types
 void haveFloatingPointArithmetic(Instruction *call, Function *f,
@@ -98,6 +104,14 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
 
   // Test if return type of call is double
   (*use_double) = ReturnTy == DoubleTy;
+
+  if (ReturnTy->isPointerTy() && f != NULL) {
+    Type *RetPointee = getReturnPointeeType(f);
+    if (RetPointee == FloatTy)
+      (*use_float) = true;
+    else if (RetPointee == DoubleTy)
+      (*use_double) = true;
+  }
 
   // Test if f treat floats point numbers
   if (f != NULL && f->size() != 0) {
@@ -122,60 +136,124 @@ void haveFloatingPointArithmetic(Instruction *call, Function *f,
       }
     }
   } else if (call != NULL) {
-    // Since LLVM 15 pointers are opaque: FloatPtrTy and DoublePtrTy are both
-    // the type-less `ptr`, so a pointer operand tells us nothing about the
-    // pointee. For intrinsics that guess is not merely imprecise, it is
-    // harmful: it marks pointer-only intrinsics such as llvm.stackrestore or
-    // llvm.va_start as floating-point ones, which lets them be moved into a
-    // hook function. Only genuine float/double operands count for intrinsics.
+    // Since LLVM 15 pointers are opaque: a pointer operand tells us nothing
+    // about the pointee from its type alone. For intrinsics that guess is not
+    // merely imprecise, it is harmful: it marks pointer-only intrinsics such as
+    // llvm.stackrestore or llvm.va_start as floating-point ones, which lets
+    // them be moved into a hook function. Only genuine float/double operands
+    // count for intrinsics. For non-intrinsics, recover the pointee type.
     const bool is_intrinsic = (f != NULL && f->isIntrinsic());
 
     // Loop over arguments types
     for (auto it = call->op_begin(); it < call->op_end() - 1; it++) {
       Type *opType = (*it)->getType();
-      if (opType == FloatTy || (!is_intrinsic && opType == FloatPtrTy))
+      if (opType == FloatTy) {
         (*use_float) = true;
-      if (opType == DoubleTy || (!is_intrinsic && opType == DoublePtrTy))
+      } else if (opType == DoubleTy) {
         (*use_double) = true;
+      } else if (opType->isPointerTy() && !is_intrinsic) {
+        Type *Pointee = getPointeeType(*it);
+        if (f != NULL &&
+            (Pointee == NULL || Pointee == getAmbiguousPointeeType())) {
+          unsigned int argNo = it - call->op_begin();
+          Pointee = getParamPointeeTypeFromBody(f, argNo);
+        }
+        if (Pointee == FloatTy)
+          (*use_float) = true;
+        else if (Pointee == DoubleTy)
+          (*use_double) = true;
+      }
     }
   }
 }
 
-// Search the size of the Value V which is a pointer
-unsigned int getSizeOf(Value *V, const Function *F) {
-  // if V is an argument of the F function, search the size of V in the parent
-  // of F
-  for (auto &Args : F->args()) {
-    if (&Args == V) {
-      for (const auto &U : V->users()) {
-        if (isa<CallInst>(U)) {
-          const CallInst *call = cast<CallInst>(U);
-          Value *to_search = call->getOperand(Args.getArgNo());
+// Look through the stack slot clang gives every parameter at -O0:
+//   %f.addr = alloca ptr / store ptr %f, ptr %f.addr / load ptr, %f.addr
+// Only a slot written exactly once tells us anything.
+static const Value *unwrapStackSlot(const Value *V) {
+  const LoadInst *Load = dyn_cast<LoadInst>(V);
+  if (Load == NULL) {
+    return NULL;
+  }
 
-          return getSizeOf(to_search, call->getParent()->getParent());
+  const AllocaInst *Slot = dyn_cast<AllocaInst>(Load->getPointerOperand());
+  if (Slot == NULL || !Slot->getAllocatedType()->isPointerTy()) {
+    return NULL;
+  }
+
+  const StoreInst *Stored = NULL;
+  for (const auto &U : Slot->users()) {
+    if (const StoreInst *Store = dyn_cast<StoreInst>(U)) {
+      if (Store->getPointerOperand() == Slot) {
+        if (Stored != NULL) {
+          return NULL;
         }
+        Stored = Store;
+      } else {
+        // Slot is stored as a value operand; its address escapes
+        return NULL;
       }
     }
   }
 
-  // search for the AllocaInst at the origin of V
-  for (auto &BB : (*F)) {
-    for (auto &I : BB) {
-      if (&I == V) {
-        if (const AllocaInst *Alloca = dyn_cast<AllocaInst>(&I)) {
-          if (Alloca->getAllocatedType()->isArrayTy() ||
-              Alloca->getAllocatedType()->isVectorTy()) {
-            return Alloca->getAllocatedType()->getArrayNumElements();
-          } else {
-            return 1;
+  return Stored ? Stored->getValueOperand() : NULL;
+}
+
+// Search the size of the Value V which is a pointer (in number of elements)
+unsigned int getSizeOf(const Value *V, unsigned int depth = 0) {
+  const unsigned int max_depth = 8;
+  if (V == NULL || depth > max_depth) {
+    return 0;
+  }
+
+  // Strip GEPs and pointer casts to reach the base object
+  V = getUnderlyingObject(V, max_depth);
+
+  // Look through stack slot if V was loaded from an alloca (e.g. at -O0)
+  if (const Value *Stored = unwrapStackSlot(V)) {
+    return getSizeOf(Stored, depth + 1);
+  }
+
+  // Search for the AllocaInst or GlobalVariable at the origin of V
+  if (const AllocaInst *Alloca = dyn_cast<AllocaInst>(V)) {
+    if (Alloca->getAllocatedType()->isArrayTy()) {
+      return Alloca->getAllocatedType()->getArrayNumElements();
+    } else if (const VectorType *VecTy =
+                   dyn_cast<VectorType>(Alloca->getAllocatedType())) {
+      return VecTy->getElementCount().getKnownMinValue();
+    } else {
+      return 1;
+    }
+  }
+
+  if (const GlobalVariable *Global = dyn_cast<GlobalVariable>(V)) {
+    if (Global->getValueType()->isArrayTy()) {
+      return Global->getValueType()->getArrayNumElements();
+    } else if (const VectorType *VecTy =
+                   dyn_cast<VectorType>(Global->getValueType())) {
+      return VecTy->getElementCount().getKnownMinValue();
+    } else {
+      return 1;
+    }
+  }
+
+  // If V is an argument, search the size of V in the callers of its parent
+  // function
+  if (const Argument *Arg = dyn_cast<Argument>(V)) {
+    const Function *Parent = Arg->getParent();
+    for (const auto &U : Parent->users()) {
+      if (const CallBase *Call = dyn_cast<CallBase>(U)) {
+        if (Call->getCalledFunction() == Parent &&
+            Arg->getArgNo() < Call->arg_size()) {
+          const Value *to_search = Call->getArgOperand(Arg->getArgNo());
+          unsigned int size = getSizeOf(to_search, depth + 1);
+          if (size != 0) {
+            return size;
           }
-        } else if (const GetElementPtrInst *GEP =
-                       dyn_cast<GetElementPtrInst>(&I)) {
-          Value *to_search = GEP->getOperand(0);
-          return getSizeOf(to_search, F);
         }
       }
     }
+    return 0;
   }
 
   return 0;
@@ -221,7 +299,7 @@ Type *mergePointeeTypes(Type *Current, Type *Candidate) {
 // pointer, which is how string literals ended up being reported to the
 // backends as arrays of floating-point values. The pointee has to be recovered
 // instead, here by walking back to the allocation the pointer comes from.
-Type *getPointeeType(Value *V, unsigned int depth = 0) {
+Type *getPointeeType(Value *V, unsigned int depth) {
   const unsigned int max_depth = 8;
 
   if (V == NULL || depth > max_depth) {
@@ -251,29 +329,8 @@ Type *getPointeeType(Value *V, unsigned int depth = 0) {
     return getPointeeType(Cast->getOperand(0), depth + 1);
   }
 
-  if (LoadInst *Load = dyn_cast<LoadInst>(V)) {
-    // Look through the stack slot clang gives every parameter at -O0:
-    //   %f.addr = alloca ptr / store ptr %f, ptr %f.addr / load ptr, %f.addr
-    // Only a slot written exactly once tells us anything.
-    AllocaInst *Slot = dyn_cast<AllocaInst>(Load->getPointerOperand());
-    if (Slot == NULL || !Slot->getAllocatedType()->isPointerTy()) {
-      return NULL;
-    }
-
-    StoreInst *Stored = NULL;
-    for (const auto &U : Slot->users()) {
-      if (StoreInst *Store = dyn_cast<StoreInst>(U)) {
-        if (Stored != NULL) {
-          return NULL;
-        }
-        Stored = Store;
-      }
-    }
-
-    if (Stored == NULL) {
-      return NULL;
-    }
-    return getPointeeType(Stored->getValueOperand(), depth + 1);
+  if (const Value *Stored = unwrapStackSlot(V)) {
+    return getPointeeType(const_cast<Value *>(Stored), depth + 1);
   }
 
   if (Argument *Arg = dyn_cast<Argument>(V)) {
@@ -300,6 +357,42 @@ Type *getPointeeType(Value *V, unsigned int depth = 0) {
   return NULL;
 }
 
+// Inspect how pointer Val is accessed in the callee body
+static bool inspectPointerUsers(const Value *Val, Type *FloatTy, Type *DoubleTy,
+                                Type *&Pointee) {
+  for (const auto &U : Val->users()) {
+    Type *Candidate = NULL;
+
+    if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(U)) {
+      if (GEP->getPointerOperand() == Val) {
+        Type *Source = getElementTypeOf(GEP->getSourceElementType());
+        if (Source == FloatTy || Source == DoubleTy) {
+          Candidate = Source;
+        }
+      }
+    } else if (const LoadInst *Load = dyn_cast<LoadInst>(U)) {
+      if (Load->getPointerOperand() == Val &&
+          (Load->getType() == FloatTy || Load->getType() == DoubleTy)) {
+        Candidate = Load->getType();
+      }
+    } else if (const StoreInst *Store = dyn_cast<StoreInst>(U)) {
+      Type *StoredTy = Store->getValueOperand()->getType();
+      if (Store->getPointerOperand() == Val &&
+          (StoredTy == FloatTy || StoredTy == DoubleTy)) {
+        Candidate = StoredTy;
+      }
+    }
+
+    if (Candidate != NULL) {
+      Pointee = mergePointeeTypes(Pointee, Candidate);
+      if (Pointee == getAmbiguousPointeeType()) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // Recover the type parameter `argNo` of F points to by looking at how F uses
 // it. Complements getPointeeType: at -O0 clang copies every parameter into a
 // stack slot, so the pointer handed to a call is usually a load whose origin
@@ -314,32 +407,31 @@ Type *getParamPointeeTypeFromBody(Function *F, unsigned int argNo) {
   const Argument *Arg = F->getArg(argNo);
   Type *Pointee = NULL;
 
-  for (const auto &U : Arg->users()) {
-    Type *Candidate = NULL;
+  if (inspectPointerUsers(Arg, FloatTy, DoubleTy, Pointee)) {
+    return Pointee;
+  }
 
-    if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(U)) {
-      if (GEP->getPointerOperand() == Arg) {
-        Type *Source = getElementTypeOf(GEP->getSourceElementType());
-        if (Source == FloatTy || Source == DoubleTy) {
-          Candidate = Source;
+  // At -O0 clang copies every parameter into a stack slot:
+  //   %arg.addr = alloca ptr / store ptr %arg, ptr %arg.addr
+  // Look through loads from that stack slot to find how the pointer is used.
+  for (const auto &U : Arg->users()) {
+    if (const StoreInst *Store = dyn_cast<StoreInst>(U)) {
+      if (Store->getValueOperand() == Arg) {
+        if (const AllocaInst *Slot =
+                dyn_cast<AllocaInst>(Store->getPointerOperand())) {
+          if (Slot->getAllocatedType()->isPointerTy()) {
+            for (const auto &SU : Slot->users()) {
+              if (const LoadInst *Load = dyn_cast<LoadInst>(SU)) {
+                if (Load->getPointerOperand() == Slot) {
+                  if (inspectPointerUsers(Load, FloatTy, DoubleTy, Pointee)) {
+                    return Pointee;
+                  }
+                }
+              }
+            }
+          }
         }
       }
-    } else if (const LoadInst *Load = dyn_cast<LoadInst>(U)) {
-      if (Load->getPointerOperand() == Arg &&
-          (Load->getType() == FloatTy || Load->getType() == DoubleTy)) {
-        Candidate = Load->getType();
-      }
-    } else if (const StoreInst *Store = dyn_cast<StoreInst>(U)) {
-      Type *StoredTy = Store->getValueOperand()->getType();
-      if (Store->getPointerOperand() == Arg &&
-          (StoredTy == FloatTy || StoredTy == DoubleTy)) {
-        Candidate = StoredTy;
-      }
-    }
-
-    Pointee = mergePointeeTypes(Pointee, Candidate);
-    if (Pointee == getAmbiguousPointeeType()) {
-      return Pointee;
     }
   }
 
@@ -494,8 +586,7 @@ void initializeInputArgs(std::vector<Value *> &EnterArgs,
       EnterArgs.push_back(InputAlloca[input_index]);
       Builder.CreateStore(&args, InputAlloca[input_index++]);
     } else {
-      unsigned int size = getSizeOf(call->getOperand(args.getArgNo()),
-                                    call->getParent()->getParent());
+      unsigned int size = getSizeOf(call->getOperand(args.getArgNo()));
       EnterArgs.push_back(ConstantInt::get(Int32Ty, size));
       EnterArgs.push_back(&args);
     }
@@ -520,7 +611,7 @@ void initializeOutputArgs(std::vector<Value *> &ExitArgs,
       ExitArgs.push_back(OutputAlloca[0]);
       Builder.CreateStore(ret, OutputAlloca[0]);
     } else {
-      unsigned int size = getSizeOf(ret, call->getParent()->getParent());
+      unsigned int size = getSizeOf(ret);
       ExitArgs.push_back(ConstantInt::get(Int32Ty, size));
       ExitArgs.push_back(ret);
     }
@@ -533,8 +624,7 @@ void initializeOutputArgs(std::vector<Value *> &ExitArgs,
       std::string arg_name = getArgName(HookedFunction, args.getArgNo());
       ExitArgs.push_back(Types2val[type]);
       ExitArgs.push_back(Builder.CreateGlobalStringPtr(arg_name));
-      unsigned int size = getSizeOf(call->getOperand(args.getArgNo()),
-                                    call->getParent()->getParent());
+      unsigned int size = getSizeOf(call->getOperand(args.getArgNo()));
       ExitArgs.push_back(ConstantInt::get(Int32Ty, size));
       ExitArgs.push_back(&args);
     }

@@ -1,0 +1,6 @@
+test
+test.log
+out.txt
+*.ll
+*.o
+*.prof
