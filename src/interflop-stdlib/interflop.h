@@ -56,6 +56,11 @@ enum FTYPES {
 };
 
 typedef enum {
+  /* Rounds the double-word number (*value, *error), i.e. the unevaluated sum
+   * *value + *error with *value = RN(*value + *error), with the backend's
+   * current rounding mode and precision; the result is stored in *value */
+  /* signature: void round_dw(enum FTYPES type, void *value, void *error) */
+  INTERFLOP_ROUND_DW_ID = 7,
   /* Allows changing rounding mode */
   /* signature: void set_rounding_mode(int mode) */
   INTERFLOP_SET_ROUNDING_MODE = 6,
