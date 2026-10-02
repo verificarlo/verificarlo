@@ -33,6 +33,7 @@ Supported call IDs and their variadic arguments:
     INTERFLOP_SET_RANGE_BINARY64(int range)
     INTERFLOP_SET_ROUNDING_MODE(int mode)
     INTERFLOP_INEXACT_ID(enum FTYPES type, void *value, int precision)
+    INTERFLOP_ROUND_DW_ID(enum FTYPES type, void *value, void *error)
     INTERFLOP_CUSTOM_ID(...)  -- backend-specific
 """
 
@@ -56,6 +57,7 @@ class InterflopCallId(enum.IntEnum):
     INTERFLOP_SET_RANGE_BINARY32 = 4
     INTERFLOP_SET_RANGE_BINARY64 = 5
     INTERFLOP_SET_ROUNDING_MODE = 6
+    INTERFLOP_ROUND_DW_ID = 7
 
 
 class FType(enum.IntEnum):

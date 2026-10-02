@@ -22,6 +22,10 @@
  *     INTERFLOP_SET_PRECISION_BINARY64 and INTERFLOP_SET_ROUNDING_MODE so that
  *     instrumented code can change precision or rounding mode at runtime via
  *     interflop_call().
+ *   - interflop_user_call handling for INTERFLOP_ROUND_DW_ID so that code
+ *     computing in higher precision (e.g. an instrumented libm) can round its
+ *     result, given as a double-word number x + e, with PRISM's current mode,
+ *     precision and random state.
  */
 
 #include <argp.h>
@@ -150,6 +154,21 @@ static void prism_user_call(void *context, interflop_call_id id, va_list ap) {
   case INTERFLOP_SET_ROUNDING_MODE: {
     int32_t mode = va_arg(ap, int);
     interflop_prism_set_rounding_mode(mode);
+    break;
+  }
+  case INTERFLOP_ROUND_DW_ID: {
+    enum FTYPES type = va_arg(ap, enum FTYPES);
+    void *value = va_arg(ap, void *);
+    void *error = va_arg(ap, void *);
+    if (type == FFLOAT) {
+      float *x = (float *)value;
+      *x = interflop_prism_round_dw_binary32(*x, *(float *)error);
+    } else if (type == FDOUBLE) {
+      double *x = (double *)value;
+      *x = interflop_prism_round_dw_binary64(*x, *(double *)error);
+    } else {
+      logger_warning("INTERFLOP_ROUND_DW_ID: unsupported type %d", type);
+    }
     break;
   }
   default:

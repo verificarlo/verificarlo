@@ -89,6 +89,27 @@ where:
 - `id`: must be set to `INTERFLOP_SET_RANGE_BINARY32`
 - `range`: new exponent bit length (0 < range <= 8).
 
+### `INTERFLOP_ROUND_DW_ID`
+
+Rounds a double-word number, i.e. a value given as an unevaluated sum
+`*value + *error` of a high part and a low part with `*value = RN(*value + *error)`
+(`|*error| <= ulp(*value)/2`). Such pairs come from error-free transformations
+or from splitting a higher-precision result `z` as `x = (double)z`,
+`e = (double)(z - x)`. Rounding the pair rather than `x` alone lets the backend
+round `z` correctly.
+Signature:
+```C
+void interflop_call(interflop_call_id id, enum FTYPES type, void *value, void *error);
+```
+where:
+- `id`: must be set to `INTERFLOP_ROUND_DW_ID`
+- `type`: `FFLOAT` or `FDOUBLE`, the type of `*value` and `*error`.
+- `value`: pointer to the high part; receives the rounded result.
+- `error`: pointer to the low part.
+
+Implemented by the PRISM backend, which rounds with its current mode
+(`--mode=sr` or `--mode=rn`), virtual precision and random state.
+
 ### `INTERFLOP_CUSTOM_ID`
 
 General user call for custom purposes. No fixed signature.
@@ -333,6 +354,7 @@ Python mirror of the `interflop_call_id` C enum.
 | `INTERFLOP_SET_RANGE_BINARY32` | 4 |
 | `INTERFLOP_SET_RANGE_BINARY64` | 5 |
 | `INTERFLOP_SET_ROUNDING_MODE` | 6 |
+| `INTERFLOP_ROUND_DW_ID` | 7 |
 
 #### `FType`
 
