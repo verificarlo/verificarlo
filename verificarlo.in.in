@@ -176,6 +176,11 @@ def linker_mode(sources, options, libraries, output, args):
             libprism = ""
         if args.prism_backend_debug:
             libprism += "-dbg"
+        # libprism-config holds the state shared by every PRISM library. A
+        # shared libprism-* lists it as NEEDED; a static archive does not, so
+        # it must be named after libprism-* on the command line.
+        if args.static:
+            libprism += " -lprism-config"
         libraries += f" {libprism} -lhwy -lstdc++ "
 
     sources = " ".join([os.path.splitext(s)[0] + ".o" for s in sources])
