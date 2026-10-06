@@ -1,1 +1,10 @@
+test.c
+test.cpp
+test.f90
+test_include.c
+test_include.f90
+test*.o
+test_exe
+output.txt
+path with spaces/
 test.log
