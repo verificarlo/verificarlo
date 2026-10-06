@@ -595,8 +595,8 @@ struct VfclibInst : public ModulePass {
     }
 
     if (triple.isAArch64()) {
-      if (isaSuffix == "_sve2" || isaSuffix == "_sve")
-        return 0;
+      // AAPCS64 passes fixed-length vectors wider than 128 bits indirectly,
+      // with or without SVE (only scalable types use the Z registers).
       return 128;
     }
 
