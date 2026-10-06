@@ -337,8 +337,16 @@ struct VfclibInst : public ModulePass {
   bool isValidVectorInstruction(Type *opType) {
     VectorType *vecType = static_cast<VectorType *>(opType);
     auto baseType = vecType->getScalarType();
-    if (isa<ScalableVectorType>(vecType))
-      report_fatal_error("Scalable vector type are not supported");
+    if (isa<ScalableVectorType>(vecType)) {
+      // e.g. SVE intrinsics on AArch64: leave them native instead of aborting
+      static bool warned = false;
+      if (not warned) {
+        errs() << "Warning: scalable vector operations (" << *opType
+               << ") are not supported and are left uninstrumented\n";
+        warned = true;
+      }
+      return false;
+    }
     auto size = ((::llvm::FixedVectorType *)vecType)->getNumElements();
     bool isValidSize = validVectorSizes.find(size) != validVectorSizes.end();
     if (not isValidSize) {
