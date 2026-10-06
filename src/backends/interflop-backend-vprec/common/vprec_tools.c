@@ -19,6 +19,19 @@
  ****************************************************************************/
 #include <math.h>
 #include <stdint.h>
+#include <stdio.h>
+
+/* When long double is IEEE binary128 (e.g. AArch64 Linux), the C library can
+ * print it directly. Otherwise (e.g. x86_64) we need libquadmath, which is not
+ * available on every target (GCC does not ship it on AArch64). */
+#if __LDBL_MANT_DIG__ == 113
+#define VPREC_LDBL_IS_BINARY128 1
+#elif defined(__has_include)
+#if __has_include(<quadmath.h>)
+#include <quadmath.h>
+#define VPREC_HAVE_QUADMATH 1
+#endif
+#endif
 
 #include "interflop/common/float_const.h"
 #include "interflop/common/float_struct.h"
@@ -30,7 +43,16 @@
  */
 void print_binary128(const binary128 b128_x) {
   char buf[256];
+#if defined(VPREC_LDBL_IS_BINARY128)
+  snprintf(buf, sizeof(buf), "%+.28La", (long double)b128_x.f128);
+#elif defined(VPREC_HAVE_QUADMATH)
   quadmath_snprintf(buf, sizeof(buf), "%+.28Qa", b128_x.f128);
+#else
+  snprintf(buf, sizeof(buf), "sign=%u exp=0x%04x mant=0x%012llx%016llx",
+           (unsigned)b128_x.ieee.sign, (unsigned)b128_x.ieee.exponent,
+           (unsigned long long)b128_x.ieee.mant_high,
+           (unsigned long long)b128_x.ieee.mant_low);
+#endif
   logger_debug("%s\n", buf);
 }
 

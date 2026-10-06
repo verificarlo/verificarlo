@@ -802,7 +802,9 @@ struct VfclibInst : public ModulePass {
                << "\n";
       }
 
-    } else if (isf32x2Value(op)) {
+    } else if (isf32x2Value(op) and arg_type->isDoubleTy()) {
+      // The x86_64 SysV ABI passes <2 x float> as a double; other ABIs
+      // (e.g. AArch64) keep the vector type, so only cast when needed.
       op = f32x2ToDoubleCast(Builder, op);
       operand = op;
 
