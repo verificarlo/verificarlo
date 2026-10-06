@@ -57,6 +57,9 @@ for mode in up-down sr; do
     run $mode "Test vector dynamic dispatch -march=native" test_vector.sh $DYNAMIC $NATIVE
     run $mode "Test vector static dispatch -march=native" test_vector.sh $STATIC $NATIVE
 
+    # a*b+c contracted into llvm.fmuladd
+    run $mode "Test fmuladd instrumentation" test_fmuladd.sh
+
 done
 
 exit 0
