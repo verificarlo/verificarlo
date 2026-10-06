@@ -48,6 +48,8 @@
 #include <sstream>
 #include <utility>
 
+#include "../common/VectorReduction.hpp"
+
 #define GET_VECTOR_TYPE(ty, size) FixedVectorType::get(ty, size)
 
 #if LLVM_VERSION_MAJOR >= 18
@@ -934,7 +936,8 @@ struct VfclibInst : public ModulePass {
   }
 
   bool runOnBasicBlock(Module &M, BasicBlock &B) {
-    bool modified = false;
+    // Expose the arithmetic of vector reductions as scalar operations
+    bool modified = vfc::expandVectorReductions(B);
     std::set<std::pair<Instruction *, FPOps>> WorkList;
     for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
       Instruction &I = *ii;
