@@ -690,8 +690,17 @@ struct VfclibInst : public ModulePass {
     Type *resultType = opCode == FOP_CMP ? getComparisonResultType(I, M)
                                          : getABIType(I->getType(), M);
     auto *vecTy = dyn_cast<FixedVectorType>(resultType);
-    return vecTy != nullptr &&
-           vecTy->getPrimitiveSizeInBits().getFixedValue() > maxDirectWidth;
+    if (vecTy != nullptr &&
+        vecTy->getPrimitiveSizeInBits().getFixedValue() > maxDirectWidth)
+      return true;
+
+    // Wide operands are declared as byval pointers, which matches the x86-64
+    // SysV ABI (copy on the stack) but not AAPCS64, which passes a pointer to
+    // a caller-made copy in a register. This matters when the result is narrow
+    // enough to be returned directly, e.g. fcmp <4 x double> -> <4 x i32>.
+    Triple triple(M.getTargetTriple());
+    return triple.isAArch64() &&
+           shouldPassIndirectly(I->getOperand(0)->getType(), M, isaSuffix);
   }
 
   Value *replaceWithScalarizedMCACalls(Module &M, IRBuilder<> &Builder,
