@@ -77,9 +77,26 @@ test4() {
     make clean
 }
 
+test5() {
+    new_env test5
+    # Check that object files do not overlap when compiling and linking
+    # the same source in one step, during parallel compilation
+    parallel "verificarlo-c -DREAL={} test.c -o test_link_{}" ::: $(seq 10)
+    for i in $(seq 10); do
+        if ! nm test_link_$i | grep -qw loop_$i; then
+            echo "Cannot find function loop_${i} in test_link_${i}"
+            exit 1
+        fi
+    done
+    if ls *.o >/dev/null 2>&1; then
+        echo "Object files left behind after linking:" *.o
+        exit 1
+    fi
+}
+
 export -f new_env check_function check_files find_function_in_obj find_function_in_ll
-export -f test1 test2 test3 test4
-parallel test{#} ::: $(seq 4)
+export -f test1 test2 test3 test4 test5
+parallel test{#} ::: $(seq 5)
 
 echo "pass"
 exit 0

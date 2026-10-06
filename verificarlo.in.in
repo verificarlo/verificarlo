@@ -166,7 +166,7 @@ def shell(cmd, verbose=False):
         fail("command failed:\n" + cmd)
 
 
-def linker_mode(sources, options, libraries, output, args):
+def linker_mode(objects, options, libraries, output, args):
     if args.prism_backend:
         if args.prism_backend_dispatch == "dynamic":
             libprism = "-lprism-dynamic"
@@ -184,7 +184,7 @@ def linker_mode(sources, options, libraries, output, args):
             libprism += " -lprism-config"
         libraries += f" {libprism} -lhwy -lstdc++ "
 
-    sources = " ".join([os.path.splitext(s)[0] + ".o" for s in sources])
+    objects = " ".join(objects)
     interflop_libs = " ".join(
         [
             "-linterflop_vfcwrapper",
@@ -207,12 +207,12 @@ def linker_mode(sources, options, libraries, output, args):
             f"-Wl,--whole-archive -L{LIBDIR} -linterflop_vfcwrapper -Wl,--no-whole-archive"
         )
         cmd = (
-            f"{output} {sources} {options} {libraries} "
+            f"{output} {objects} {options} {libraries} "
             f" -static -lgmp -lm {whole_archive_vfcwrapper} -L{libinterflop_stdlib_lib} -linterflop_stdlib -linterflop_hashmap -linterflop_logger -ldl "
         )
     else:
         cmd = (
-            f"{output} {sources} {options} {libraries} "
+            f"{output} {objects} {options} {libraries} "
             f" {mcalib_options} -ldl {interflop_stdlib_flags} "
         )
 
@@ -320,10 +320,17 @@ def get_target_compile_flags(options):
     return ""
 
 
-def compiler_mode(sources, options, output, args):
+def compiler_mode(sources, options, output, args, link=False):
+    """Compile sources to object files and return their paths.
+
+    When linking, objects go to unique temporary files rather than
+    <basename>.o, so that parallel builds of the same source in one directory
+    do not overwrite each other's object, and no stray .o is left behind.
+    """
     extra_args = "-static " if args.static else "-fPIC "
     ir_ext = "ll" if args.emit_llvm or args.save_temps else "bc"
     target_flags = get_target_compile_flags(options)
+    objects = []
 
     for source in sources:
         basename = os.path.splitext(source)[0]
@@ -335,12 +342,15 @@ def compiler_mode(sources, options, output, args):
 
         debug = " -g " if args.inst_func or args.ddebug else ""
 
+        if link:
+            obj = get_tmp_filename(basename, ".o", args).name
+            objects.append(obj)
+            obj_output = f" -o {obj} "
+        else:
+            obj_output = output if output else " -o " + basename + ".o"
+
         if is_assembly(source):
-            if not output:
-                basename_output = "-o " + basename + ".o"
-            else:
-                basename_output = output
-            compile_only([source], " -c " + options, basename_output, args)
+            compile_only([source], " -c " + options, obj_output, args)
             continue
 
         # Compile to ir (fortran uses flang, c uses clang)
@@ -388,12 +398,10 @@ def compiler_mode(sources, options, output, args):
             ir, ins, extra_args, selectfunction, args
         )
 
-        cmd_output = output if output else " -o " + basename + ".o"
-
         if not args.emit_llvm:
             # Produce object file
             shell(
-                f"{compiler} -c {cmd_output} {ins.name} {options}",
+                f"{compiler} -c {obj_output} {ins.name} {options}",
                 verbose=args.show_cmd,
             )
         else:
@@ -402,6 +410,8 @@ def compiler_mode(sources, options, output, args):
                 f"cp {ins.name} {args.o if args.o else basename + '.' + ir_ext}",
                 verbose=args.show_cmd,
             )
+
+    return objects
 
 
 
@@ -526,8 +536,8 @@ def main():
     else:
         if len(sources) == 0 and len(llvm_options) == 0:
             fail("no input files")
-        compiler_mode(sources, llvm_options, "", args)
-        linker_mode(sources, llvm_options, libraries, output, args)
+        objects = compiler_mode(sources, llvm_options, "", args, link=True)
+        linker_mode(objects, llvm_options, libraries, output, args)
 
 
 if __name__ == "__main__":
