@@ -132,13 +132,13 @@ auto getName(const type &ty) -> std::string {
   llvm_unreachable("unknown type");
 }
 
+/* Matches llvm.fma and llvm.fmuladd. Clang emits llvm.fmuladd for a*b+c
+ * by default (-ffp-contract=on), so matching only "llvm.fma*" names left
+ * those operations uninstrumented. */
 auto isFMA(const Instruction *I) -> bool {
-  if (isa<CallInst>(I)) {
-    const auto *call = dyn_cast<CallInst>(I);
-    if (call->getCalledFunction() != nullptr) {
-      auto name = call->getCalledFunction()->getName();
-      return (name.empty()) ? false : STARTS_WITH(name, "llvm.fma");
-    }
+  if (const auto *call = dyn_cast<CallInst>(I)) {
+    const auto id = call->getIntrinsicID();
+    return id == Intrinsic::fma or id == Intrinsic::fmuladd;
   }
   return false;
 }
