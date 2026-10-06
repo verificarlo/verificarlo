@@ -680,8 +680,16 @@ struct VfclibInst : public ModulePass {
     auto *vecType = dyn_cast<VectorType>(opType);
     auto *baseType = vecType->getScalarType();
 
-    if (isa<ScalableVectorType>(vecType))
-      prism_fatal_error("Scalable vector type are not supported");
+    if (isa<ScalableVectorType>(vecType)) {
+      // e.g. SVE intrinsics on AArch64: leave them native instead of aborting
+      static bool warned = false;
+      if (not warned) {
+        errs() << "Warning: scalable vector operations (" << *opType
+               << ") are not supported and are left uninstrumented\n";
+        warned = true;
+      }
+      return false;
+    }
     auto size = ((::llvm::FixedVectorType *)vecType)->getNumElements();
     bool isValidSize = fops::isValidVectorSize(size);
     if (not isValidSize) {
