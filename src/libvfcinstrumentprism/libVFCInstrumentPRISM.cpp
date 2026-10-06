@@ -68,6 +68,7 @@
 #include <fstream>
 #include <regex>
 
+#include "../common/VectorReduction.hpp"
 #include "TargetFeatures.hpp"
 #include "libVFCInstrumentPRISMOptions.hpp"
 
@@ -950,7 +951,8 @@ struct VfclibInst : public ModulePass {
   }
 
   auto runOnBasicBlock(Module &M, BasicBlock &B) -> bool {
-    bool modified = false;
+    // Expose the arithmetic of vector reductions as scalar operations
+    bool modified = vfc::expandVectorReductions(B);
     std::set<Instruction *> WorkList;
     for (auto &I : B) {
       if (fops::mustReplace(I)) {

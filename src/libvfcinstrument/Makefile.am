@@ -8,4 +8,4 @@ endif
 
 libvfcinstrument_la_CXXFLAGS = @LLVM_CPPFLAGS@ $(WARNING_FLAGS)
 libvfcinstrument_la_LDFLAGS = @LLVM_LDFLAGS@
-libvfcinstrument_la_SOURCES = libVFCInstrument.cpp
+libvfcinstrument_la_SOURCES = libVFCInstrument.cpp ../common/VectorReduction.hpp
