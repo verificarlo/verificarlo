@@ -48,6 +48,7 @@
 #include <sstream>
 #include <utility>
 
+#include "../common/ScalableVector.hpp"
 #include "../common/VectorReduction.hpp"
 
 #define GET_VECTOR_TYPE(ty, size) FixedVectorType::get(ty, size)
@@ -340,13 +341,8 @@ struct VfclibInst : public ModulePass {
     VectorType *vecType = static_cast<VectorType *>(opType);
     auto baseType = vecType->getScalarType();
     if (isa<ScalableVectorType>(vecType)) {
-      // e.g. SVE intrinsics on AArch64: leave them native instead of aborting
-      static bool warned = false;
-      if (not warned) {
-        errs() << "Warning: scalable vector operations (" << *opType
-               << ") are not supported and are left uninstrumented\n";
-        warned = true;
-      }
+      // Scalable vectors of float and double are handled in runOnBasicBlock
+      errs() << "Unsupported operand type: " << *opType << "\n";
       return false;
     }
     auto size = ((::llvm::FixedVectorType *)vecType)->getNumElements();
@@ -703,12 +699,9 @@ struct VfclibInst : public ModulePass {
            shouldPassIndirectly(I->getOperand(0)->getType(), M, isaSuffix);
   }
 
-  Value *replaceWithScalarizedMCACalls(Module &M, IRBuilder<> &Builder,
-                                       Instruction *I, FPOps opCode) {
-    auto *vectorType = cast<FixedVectorType>(I->getOperand(0)->getType());
-    Type *scalarType = vectorType->getElementType();
-    unsigned lanes = vectorType->getNumElements();
-
+  /* Returns the scalar MCA function of opCode on scalarType, e.g. _doubleadd */
+  FunctionCallee getScalarMCAFunction(Module &M, Type *scalarType,
+                                      FPOps opCode) {
     std::vector<Type *> parameterTypes;
     if (opCode == FOP_CMP)
       parameterTypes.push_back(Type::getInt32Ty(M.getContext()));
@@ -723,9 +716,17 @@ struct VfclibInst : public ModulePass {
         "_" + validTypesMap[scalarType->getTypeID()] + Fops2str[opCode];
     FunctionType *functionType =
         FunctionType::get(scalarResultType, parameterTypes, false);
-    FunctionCallee scalarFunction =
-        M.getOrInsertFunction(scalarName, functionType);
+    return M.getOrInsertFunction(scalarName, functionType);
+  }
 
+  Value *replaceWithScalarizedMCACalls(Module &M, IRBuilder<> &Builder,
+                                       Instruction *I, FPOps opCode) {
+    auto *vectorType = cast<FixedVectorType>(I->getOperand(0)->getType());
+    Type *scalarType = vectorType->getElementType();
+    unsigned lanes = vectorType->getNumElements();
+    FunctionCallee scalarFunction = getScalarMCAFunction(M, scalarType, opCode);
+
+    Type *scalarResultType = scalarFunction.getFunctionType()->getReturnType();
     Type *resultType = opCode == FOP_CMP
                            ? FixedVectorType::get(scalarResultType, lanes)
                            : I->getType();
@@ -883,8 +884,8 @@ struct VfclibInst : public ModulePass {
 
   /* Matches llvm.fma and llvm.fmuladd on float and double, scalar or
    * fixed-width vector. Vector forms appear once the loop or SLP vectorizer
-   * has run (e.g. llvm.fma.v8f32 at -O3). Scalable vectors are not supported
-   * by the wrappers and are left untouched. */
+   * has run (e.g. llvm.fma.v8f32 at -O3). Scalable vectors are handled
+   * separately, see replaceScalableOps. */
   bool isFMAOperation(Instruction &I) {
     CallInst *CI = dyn_cast<CallInst>(&I);
     if (CI == nullptr)
@@ -952,12 +953,60 @@ struct VfclibInst : public ModulePass {
     }
   }
 
+  static FPOps getScalableOpCode(vfc::ScalableOpKind kind) {
+    switch (kind) {
+    case vfc::ScalableOpKind::Add:
+      return FOP_ADD;
+    case vfc::ScalableOpKind::Sub:
+      return FOP_SUB;
+    case vfc::ScalableOpKind::Mul:
+      return FOP_MUL;
+    case vfc::ScalableOpKind::Div:
+      return FOP_DIV;
+    case vfc::ScalableOpKind::Fma:
+      return VfclibInstInstrumentFMA ? FOP_FMA : FOP_IGNORE;
+    case vfc::ScalableOpKind::Cmp:
+      return VfclibInstInstrumentFCMP ? FOP_CMP : FOP_IGNORE;
+    }
+    llvm_unreachable("unknown scalable operation");
+  }
+
+  /* Replaces operations on scalable vectors by a loop over their lanes that
+   * calls the scalar MCA function, since the number of lanes is only known
+   * at run time. Each instruction is matched again here, as replacing the
+   * previous ones may have changed its operands. */
+  void replaceScalableOps(Module &M, std::vector<Instruction *> &instructions) {
+    for (auto *I : instructions) {
+      vfc::ScalableOp op = *vfc::matchScalableOp(*I);
+      if (VfclibInstVerbose)
+        errs() << "Instrumenting" << *I << '\n';
+      FPOps opCode = getScalableOpCode(op.kind);
+      Type *scalarType = op.operands[0]->getType()->getScalarType();
+      FunctionCallee scalarFunction =
+          getScalarMCAFunction(M, scalarType, opCode);
+      vfc::replaceScalableOp(
+          op, [&](IRBuilder<> &Builder, ArrayRef<Value *> lanes) -> Value * {
+            std::vector<Value *> arguments;
+            if (opCode == FOP_CMP)
+              arguments.push_back(Builder.getInt32(op.cmpPredicate));
+            arguments.insert(arguments.end(), lanes.begin(), lanes.end());
+            return Builder.CreateCall(scalarFunction, arguments);
+          });
+    }
+  }
+
   bool runOnBasicBlock(Module &M, BasicBlock &B) {
     // Expose the arithmetic of vector reductions as scalar operations
     bool modified = vfc::expandVectorReductions(B);
     std::set<std::pair<Instruction *, FPOps>> WorkList;
+    std::vector<Instruction *> scalableOps;
     for (BasicBlock::iterator ii = B.begin(), ie = B.end(); ii != ie; ++ii) {
       Instruction &I = *ii;
+      if (auto op = vfc::matchScalableOp(I)) {
+        if (getScalableOpCode(op->kind) != FOP_IGNORE)
+          scalableOps.push_back(&I);
+        continue;
+      }
       FPOps opCode = mustReplace(I);
       if (opCode == FOP_IGNORE)
         continue;
@@ -976,6 +1025,10 @@ struct VfclibInst : public ModulePass {
       }
       modified = true;
     }
+
+    // Done last: it splits B, moving the instructions after each operation
+    replaceScalableOps(M, scalableOps);
+    modified |= not scalableOps.empty();
 
     return modified;
   }
