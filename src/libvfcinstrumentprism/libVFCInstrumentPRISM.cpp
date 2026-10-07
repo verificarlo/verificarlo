@@ -68,6 +68,7 @@
 #include <fstream>
 #include <regex>
 
+#include "../common/ScalableVector.hpp"
 #include "../common/VectorReduction.hpp"
 #include "TargetFeatures.hpp"
 #include "libVFCInstrumentPRISMOptions.hpp"
@@ -397,11 +398,11 @@ private:
     return fops::getFpTypeName(Ty->getTypeID());
   }
 
-  auto getFunctionNameScalar(Instruction *I, FPOps opCode) -> std::string {
+  auto getFunctionNameScalar(Type *Ty, FPOps opCode) -> std::string {
     const auto mode = rounding_mode.get_namespace();
     const auto dispatch = dispatch_mode.get_namespace();
     const auto opname = fops::getName(opCode);
-    const auto fpname = getFloatingPointTypeName(I->getType());
+    const auto fpname = getFloatingPointTypeName(Ty);
     const auto fname = opname + fpname;
 
     return "prism::" + mode + "::scalar::" + dispatch + "::" + fname;
@@ -434,7 +435,7 @@ private:
       return getFunctionNameVector(I, opCode, passing);
     }
 
-    return getFunctionNameScalar(I, opCode);
+    return getFunctionNameScalar(I->getType(), opCode);
   }
 
 public:
@@ -476,6 +477,22 @@ public:
     auto F = getCopyFunction(I->getModule(), function, functionName);
     auto *prism_wrapper_function = dyn_cast<Function>(F.getCallee());
     return PrismFunction(prism_wrapper_function, passing_style);
+  }
+
+  // return the scalar prism function of opcode on scalarType, or nullptr
+  auto getScalarPrismFunction(Module *M, Type *scalarType, const FPOps &opcode)
+      -> Function * {
+    auto functionName = getFunctionNameScalar(scalarType, opcode);
+    Function *function = getFunction(functionName);
+    if (function == nullptr) {
+      if (VfclibInstStrictABI) {
+        prism_fatal_error("Function not found: " + functionName);
+      }
+      errs() << "Warning: Function not found: " << functionName << "\n";
+      return nullptr;
+    }
+    auto F = getCopyFunction(M, function, functionName);
+    return dyn_cast<Function>(F.getCallee());
   }
 };
 
@@ -681,13 +698,8 @@ struct VfclibInst : public ModulePass {
     auto *baseType = vecType->getScalarType();
 
     if (isa<ScalableVectorType>(vecType)) {
-      // e.g. SVE intrinsics on AArch64: leave them native instead of aborting
-      static bool warned = false;
-      if (not warned) {
-        errs() << "Warning: scalable vector operations (" << *opType
-               << ") are not supported and are left uninstrumented\n";
-        warned = true;
-      }
+      // Scalable vectors of float and double are handled in runOnBasicBlock
+      errs() << "Unsupported operand type: " << *opType << "\n";
       return false;
     }
     auto size = ((::llvm::FixedVectorType *)vecType)->getNumElements();
@@ -960,11 +972,67 @@ struct VfclibInst : public ModulePass {
     return newInst;
   }
 
+  static auto getScalableOpCode(vfc::ScalableOpKind kind) -> FPOps {
+    switch (kind) {
+    case vfc::ScalableOpKind::Add:
+      return FPOps::ADD;
+    case vfc::ScalableOpKind::Sub:
+      return FPOps::SUB;
+    case vfc::ScalableOpKind::Mul:
+      return FPOps::MUL;
+    case vfc::ScalableOpKind::Div:
+      return FPOps::DIV;
+    case vfc::ScalableOpKind::Fma:
+      return FPOps::FMA;
+    case vfc::ScalableOpKind::Cmp:
+      // comparisons are not instrumented
+      return FPOps::IGNORE;
+    }
+    llvm_unreachable("unknown scalable operation");
+  }
+
+  /* Replace operations on scalable vectors by a loop over their lanes that
+   * calls the scalar prism function, since the number of lanes is only known
+   * at run time. Each instruction is matched again here, as replacing the
+   * previous ones may have changed its operands. Returns true if an
+   * operation was replaced. */
+  auto replaceScalableOps(Module &M, std::vector<Instruction *> &instructions)
+      -> bool {
+    bool modified = false;
+    for (auto *I : instructions) {
+      vfc::ScalableOp op = *vfc::matchScalableOp(*I);
+      auto *scalarType = op.operands[0]->getType()->getScalarType();
+      auto *F = prismModule->getScalarPrismFunction(&M, scalarType,
+                                                    getScalableOpCode(op.kind));
+      if (F == nullptr) {
+        continue;
+      }
+      if (VfclibInstVerbose) {
+        errs() << "Instrumenting" << *I << '\n';
+      }
+      vfc::replaceScalableOp(
+          op, [&](IRBuilder<> &Builder, ArrayRef<Value *> lanes) -> Value * {
+            auto *call = Builder.CreateCall(F, lanes);
+            call->setAttributes(F->getAttributes());
+            return call;
+          });
+      modified = true;
+    }
+    return modified;
+  }
+
   auto runOnBasicBlock(Module &M, BasicBlock &B) -> bool {
     // Expose the arithmetic of vector reductions as scalar operations
     bool modified = vfc::expandVectorReductions(B);
     std::set<Instruction *> WorkList;
+    std::vector<Instruction *> scalableOps;
     for (auto &I : B) {
+      if (auto op = vfc::matchScalableOp(I)) {
+        if (getScalableOpCode(op->kind) != FPOps::IGNORE) {
+          scalableOps.push_back(&I);
+        }
+        continue;
+      }
       if (fops::mustReplace(I)) {
         WorkList.insert(&I);
       }
@@ -980,6 +1048,9 @@ struct VfclibInst : public ModulePass {
         ReplaceInstWithValue(ii, value);
       }
     }
+
+    // Done last: it splits B, moving the instructions after each operation
+    modified |= replaceScalableOps(M, scalableOps);
 
     return modified;
   }

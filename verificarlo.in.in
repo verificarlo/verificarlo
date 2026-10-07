@@ -23,7 +23,6 @@ from __future__ import print_function
 
 import argparse
 import os
-import platform
 import subprocess
 import sys
 import tempfile
@@ -307,19 +306,6 @@ def apply_mca_instrumentation_pass(
     )
 
 
-def get_target_compile_flags(options):
-    # The instrumentation passes only support fixed-width vectors. On AArch64
-    # with SVE (e.g. -march=native), the loop vectorizer emits scalable vectors
-    # (<vscale x N x T>), so keep it on fixed-width (NEON) vectors instead.
-    # LLVM rejects the option if given twice, so respect a user-provided one.
-    if (
-        platform.machine() in ("aarch64", "arm64")
-        and "scalable-vectorization" not in options
-    ):
-        return " -mllvm -scalable-vectorization=off "
-    return ""
-
-
 def compiler_mode(sources, options, output, args, link=False):
     """Compile sources to object files and return their paths.
 
@@ -329,7 +315,6 @@ def compiler_mode(sources, options, output, args, link=False):
     """
     extra_args = "-static " if args.static else "-fPIC "
     ir_ext = "ll" if args.emit_llvm or args.save_temps else "bc"
-    target_flags = get_target_compile_flags(options)
     objects = []
 
     for source in sources:
@@ -356,7 +341,7 @@ def compiler_mode(sources, options, output, args, link=False):
         # Compile to ir (fortran uses flang, c uses clang)
         emit_format = get_emit_format(args)
         shell(
-            f"{compiler} -c {emit_format} -emit-llvm {debug} {source} {include} {COMPILE_EXTRA_FLAGS}{target_flags} {options} -o {ir.name}",
+            f"{compiler} -c {emit_format} -emit-llvm {debug} {source} {include} {COMPILE_EXTRA_FLAGS} {options} -o {ir.name}",
             verbose=args.show_cmd,
         )
 
