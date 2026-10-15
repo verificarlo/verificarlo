@@ -135,7 +135,7 @@ static void _set_bitmask_mode(const bitmask_mode mode, void *context) {
 static void _set_bitmask_operator(const bitmask_operator bitmask,
                                   void *context) {
   bitmask_context_t *ctx = (bitmask_context_t *)context;
-  if (bitmask > _bitmask_operator_end_) {
+  if (bitmask >= _bitmask_operator_end_) {
     logger_error("--%s invalid value provided, must be one of: "
                  "{zero, one, rand}.",
                  key_operator_str);
