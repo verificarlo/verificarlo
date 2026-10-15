@@ -59,6 +59,9 @@ include = [
 [tool.hatch.build.targets.verificarlo]
 packages = ["src/tools/ddebug", "src/tools/ci", "src/tools/usercall", "src/tools/optimize"]
 
+[tool.hatch.build.targets.sdist.force-include]
+"VERSION" = "VERSION"
+
 [project.scripts]
 vfc_ddebug = "verificarlo.ddebug.main:main"
 vfc_ci = "verificarlo.ci.__main__:main"

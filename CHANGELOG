@@ -1,5 +1,27 @@
 Verificarlo CHANGELOG
 
+# [v2.7.0] 2026/10/15
+
+## Added
+  * Add INTERFLOP_ROUND_DW_ID to round double-word values with PRISM, with C and Python user call support
+  * Instrument fixed-width vectorized floating-point sum and product reductions in the MCA and PRISM passes
+  * Add the PRISM_ARCH Docker build argument to select the architecture of PRISM's static kernels
+
+## Changed
+  * Update PRISM to v0.0.12, including shared runtime configuration through libprism-config and experimental Arm support with NEON by default and opt-in SVE
+  * Use fixed-width auto-vectorization on AArch64 by default; leave unsupported scalable vector operations native with a warning
+
+## Fixed
+  * Fix function instrumentation with LLVM opaque pointers: recover floating-point pointee types, avoid instrumenting non-floating-point buffers, and bound forwarded pointer sizes conservatively
+  * Keep frame-sensitive intrinsics and intrinsics requiring immediate operands in their original calling frame, fixing VLA crashes and invalid IR in variadic functions
+  * Fix VPREC function argument precision to use significand bits consistently and reject invalid profile precisions
+  * Instrument llvm.fmuladd intrinsics in the PRISM pass
+  * Fix AArch64 VPREC and PRISM instrumentation, wide-vector comparisons, and the calling convention for wide vectors in SVE MCA wrappers
+  * Link libprism-config when building with --static and PRISM
+  * Include VERSION in the Python source distribution so wheels can be rebuilt from it
+  * Use unique temporary object files when compiling and linking in one step, preventing parallel builds from overwriting each other's objects
+  * Restore test script executable permissions and stop tracking generated shell argument quoting test sources
+
 # [v2.6.0] 2026/09/29
 
 ## Added
