@@ -11,7 +11,7 @@ on:
 
 jobs:
   docker-default:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       TEST_TAG: verificarlo/verificarlo:test
       LATEST_TAG: ${{ github.repository }}:latest
@@ -80,9 +80,13 @@ jobs:
           - os: ubuntu:24.04
             llvm: 20
             gcc: 13
-    runs-on: ubuntu-22.04
+          - os: ubuntu:26.04
+            llvm: 20
+            gcc: 15
+            python: "3.14"
+    runs-on: ubuntu-24.04
     env:
-      TEST_TAG: verificarlo/verificarlo:test-llvm-${{ matrix.llvm }}
+      TEST_TAG: verificarlo/verificarlo:test-${{ matrix.os == 'ubuntu:26.04' && 'ubuntu26-' || '' }}llvm-${{ matrix.llvm }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -98,6 +102,7 @@ jobs:
             UBUNTU_VERSION=${{ matrix.os }}
             LLVM_VERSION=${{ matrix.llvm }}
             GCC_VERSION=${{ matrix.gcc }}
+            PYTHON_VERSION=${{ matrix.python || '3.12' }}
       - name: Test
         run: |
           docker run --rm ${{ env.TEST_TAG }} /bin/bash -c "make -C /build/verificarlo installcheck"
