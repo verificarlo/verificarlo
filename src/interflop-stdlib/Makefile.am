@@ -22,6 +22,7 @@ libinterflop_stdlib_la_CFLAGS = \
 	$(LTO_FLAGS) -O3 \
 	-fno-stack-protector \
 	$(WARNING_FLAGS)
+libinterflop_stdlib_la_LIBADD = -lm
 libinterflop_stdlib_la_LDFLAGS = \
 	$(LTO_FLAGS) -O3
 
