@@ -87,6 +87,11 @@ RUN if [ "$WITH_FLANG" = "flang" ]; then \
 RUN make install-interflop-stdlib
 RUN make && make install
 
+# test_cython needs setuptools (distutils is gone since Python 3.12). Install it
+# from PyPI after verificarlo: the Debian package pulls in python3-typing-extensions,
+# which pip then refuses to replace when installing verificarlo's dependencies.
+RUN python3 -m pip install --break-system-packages setuptools
+
 # Setup working directory
 VOLUME /workdir
 WORKDIR /workdir
