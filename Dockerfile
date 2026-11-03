@@ -26,19 +26,24 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get -y update && apt-get -y --fix-missing --no-install-recommends install tzdata
 
 RUN export UBUNTU_VERSION=$(grep 'VERSION_ID' /etc/os-release | cut -d'=' -f2 | tr -d '"' ) && \
-    if [ "$UBUNTU_VERSION" = "24.04" ]; then \
+    if [ "$UBUNTU_VERSION" != "22.04" ]; then \
     export LIBCLANG_RT="libclang-rt-${LLVM_VERSION}-dev" ; \
     fi && \
     apt-get -y install --no-install-recommends \
     bash ca-certificates make git libmpfr-dev \
     autogen dh-autoreconf autoconf automake autotools-dev libedit-dev libtool libz-dev bzip2 binutils \
     clang-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev \
-    libomp5-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev \
+    libomp-${LLVM_VERSION}-dev \
     ${LIBCLANG_RT} \
     gcc-${GCC_VERSION} g++-${GCC_VERSION} \
     flang-${LLVM_VERSION} \
     python3 python3-pip python3-dev cython3 parallel npm && \
     rm -rf /var/lib/apt/lists/*
+
+# On Ubuntu 26.04 the LLVM tools (e.g. flang) cannot find their shared
+# libraries (libMLIR.so, ...) in /usr/lib/llvm-<N>/lib, which is not in the
+# default loader search path.
+RUN echo "/usr/lib/llvm-${LLVM_VERSION}/lib" > /etc/ld.so.conf.d/llvm-${LLVM_VERSION}.conf && ldconfig
 
 WORKDIR /build/
 
