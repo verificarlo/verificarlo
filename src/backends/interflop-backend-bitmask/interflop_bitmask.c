@@ -216,14 +216,14 @@ static uint64_t get_random_mask() {
 }
 
 /* Returns a 32-bits random mask */
-static uint32_t get_random_binary32_mask() {
+static uint32_t get_random_binary32_mask(void *ctx __attribute__((unused))) {
   binary64 mask;
   mask.u64 = get_random_mask();
   return mask.u32[0];
 }
 
 /* Returns a 64-bits random mask */
-static uint64_t get_random_binary64_mask() {
+static uint64_t get_random_binary64_mask(void *ctx __attribute__((unused))) {
   uint64_t mask = get_random_mask();
   return mask;
 }
