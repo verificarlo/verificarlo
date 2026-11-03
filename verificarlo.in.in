@@ -208,7 +208,7 @@ def linker_mode(objects, options, libraries, output, args):
         )
         cmd = (
             f"{output} {objects} {options} {libraries} "
-            f" -static -lgmp -lm {whole_archive_vfcwrapper} -L{libinterflop_stdlib_lib} -linterflop_stdlib -linterflop_hashmap -linterflop_logger -ldl "
+            f" -static -lgmp -lm {whole_archive_vfcwrapper} -L{libinterflop_stdlib_lib} -linterflop_stdlib -linterflop_hashmap -linterflop_logger -ldl -lm "
         )
     else:
         cmd = (
