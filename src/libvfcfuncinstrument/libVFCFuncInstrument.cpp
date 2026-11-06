@@ -38,11 +38,24 @@
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/Type.h"
 #include "llvm/Passes/PassBuilder.h"
+#if __has_include("llvm/Plugins/PassPlugin.h")
+#include "llvm/Plugins/PassPlugin.h"
+#else
 #include "llvm/Passes/PassPlugin.h"
+#endif
 #include "llvm/Support/Casting.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #pragma GCC diagnostic pop
+#include "llvm/Config/llvm-config.h"
+#include "llvm/IR/IRBuilder.h"
+// CreateGlobalStringPtr was removed in LLVM 22; with opaque pointers
+// CreateGlobalString returns an equivalent pointer-typed value.
+#if LLVM_VERSION_MAJOR >= 22
+#define VFC_CREATE_GLOBAL_STRING(B, ...) (B).CreateGlobalString(__VA_ARGS__)
+#else
+#define VFC_CREATE_GLOBAL_STRING(B, ...) (B).CreateGlobalStringPtr(__VA_ARGS__)
+#endif
 #include <algorithm>
 #include <climits>
 #include <stdio.h>
@@ -609,7 +622,7 @@ void initializeInputArgs(std::vector<Value *> &EnterArgs,
 
     std::string arg_name = getArgName(HookedFunction, args.getArgNo());
     EnterArgs.push_back(Types2val[type]);
-    EnterArgs.push_back(Builder.CreateGlobalStringPtr(arg_name));
+    EnterArgs.push_back(VFC_CREATE_GLOBAL_STRING(Builder, arg_name));
 
     if (type == FFLOAT or type == FDOUBLE) {
       EnterArgs.push_back(ConstantInt::get(Int32Ty, 1));
@@ -634,7 +647,7 @@ void initializeOutputArgs(std::vector<Value *> &ExitArgs,
 
   if (type != FTYPES_END) {
     ExitArgs.push_back(Types2val[type]);
-    ExitArgs.push_back(Builder.CreateGlobalStringPtr("return_value"));
+    ExitArgs.push_back(VFC_CREATE_GLOBAL_STRING(Builder, "return_value"));
 
     if (type == FFLOAT or type == FDOUBLE) {
       ExitArgs.push_back(ConstantInt::get(Int32Ty, 1));
@@ -653,7 +666,7 @@ void initializeOutputArgs(std::vector<Value *> &ExitArgs,
     if (type == FFLOAT_PTR or type == FDOUBLE_PTR) {
       std::string arg_name = getArgName(HookedFunction, args.getArgNo());
       ExitArgs.push_back(Types2val[type]);
-      ExitArgs.push_back(Builder.CreateGlobalStringPtr(arg_name));
+      ExitArgs.push_back(VFC_CREATE_GLOBAL_STRING(Builder, arg_name));
       unsigned int size = getSizeOf(call->getOperand(args.getArgNo()));
       ExitArgs.push_back(ConstantInt::get(Int32Ty, size));
       ExitArgs.push_back(&args);
@@ -902,7 +915,7 @@ struct VfclibFunc : public ModulePass {
       IRBuilder<> Builder(block);
 
       // Create function ID
-      Value *FunctionID = Builder.CreateGlobalStringPtr(FunctionName);
+      Value *FunctionID = VFC_CREATE_GLOBAL_STRING(Builder, FunctionName);
 
       // Constants creation
       Constant *isLibraryFunction = ConstantInt::get(Int8Ty, 0);
@@ -981,7 +994,7 @@ struct VfclibFunc : public ModulePass {
 
                   // Create function ID
                   Value *FunctionID =
-                      Builder.CreateGlobalStringPtr(FunctionName);
+                      VFC_CREATE_GLOBAL_STRING(Builder, FunctionName);
 
                   // Constants creation
                   Constant *isLibraryFunction =
