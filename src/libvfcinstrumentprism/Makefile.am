@@ -8,4 +8,4 @@ endif
 
 libvfcinstrumentprism_la_CXXFLAGS = @LLVM_CPPFLAGS@ -I@INTERFLOP_INCLUDEDIR@ -Wfatal-errors -std=c++17 $(WARNING_FLAGS)
 libvfcinstrumentprism_la_LDFLAGS = @LLVM_LDFLAGS@
-libvfcinstrumentprism_la_SOURCES = libVFCInstrumentPRISM.cpp TargetFeatures.hpp libVFCInstrumentPRISMOptions.hpp ../common/VectorReduction.hpp
+libvfcinstrumentprism_la_SOURCES = libVFCInstrumentPRISM.cpp TargetFeatures.hpp libVFCInstrumentPRISMOptions.hpp ../common/VectorReduction.hpp ../common/ScalableVector.hpp

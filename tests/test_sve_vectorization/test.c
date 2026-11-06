@@ -1,10 +1,9 @@
 /*
  * test_sve_vectorization/test.c
  *
- * Loops that the AArch64 loop vectorizer turns into scalable vectors
+ * Loops that the AArch64 loop vectorizer may turn into scalable vectors
  * (<vscale x N x T>) when SVE is enabled, e.g. with -march=native on an SVE
- * CPU. Verificarlo must keep them instrumentable (fixed-width vectors) or,
- * when scalable vectors are forced, leave them native without aborting.
+ * CPU. Verificarlo must instrument them.
  */
 #include <stdio.h>
 

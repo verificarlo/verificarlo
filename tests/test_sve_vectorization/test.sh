@@ -1,10 +1,8 @@
 #!/bin/bash
-# Test that loops auto-vectorized for SVE on AArch64 do not abort the
-# instrumentation passes:
-#   1. By default, verificarlo keeps the loop vectorizer on fixed-width
-#      vectors, so the vector operations are instrumented (MCA and PRISM).
-#   2. When the user forces scalable vectors, compilation still succeeds and
-#      the scalable operations are left native with a warning.
+# Test that loops auto-vectorized for SVE on AArch64 are instrumented (MCA
+# and PRISM), whether the loop vectorizer chooses fixed-width or scalable
+# vectors, and when scalable vectors are forced. The results of scalable
+# vector operations are checked in test_sve_scalable.
 
 source ../paths.sh
 
@@ -83,25 +81,20 @@ test_prism() {
     check_variability "libinterflop_prism.so"
 }
 
-# Scalable vectors forced by the user: must compile, with a warning
+# Scalable vectors forced by the user
 test_forced_scalable() {
     new_env forced
     verificarlo-c $SVE_FLAGS -mllvm -scalable-vectorization=on --save-temps \
-        test.c -o test 2>log || {
+        test.c -o test || {
         echo "[FAIL] Compilation with forced scalable vectors failed"
-        cat log
         exit 1
     }
     if ! grep -q "<vscale x" *.1.ll; then
         echo "[FAIL] Expected scalable vectors in the IR"
         exit 1
     fi
-    if ! grep -q "scalable vector operations" log; then
-        echo "[FAIL] Expected a warning about scalable vector operations"
-        cat log
-        exit 1
-    fi
-    echo "[PASS] Forced scalable vectors compile with a warning"
+    check_no_native_scalable
+    check_variability "libinterflop_mca.so --precision-binary32=12 --precision-binary64=30"
 }
 
 (test_mca) || exit 1
