@@ -47,8 +47,8 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #pragma GCC diagnostic pop
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/Config/llvm-config.h"
+#include "llvm/IR/IRBuilder.h"
 // CreateGlobalStringPtr was removed in LLVM 22; with opaque pointers
 // CreateGlobalString returns an equivalent pointer-typed value.
 #if LLVM_VERSION_MAJOR >= 22
